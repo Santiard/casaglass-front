@@ -1,3 +1,9 @@
+.contenedor {
+  display: flex;           /* coloca los hijos en fila */
+  justify-content: space-between; /* opcional, separa a los extremos */
+  align-items: flex-start;  /* alinea arriba */
+  gap: 20px;                /* espacio entre columnas */
+}
 .filters{
 
     background: #003399;
@@ -20,3 +26,5 @@
     margin-left: auto;
     color:white;
 }
+
+

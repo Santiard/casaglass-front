@@ -5,6 +5,7 @@ import Home from "./pages/Home.jsx";
 import AdminPage from "./pages/AdminPage.jsx";
 import InventoryPage from "./pages/InventoryPage.jsx";
 import DashboardLayout from "./layouts/DashboardLayout.jsx";
+import VenderPage from "./pages/VenderPage.jsx";
 
 function App() {
   return (
@@ -18,6 +19,7 @@ function App() {
           <Route path="/home" element={<Home />} />
           <Route path="/adminpage" element={<AdminPage />} />
           <Route path="/inventorypage" element={<InventoryPage />} />
+          <Route path="/venderpage" element={<VenderPage/>}/>
         </Route>
       </Routes>
     </Router>

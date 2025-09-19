@@ -1,6 +1,5 @@
 // src/pages/InventoryPage.jsx
 import { useState, useMemo } from "react";
-import Layout from "../layouts/DashboardLayout";
 import Table from "../componets/InventoryTable.jsx";
 import Filter from "../componets/InventaryFilters.jsx";
 import "../styles/InventoryPage.css";

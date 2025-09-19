@@ -1,0 +1,73 @@
+/* Contenedor con scroll */
+.vender-table-container {
+  max-height: 400px;      /* ajusta altura visible */
+  overflow-y: auto;       /* scroll vertical si excede altura */
+  border: 1px solid #ccc; /* opcional, borde contenedor */
+  border-radius: 8px;
+}
+
+/* Tabla */
+.vender-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: Arial, sans-serif;
+  font-size: 14px;
+}
+
+/* Encabezado */
+.vender-table thead {
+  background-color: #003399; /* azul rey */
+  color: #ffffff;
+}
+
+.vender-table th,
+.vender-table td {
+  padding: 10px 12px;
+  text-align: left;
+  border-bottom: 1px solid #ddd;
+}
+
+/* Filas */
+.vender-table tbody tr:nth-child(even) {
+  background-color: #f9f9f9;
+}
+
+.vender-table tbody tr:hover {
+  background-color: #e6f0ff; /* azul clarito al hover */
+}
+
+/* Celda sin datos */
+.vender-table td[colspan] {
+  text-align: center;
+  font-style: italic;
+  color: #666;
+}
+
+/* Botones */
+.btn-edit,
+.btn-delete {
+  padding: 5px 10px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  margin-right: 5px;
+}
+
+.btn-edit {
+  background-color: #003399; /* azul rey */
+  color: #fff;
+}
+
+.btn-edit:hover {
+  background-color: #002266;
+}
+
+.btn-delete {
+  background-color: #ff4d4d;
+  color: #fff;
+}
+
+.btn-delete:hover {
+  background-color: #cc0000;
+}

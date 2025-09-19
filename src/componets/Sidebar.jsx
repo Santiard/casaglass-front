@@ -38,14 +38,20 @@ export default function Sidebar({isOpen}){
         </li>
         <li>
           <a href="#config">
-            <img src={ventas } alt="VENTAS " className="logos"/>
-            <span className="text">Ventas</span>
+            <img src={ventas } alt="VENTAS RELIZADAS" className="logos"/>
+            <span className="text">Ventas Realizadas</span>
           </a>
         </li>
         <li>
           <a href="#config">
             <img src={movimientos } alt="MOVIMIENTOS " className="logos"/>
             <span className="text">Movimientos</span>
+          </a>
+        </li>
+        <li>
+          <a href="#config">
+            <img src={ventas } alt="Vender " className="logos"/>
+            <span className="text">Vender</span>
           </a>
         </li>
         <div className="SideBar-Space">

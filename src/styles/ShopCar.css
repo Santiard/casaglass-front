@@ -1,0 +1,20 @@
+.main{
+    background: #f9f9f9;
+    border-radius: 1rem;
+    margin: 3rem;
+    padding-left: 8rem;
+    padding-bottom: 2rem;
+}
+.products{
+    text-align: left;
+}
+.barra img{
+    width: 8%;
+}
+.barra{
+    display: flex;
+    justify-content: space-between; /* separa extremos */
+    align-items: center;           /* centra verticalmente */
+    padding: 0 1rem;   
+    background: #003399;
+}

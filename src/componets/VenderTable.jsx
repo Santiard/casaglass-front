@@ -1,8 +1,10 @@
-import "../styles/InventoryTable.css"
-export default function InventoryTable({ data = [] }) {
+import "../styles/VenderTable.css"
+import NumberInput from "./NumberInput";
+
+export default function VenderTable ({ data = [] }) {
   return (
-    <div className="inventory-table-container">
-      <table className="inventory-table">
+    <div className="vender-table-container">
+      <table className="vender-table">
         <thead>
           <tr>
             <th>Producto</th>
@@ -13,7 +15,8 @@ export default function InventoryTable({ data = [] }) {
             <th>Cantidad Patios</th>
             <th>Precio</th>
             <th>Precio Especial</th>
-            <th>Acciones</th>
+            <th>Cantidad Vender</th>
+            <th>Agregar</th>
            
             
           </tr>
@@ -44,8 +47,11 @@ export default function InventoryTable({ data = [] }) {
                   <td>{item.precio != null ? item.precio : "-"}</td>
                   <td>{item.precioEspecial != null ? item.precioEspecial : "-"}</td>
                   <td>
-                    <button className="btn-edit">Editar</button>
-                    <button className="btn-delete">Eliminar</button>
+                    <NumberInput min={0} max={999} step={1} initial={0}/>
+                    
+                  </td>
+                  <td>
+                    <button className="btn-edit" >Agregar</button>
                   </td>
                 </tr>
               );
