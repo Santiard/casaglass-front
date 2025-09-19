@@ -1,10 +1,11 @@
 /* Sidebar base */
+/* Prueba commit */
 .sidebar {
   position: fixed;
   top: 4rem; /* debajo del header */
   left: 0;
   width: 15rem; /* ≈240px */
-  height: calc(100% - 4rem);
+  height: calc(100vh- 4rem);
   background-color: #e8e8e8;
   overflow-y: auto;
   transition: transform 0.3s ease;
@@ -56,7 +57,7 @@
 }
 
 .sidebar a:hover {
-  background: #2424a8;
+  background:#003399;
   color: #fff;
 }
 

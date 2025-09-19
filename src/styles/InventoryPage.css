@@ -3,9 +3,20 @@
     background: #003399;
     padding-top: 10px;
     padding-bottom: 10px;
-    padding-left: 10%;
-    padding-right: 10%;
     display: flex;
+    justify-content: center;
     gap: 10px;
     border-radius: 15px;
+}
+
+.buttons{
+    
+    display: flex;
+
+}
+.buttons button{
+    margin-top: 3%;
+    background: #003399;
+    margin-left: auto;
+    color:white;
 }

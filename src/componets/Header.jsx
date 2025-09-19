@@ -8,8 +8,6 @@ export default function Header({ username , toggleSidebar}) {
       <div className="hamburger" onClick={toggleSidebar}>
         <img className="options" src={options}></img>
       </div>
-      <h1>CASAGLASS APP</h1>
-
       <div className="div-perfil">
         <h3>{username}</h3>
         <div className="perfil-container">

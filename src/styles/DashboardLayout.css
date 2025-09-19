@@ -10,7 +10,7 @@
 }
 
 .sidebar {
-  width: 240px; /* ancho fijo */
+  width: 15rem; /* ancho fijo */
   flex-shrink: 0;
   background: #f5f5f5;
 }
@@ -24,8 +24,9 @@
 }
 
 /* En móvil ocupar todo ancho */
-@media (max-width: 768px) {
-  .main-content {
+@media (max-width: 700px) {
+  .dashboard-main {
     margin-left: 0;
   }
 }
+
