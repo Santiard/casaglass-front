@@ -5,13 +5,40 @@ import Filter from "../componets/InventaryFilters.jsx";
 import ShopCar from "../componets/ShopCar.jsx";
 
 export default function VenderPage() {
-  // Productos en carrito
   const [productosCarrito, setProductosCarrito] = useState([]);
 
-  // Función para agregar producto al carrito
-  const agregarProducto = (producto) => {
-    setProductosCarrito([...productosCarrito, producto]);
+  // Agregar producto al carrito con la cantidad seleccionada
+  const agregarProducto = (producto, cantidad) => {
+    if (cantidad <= 0) return; // No agregar si la cantidad es 0 o negativa
+
+    const index = productosCarrito.findIndex(
+      (p) => p.id === producto.id && p.precioUsado === producto.precioUsado
+    );
+
+    if (index !== -1) {
+      const newCarrito = [...productosCarrito];
+      newCarrito[index].cantidadVender += cantidad;
+      setProductosCarrito(newCarrito);
+    } else {
+      setProductosCarrito([...productosCarrito, { ...producto, cantidadVender: cantidad }]);
+    }
   };
+
+  // Actualizar precio de un producto ya agregado
+  const actualizarPrecio = (id, precioUsado) => {
+    const index = productosCarrito.findIndex((p) => p.id === id);
+    if (index !== -1) {
+      const newCarrito = [...productosCarrito];
+      newCarrito[index].precioUsado = precioUsado;
+      setProductosCarrito(newCarrito);
+    }
+  };
+
+  const limpiarCarrito = () => {
+  setProductosCarrito([]);
+  localStorage.removeItem("shopItems"); // también limpia localStorage
+};
+
 
   // Datos de inventario
   const [data] = useState([
@@ -57,7 +84,7 @@ export default function VenderPage() {
     priceMax: "",
   });
 
-  // Filtrado de datos según filtros
+  // Filtrado de datos
   const filteredData = useMemo(() => {
     const search = (filters.search || "").toLowerCase().trim();
     const category = filters.category || "";
@@ -95,13 +122,15 @@ export default function VenderPage() {
       });
   }, [data, filters]);
 
-  // Calcular subtotal y total del carrito
-  const subtotal = productosCarrito.length * 100; // ejemplo fijo, puedes sumar precios reales
-  const total = subtotal * 1.19; // agregando IVA 19%
+  // Subtotal y total
+  const subtotal = productosCarrito.reduce(
+    (acc, item) => acc + (item.precioUsado || item.precio) * item.cantidadVender,
+    0
+  );
+  const total = subtotal * 1.19;
 
   return (
     <div className="contenedor">
-      {/* Sección de filtros y tabla */}
       <div className="tablas">
         <h3>Filtros para venta:</h3>
         <div className="filters">
@@ -109,23 +138,15 @@ export default function VenderPage() {
         </div>
 
         <div className="table">
-          <Table data={filteredData} />
-        </div>
-
-        <div className="buttons">
-          {/* Ejemplo: agrega el primer producto filtrado al carrito */}
-          <button
-            onClick={() =>
-              filteredData[0] ? agregarProducto(filteredData[0].nombre) : null
-            }
-          >
-            Agregar producto
-          </button>
+          <Table
+            data={filteredData}
+            onAgregarProducto={agregarProducto}
+            onActualizarPrecio={actualizarPrecio}
+          />
         </div>
       </div>
 
-      {/* Carrito flotante */}
-      <ShopCar productosCarrito={productosCarrito} subtotal={subtotal} total={total} />
+      <ShopCar productosCarrito={productosCarrito} subtotal={subtotal} total={total} limpiarCarrito={limpiarCarrito}/>
     </div>
   );
 }

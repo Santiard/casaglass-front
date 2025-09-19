@@ -1,7 +1,14 @@
-import "../styles/VenderTable.css"
-import NumberInput from "./NumberInput";
+import "../styles/VenderTable.css";
+import { useState } from "react";
 
-export default function VenderTable ({ data = [] }) {
+export default function VenderTable({ data = [], onAgregarProducto, onActualizarPrecio }) {
+  // Guardamos las cantidades locales por producto
+  const [cantidades, setCantidades] = useState({});
+
+  const handleCantidadChange = (id, valor) => {
+    setCantidades({ ...cantidades, [id]: valor });
+  };
+
   return (
     <div className="vender-table-container">
       <table className="vender-table">
@@ -16,15 +23,14 @@ export default function VenderTable ({ data = [] }) {
             <th>Precio</th>
             <th>Precio Especial</th>
             <th>Cantidad Vender</th>
+            <th>Precio a usar</th>
             <th>Agregar</th>
-           
-            
           </tr>
         </thead>
         <tbody>
           {data.length === 0 ? (
             <tr>
-              <td colSpan="9">No hay registros</td>
+              <td colSpan="11">No hay registros</td>
             </tr>
           ) : (
             data.map((item) => {
@@ -35,6 +41,8 @@ export default function VenderTable ({ data = [] }) {
                 item.cantidad != null
                   ? Number(item.cantidad)
                   : cantidadInsula + cantidadCentro + cantidadPatios;
+
+              if (!item.selectedPriceType) item.selectedPriceType = "precio";
 
               return (
                 <tr key={item.id}>
@@ -47,11 +55,43 @@ export default function VenderTable ({ data = [] }) {
                   <td>{item.precio != null ? item.precio : "-"}</td>
                   <td>{item.precioEspecial != null ? item.precioEspecial : "-"}</td>
                   <td>
-                    <NumberInput min={0} max={999} step={1} initial={0}/>
-                    
+                    <input
+                      type="number"
+                      min={0}
+                      max={999}
+                      step={1}
+                      value={cantidades[item.id] ?? 0}
+                      onChange={(e) => handleCantidadChange(item.id, Number(e.target.value))}
+                    />
                   </td>
                   <td>
-                    <button className="btn-edit" >Agregar</button>
+                    <select
+                      value={item.selectedPriceType}
+                      onChange={(e) => {
+                        const tipo = e.target.value;
+                        item.selectedPriceType = tipo;
+                        if (onActualizarPrecio) {
+                          onActualizarPrecio(item.id, item[tipo]);
+                        }
+                      }}
+                    >
+                      <option value="precio">Precio normal ({item.precio})</option>
+                      {item.precioEspecial != null && (
+                        <option value="precioEspecial">
+                          Precio especial ({item.precioEspecial})
+                        </option>
+                      )}
+                    </select>
+                  </td>
+                  <td>
+                    <button
+                      className="btn-edit"
+                      onClick={() =>
+                        onAgregarProducto(item, cantidades[item.id] ?? 0)
+                      }
+                    >
+                      Agregar
+                    </button>
                   </td>
                 </tr>
               );
