@@ -1,20 +1,79 @@
-.main{
-    background: #f9f9f9;
-    border-radius: 1rem;
-    margin: 3rem;
-    padding-left: 8rem;
-    padding-bottom: 2rem;
+/* Contenedor principal del carrito */
+.shopcar {
+  position: fixed;
+  right: 20px;
+  bottom: 0;
+  width: 300px;
+  max-height: 400px;
+  transform: translateY(90%); /* Solo la pestaña visible */
+  transition: transform 0.3s ease;
+  box-shadow: -2px 0 10px rgba(0,0,0,0.2);
+  border-radius: 1rem 1rem 0 0;
+  background: #f9f9f9;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  z-index: 1000;
 }
-.products{
-    text-align: left;
+
+.shopcar.open {
+  transform: translateY(0); /* Se despliega hacia arriba */
 }
-.barra img{
-    width: 8%;
+
+/* Pestaña azul */
+.tab {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #003399;
+  color: white;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
 }
-.barra{
-    display: flex;
-    justify-content: space-between; /* separa extremos */
-    align-items: center;           /* centra verticalmente */
-    padding: 0 1rem;   
-    background: #003399;
+
+.tab img {
+  width: 20px;
+  transition: transform 0.3s ease;
+}
+
+.tab img.rotated {
+  transform: rotate(180deg);
+}
+
+/* Contenido interno del carrito */
+.main {
+  padding: 1rem;
+  flex: 1;
+  overflow-y: auto;
+}
+
+.products ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.products li {
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #ccc;
+}
+
+.numbers {
+  margin-top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.numbers button {
+  background: #003399;
+  color: white;
+  border: none;
+  padding: 0.5rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+}
+
+.numbers button:hover {
+  background: #0055ff;
 }
