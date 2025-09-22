@@ -8,6 +8,7 @@ import ventas from "../assets/ventas.png";
 import movimientos from "../assets/movimientos.png";
 import Configuracion from "../assets/Configuracion.png";
 import salir from "../assets/logout.png"
+import { Link } from 'react-router-dom';
 
 
 export default function Sidebar({isOpen}){
@@ -19,16 +20,16 @@ export default function Sidebar({isOpen}){
           <img src={logo } alt="Logo Casaglass" className="logocasaglass"/>
         </li>
         <li>
-            <a href="#home">
+            <Link to="/home">
             <img src={home } alt="HOME " className="logos"/>
             <span className="text">Inicio</span>
-          </a>
+          </Link>
         </li>
         <li>
-          <a href="#perfil">
+          <Link to="/inventorypage">
             <img src={inventario } alt="INVENTARIO " className="logos"/>
             <span className="text">Inventario</span>
-          </a>
+          </Link>
         </li>
         <li>
           <a href="#config">
@@ -37,10 +38,10 @@ export default function Sidebar({isOpen}){
           </a>
         </li>
         <li>
-          <a href="#config">
-            <img src={ventas } alt="VENTAS RELIZADAS" className="logos"/>
+          <Link to ="/ventasrealizadas">
+            <img src={ventas} alt="VENTAS RELIZADAS" className="logos"/>
             <span className="text">Ventas Realizadas</span>
-          </a>
+          </Link>
         </li>
         <li>
           <a href="#config">
@@ -49,10 +50,10 @@ export default function Sidebar({isOpen}){
           </a>
         </li>
         <li>
-          <a href="#config">
+          <Link to="/venderpage">
             <img src={ventas } alt="Vender " className="logos"/>
             <span className="text">Vender</span>
-          </a>
+          </Link>
         </li>
         <div className="SideBar-Space">
 

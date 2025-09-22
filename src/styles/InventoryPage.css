@@ -6,7 +6,7 @@
 }
 .filters{
 
-    background: #003399;
+    background: var(--color-light-blue);
     padding-top: 10px;
     padding-bottom: 10px;
     display: flex;
@@ -22,7 +22,7 @@
 }
 .buttons button{
     margin-top: 3%;
-    background: #003399;
+    background: var(--color-light-blue);
     margin-left: auto;
     color:white;
 }

@@ -1,0 +1,15 @@
+.ventasHoySedes{
+    display: flex;
+    gap:2rem;
+    background: var(--color-light-gray);
+    padding: 0.3rem;
+    border-radius: 0.8rem;
+}
+.Contenedor{
+}
+
+.comparativas{
+    display: flex;
+    background-color: var(--color-light-gray);
+    border-radius: 0.5rem;
+}

@@ -5,7 +5,7 @@
   left: 0;
   width: 15rem; /* ≈240px */
   height: calc(100% - 4rem);
-  background-color: #e8e8e8;
+  background: #e0e0e0;
   overflow-y: auto;
   transition: transform 0.3s ease;
 }
@@ -56,7 +56,7 @@
 }
 
 .sidebar a:hover {
-  background: #2424a8;
+  background:var(--color-dark-blue);
   color: #fff;
 }
 

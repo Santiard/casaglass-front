@@ -5,7 +5,7 @@
   bottom: 0;
   width: 300px;
   max-height: 400px;
-  transform: translateY(90%); /* Solo la pestaña visible */
+  transform: translateY(85%); /* Solo la pestaña visible */
   transition: transform 0.3s ease;
   box-shadow: -2px 0 10px rgba(0,0,0,0.2);
   border-radius: 1rem 1rem 0 0;
@@ -25,7 +25,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: #003399;
+  background: var(--color-light-blue);
   color: white;
   padding: 0.5rem 1rem;
   cursor: pointer;
@@ -34,6 +34,7 @@
 .tab img {
   width: 20px;
   transition: transform 0.3s ease;
+  filter: brightness(0) invert(1);
 }
 
 .tab img.rotated {
@@ -66,7 +67,7 @@
 }
 
 .numbers button {
-  background: #003399;
+  background: var(--color-light-blue);
   color: white;
   border: none;
   padding: 0.5rem;
@@ -75,5 +76,5 @@
 }
 
 .numbers button:hover {
-  background: #0055ff;
+  background:  var(--color-dark-blue);
 }

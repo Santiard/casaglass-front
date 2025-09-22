@@ -1,40 +1,131 @@
-.formLogin {
-    display:flex;
-    flex-direction: column; 
-    align-items: center;
+/* Contenedor general */
+.login-container {
+  display: flex;
+  min-height: 100vh;
+  margin: 0;
+}
+
+/* --- Barra izquierda --- */
+.login-left {
+  flex: 0.4; /* ocupa el 40% */
+  background: #1e2753;
+  color: white;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 3rem;
+}
+
+.title {
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+}
+
+.subtitle {
+  font-size: 1.1rem;
+  line-height: 1.5;
+  max-width: 400px;
+}
+
+/* --- Barra derecha --- */
+.login-right {
+  flex: 0.9; /* ocupa el 60% */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 3rem;
+
+  background-image: url("../assets/background.jpg");
+  background-size: cover;      /* cubre todo el área */
+  background-position: center; /* centrada */
+  background-repeat: no-repeat;
+  background-attachment: fixed; /* la hace fija */
+  min-height: 100vh;
+  overflow: hidden; 
+}
+.formulario{
+    display: flex;
+    flex-direction: column;
     justify-content: center;
-    background: #f5f5f5;
+    align-items: center;
+    background: #fff;
+    border: 1px;
     border-radius: 15px;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-     width: 90%;         /* ocupa 90% del ancho de la pantalla */
-     max-width: 400px;   /* pero no más de 400px */
-     margin: 40px auto;  /* centrado horizontal y margen arriba/abajo */
-
-    padding: 20px;      /* relleno interno */
-    box-sizing: border-box;
+    padding: 3rem;
+    gap: 1rem;
+}
+.logo{
+    width: 15rem;
 }
 
-.formLogin button {
-    background: #3700ff;
-    color: #fff;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    width: 95%;
-    margin-top: 20px;
+.welcome {
+  font-size: 1.8rem;
+  margin-bottom: 0.5rem;
 }
 
-.formLogin button :hover {
-    background: #14005d;
-    
+.signup a {
+  color: #1e2753;
+  text-decoration: none;
+  font-weight: bold;
 }
 
-.formLogin input {
-    width: 95%;
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  width: 100%;
+  max-width: 350px;
 }
-.logocasaglas-login {
-  width: 150px;        /* ancho deseado */
-  height: auto;        /* mantiene proporción */
-  display: block;      /* quita inline-gap */
-  margin: 0 auto 20px; /* centra horizontal + espacio abajo */
+
+.login-form input {
+  padding: 0.8rem;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  outline: none;
+}
+
+.btn {
+  padding: 0.8rem;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.btn-black {
+  background-color: #1e2753;
+  color: white;
+}
+
+.btn-google {
+  background-color: white;
+  border: 1px solid #ccc;
+}
+
+.forgot {
+  margin-top: 1rem;
+  font-size: 0.9rem;
+  color: #1e2753;
+  text-decoration: none;
+}
+
+/* --- Responsive para móviles --- */
+@media (max-width: 768px) {
+  .login-container {
+    flex-direction: column;
+  }
+
+  .login-left {
+    display: none; /* ocultamos la barra izquierda */
+  }
+
+  .login-right {
+    flex: 1;
+    width: 100%;
+    align-items: center;
+    text-align: center;
+    padding: 2rem;
+  }
 }

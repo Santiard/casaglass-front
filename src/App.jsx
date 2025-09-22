@@ -6,7 +6,7 @@ import AdminPage from "./pages/AdminPage.jsx";
 import InventoryPage from "./pages/InventoryPage.jsx";
 import DashboardLayout from "./layouts/DashboardLayout.jsx";
 import VenderPage from "./pages/VenderPage.jsx";
-
+import VentasRealizadasPage from "./pages/VentasRealizadasPage.jsx";
 function App() {
   return (
     <Router>
@@ -16,10 +16,11 @@ function App() {
 
         {/* Rutas que SÍ usan layout */}
         <Route element={<DashboardLayout username="Nicole Velandia" />}>
-          <Route path="/home" element={<Home />} />
+          <Route path="/home" element={<Home sede="Insula"/>} />
           <Route path="/adminpage" element={<AdminPage />} />
           <Route path="/inventorypage" element={<InventoryPage />} />
           <Route path="/venderpage" element={<VenderPage/>}/>
+          <Route path="/ventasrealizadas" element={<VentasRealizadasPage/>}/>
         </Route>
       </Routes>
     </Router>

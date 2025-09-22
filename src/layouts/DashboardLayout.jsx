@@ -13,7 +13,7 @@ export default function DashboardLayout({ username }) {
   const toggleSidebar = () => {
     setSidebarOpen(prev => {
       localStorage.setItem("sidebarOpen", !prev);
-      return !prev;
+      return !prev
     });
   };
 
