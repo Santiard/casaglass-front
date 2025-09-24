@@ -1,0 +1,74 @@
+/* Contenedor con scroll */
+.clientes-table-container {
+  max-height: 400px;      /* ajusta altura visible */
+  overflow-y: auto;       /* scroll vertical si excede altura */
+  border: 1px solid #ccc; /* opcional, borde contenedor */
+  border-radius: 8px;
+}
+
+/* Tabla */
+.clientes-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: Arial, sans-serif;
+  font-size: 14px;
+}
+
+/* Encabezado */
+.clientes-table thead {
+  background: var(--color-light-blue); /* azul rey */
+  color: #ffffff;
+}
+
+.clientes-table th,
+.clientes-table td {
+  padding: 10px 12px;
+  text-align: left;
+  border-bottom: 1px solid #ddd;
+}
+
+/* Filas */
+.clientes-table tbody tr:nth-child(even) {
+  background-color: #f9f9f9;
+}
+
+.clientes-table tbody tr:hover {
+  background-color: #e6f0ff; /* azul clarito al hover */
+}
+
+/* Celda sin datos */
+.clientes-table td[colspan] {
+  text-align: center;
+  font-style: italic;
+  color: #666;
+}
+
+/* Botones */
+.btn-edit,
+.btn-delete {
+  padding: 5px 10px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  margin-right: 5px;
+}
+
+.btn-edit {
+  background-color: var(--color-light-blue); /* azul rey */
+  color: #fff;
+}
+
+.btn-edit:hover {
+  background: var(--color-dark-blue);
+
+}
+
+.btn-delete {
+  background-color: #ff4d4d;
+  color: #fff;
+}
+
+.btn-delete:hover {
+  background-color: #cc0000;
+}
