@@ -132,7 +132,6 @@ export default function VenderPage() {
   return (
     <div className="contenedor">
       <div className="tablas">
-        <h3>Filtros para venta:</h3>
         <div className="filters">
           <Filter filters={filters} setFilters={setFilters} />
         </div>

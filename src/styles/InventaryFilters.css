@@ -1,0 +1,59 @@
+.filters-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  background: #f9fafb;
+  padding: 0.75rem 1rem;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+}
+
+.filter-input,
+.filter-select {
+  padding: 0.25rem 0.5rem;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.filter-input:focus,
+.filter-select:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.25);
+}
+
+.btn-add {
+  background: #2563eb;
+  color: white;
+  font-weight: 500;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.btn-add:hover {
+  background: #1d4ed8;
+}
+.btn-add img{
+  filter: brightness(0) invert(1);
+}
+.filters-toolbar button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  background:  var(--color-dark-blue);  /* azul */
+  color: white;
+  font-weight: 500;
+  border: none;
+  border-radius: 9999px;        /* redondeado pill */
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  border: 1px;
+  border-color: #fff;
+}

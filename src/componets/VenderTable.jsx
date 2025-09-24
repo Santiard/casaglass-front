@@ -1,4 +1,4 @@
-import "../styles/VenderTable.css";
+import "../styles/Table.css";
 import { useState } from "react";
 
 export default function VenderTable({ data = [], onAgregarProducto, onActualizarPrecio }) {
@@ -10,8 +10,8 @@ export default function VenderTable({ data = [], onAgregarProducto, onActualizar
   };
 
   return (
-    <div className="vender-table-container">
-      <table className="vender-table">
+    <div className="table-container">
+      <table className="table">
         <thead>
           <tr>
             <th>Producto</th>

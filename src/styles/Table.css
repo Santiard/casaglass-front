@@ -1,0 +1,159 @@
+/* Contenedor con scroll */
+.table-container {
+  max-height: 400px;      /* ajusta altura visible */
+  overflow-y: auto;       /* scroll vertical si excede altura */
+  border: 1px solid #ccc; /* opcional, borde contenedor */
+  border-radius: 8px;
+}
+
+/* Tabla */
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: Arial, sans-serif;
+  font-size: 14px;
+}
+
+/* Encabezado */
+.table thead {
+  background: var(--color-light-blue); /* azul rey */
+  color: #ffffff;
+}
+
+.table th,
+.table td {
+  padding: 1px 6px;
+  text-align: left;
+  border-bottom: 1px solid #ddd;
+}
+
+/* Filas */
+.table tbody tr:nth-child(even) {
+  background-color: #f9f9f9;
+}
+
+.table tbody tr:hover {
+  background-color: #e6f0ff; /* azul clarito al hover */
+}
+
+/* Celda sin datos */
+.table td[colspan] {
+  text-align: center;
+  font-style: italic;
+  color: #666;
+}
+
+/* Botones */
+
+.btn-delete {
+  padding: 5px 10px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  margin-right: 5px;
+}
+
+.btn-delete {
+  background-color: #ff4d4d;
+  color: #fff;
+}
+
+.btn-delete:hover {
+  background-color: #cc0000;
+}
+.iconButton{
+  width: 1rem;
+}
+.btnEdit,
+.btnDelete :hover{
+  cursor: pointer;
+}
+.btnEdit{
+  margin-right: 1rem;
+  margin-left: 1rem;
+}
+
+.btnDelete{
+  background: #cc0000;
+  border-color: #cc0000;
+}
+.btnDelete img{
+  filter: brightness(0) invert(1);
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  background: #f9fafb;          /* fondo claro */
+  padding: 0.75rem 1rem;
+  border-radius: 12px;
+  margin-bottom: 1rem;
+  border: 1px solid #e5e7eb; 
+  background: var(--color-light-blue)   /* gris suave */
+}
+
+.clientes-pager {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: auto;     /* lo empuja al extremo derecho */
+}
+
+.clientes-input,
+.clientes-select {
+  padding: 8px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 9999px;        /* bordes súper redondeados */
+  font-size: 14px;
+  background-color: #fff;
+  outline: none;
+  transition: all 0.2s ease;
+}
+.clientes-input:focus,
+.clientes-select:focus {
+  border-color: #6366f1;        /* azul elegante */
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+}
+
+/* Botón "Agregar Nuevo Cliente" */
+.toolbar button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  background:  var(--color-dark-blue);  /* azul */
+  color: white;
+  font-weight: 500;
+  border: none;
+  border-radius: 9999px;        /* redondeado pill */
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  border: 1px;
+  border-color: #fff;
+}
+
+
+.toolbar button:hover {
+  background: var(--color-dark-blue);    /* azul más oscuro */
+}
+.iconButton {
+  width: 16px;
+  height: 16px;
+}
+.addButton img{
+  filter: brightness(0) invert(1);
+}
+
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Quitar flechas en Firefox */
+input[type="number"] {
+  -moz-appearance: textfield;
+}

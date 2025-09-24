@@ -7,7 +7,9 @@ import clientes from "../assets/clientes.png";
 import ventas from "../assets/ventas.png";
 import movimientos from "../assets/movimientos.png";
 import Configuracion from "../assets/Configuracion.png";
-import salir from "../assets/logout.png"
+import salir from "../assets/logout.png";
+import producto from "../assets/producto.png";
+import entrega from "../assets/entrega.png";
 import { Link } from 'react-router-dom';
 
 
@@ -32,10 +34,10 @@ export default function Sidebar({isOpen}){
           </Link>
         </li>
         <li>
-          <a href="#config">
+          <Link to="/clientes">
             <img src={clientes } alt="CLIENTES " className="logos"/>
             <span className="text">Clientes</span>
-          </a>
+          </Link>
         </li>
         <li>
           <Link to ="/ventasrealizadas">
@@ -53,6 +55,18 @@ export default function Sidebar({isOpen}){
           <Link to="/venderpage">
             <img src={ventas } alt="Vender " className="logos"/>
             <span className="text">Vender</span>
+          </Link>
+        </li>
+        <li>
+          <Link to="/venderpage">
+            <img src={producto } alt="Ingresos " className="logos"/>
+            <span className="text">Ingresos Producto</span>
+          </Link>
+        </li>
+        <li>
+          <Link to="/venderpage">
+            <img src={entrega } alt="Entregas " className="logos"/>
+            <span className="text">Entregas Dinero</span>
           </Link>
         </li>
         <div className="SideBar-Space">

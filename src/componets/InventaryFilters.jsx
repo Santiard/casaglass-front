@@ -1,9 +1,10 @@
-
-
-export default function InventoryFilters({ filters = {}, setFilters }) {
+import add from "../assets/add.png";
+import "../styles/InventaryFilters.css";
+export default function InventoryFilters({ filters = {}, setFilters, onAddProduct }) {
   return (
-    <div className="filters">
+    <div className="filters-toolbar">
       <input
+        className="filter-input"
         type="text"
         placeholder="Buscar por nombre..."
         value={filters.search || ""}
@@ -11,6 +12,7 @@ export default function InventoryFilters({ filters = {}, setFilters }) {
       />
 
       <select
+        className="filter-select"
         value={filters.category || ""}
         onChange={(e) => setFilters({ ...filters, category: e.target.value })}
       >
@@ -21,6 +23,7 @@ export default function InventoryFilters({ filters = {}, setFilters }) {
       </select>
 
       <select
+        className="filter-select"
         value={filters.sede || ""}
         onChange={(e) => setFilters({ ...filters, sede: e.target.value })}
       >
@@ -31,6 +34,7 @@ export default function InventoryFilters({ filters = {}, setFilters }) {
       </select>
 
       <select
+        className="filter-select"
         value={filters.status || ""}
         onChange={(e) => setFilters({ ...filters, status: e.target.value })}
       >
@@ -38,6 +42,11 @@ export default function InventoryFilters({ filters = {}, setFilters }) {
         <option value="Disponible">Disponible</option>
         <option value="Agotado">Agotado</option>
       </select>
+
+      <button className="btn-add" onClick={onAddProduct}>
+      <img src={add} className="iconButton"/>
+      Agregar producto
+      </button>
     </div>
   );
 }

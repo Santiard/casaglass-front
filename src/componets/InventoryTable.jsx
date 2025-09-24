@@ -1,4 +1,7 @@
+import eliminar from "../assets/eliminar.png";
+
 import "../styles/InventoryTable.css"
+
 export default function InventoryTable({ data = [] }) {
   return (
     <div className="inventory-table-container">
@@ -45,7 +48,9 @@ export default function InventoryTable({ data = [] }) {
                   <td>{item.precioEspecial != null ? item.precioEspecial : "-"}</td>
                   <td>
                     <button className="btn-edit">Editar</button>
-                    <button className="btn-delete">Eliminar</button>
+                    <button className="btnDelete" onClick={() => onEliminar(cli)}>
+                      <img src={eliminar} className="iconButton"/>
+                    </button>
                   </td>
                 </tr>
               );

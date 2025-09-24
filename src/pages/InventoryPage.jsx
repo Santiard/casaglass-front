@@ -2,7 +2,6 @@
 import { useState, useMemo } from "react";
 import Table from "../componets/InventoryTable.jsx";
 import Filter from "../componets/InventaryFilters.jsx";
-import "../styles/InventoryPage.css";
 
 export default function InventoryPage() {
   const [filters, setFilters] = useState({
@@ -92,16 +91,12 @@ export default function InventoryPage() {
 
   return (
     <div>
-      <h3>Filtros de búsqueda:</h3>
-      <div className="filters">
+      <div className="">
         <Filter filters={filters} setFilters={setFilters} />
       </div>
 
       <div className="table">
         <Table data={filteredData} />
-      </div>
-      <div className="buttons">
-        <button>Agregar producto</button>
       </div>
     </div>
   );

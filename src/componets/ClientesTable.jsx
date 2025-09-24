@@ -1,5 +1,8 @@
-import "../styles/ClientesTable.css";
+import "../styles/Table.css";
 import { useMemo, useState } from "react";
+import eliminar from "../assets/eliminar.png";
+import editar from "../assets/editar.png";
+import add from "../assets/add.png";
 
 export default function ClientesTable({
   data = [],
@@ -10,6 +13,11 @@ export default function ClientesTable({
 }) {
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
+
+  const [filtroCiudad, setFiltroCiudad] = useState("");
+  const [creditoMin, setCreditoMin] = useState("");
+  const [creditoMax, setCreditoMax] = useState("");
+  const [orden, setOrden] = useState("");
 
   const formatoCOP = (n) =>
     typeof n === "number"
@@ -47,37 +55,54 @@ export default function ClientesTable({
   const { pageData, total, maxPage, curPage } = filtrados;
 
   return (
-    <div className="clientes-table-container">
-      <div className="clientes-toolbar">
+    <div className="table-container">
+      <div className="toolbar">
         <input
           className="clientes-input"
           type="text"
-          placeholder="Buscar por nombre, NIT, correo, ciudad..."
+          placeholder="Buscar"
           value={query}
           onChange={(e) => { setQuery(e.target.value); setPage(1); }}
         />
-        <div className="clientes-pager">
-          <span>{total} registro(s)</span>
-          <button
-            className="btn"
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-            disabled={curPage <= 1}
-          >
-            ◀
-          </button>
-          <span>{curPage}/{maxPage}</span>
-          <button
-            className="btn"
-            onClick={() => setPage((p) => Math.min(maxPage, p + 1))}
-            disabled={curPage >= maxPage}
-          >
-            ▶
+        <select
+        className="clientes-select"
+        value={filtroCiudad}
+        onChange={(e) => { setFiltroCiudad(e.target.value); setPage(1); }}
+        >
+          <option value="">Todas las ciudades</option>
+          <option value="Bogotá">Bogotá</option>
+          <option value="Medellín">Medellín</option>
+          <option value="Cali">Cali</option>
+          <option value="Barranquilla">Barranquilla</option>
+        </select>
+
+          <input
+            className="clientes-input"
+            type="number"
+            placeholder="Crédito mín."
+            inputMode="numeric"   
+            value={creditoMin}
+            min="0"
+            onChange={(e) => { setCreditoMin(e.target.value); setPage(1); }}
+          />
+
+          <input
+            className="clientes-input"
+            type="number"
+            placeholder="Crédito máx."
+            inputMode="numeric"   
+            min="0"
+            value={creditoMax}
+            onChange={(e) => { setCreditoMax(e.target.value); setPage(1); }}
+          />
+          <button className="addButton">
+          <img src={add} className="iconButton"/>
+          Agregar Nuevo Cliente
           </button>
         </div>
-      </div>
 
-      <div className="clientes-table-wrapper">
-        <table className="clientes-table">
+      <div className="table-wrapper">
+        <table className="table">
           <thead>
             <tr>
               <th>Nombre</th>
@@ -94,7 +119,7 @@ export default function ClientesTable({
           <tbody>
             {pageData.length === 0 ? (
               <tr>
-                <td colSpan={8} className="clientes-empty">No hay registros</td>
+                <td colSpan={8} className="empty">No hay registros</td>
               </tr>
             ) : (
               pageData.map((cli) => (
@@ -107,19 +132,14 @@ export default function ClientesTable({
                   <td>{cli.ciudad ?? "-"}</td>
                   <td className="clientes-dir">{cli.direccion ?? "-"}</td>
                   <td className="clientes-actions">
-                    {onSeleccionar && (
-                      <button className="btn-primary" onClick={() => onSeleccionar(cli)}>
-                        Seleccionar
-                      </button>
-                    )}
                     {onEditar && (
-                      <button className="btn-edit" onClick={() => onEditar(cli)}>
-                        Editar
+                      <button className="btnEdit" onClick={() => onEditar(cli)}>
+                      <img src={editar} className="iconButton"/>
                       </button>
                     )}
                     {onEliminar && (
-                      <button className="btn-danger" onClick={() => onEliminar(cli)}>
-                        Eliminar
+                      <button className="btnDelete" onClick={() => onEliminar(cli)}>
+                      <img src={eliminar} className="iconButton"/>
                       </button>
                     )}
                   </td>
