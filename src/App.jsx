@@ -8,6 +8,7 @@ import DashboardLayout from "./layouts/DashboardLayout.jsx";
 import VenderPage from "./pages/VenderPage.jsx";
 import VentasRealizadasPage from "./pages/VentasRealizadasPage.jsx";
 import ClientesPage from "./pages/ClientesPage.jsx";
+import MovimientosPage from "./pages/MovimientosPage.jsx";
 
 function App() {
   return (
@@ -24,6 +25,7 @@ function App() {
           <Route path="/venderpage" element={<VenderPage/>}/>
           <Route path="/ventasrealizadas" element={<VentasRealizadasPage/>}/>
           <Route path="/clientes" element={<ClientesPage />} />
+          <Route path="/movimientos" element={<MovimientosPage />} />
         </Route>
       </Routes>
     </Router>

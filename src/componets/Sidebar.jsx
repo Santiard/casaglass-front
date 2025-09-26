@@ -46,10 +46,10 @@ export default function Sidebar({isOpen}){
           </Link>
         </li>
         <li>
-          <a href="#config">
+          <Link to="/movimientos">
             <img src={movimientos } alt="MOVIMIENTOS " className="logos"/>
             <span className="text">Movimientos</span>
-          </a>
+          </Link>
         </li>
         <li>
           <Link to="/venderpage">
