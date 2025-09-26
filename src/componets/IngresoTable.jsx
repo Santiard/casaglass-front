@@ -1,0 +1,132 @@
+import "../styles/Table.css";
+import { useMemo, useState } from "react";
+import editar from "../assets/editar.png";
+
+export default function IngresosTable({
+  data = [],
+  rowsPerPage = 10,
+  onEditar,         // (ingreso) => void
+  onVerDetalles,    // (ingreso) => void  << clave
+}) {
+  const [query, setQuery] = useState("");
+  const [page, setPage] = useState(1);
+
+  const fmtFecha = (iso) => {
+    const d = new Date(iso);
+    return isNaN(d) ? "-" : d.toLocaleString("es-CO", {
+      year: "numeric", month: "2-digit", day: "2-digit",
+      hour: "2-digit", minute: "2-digit"
+    });
+  };
+  const fmtCOP = (n) =>
+    typeof n === "number"
+      ? new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(n)
+      : n ?? "-";
+
+  const filtrados = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    const base = q
+      ? data.filter((ing) =>
+          [
+            ing.numeroFactura,
+            ing.observaciones,
+            ing.proveedor?.nombre,
+            ing.procesado ? "procesado" : "pendiente",
+            ...((ing.detalles ?? []).map(d => `${d.producto?.nombre ?? ""} ${d.producto?.sku ?? ""}`))
+          ].filter(Boolean).some(v => String(v).toLowerCase().includes(q))
+        )
+      : data;
+
+    const total = base.length;
+    const maxPage = Math.max(1, Math.ceil(total / rowsPerPage));
+    const curPage = Math.min(page, maxPage);
+    const start = (curPage - 1) * rowsPerPage;
+    const pageData = base.slice(start, start + rowsPerPage);
+    return { pageData, total, maxPage, curPage };
+  }, [data, query, page, rowsPerPage]);
+
+  const { pageData, total, maxPage, curPage } = filtrados;
+
+  const verDetalles = (ing) => {
+    if (onVerDetalles) onVerDetalles(ing);
+  };
+
+  return (
+    <div className="table-container">
+      {/* Toolbar */}
+      <div className="toolbar">
+        <input
+          className="clientes-input"
+          type="text"
+          placeholder="Buscar por proveedor, factura, observaciones o producto..."
+          value={query}
+          onChange={(e) => { setQuery(e.target.value); setPage(1); }}
+        />
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{ opacity: .7 }}>{total} registro(s)</span>
+          <button className="btn" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={curPage <= 1}>◀</button>
+          <span>{curPage}/{maxPage}</span>
+          <button className="btn" onClick={() => setPage(p => Math.min(maxPage, p + 1))} disabled={curPage >= maxPage}>▶</button>
+        </div>
+      </div>
+
+      {/* Tabla principal */}
+      <div className="table-wrapper">
+        <table className="table ingresos-table">
+          <thead>
+            <tr>
+              <th>Fecha</th>
+              <th>Proveedor</th>
+              <th>N° Factura</th>
+              <th>Observaciones</th>
+              <th>Productos</th>
+              <th>Total costo</th>
+              <th>Estado</th>
+              <th>Detalles</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {pageData.length === 0 ? (
+              <tr><td colSpan={9} className="empty">No hay ingresos registrados</td></tr>
+            ) : pageData.map((ing) => {
+              const dets = Array.isArray(ing.detalles) ? ing.detalles : [];
+              return (
+                <tr
+                  key={ing.id ?? ing.numeroFactura}
+                  onDoubleClick={() => verDetalles(ing)}
+                  style={{ cursor:"pointer" }}
+                >
+                  <td>{fmtFecha(ing.fecha)}</td>
+                  <td>{ing.proveedor?.nombre ?? "-"}</td>
+                  <td>{ing.numeroFactura ?? "-"}</td>
+                  <td className="cut">{ing.observaciones ?? "-"}</td>
+                  <td><span className="badge">{dets.length}</span></td>
+                  <td>{fmtCOP(Number(ing.totalCosto))}</td>
+                  <td>
+                    {ing.procesado
+                      ? <span className="status ok">Procesado</span>
+                      : <span className="status pending">Pendiente</span>}
+                  </td>
+                  <td>
+                    <button className="btnLink" type="button" onClick={() => verDetalles(ing)}>
+                      Ver detalles
+                    </button>
+                  </td>
+                  <td className="clientes-actions">
+                    {onEditar && (
+                      <button className="btnEdit" onClick={() => onEditar(ing)} title="Editar">
+                        <img src={editar} className="iconButton" alt="Editar" />
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}

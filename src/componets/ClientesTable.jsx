@@ -1,52 +1,41 @@
 import "../styles/Table.css";
-import "../styles/MovimientosTable.extra.css"; // estilos opcionales (abajo)
 import { useMemo, useState } from "react";
+import eliminar from "../assets/eliminar.png";
 import editar from "../assets/editar.png";
+import add from "../assets/add.png";
 
-export default function MovimientosTable({
+export default function ClientesTable({
   data = [],
-  onEditar,        // (movimiento) => void  (opcional)
+  onSeleccionar,   // (cliente) => void   (opcional)
+  onEditar,        // (cliente) => void   (opcional)
+  onEliminar,      // (cliente) => void   (opcional)
   rowsPerPage = 10
 }) {
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
-  const [expanded, setExpanded] = useState({}); // filas expandidas para ver productos
 
-  const toggleExpand = (id) =>
-    setExpanded((prev) => ({ ...prev, [id]: !prev[id] }));
+  const [filtroCiudad, setFiltroCiudad] = useState("");
+  const [creditoMin, setCreditoMin] = useState("");
+  const [creditoMax, setCreditoMax] = useState("");
+  const [orden, setOrden] = useState("");
 
-  const fmtFecha = (iso) => {
-    if (!iso) return "-";
-    const d = new Date(iso);
-    if (isNaN(d)) return iso;
-    return d.toLocaleDateString("es-CO", {
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-    });
-  };
+  const formatoCOP = (n) =>
+    typeof n === "number"
+      ? new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(n)
+      : n ?? "-";
 
-  const diaDeSemana = (iso) => {
-    if (!iso) return "-";
-    const d = new Date(iso);
-    if (isNaN(d)) return "-";
-    return d.toLocaleDateString("es-CO", { weekday: "long" });
-  };
-
-  // Búsqueda por varias columnas
   const filtrados = useMemo(() => {
     const q = query.trim().toLowerCase();
     const arr = q
-      ? data.filter((m) =>
+      ? data.filter((c) =>
           [
-            m.sedePartida,
-            m.sedeLlegada,
-            m.fecha,
-            m.trabajadorConfirma,
-            m.confirmado ? "confirmado" : "pendiente",
-            ...(Array.isArray(m.productos)
-              ? m.productos.map((p) => `${p.nombre ?? ""} ${p.sku ?? ""}`)
-              : []),
+            c.nombre,
+            c.nit,
+            c.correo,
+            c.ciudad,
+            c.direccion,
+            c.telefono,
+            String(c.credito)
           ]
             .filter(Boolean)
             .some((v) => String(v).toLowerCase().includes(q))
@@ -67,47 +56,62 @@ export default function MovimientosTable({
 
   return (
     <div className="table-container">
-      {/* Toolbar */}
       <div className="toolbar">
         <input
           className="clientes-input"
           type="text"
-          placeholder="Buscar por sedes, fecha, productos, trabajador..."
+          placeholder="Buscar"
           value={query}
           onChange={(e) => { setQuery(e.target.value); setPage(1); }}
         />
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <span style={{ opacity: .7 }}>{total} registro(s)</span>
-          <button
-            className="btn"
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-            disabled={curPage <= 1}
-          >
-            ◀
-          </button>
-          <span>{curPage}/{maxPage}</span>
-          <button
-            className="btn"
-            onClick={() => setPage((p) => Math.min(maxPage, p + 1))}
-            disabled={curPage >= maxPage}
-          >
-            ▶
+        <select
+        className="clientes-select"
+        value={filtroCiudad}
+        onChange={(e) => { setFiltroCiudad(e.target.value); setPage(1); }}
+        >
+          <option value="">Todas las ciudades</option>
+          <option value="Bogotá">Bogotá</option>
+          <option value="Medellín">Medellín</option>
+          <option value="Cali">Cali</option>
+          <option value="Barranquilla">Barranquilla</option>
+        </select>
+
+          <input
+            className="clientes-input"
+            type="number"
+            placeholder="Crédito mín."
+            inputMode="numeric"   
+            value={creditoMin}
+            min="0"
+            onChange={(e) => { setCreditoMin(e.target.value); setPage(1); }}
+          />
+
+          <input
+            className="clientes-input"
+            type="number"
+            placeholder="Crédito máx."
+            inputMode="numeric"   
+            min="0"
+            value={creditoMax}
+            onChange={(e) => { setCreditoMax(e.target.value); setPage(1); }}
+          />
+          <button className="addButton">
+          <img src={add} className="iconButton"/>
+          Agregar Nuevo Cliente
           </button>
         </div>
-      </div>
 
-      {/* Tabla */}
       <div className="table-wrapper">
         <table className="table">
           <thead>
             <tr>
-              <th>Sede partida</th>
-              <th>Sede llegada</th>
-              <th>Fecha</th>
-              <th>Día</th>
-              <th>Productos</th>
-              <th>Confirmado</th>
-              <th>Confirmado por</th>
+              <th>Nombre</th>
+              <th>NIT</th>
+              <th>Correo</th>
+              <th>Crédito</th>
+              <th>Teléfono</th>
+              <th>Ciudad</th>
+              <th>Dirección</th>
               <th>Acciones</th>
             </tr>
           </thead>
@@ -118,75 +122,29 @@ export default function MovimientosTable({
                 <td colSpan={8} className="empty">No hay registros</td>
               </tr>
             ) : (
-              pageData.map((mov) => {
-                const id = mov.id ?? `${mov.sedePartida}-${mov.sedeLlegada}-${mov.fecha}`;
-                const productos = Array.isArray(mov.productos) ? mov.productos : [];
-                return (
-                  <>
-                    <tr key={id}>
-                      <td>{mov.sedePartida ?? "-"}</td>
-                      <td>{mov.sedeLlegada ?? "-"}</td>
-                      <td>{fmtFecha(mov.fecha)}</td>
-                      <td className="capitalize">{diaDeSemana(mov.fecha)}</td>
-
-                      {/* columna productos: contador + ver detalle */}
-                      <td>
-                        <div className="productos-cell">
-                          <span className="badge">{productos.length}</span>
-                          <button
-                            className="btnLink"
-                            onClick={() => toggleExpand(id)}
-                            type="button"
-                          >
-                            {expanded[id] ? "Ocultar" : "Ver detalles"}
-                          </button>
-                        </div>
-                      </td>
-
-                      <td>
-                        {mov.confirmado ? (
-                          <span className="status ok">Confirmado</span>
-                        ) : (
-                          <span className="status pending">Pendiente</span>
-                        )}
-                      </td>
-
-                      <td>{mov.trabajadorConfirma ?? "-"}</td>
-
-                      <td className="clientes-actions">
-                        {onEditar && (
-                          <button className="btnEdit" onClick={() => onEditar(mov)} title="Editar">
-                            <img src={editar} className="iconButton" alt="Editar" />
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-
-                    {/* fila expandida con productos */}
-                    {expanded[id] && (
-                      <tr className="subrow">
-                        <td colSpan={8}>
-                          {productos.length === 0 ? (
-                            <div className="empty-sub">Este movimiento no tiene productos asociados.</div>
-                          ) : (
-                            <div className="productos-grid">
-                              {productos.map((p, idx) => (
-                                <div key={p.id ?? idx} className="chip">
-                                  <div className="chip-title">{p.nombre ?? "-"}</div>
-                                  <div className="chip-meta">
-                                    {p.sku ? <span>SKU: {p.sku}</span> : null}
-                                    {p.cantidad != null ? <span> · Cant: {p.cantidad}</span> : null}
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </td>
-                      </tr>
+              pageData.map((cli) => (
+                <tr key={cli.id ?? cli.nit ?? cli.correo}>
+                  <td>{cli.nombre ?? "-"}</td>
+                  <td>{cli.nit ?? "-"}</td>
+                  <td>{cli.correo ?? "-"}</td>
+                  <td>{formatoCOP(Number(cli.credito))}</td>
+                  <td>{cli.telefono ?? "-"}</td>
+                  <td>{cli.ciudad ?? "-"}</td>
+                  <td className="clientes-dir">{cli.direccion ?? "-"}</td>
+                  <td className="clientes-actions">
+                    {onEditar && (
+                      <button className="btnEdit" onClick={() => onEditar(cli)}>
+                      <img src={editar} className="iconButton"/>
+                      </button>
                     )}
-                  </>
-                );
-              })
+                    {onEliminar && (
+                      <button className="btnDelete" onClick={() => onEliminar(cli)}>
+                      <img src={eliminar} className="iconButton"/>
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))
             )}
           </tbody>
         </table>
