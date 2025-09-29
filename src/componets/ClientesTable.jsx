@@ -68,7 +68,6 @@ const handleEditar = (cliente) => {
         )
       : data;
 
-    // paginación simple
     const total = arr.length;
     const maxPage = Math.max(1, Math.ceil(total / rowsPerPage));
     const curPage = Math.min(page, maxPage);

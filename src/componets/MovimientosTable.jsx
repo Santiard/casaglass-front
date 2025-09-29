@@ -1,7 +1,8 @@
 import "../styles/Table.css";
-import { useMemo, useState } from "react";
+import { useMemo, useState, Fragment } from "react";
 import editar from "../assets/editar.png";
 import add from "../assets/add.png";
+import MovimientoModal from "../modals/MovimientoModal.jsx";
 
 export default function MovimientosTable({
   data = [],
@@ -11,6 +12,8 @@ export default function MovimientosTable({
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
   const [expanded, setExpanded] = useState({}); // filas expandidas para ver productos
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [movimientoEditando, setMovimientoEditando] = useState(null);
 
   const toggleExpand = (id) =>
     setExpanded((prev) => ({ ...prev, [id]: !prev[id] }));
@@ -33,7 +36,36 @@ export default function MovimientosTable({
     return d.toLocaleDateString("es-CO", { weekday: "long" });
   };
 
-  // Búsqueda por varias columnas
+  const handleSaveMovimiento = (movimiento, isEdit) => {
+    if (isEdit) {
+      console.log("Editar movimiento", movimiento);
+    } else {
+      console.log("Agregar movimiento", movimiento);
+    }
+    setIsModalOpen(false);
+    setMovimientoEditando(null);
+  };
+
+  // Abrir modal en modo agregar
+  const handleAgregar = () => {
+    setMovimientoEditando({
+      sedePartida: "",
+      sedeLlegada: "",
+      fecha: new Date().toISOString(),
+      confirmado: false,
+      trabajadorConfirma: "",
+      productos: []
+    });
+    setIsModalOpen(true);
+  };
+
+  // Abrir modal en modo editar
+  const handleEditar = (movimiento) => {
+    setMovimientoEditando(movimiento);
+    setIsModalOpen(true);
+  };
+
+  // Búsqueda por varias columnas + paginación simple
   const filtrados = useMemo(() => {
     const q = query.trim().toLowerCase();
     const arr = q
@@ -53,7 +85,6 @@ export default function MovimientosTable({
         )
       : data;
 
-    // paginación simple
     const total = arr.length;
     const maxPage = Math.max(1, Math.ceil(total / rowsPerPage));
     const curPage = Math.min(page, maxPage);
@@ -93,9 +124,9 @@ export default function MovimientosTable({
           >
             ▶
           </button>
-          <button className="addButton">
-          <img src={add} className="iconButton"/>
-          Agregar Nuevo Movimiento
+          <button onClick={handleAgregar} className="addButton" type="button">
+            <img src={add} className="iconButton" alt="Agregar" />
+            Agregar Nuevo Movimiento
           </button>
         </div>
       </div>
@@ -126,8 +157,8 @@ export default function MovimientosTable({
                 const id = mov.id ?? `${mov.sedePartida}-${mov.sedeLlegada}-${mov.fecha}`;
                 const productos = Array.isArray(mov.productos) ? mov.productos : [];
                 return (
-                  <>
-                    <tr key={id}>
+                  <Fragment key={id}>
+                    <tr>
                       <td>{mov.sedePartida ?? "-"}</td>
                       <td>{mov.sedeLlegada ?? "-"}</td>
                       <td>{fmtFecha(mov.fecha)}</td>
@@ -159,7 +190,12 @@ export default function MovimientosTable({
 
                       <td className="clientes-actions">
                         {onEditar && (
-                          <button className="btnEdit" onClick={() => onEditar(mov)} title="Editar">
+                          <button
+                            className="btnEdit"
+                            onClick={() => onEditar(mov)}
+                            title="Editar"
+                            type="button"
+                          >
                             <img src={editar} className="iconButton" alt="Editar" />
                           </button>
                         )}
@@ -171,11 +207,13 @@ export default function MovimientosTable({
                       <tr className="subrow">
                         <td colSpan={8}>
                           {productos.length === 0 ? (
-                            <div className="empty-sub">Este movimiento no tiene productos asociados.</div>
+                            <div className="empty-sub">
+                              Este movimiento no tiene productos asociados.
+                            </div>
                           ) : (
                             <div className="productos-grid">
                               {productos.map((p, idx) => (
-                                <div key={p.id ?? idx} className="chip">
+                                <div key={p.id ?? `${id}-${idx}`} className="chip">
                                   <div className="chip-title">{p.nombre ?? "-"}</div>
                                   <div className="chip-meta">
                                     {p.sku ? <span>SKU: {p.sku}</span> : null}
@@ -188,13 +226,23 @@ export default function MovimientosTable({
                         </td>
                       </tr>
                     )}
-                  </>
+                  </Fragment>
                 );
               })
             )}
           </tbody>
         </table>
       </div>
+
+      {/* Modal fuera del wrapper para evitar overflow/z-index issues */}
+      <MovimientoModal
+        isOpen={isModalOpen}
+        onClose={() => { setIsModalOpen(false); setMovimientoEditando(null); }}
+        onSave={handleSaveMovimiento}
+        movimiento={movimientoEditando}
+        sedes={["Bogotá","Medellín","Cali"]}
+          const inventarioPorSede = {{ "Bogotá": [], "Medellín": [], "Cali": [] }}
+      />
     </div>
   );
 }

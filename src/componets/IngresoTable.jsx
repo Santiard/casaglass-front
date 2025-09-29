@@ -1,13 +1,48 @@
 import "../styles/Table.css";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import editar from "../assets/editar.png";
+import IngresoModal from "../modals/IngresoModal.jsx";
+import { INGRESOS_MOCK } from "../mocks/mocks.js";
 
 export default function IngresosTable({
   data = [],
   rowsPerPage = 10,
-  onEditar,         // (ingreso) => void
-  onVerDetalles,    // (ingreso) => void  << clave
+  onVerDetalles,    // (ingreso) => void
 }) {
+  const [ingresos, setIngresos] = useState(() => (Array.isArray(data) && data.length ? data : INGRESOS_MOCK));
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [ingresoEditando, setIngresoEditando] = useState(null);
+
+  useEffect(() => {
+    if (Array.isArray(data) && data.length) setIngresos(data);
+  }, [data]);
+
+  const proveedores = useMemo(() => ([
+    { id: "prov-1", nombre: "Proveedor A" },
+    { id: "prov-2", nombre: "Proveedor B" },
+  ]), []);
+
+  const catalogoProductos = useMemo(() => ([
+    { id: "p1", nombre: "Vidrio Templado 8mm", sku: "VID-8-001" },
+    { id: "p2", nombre: "Marco Aluminio 2m",   sku: "MAR-2M-010" },
+    { id: "p3", nombre: "Silicona Transparente", sku: "SIL-TR-111" },
+  ]), []);
+
+  const openNuevo = () => { setIngresoEditando(null); setIsModalOpen(true); };
+  const openEditar = (ing) => { setIngresoEditando(ing); setIsModalOpen(true); };
+
+  const handleGuardarIngreso = (payload, isEdit) => {
+    setIngresos(prev => {
+      if (isEdit) {
+        return prev.map(it => (String(it.id) === String(payload.id) ? payload : it));
+      }
+      return [payload, ...prev];
+    });
+    setIsModalOpen(false);
+    setIngresoEditando(null);
+  };
+
+  // Filtro y paginación (igual que antes, pero usando "ingresos")
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
 
@@ -26,7 +61,7 @@ export default function IngresosTable({
   const filtrados = useMemo(() => {
     const q = query.trim().toLowerCase();
     const base = q
-      ? data.filter((ing) =>
+      ? ingresos.filter((ing) =>
           [
             ing.numeroFactura,
             ing.observaciones,
@@ -35,7 +70,7 @@ export default function IngresosTable({
             ...((ing.detalles ?? []).map(d => `${d.producto?.nombre ?? ""} ${d.producto?.sku ?? ""}`))
           ].filter(Boolean).some(v => String(v).toLowerCase().includes(q))
         )
-      : data;
+      : ingresos;
 
     const total = base.length;
     const maxPage = Math.max(1, Math.ceil(total / rowsPerPage));
@@ -43,13 +78,11 @@ export default function IngresosTable({
     const start = (curPage - 1) * rowsPerPage;
     const pageData = base.slice(start, start + rowsPerPage);
     return { pageData, total, maxPage, curPage };
-  }, [data, query, page, rowsPerPage]);
+  }, [ingresos, query, page, rowsPerPage]);
 
   const { pageData, total, maxPage, curPage } = filtrados;
 
-  const verDetalles = (ing) => {
-    if (onVerDetalles) onVerDetalles(ing);
-  };
+  const verDetalles = (ing) => onVerDetalles?.(ing);
 
   return (
     <div className="table-container">
@@ -62,11 +95,12 @@ export default function IngresosTable({
           value={query}
           onChange={(e) => { setQuery(e.target.value); setPage(1); }}
         />
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginLeft: "auto" }}>
           <span style={{ opacity: .7 }}>{total} registro(s)</span>
           <button className="btn" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={curPage <= 1}>◀</button>
           <span>{curPage}/{maxPage}</span>
           <button className="btn" onClick={() => setPage(p => Math.min(maxPage, p + 1))} disabled={curPage >= maxPage}>▶</button>
+          <button className="btn" type="button" onClick={openNuevo}>+ Nuevo ingreso</button>
         </div>
       </div>
 
@@ -115,11 +149,9 @@ export default function IngresosTable({
                     </button>
                   </td>
                   <td className="clientes-actions">
-                    {onEditar && (
-                      <button className="btnEdit" onClick={() => onEditar(ing)} title="Editar">
-                        <img src={editar} className="iconButton" alt="Editar" />
-                      </button>
-                    )}
+                    <button className="btnEdit" onClick={() => openEditar(ing)} title="Editar">
+                      <img src={editar} className="iconButton" alt="Editar" />
+                    </button>
                   </td>
                 </tr>
               );
@@ -127,6 +159,16 @@ export default function IngresosTable({
           </tbody>
         </table>
       </div>
+
+      {/* Modal para crear/editar (se reutiliza) */}
+      <IngresoModal
+        isOpen={isModalOpen}
+        onClose={() => { setIsModalOpen(false); setIngresoEditando(null); }}
+        onSave={handleGuardarIngreso}
+        proveedores={proveedores}
+        catalogoProductos={catalogoProductos}
+        ingresoInicial={ingresoEditando}
+      />
     </div>
   );
 }

@@ -1,0 +1,141 @@
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(30, 39, 83, 0.6);
+  display: grid;
+  place-items: center;
+  z-index: 1000;
+}
+
+.modal-container {
+  background: #fff;
+  padding: 1.25rem 1.25rem 1rem;
+  border-radius: 12px;
+  width: 400px;
+  max-width: 95vw;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+}
+
+.modal-container h2 {
+  margin: 0 0 0.75rem;
+  color: #1e2753;
+}
+
+.modal-alerts { margin-bottom: 0.5rem; display: grid; gap: 6px; }
+.alert { padding: 8px 10px; border-radius: 8px; font-size: 0.9rem; }
+.alert.error { background: #ffe8e8; color: #8b1a1a; border: 1px solid #f5bcbc; }
+.alert.warning { background: #fff6e5; color: #7a4b00; border: 1px solid #f3d39a; }
+
+/* --- Layout dos paneles --- */
+.modal-wide { width: 960px; max-width: 98vw; }
+.modal-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+.pane {
+  background: #fafbff;
+  border: 1px solid #e6e8f0;
+  border-radius: 10px;
+  padding: 12px;
+  min-height: 420px;
+}
+
+/* Formulario */
+.form { display: grid; gap: 10px; }
+.grid-2 {
+  grid-template-columns: 1fr 1fr;
+}
+.form label {
+  display: grid;
+  gap: 6px;
+  font-size: 0.9rem;
+  color: #3a393b;
+}
+.form input[type="text"],
+.form input[type="date"],
+.form select,
+.form input[type="number"] {
+  padding: 8px;
+  border: 1px solid #c2c2c3;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  background: #fff;
+}
+
+/* Productos seleccionados */
+.selected-products { margin-top: 8px; }
+.mini-table { width: 100%; border-collapse: collapse; }
+.mini-table th, .mini-table td {
+  border-bottom: 1px solid #e6e8f0;
+  padding: 8px;
+  text-align: left;
+  font-size: 0.95rem;
+}
+.qty-input {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid #c2c2c3;
+  border-radius: 8px;
+}
+
+/* Inventario */
+.inv-header { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
+.inv-search {
+  padding: 8px;
+  border: 1px solid #c2c2c3;
+  border-radius: 8px;
+  min-width: 220px;
+}
+.inventory-list {
+  max-height: 340px;
+  overflow: auto;
+  display: grid;
+  gap: 8px;
+}
+.inventory-item {
+  padding: 10px;
+  border: 1px solid #dfe3f0;
+  border-radius: 10px;
+  background: #fff;
+  cursor: pointer;
+}
+.inventory-item:hover {
+  background: #f4f7ff;
+  border-color: #c7d2ff;
+}
+.inv-name { font-weight: 600; color: #1e2753; }
+.inv-meta { font-size: 0.85rem; color: #616270; display: flex; gap: 6px; align-items: center; }
+.inv-meta .dot { opacity: .6; }
+.sku { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+
+/* Botonera */
+.modal-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 12px;
+}
+.btn-cancelar,
+.btn-guardar,
+.btn-ghost {
+  background: var(--color-light-blue, #4f67ff);
+  color: #fff;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.btn-ghost {
+  background: #eef2ff;
+  color: #1e2753;
+}
+.btn-cancelar:hover, .btn-guardar:hover { background: var(--color-dark-blue, #2b3fb3); }
+.empty-sub {
+  background: #f6f7fb;
+  border: 1px dashed #d7dbec;
+  color: #5b5e6a;
+  padding: 10px;
+  border-radius: 10px;
+  text-align: center;
+}
