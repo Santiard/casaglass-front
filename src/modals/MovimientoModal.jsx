@@ -19,8 +19,8 @@ export default function MovimientoModal({
   const isEdit = Boolean(movimiento?.id);
   const [form, setForm] = useState(MOVIMIENTO_VACIO);
   const [searchInv, setSearchInv] = useState("");
+  const [editable, setEditable] = useState(true); // ⬅️ bloqueo por >2 días
 
-  // Inicializa/actualiza el formulario cuando cambia el movimiento o se abre el modal
   useEffect(() => {
     const base = movimiento
       ? {
@@ -42,9 +42,18 @@ export default function MovimientoModal({
 
     setForm(base);
     setSearchInv("");
+
+    // 🔒 Regla de 2 días solo al editar
+    if (movimiento?.fecha) {
+      const f = new Date(movimiento.fecha);
+      const diffDays = isNaN(f) ? 0 : (Date.now() - f.getTime()) / (1000 * 60 * 60 * 24);
+      setEditable(diffDays <= 2);
+    } else {
+      setEditable(true);
+    }
   }, [movimiento, isOpen]);
 
-  // 👉 Hooks SIEMPRE se ejecutan (no los pongas tras un return condicional)
+  // Hooks (no condicionales)
   const inventarioOrigen = useMemo(() => {
     const lista = inventarioPorSede[form.sedePartida] ?? [];
     const q = searchInv.trim().toLowerCase();
@@ -79,6 +88,7 @@ export default function MovimientoModal({
   }, [form.productos, form.sedePartida, inventarioPorSede]);
 
   const disabledSubmit =
+    (!editable && isEdit) || // ⬅️ bloquea guardar si pasó >2 días
     faltanCampos ||
     mismaSede ||
     cantidadesInvalidas ||
@@ -87,10 +97,12 @@ export default function MovimientoModal({
 
   // Handlers
   const handleChange = (field, value) => {
+    if (!editable && isEdit) return;
     setForm((prev) => ({ ...prev, [field]: value }));
   };
 
   const addProductoDesdeInventario = (item) => {
+    if (!editable && isEdit) return;
     setForm((prev) => {
       const key = String(item.id ?? item.sku ?? item.nombre);
       const ya = prev.productos.find(
@@ -113,6 +125,7 @@ export default function MovimientoModal({
   };
 
   const handleProductoChange = (idx, field, value) => {
+    if (!editable && isEdit) return;
     setForm((prev) => {
       const arr = [...prev.productos];
       arr[idx] = {
@@ -124,6 +137,7 @@ export default function MovimientoModal({
   };
 
   const removeProducto = (idx) => {
+    if (!editable && isEdit) return;
     setForm((prev) => ({
       ...prev,
       productos: prev.productos.filter((_, i) => i !== idx),
@@ -134,37 +148,36 @@ export default function MovimientoModal({
     if (disabledSubmit) return;
     const payload = {
       ...form,
-      // normaliza fecha a ISO completa si viene yyyy-mm-dd
+      id: movimiento?.id ?? `mov-${Date.now()}`,
       fecha: form.fecha.length === 10 ? new Date(form.fecha).toISOString() : form.fecha,
     };
     onSave(payload, isEdit);
     onClose();
   };
 
-  // ⬇️ El return condicional va al FINAL (después de todos los hooks)
   if (!isOpen) return null;
 
   return (
     <div className="modal-overlay">
       <div className="modal-container modal-wide">
-        <h2>{isEdit ? "Editar Movimiento" : "Nuevo Movimiento"}</h2>
+        <h2>
+          {isEdit ? "Editar Movimiento" : "Nuevo Movimiento"}
+          {isEdit && !editable && (
+            <span style={{ marginLeft: 8, fontSize: 14, color: "#8b1a1a" }}>
+              (solo lectura: &gt; 2 días)
+            </span>
+          )}
+        </h2>
 
         <div className="modal-alerts">
-          {mismaSede && (
+          {isEdit && !editable && (
             <div className="alert error">
-              La sede de origen y destino no pueden ser la misma.
+              Este movimiento fue creado hace más de 2 días. No se puede editar.
             </div>
           )}
-          {cantidadesInvalidas && (
-            <div className="alert error">
-              Hay cantidades inválidas (deben ser números &gt; 0).
-            </div>
-          )}
-          {excedeStock && (
-            <div className="alert warning">
-              Algunas cantidades exceden el stock disponible.
-            </div>
-          )}
+          {mismaSede && <div className="alert error">La sede de origen y destino no pueden ser la misma.</div>}
+          {cantidadesInvalidas && <div className="alert error">Hay cantidades inválidas (deben ser números &gt; 0).</div>}
+          {excedeStock && <div className="alert warning">Algunas cantidades exceden el stock disponible.</div>}
         </div>
 
         <div className="modal-grid">
@@ -176,14 +189,11 @@ export default function MovimientoModal({
                 <select
                   value={form.sedePartida}
                   onChange={(e) => handleChange("sedePartida", e.target.value)}
+                  disabled={!editable && isEdit}
                 >
                   <option value="">Selecciona...</option>
                   {sedes.map((s) => (
-                    <option
-                      key={s}
-                      value={s}
-                      disabled={s === form.sedeLlegada}
-                    >
+                    <option key={s} value={s} disabled={s === form.sedeLlegada}>
                       {s}
                     </option>
                   ))}
@@ -195,14 +205,11 @@ export default function MovimientoModal({
                 <select
                   value={form.sedeLlegada}
                   onChange={(e) => handleChange("sedeLlegada", e.target.value)}
+                  disabled={!editable && isEdit}
                 >
                   <option value="">Selecciona...</option>
                   {sedes.map((s) => (
-                    <option
-                      key={s}
-                      value={s}
-                      disabled={s === form.sedePartida}
-                    >
+                    <option key={s} value={s} disabled={s === form.sedePartida}>
                       {s}
                     </option>
                   ))}
@@ -215,6 +222,7 @@ export default function MovimientoModal({
                   type="date"
                   value={form.fecha}
                   onChange={(e) => handleChange("fecha", e.target.value)}
+                  disabled={!editable && isEdit}
                 />
               </label>
             </div>
@@ -223,7 +231,9 @@ export default function MovimientoModal({
             <div className="selected-products">
               {form.productos.length === 0 ? (
                 <div className="empty-sub">
-                  Aún no hay productos. Doble clic en el inventario para agregar.
+                  {isEdit && !editable
+                    ? "Movimiento en solo lectura."
+                    : "Doble clic en el inventario para agregar."}
                 </div>
               ) : (
                 <table className="mini-table">
@@ -237,9 +247,7 @@ export default function MovimientoModal({
                   </thead>
                   <tbody>
                     {form.productos.map((p, idx) => (
-                      <tr
-                        key={String(p.id ?? p.sku ?? `${p.nombre}-${idx}`)}
-                      >
+                      <tr key={String(p.id ?? p.sku ?? `${p.nombre}-${idx}`)}>
                         <td>{p.nombre}</td>
                         <td>{p.sku ?? "-"}</td>
                         <td>
@@ -248,13 +256,8 @@ export default function MovimientoModal({
                             min={1}
                             className="qty-input"
                             value={Number(p.cantidad ?? 1)}
-                            onChange={(e) =>
-                              handleProductoChange(
-                                idx,
-                                "cantidad",
-                                e.target.value
-                              )
-                            }
+                            onChange={(e) => handleProductoChange(idx, "cantidad", e.target.value)}
+                            disabled={!editable && isEdit}
                           />
                         </td>
                         <td>
@@ -263,6 +266,7 @@ export default function MovimientoModal({
                             type="button"
                             title="Quitar"
                             onClick={() => removeProducto(idx)}
+                            disabled={!editable && isEdit}
                           >
                             ✕
                           </button>
@@ -281,9 +285,7 @@ export default function MovimientoModal({
               <div>
                 <h3 style={{ margin: 0 }}>Inventario</h3>
                 <small>
-                  {form.sedePartida
-                    ? `Sede: ${form.sedePartida}`
-                    : "Selecciona una sede de origen"}
+                  {form.sedePartida ? `Sede: ${form.sedePartida}` : "Selecciona una sede de origen"}
                 </small>
               </div>
               <input
@@ -292,6 +294,7 @@ export default function MovimientoModal({
                 placeholder="Buscar por nombre o SKU…"
                 value={searchInv}
                 onChange={(e) => setSearchInv(e.target.value)}
+                disabled={!editable && isEdit}
               />
             </div>
 
@@ -304,24 +307,21 @@ export default function MovimientoModal({
                     <div
                       key={String(item.id ?? item.sku ?? item.nombre)}
                       className="inventory-item"
-                      title="Doble clic para agregar"
-                      onDoubleClick={() => addProductoDesdeInventario(item)}
+                      title={(!editable && isEdit) ? "Solo lectura (>2 días)" : "Doble clic para agregar"}
+                      onDoubleClick={() => { if (editable || !isEdit) addProductoDesdeInventario(item); }}
+                      style={{ cursor: (!editable && isEdit) ? "not-allowed" : "pointer" }}
                     >
                       <div className="inv-name">{item.nombre}</div>
                       <div className="inv-meta">
                         <span className="sku">{item.sku ?? "SKU-"}</span>
                         <span className="dot">•</span>
-                        <span className="stock">
-                          Stock: {item.stock ?? 0}
-                        </span>
+                        <span className="stock">Stock: {item.stock ?? 0}</span>
                       </div>
                     </div>
                   ))
                 )
               ) : (
-                <div className="empty-sub">
-                  Selecciona primero la sede de origen.
-                </div>
+                <div className="empty-sub">Selecciona primero la sede de origen.</div>
               )}
             </div>
           </div>
@@ -329,7 +329,7 @@ export default function MovimientoModal({
 
         <div className="modal-buttons">
           <button className="btn-cancelar" onClick={onClose} type="button">
-            Cancelar
+            {isEdit && !editable ? "Cerrar" : "Cancelar"}
           </button>
           <button
             className="btn-guardar"
@@ -337,9 +337,9 @@ export default function MovimientoModal({
             type="button"
             disabled={disabledSubmit}
             title={
-              disabledSubmit
-                ? "Completa la información y corrige las validaciones"
-                : "Crear movimiento"
+              (!editable && isEdit)
+                ? "Edición bloqueada (> 2 días)"
+                : (disabledSubmit ? "Completa la información y corrige validaciones" : "Guardar")
             }
           >
             {isEdit ? "Guardar cambios" : "Crear movimiento"}

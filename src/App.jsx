@@ -11,6 +11,7 @@ import ClientesPage from "./pages/ClientesPage.jsx";
 import MovimientosPage from "./pages/MovimientosPage.jsx";
 import IngresosPage from "./pages/IngresoPage.jsx";
 import ProveedrorPage from "./pages/ProveedorPage.jsx";
+import EntregasPage from "./pages/EntregaDetallePage.jsx";
 
 function App() {
   return (
@@ -30,6 +31,7 @@ function App() {
           <Route path="/movimientos" element={<MovimientosPage />} />
           <Route path="/ingresos" element={<IngresosPage />} />
           <Route path="/proveedores" element={< ProveedrorPage/>}/>
+          <Route path="/entregas" element={<EntregasPage/>}/>
         </Route>
       </Routes>
     </Router>

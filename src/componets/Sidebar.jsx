@@ -65,7 +65,7 @@ export default function Sidebar({isOpen}){
           </Link>
         </li>
         <li>
-          <Link to="/venderpage">
+          <Link to="/entregas">
             <img src={entrega } alt="Entregas " className="logos"/>
             <span className="text">Entregas Dinero</span>
           </Link>

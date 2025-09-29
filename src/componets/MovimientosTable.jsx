@@ -6,14 +6,26 @@ import MovimientoModal from "../modals/MovimientoModal.jsx";
 
 export default function MovimientosTable({
   data = [],
-  onEditar,        // (movimiento) => void  (opcional)
-  rowsPerPage = 10
+  rowsPerPage = 10,
 }) {
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
-  const [expanded, setExpanded] = useState({}); // filas expandidas para ver productos
+  const [expanded, setExpanded] = useState({});
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [movimientoEditando, setMovimientoEditando] = useState(null);
+
+  // Demo: reemplaza por tus datos reales
+  const sedes = useMemo(() => ["Bogotá", "Medellín", "Cali"], []);
+  const inventarioPorSede = useMemo(() => ({
+    "Bogotá": [
+      { id: "p1", nombre: "Vidrio 8mm", sku: "VID-8-001", stock: 12 },
+      { id: "p2", nombre: "Marco 2m", sku: "MAR-2M-010", stock: 5 },
+    ],
+    "Medellín": [
+      { id: "p3", nombre: "Silicona", sku: "SIL-TR-111", stock: 8 },
+    ],
+    "Cali": []
+  }), []);
 
   const toggleExpand = (id) =>
     setExpanded((prev) => ({ ...prev, [id]: !prev[id] }));
@@ -22,11 +34,7 @@ export default function MovimientosTable({
     if (!iso) return "-";
     const d = new Date(iso);
     if (isNaN(d)) return iso;
-    return d.toLocaleDateString("es-CO", {
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-    });
+    return d.toLocaleDateString("es-CO", { year: "numeric", month: "2-digit", day: "2-digit" });
   };
 
   const diaDeSemana = (iso) => {
@@ -37,35 +45,25 @@ export default function MovimientosTable({
   };
 
   const handleSaveMovimiento = (movimiento, isEdit) => {
-    if (isEdit) {
-      console.log("Editar movimiento", movimiento);
-    } else {
-      console.log("Agregar movimiento", movimiento);
-    }
+    // aquí harías POST/PUT al backend
+    console.log(isEdit ? "Editar movimiento" : "Crear movimiento", movimiento);
     setIsModalOpen(false);
     setMovimientoEditando(null);
   };
 
-  // Abrir modal en modo agregar
+  // Crear
   const handleAgregar = () => {
-    setMovimientoEditando({
-      sedePartida: "",
-      sedeLlegada: "",
-      fecha: new Date().toISOString(),
-      confirmado: false,
-      trabajadorConfirma: "",
-      productos: []
-    });
+    setMovimientoEditando(null); // modal sabrá que es "crear"
     setIsModalOpen(true);
   };
 
-  // Abrir modal en modo editar
+  // Editar
   const handleEditar = (movimiento) => {
     setMovimientoEditando(movimiento);
     setIsModalOpen(true);
   };
 
-  // Búsqueda por varias columnas + paginación simple
+  // Filtro + paginación
   const filtrados = useMemo(() => {
     const q = query.trim().toLowerCase();
     const arr = q
@@ -109,21 +107,9 @@ export default function MovimientosTable({
         />
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <span style={{ opacity: .7 }}>{total} registro(s)</span>
-          <button
-            className="btn"
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-            disabled={curPage <= 1}
-          >
-            ◀
-          </button>
+          <button className="btn" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={curPage <= 1}>◀</button>
           <span>{curPage}/{maxPage}</span>
-          <button
-            className="btn"
-            onClick={() => setPage((p) => Math.min(maxPage, p + 1))}
-            disabled={curPage >= maxPage}
-          >
-            ▶
-          </button>
+          <button className="btn" onClick={() => setPage((p) => Math.min(maxPage, p + 1))} disabled={curPage >= maxPage}>▶</button>
           <button onClick={handleAgregar} className="addButton" type="button">
             <img src={add} className="iconButton" alt="Agregar" />
             Agregar Nuevo Movimiento
@@ -164,41 +150,36 @@ export default function MovimientosTable({
                       <td>{fmtFecha(mov.fecha)}</td>
                       <td className="capitalize">{diaDeSemana(mov.fecha)}</td>
 
-                      {/* columna productos: contador + ver detalle */}
                       <td>
                         <div className="productos-cell">
                           <span className="badge">{productos.length}</span>
-                          <button
-                            className="btnLink"
-                            onClick={() => toggleExpand(id)}
-                            type="button"
-                          >
-                            {expanded[id] ? "Ocultar" : "Ver detalles"}
-                          </button>
                         </div>
                       </td>
 
                       <td>
-                        {mov.confirmado ? (
-                          <span className="status ok">Confirmado</span>
-                        ) : (
-                          <span className="status pending">Pendiente</span>
-                        )}
+                        {mov.confirmado
+                          ? <span className="status ok">Confirmado</span>
+                          : <span className="status pending">Pendiente</span>}
                       </td>
 
                       <td>{mov.trabajadorConfirma ?? "-"}</td>
 
                       <td className="clientes-actions">
-                        {onEditar && (
-                          <button
-                            className="btnEdit"
-                            onClick={() => onEditar(mov)}
-                            title="Editar"
-                            type="button"
-                          >
-                            <img src={editar} className="iconButton" alt="Editar" />
-                          </button>
-                        )}
+                        <button
+                          className="btnEdit"
+                          onClick={() => handleEditar(mov)}
+                          title="Editar"
+                          type="button"
+                        >
+                          <img src={editar} className="iconButton" alt="Editar" />
+                        </button>
+                        <button
+                          className="btnLink"
+                          onClick={() => toggleExpand(id)}
+                          type="button"
+                        >
+                          {expanded[id] ? "Ocultar" : "Ver detalles"}
+                        </button>
                       </td>
                     </tr>
 
@@ -234,14 +215,14 @@ export default function MovimientosTable({
         </table>
       </div>
 
-      {/* Modal fuera del wrapper para evitar overflow/z-index issues */}
+      {/* Modal */}
       <MovimientoModal
         isOpen={isModalOpen}
         onClose={() => { setIsModalOpen(false); setMovimientoEditando(null); }}
         onSave={handleSaveMovimiento}
-        movimiento={movimientoEditando}
-        sedes={["Bogotá","Medellín","Cali"]}
-          const inventarioPorSede = {{ "Bogotá": [], "Medellín": [], "Cali": [] }}
+        movimiento={movimientoEditando}         // null => crear, objeto => editar
+        sedes={sedes}
+        inventarioPorSede={inventarioPorSede}
       />
     </div>
   );
