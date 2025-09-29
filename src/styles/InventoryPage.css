@@ -1,0 +1,48 @@
+/* InventoryPage.css */
+.inventory-layout {
+  display: flex;
+  gap: 16px;
+  padding: 16px;
+  align-items: flex-start;
+  min-height: calc(100vh - 80px); /* ajusta según header */
+}
+
+/* SIDEBAR izquierdo (categorías) */
+.inventory-categories {
+  width: 220px; /* ancho fijo */
+  background: #f7f7f7;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid #e6e6e6;
+  max-height: calc(100vh - 120px);
+  overflow-y: auto;
+}
+
+/* CONTENIDO principal a la derecha */
+.inventory-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Responsive: en pantallas pequeñas, apilar y ocultar sidebar */
+@media (max-width: 900px) {
+  .inventory-layout {
+    flex-direction: column;
+    padding: 12px;
+  }
+
+  .inventory-categories {
+    width: 100%;
+    max-height: none;
+    order: 2; /* si prefieres que vaya abajo, cambia a 1 */
+    display: none; /* lo ocultamos por defecto en móvil; puedes mostrar con un botón */
+  }
+
+  .inventory-content {
+    order: 1;
+  }
+
+  /* Si quieres mostrar un SELECT en mobile (hiddeable en desktop), en InventoryFilters style show it */
+}

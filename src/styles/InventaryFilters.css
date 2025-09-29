@@ -57,3 +57,13 @@
   border: 1px;
   border-color: #fff;
 }
+.filter-select.category-select {
+  display: none;
+}
+
+/* mostrar en móvil */
+@media (max-width: 900px) {
+  .filter-select.category-select {
+    display: inline-block;
+  }
+}

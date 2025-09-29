@@ -10,6 +10,7 @@ import VentasRealizadasPage from "./pages/VentasRealizadasPage.jsx";
 import ClientesPage from "./pages/ClientesPage.jsx";
 import MovimientosPage from "./pages/MovimientosPage.jsx";
 import IngresosPage from "./pages/IngresoPage.jsx";
+import ProveedrorPage from "./pages/ProveedorPage.jsx";
 
 function App() {
   return (
@@ -28,6 +29,7 @@ function App() {
           <Route path="/clientes" element={<ClientesPage />} />
           <Route path="/movimientos" element={<MovimientosPage />} />
           <Route path="/ingresos" element={<IngresosPage />} />
+          <Route path="/proveedores" element={< ProveedrorPage/>}/>
         </Route>
       </Routes>
     </Router>

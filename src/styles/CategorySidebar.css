@@ -1,0 +1,19 @@
+.category-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.category-item {
+  text-align: left;
+  padding: 8px;
+  border: none;
+  background: white;
+  cursor: pointer;
+  border-radius: 6px;
+  box-shadow: 0 0 0 1px rgba(0,0,0,0.03) inset;
+  transition: background 0.15s;
+}
+
+.category-item:hover { background: #f0f0f0; }
+.category-item.active { background: #344490; color: white; font-weight: 600; }

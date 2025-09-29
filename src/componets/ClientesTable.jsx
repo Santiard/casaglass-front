@@ -3,13 +3,15 @@ import { useMemo, useState } from "react";
 import eliminar from "../assets/eliminar.png";
 import editar from "../assets/editar.png";
 import add from "../assets/add.png";
+import ClienteModal from "../modals/ClienteModal.jsx";
 
 export default function ClientesTable({
+
   data = [],
-  onSeleccionar,   // (cliente) => void   (opcional)
   onEditar,        // (cliente) => void   (opcional)
   onEliminar,      // (cliente) => void   (opcional)
   rowsPerPage = 10
+  
 }) {
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
@@ -18,6 +20,30 @@ export default function ClientesTable({
   const [creditoMin, setCreditoMin] = useState("");
   const [creditoMax, setCreditoMax] = useState("");
   const [orden, setOrden] = useState("");
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [clienteEditando, setClienteEditando] = useState(null);
+
+    const handleSaveCliente = (cliente, isEdit) => {
+  if (isEdit) {
+    // PUT al backend
+    console.log("Editar cliente", cliente);
+  } else {
+    // POST al backend
+    console.log("Agregar cliente", cliente);
+  }
+};
+  // Abrir modal en modo agregar
+const handleAgregar = () => {
+  setClienteEditando(null);
+  setIsModalOpen(true);
+};
+
+// Abrir modal en modo editar
+const handleEditar = (cliente) => {
+  setClienteEditando(cliente);
+  setIsModalOpen(true);
+};
 
   const formatoCOP = (n) =>
     typeof n === "number"
@@ -52,7 +78,7 @@ export default function ClientesTable({
     return { pageData, total, maxPage, curPage };
   }, [data, query, page, rowsPerPage]);
 
-  const { pageData, total, maxPage, curPage } = filtrados;
+  const { pageData } = filtrados;
 
   return (
     <div className="table-container">
@@ -95,7 +121,7 @@ export default function ClientesTable({
             value={creditoMax}
             onChange={(e) => { setCreditoMax(e.target.value); setPage(1); }}
           />
-          <button className="addButton">
+          <button  onClick={handleAgregar} className="addButton">
           <img src={add} className="iconButton"/>
           Agregar Nuevo Cliente
           </button>
@@ -133,7 +159,7 @@ export default function ClientesTable({
                   <td className="clientes-dir">{cli.direccion ?? "-"}</td>
                   <td className="clientes-actions">
                     {onEditar && (
-                      <button className="btnEdit" onClick={() => onEditar(cli)}>
+                      <button className="btnEdit" onClick={()=> handleEditar(cli)}>
                       <img src={editar} className="iconButton"/>
                       </button>
                     )}
@@ -148,6 +174,12 @@ export default function ClientesTable({
             )}
           </tbody>
         </table>
+        <ClienteModal 
+      isOpen={isModalOpen}
+      onClose={() => setIsModalOpen(false)}
+      onSave={handleSaveCliente}
+      clienteAEditar={clienteEditando}
+    />
       </div>
     </div>
   );
