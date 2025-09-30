@@ -11,6 +11,7 @@ import salir from "../assets/logout.png";
 import producto from "../assets/producto.png";
 import entrega from "../assets/entrega.png";
 import proveedor from "../assets/proveedor.png";
+import analiticas from "../assets/analiticas.png";
 import { Link } from 'react-router-dom';
  
 
@@ -41,9 +42,9 @@ export default function Sidebar({isOpen}){
           </Link>
         </li>
         <li>
-          <Link to ="/ventasrealizadas">
-            <img src={ventas} alt="VENTAS RELIZADAS" className="logos"/>
-            <span className="text">Ventas Realizadas</span>
+          <Link to ="/analiticas">
+            <img src={analiticas} alt="Analiticas" className="logos"/>
+            <span className="text">Analiticas</span>
           </Link>
         </li>
         <li>
