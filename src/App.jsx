@@ -11,7 +11,8 @@ import ClientesPage from "./pages/ClientesPage.jsx";
 import MovimientosPage from "./pages/MovimientosPage.jsx";
 import IngresosPage from "./pages/IngresoPage.jsx";
 import ProveedrorPage from "./pages/ProveedorPage.jsx";
-import EntregasPage from "./pages/EntregaDetallePage.jsx";
+import EntregasPage from "./pages/EntregaPage.jsx";
+import HomePage from "./pages/HomePage.jsx";
 
 function App() {
   return (
@@ -22,7 +23,6 @@ function App() {
 
         {/* Rutas que SÍ usan layout */}
         <Route element={<DashboardLayout username="Nicole Velandia" />}>
-          <Route path="/home" element={<Home sede="Insula"/>} />
           <Route path="/adminpage" element={<AdminPage />} />
           <Route path="/inventorypage" element={<InventoryPage />} />
           <Route path="/venderpage" element={<VenderPage/>}/>
@@ -32,6 +32,7 @@ function App() {
           <Route path="/ingresos" element={<IngresosPage />} />
           <Route path="/proveedores" element={< ProveedrorPage/>}/>
           <Route path="/entregas" element={<EntregasPage/>}/>
+          <Route path="/home"  element={<HomePage/>}/>
         </Route>
       </Routes>
     </Router>
