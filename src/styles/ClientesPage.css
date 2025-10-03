@@ -1,0 +1,2 @@
+.clientes-page { display:flex; flex-direction:column; flex:1; min-height:0; }
+.rowInferior.fill { flex:1; min-height:0; display:flex; }

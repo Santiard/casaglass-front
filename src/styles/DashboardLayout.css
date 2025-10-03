@@ -1,26 +1,23 @@
-.dashboard-layout {
+.dashboard-body { 
   display: flex;
-  flex-direction: column; /* header arriba, body abajo */
-  min-height: 100vh;
+  flex: 1;
+  min-height: 0;     
+  min-width: 0;       /* 👈 CLAVE */
 }
-
-.dashboard-body {
-  display: flex;
-  flex: 1; /* ocupa todo lo que queda */
-}
-
 .dashboard-main {
-  padding: 1rem;
-  margin-top: 4rem; /* header */
-  margin-left: 15rem; /* sidebar */
-  min-height: calc(100vh - 4rem);
+  margin-top: 4rem;                 /* alto del header fijo */
+  margin-left: 15rem;               /* mismo ancho del sidebar */
+  width: calc(100% - 15rem);        /* 👈 ocupa TODO lo restante en ancho */
+  height: calc(100vh - 4rem);       /* alto del viewport menos header */
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;                 /* el scroll queda en los hijos (tabla) */
   box-sizing: border-box;
+  padding: 1rem;
+  
 }
 
-/* En móvil ocupar todo ancho */
 @media (max-width: 700px) {
-  .dashboard-main {
-    margin-left: 0;
-  }
+  .dashboard-main { margin-left: 0;
+    width: 100%;}
 }
-

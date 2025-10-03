@@ -1,13 +1,18 @@
-/* Contenedor con scroll */
-.clientes-table-container {
-  max-height: 400px;      /* ajusta altura visible */
-  overflow-y: auto;       /* scroll vertical si excede altura */
-  border: 1px solid #ccc; /* opcional, borde contenedor */
-  border-radius: 8px;
+.table-container{
+  flex: 1;         /* ocupa todo el alto disponible del main */
+  min-height: 0;   /* 👈 clave para que overflow del hijo funcione */
+  display: flex;
+  flex-direction: column;
 }
 
-/* Tabla */
-.clientes-table {
+/* el scroll vertical vive aquí */
+.table-wrapper{
+  flex: 1;         /* ocupa el espacio bajo la toolbar */
+  min-height: 0;   /* 👈 clave */
+  overflow: auto;  /* 👈 hace que llegue “hasta abajo” y scrollee */
+}
+
+.table{
   width: 100%;
   border-collapse: collapse;
   font-family: Arial, sans-serif;
@@ -15,60 +20,38 @@
 }
 
 /* Encabezado */
-.clientes-table thead {
-  background: var(--color-light-blue); /* azul rey */
+.table thead {
+  background: var(--color-light-blue);
   color: #ffffff;
 }
 
-.clientes-table th,
-.clientes-table td {
+.table th,
+.table td {
   padding: 10px 12px;
   text-align: left;
   border-bottom: 1px solid #ddd;
 }
 
 /* Filas */
-.clientes-table tbody tr:nth-child(even) {
-  background-color: #f9f9f9;
-}
-
-.clientes-table tbody tr:hover {
-  background-color: #e6f0ff; /* azul clarito al hover */
-}
+.table tbody tr:nth-child(even) { background-color: #f9f9f9; }
+.table tbody tr:hover { background-color: #e6f0ff; }
 
 /* Celda sin datos */
-.clientes-table td[colspan] {
+.table td[colspan] {
   text-align: center;
   font-style: italic;
   color: #666;
 }
 
-/* Botones */
-.btn-edit,
-.btn-delete {
-  padding: 5px 10px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 12px;
-  margin-right: 5px;
+/* Paginación (si la usas como en tu JSX) */
+.pagination-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .5rem;
+  padding: .5rem .25rem;
+  border-top: 1px solid #ddd;
 }
-
-.btn-edit {
-  background-color: var(--color-light-blue); /* azul rey */
-  color: #fff;
-}
-
-.btn-edit:hover {
-  background: var(--color-dark-blue);
-
-}
-
-.btn-delete {
-  background-color: #ff4d4d;
-  color: #fff;
-}
-
-.btn-delete:hover {
-  background-color: #cc0000;
-}
+.pg-btn { min-width: 32px; height: 32px; padding: 0 .5rem; border-radius: 6px; border: 1px solid #ccc; background:#fff; }
+.pg-btn.active { font-weight: 700; }
+.pg-btn:disabled { opacity: .5; cursor: not-allowed; }

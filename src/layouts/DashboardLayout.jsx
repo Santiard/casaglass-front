@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
+// src/layouts/DashboardLayout.jsx
+import React, { useState } from 'react';
 import { Outlet } from "react-router-dom";
 import Header from "../componets/Header.jsx";
 import Sidebar from "../componets/Sidebar.jsx";
 import "../styles/DashboardLayout.css";
 
 export default function DashboardLayout({ username }) {
-  // lee estado inicial de localStorage
   const [isSidebarOpen, setSidebarOpen] = useState(() => {
     return localStorage.getItem("sidebarOpen") === "true";
   });
@@ -13,15 +13,14 @@ export default function DashboardLayout({ username }) {
   const toggleSidebar = () => {
     setSidebarOpen(prev => {
       localStorage.setItem("sidebarOpen", !prev);
-      return !prev
+      return !prev;
     });
   };
 
   return (
-    <div className="dashboard-layout">
+    <div className="dashboard-layout" data-sidebar-open={isSidebarOpen ? "true" : "false"}>
       <Header username={username} toggleSidebar={toggleSidebar} />
       <div className="dashboard-body">
-        {/* Pasamos isSidebarOpen como prop */}
         <Sidebar isOpen={isSidebarOpen} />
         <main className="dashboard-main">
           <Outlet />

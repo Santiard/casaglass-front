@@ -1,6 +1,7 @@
 // src/pages/ClientesPage.jsx
 import React, { useEffect, useState, useCallback } from "react";
 import ClientesTable from "../componets/ClientesTable";
+import "../styles/ClientesPage.css";
 import {
   listarClientes,
   crearCliente,
@@ -52,15 +53,14 @@ export default function ClientesPage() {
   };
 
   return (
-    <div>
-      <div className="rowSuperior" />
-      <div className="rowInferior">
+    <div className="clientes-page">
+      <div className="rowInferior fill">
         <ClientesTable
           data={data}
           loading={loading}
-          onEditar={handleGuardar}     // PUT cuando isEdit = true
-          onEliminar={handleEliminar}  // DELETE
-          onCrear={(c) => handleGuardar(c, false)} // por si decides llamarlo directo
+          onEditar={handleGuardar}
+          onEliminar={handleEliminar}
+          onCrear={(c) => handleGuardar(c, false)}
         />
       </div>
     </div>

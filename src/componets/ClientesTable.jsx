@@ -1,6 +1,6 @@
 // src/componets/ClientesTable.jsx
 import "../styles/Table.css";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import eliminar from "../assets/eliminar.png";
 import editar from "../assets/editar.png";
 import add from "../assets/add.png";
@@ -11,27 +11,31 @@ export default function ClientesTable({
   onEditar,       // (cliente, isEdit) => Promise<void>
   onEliminar,     // (cliente) => Promise<void>
   onCrear,        // (cliente) => Promise<void>  (opcional)
-  rowsPerPage = 10,
+  rowsPerPage: rowsPerPageProp = 10,
   loading = false
 }) {
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
   const [filtroCiudad, setFiltroCiudad] = useState("");
+  const [rowsPerPage, setRowsPerPage] = useState(rowsPerPageProp);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [clienteEditando, setClienteEditando] = useState(null);
 
+  // Sincroniza si te pasan un rowsPerPage distinto por props
+  useEffect(() => { setRowsPerPage(rowsPerPageProp); }, [rowsPerPageProp]);
+
   // Guardar desde modal
   const handleSaveCliente = async (cliente, isEdit) => {
     try {
-      // Normaliza credito: modal podría mandarlo como string "true"/"false"
       const payload = { ...cliente, credito: cliente.credito === true || cliente.credito === "true" };
       if (isEdit) {
         await onEditar?.(payload, true);
       } else {
-        // Si te gusta centralizar en onEditar, puedes llamarlo con false. Aquí uso onCrear si está:
         if (onCrear) await onCrear(payload);
         else await onEditar?.(payload, false);
+        // tras crear, vuelve a página 1 para ver el nuevo
+        setPage(1);
       }
       setIsModalOpen(false);
     } catch (e) {
@@ -42,7 +46,6 @@ export default function ClientesTable({
 
   // Abrir modal en modo agregar
   const handleAgregar = () => { setClienteEditando(null); setIsModalOpen(true); };
-
   // Abrir modal en modo editar
   const handleEditar = (cliente) => { setClienteEditando(cliente); setIsModalOpen(true); };
 
@@ -70,10 +73,34 @@ export default function ClientesTable({
     const start = (curPage - 1) * rowsPerPage;
     const pageData = porCiudad.slice(start, start + rowsPerPage);
 
-    return { pageData, total, maxPage, curPage };
+    return { pageData, total, maxPage, curPage, start };
   }, [data, query, filtroCiudad, page, rowsPerPage]);
 
-  const { pageData } = filtrados;
+  const { pageData, total, maxPage, curPage, start } = filtrados;
+
+  // Helpers de paginación
+  const canPrev = curPage > 1;
+  const canNext = curPage < maxPage;
+
+  const goFirst = () => setPage(1);
+  const goPrev  = () => setPage((p) => Math.max(1, p - 1));
+  const goNext  = () => setPage((p) => Math.min(maxPage, p + 1));
+  const goLast  = () => setPage(maxPage);
+
+  // Cálculo “Mostrando X–Y de Z”
+  const showingFrom = total === 0 ? 0 : start + 1;
+  const showingTo   = Math.min(start + rowsPerPage, total);
+
+  // Genera pequeños botones de página (máx 5 visibles)
+  const visiblePages = useMemo(() => {
+    const span = 5;
+    let startP = Math.max(1, curPage - Math.floor(span / 2));
+    let endP = Math.min(maxPage, startP + span - 1);
+    startP = Math.max(1, endP - span + 1);
+    const arr = [];
+    for (let i = startP; i <= endP; i++) arr.push(i);
+    return arr;
+  }, [curPage, maxPage]);
 
   return (
     <div className="table-container">
@@ -97,6 +124,17 @@ export default function ClientesTable({
           <option value="Cali">Cali</option>
           <option value="Barranquilla">Barranquilla</option>
         </select>
+
+        <div className="rows-per-page">
+          <span>Filas:</span>
+          <select
+            className="clientes-select"
+            value={rowsPerPage}
+            onChange={(e) => { setRowsPerPage(Number(e.target.value)); setPage(1); }}
+          >
+            {[5,10,20,50].map(n => <option key={n} value={n}>{n}</option>)}
+          </select>
+        </div>
 
         <button onClick={handleAgregar} className="addButton">
           <img src={add} className="iconButton" />
@@ -140,11 +178,10 @@ export default function ClientesTable({
                 <td>{cli.ciudad ?? "-"}</td>
                 <td className="clientes-dir">{cli.direccion ?? "-"}</td>
                 <td className="clientes-actions">
-                  <button className="btnEdit" onClick={() => handleEditar(cli)}>
+                  <button className="btnEdit" onClick={() => handleEditar(cli)} title="Editar">
                     <img src={editar} className="iconButton" />
                   </button>
-
-                  <button className="btnDelete" onClick={() => onEliminar?.(cli)}>
+                  <button className="btnDelete" onClick={() => onEliminar?.(cli)} title="Eliminar">
                     <img src={eliminar} className="iconButton" />
                   </button>
                 </td>
@@ -152,6 +189,32 @@ export default function ClientesTable({
             ))}
           </tbody>
         </table>
+        </div>
+        {/* Paginación */}
+        <div className="pagination-bar">
+          <div className="pagination-info">
+            Mostrando {showingFrom}–{showingTo} de {total}
+          </div>
+
+          <div className="pagination-controls">
+            <button className="pg-btn" onClick={goFirst} disabled={!canPrev} aria-label="Primera">«</button>
+            <button className="pg-btn" onClick={goPrev}  disabled={!canPrev} aria-label="Anterior">‹</button>
+
+            {visiblePages.map((p) => (
+              <button
+                key={p}
+                className={`pg-btn ${p === curPage ? "active" : ""}`}
+                onClick={() => setPage(p)}
+                aria-current={p === curPage ? "page" : undefined}
+              >
+                {p}
+              </button>
+            ))}
+
+            <button className="pg-btn" onClick={goNext} disabled={!canNext} aria-label="Siguiente">›</button>
+            <button className="pg-btn" onClick={goLast} disabled={!canNext} aria-label="Última">»</button>
+          </div>
+        </div>
 
         <ClienteModal
           isOpen={isModalOpen}
@@ -159,7 +222,7 @@ export default function ClientesTable({
           onSave={handleSaveCliente}
           clienteAEditar={clienteEditando}
         />
-      </div>
+      
     </div>
   );
 }
