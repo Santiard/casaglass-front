@@ -81,10 +81,10 @@ export default function Sidebar({isOpen}){
 
         </div>
         <li>
-          <a href="#config">
+          <Link to ="/tax-settings">
             <img src={Configuracion } alt="CONFIGURACION " className="logos"/>
             <span className="text">Configuración</span>
-          </a>
+          </Link>
         </li>
         
 

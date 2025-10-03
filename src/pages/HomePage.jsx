@@ -93,6 +93,12 @@ export default function HomePage(){
         <LowStockPanel items={stockAlerts} />
         <MovimientosPanel entregasPendientes={pendientes} />
       </div>
+      <div className="button-group">
+        <button className="button">Vender</button>
+        <button className="button">Ver Inventario</button>
+        <button className="button">Ver Clientes</button>
+        <button className="button">Ver Traslados</button>
+      </div>
     </div>
   );
 }

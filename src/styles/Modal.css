@@ -1,0 +1,71 @@
+.modal-root {
+    position: fixed;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    z-index: 50; }
+
+.modal-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(30, 39, 83, 0.6);
+}
+
+.modal-card {
+    position: relative;
+    width: min(32rem, 92vw);
+    background:#fff;
+    border-radius: .875rem;
+    box-shadow: 0 .75rem 2rem rgba(0,0,0,0.25);
+    overflow: hidden; }
+
+.modal-header {
+    display:flex;
+    align-items:center;
+    justify-content: space-between;
+    padding: .9rem 1rem;
+    border-bottom:1px solid #1f2937; }
+
+.modal-header h3 {
+    margin:0;
+    font-size: 1.05rem; }
+
+.modal-body {
+    display:grid; 
+    gap: .9rem;
+    padding: 1rem; }
+
+.modal-actions {
+    display:flex;
+    gap: .5rem;
+    justify-content:
+    flex-end;
+    margin-top: .5rem; }
+
+
+.btn {
+    border-radius: .625rem;
+    border: 1px solid #2a3646;
+    background: var(--color-light-blue);
+    padding: .6rem .9rem;
+    color:#fff;
+    cursor: pointer; }
+
+.btn.primary {  background: var(--color-light-blue); }
+
+.btn.primary :hover{
+     background: var(--color-dark-blue);
+}
+
+
+.btn.icon {
+    background: transparent;
+    border: none;
+    padding: .25rem;
+    font-size: 1rem; }
+
+
+/* Responsivo */
+@media (max-width: 30em) { /* 480px */
+.modal-card { width: 95vw; }
+}

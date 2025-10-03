@@ -157,3 +157,19 @@ html { font-size: 1rem; }
   }
   .stat-card__value { font-size: 1.25rem; } /* 20px */
 }
+.button-group{
+  display: flex;
+  gap: 0.5rem;
+}
+
+.button{
+  font-size: 1rem;
+  font-style:normal;
+  background: var(--color-light-blue);/* azul claro */
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  
+}

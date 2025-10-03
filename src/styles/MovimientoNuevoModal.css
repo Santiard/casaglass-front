@@ -26,7 +26,6 @@
 .alert.error { background: #ffe8e8; color: #8b1a1a; border: 1px solid #f5bcbc; }
 .alert.warning { background: #fff6e5; color: #7a4b00; border: 1px solid #f3d39a; }
 
-/* --- Layout dos paneles --- */
 .modal-wide { width: 960px; max-width: 98vw; }
 .modal-grid {
   display: grid;

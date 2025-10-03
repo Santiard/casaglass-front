@@ -13,6 +13,7 @@ import IngresosPage from "./pages/IngresoPage.jsx";
 import ProveedrorPage from "./pages/ProveedorPage.jsx";
 import EntregasPage from "./pages/EntregaPage.jsx";
 import HomePage from "./pages/HomePage.jsx";
+import TaxSettingsPage from "./pages/TaxSettingsPage.jsx";
 
 function App() {
   return (
@@ -33,6 +34,7 @@ function App() {
           <Route path="/proveedores" element={< ProveedrorPage/>}/>
           <Route path="/entregas" element={<EntregasPage/>}/>
           <Route path="/home"  element={<HomePage/>}/>
+          <Route path="/tax-settings" element={<TaxSettingsPage />} />
         </Route>
       </Routes>
     </Router>

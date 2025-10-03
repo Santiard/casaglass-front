@@ -1,0 +1,127 @@
+import { useEffect, useMemo, useState } from "react";
+import { getBusinessSettings, updateBusinessSettings } from "../services/businessSettingsService.js";
+import "../styles/TaxSettingsPage.css";
+
+
+export default function TaxSettingsPage(){
+const [loading, setLoading] = useState(true);
+const [message, setMessage] = useState(null);
+
+
+const [iva, setIva] = useState(19); // %
+const [rete, setRete] = useState(2.5); // %
+const [umbral, setUmbral] = useState(1000000);// COP
+
+
+useEffect(()=>{
+setLoading(true);
+getBusinessSettings().then((s)=>{
+if (s) {
+setIva(Number(s.ivaRate));
+setRete(Number(s.retefuenteRate));
+setUmbral(Number(s.retefuenteThreshold));
+}
+}).finally(()=> setLoading(false));
+}, []);
+const canSave = iva>=0 && iva<=100 && rete>=0 && rete<=100 && umbral>=0 && !loading;
+
+
+async function onSubmit(e){
+e.preventDefault();
+if (!canSave) return;
+setMessage(null);
+setLoading(true);
+try {
+await updateBusinessSettings({ ivaRate: Number(iva), retefuenteRate: Number(rete), retefuenteThreshold: Number(umbral) });
+setMessage({ type: 'ok', text: 'Parámetros guardados' });
+} catch (err) {
+setMessage({ type: 'error', text: err.message || 'No se pudieron guardar los cambios' });
+} finally { setLoading(false); }
+}
+
+// Vista previa
+const [preSub, setPreSub] = useState(200000);
+const preview = useMemo(()=>{
+const ivaVal = (preSub * (iva||0))/100;
+const aplicaRete = preSub >= (umbral||0);
+const reteVal = aplicaRete ? (preSub * (rete||0))/100 : 0;
+const total = preSub + ivaVal - reteVal;
+return { ivaVal, reteVal, aplicaRete, total };
+}, [preSub, iva, rete, umbral]);
+
+const fmtCOP = (n)=> new Intl.NumberFormat('es-CO', { style:'currency', currency:'COP', maximumFractionDigits:0 }).format(n||0);
+
+
+return (
+<div className="settings-page">
+<header className="settings-header">
+<h2>Parámetros de impuestos</h2>
+<p>Configura IVA, retención en la fuente y el umbral de aplicación.</p>
+</header>
+
+
+<section className="settings-card">
+<form className="settings-form tax-grid" onSubmit={onSubmit}>
+<fieldset className="tax-fieldset">
+<legend>Valores</legend>
+<div className="form-row">
+<label htmlFor="iva">IVA (%)</label>
+<div className="input-with-suffix">
+<input id="iva" type="number" step="0.1" min="0" max="100" value={iva}
+onChange={(e)=>setIva(Number(e.target.value))} />
+<span className="suffix">%</span>
+</div>
+<small className="hint">0–100</small>
+</div>
+
+
+<div className="form-row">
+<label htmlFor="rete">Retención en la fuente (%)</label>
+<div className="input-with-suffix">
+<input id="rete" type="number" step="0.1" min="0" max="100" value={rete}
+onChange={(e)=>setRete(Number(e.target.value))} />
+<span className="suffix">%</span>
+</div>
+<small className="hint">0–100</small>
+</div>
+<div className="form-row">
+<label htmlFor="umbral">Umbral retención (COP)</label>
+<div className="input-with-prefix">
+<span className="prefix">$</span>
+<input id="umbral" type="number" step="1000" min="0" value={umbral}
+onChange={(e)=>setUmbral(Number(e.target.value))} />
+</div>
+<small className="hint">Desde este monto aplica retención</small>
+</div>
+</fieldset>
+
+
+<section className="tax-preview">
+<h4>Vista previa</h4>
+<div className="form-row">
+<label htmlFor="preSub">Subtotal de ejemplo</label>
+<div className="input-with-prefix">
+<span className="prefix">$</span>
+<input id="preSub" type="number" step="1000" min="0" value={preSub}
+onChange={(e)=>setPreSub(Number(e.target.value))} />
+</div>
+</div>
+<ul className="preview-list">
+<li><span>IVA ({iva||0}%):</span><strong>{fmtCOP(preview.ivaVal)}</strong></li>
+<li><span>Retención ({rete||0}%) {preview.aplicaRete ? '(aplica)' : '(no aplica)'}:</span><strong>-{fmtCOP(preview.reteVal)}</strong></li>
+<li className="total"><span>Total (estimado):</span><strong>{fmtCOP(preview.total)}</strong></li>
+</ul>
+</section>
+{message && <div className={`callout ${message.type}`}>{message.text}</div>}
+
+
+<div className="form-actions">
+<button type="submit" className="btn primary" disabled={!canSave || loading}>
+{loading ? 'Guardando…' : 'Guardar cambios'}
+</button>
+</div>
+</form>
+</section>
+</div>
+);
+}
