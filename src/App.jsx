@@ -10,7 +10,7 @@ import VentasRealizadasPage from "./pages/VentasRealizadasPage.jsx";
 import ClientesPage from "./pages/ClientesPage.jsx";
 import MovimientosPage from "./pages/MovimientosPage.jsx";
 import IngresosPage from "./pages/IngresoPage.jsx";
-import ProveedrorPage from "./pages/ProveedorPage.jsx";
+import ProveedrorPage from "./pages/ProveedoresPage.jsx";
 import EntregasPage from "./pages/EntregaPage.jsx";
 import HomePage from "./pages/HomePage.jsx";
 import TaxSettingsPage from "./pages/TaxSettingsPage.jsx";

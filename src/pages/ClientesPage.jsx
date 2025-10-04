@@ -43,15 +43,24 @@ export default function ClientesPage() {
   };
 
   const handleEliminar = async (cli) => {
-    try {
-      await eliminarCliente(cli.id);
-      await fetchData();
-    } catch (e) {
-      console.error("Error eliminando cliente", e);
+  try {
+    await eliminarCliente(cli.id);
+    await fetchData();
+  } catch (e) {
+    console.error("Error eliminando cliente", e);
+
+    // Si el backend devuelve mensaje personalizado (por ejemplo en status 409)
+    const backendMsg = e?.response?.data?.message;
+
+    if (backendMsg) {
+      alert(backendMsg); // mensaje enviado desde el backend
+    } else if (e?.response?.status === 409) {
+      alert("No se puede eliminar el cliente porque tiene registros asociados (por ejemplo, órdenes o créditos).");
+    } else {
       alert("No se pudo eliminar el cliente. Revisa consola.");
     }
-  };
-
+  }
+};
   return (
     <div className="clientes-page">
       <div className="rowInferior fill">

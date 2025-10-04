@@ -1,87 +1,62 @@
-// src/components/InventoryTable.jsx
-import "../styles/Table.css";
-import eliminar from "../assets/eliminar.png";
-import editar from "../assets/editar.png";
-
-export default function InventoryTable({ data = [], filters = {}, onEditar, onEliminar }) {
-  const isVidrio = filters.category === "Vidrios";
-
-  // 👉 función para calcular el total de cantidades en todas las sedes
-  const getTotalCantidad = (p) =>
-    (Number(p.cantidad) || 0) +
-    (Number(p.cantidadInsula) || 0) +
-    (Number(p.cantidadCentro) || 0) +
-    (Number(p.cantidadPatios) || 0);
+// src/componets/InventoryTable.jsx
+export default function InventoryTable({ data = [], filters, loading, onEditar, onEliminar }) {
+  const isVidrio =
+    (filters?.category || "").toLowerCase() === "vidrio" ||
+    (data || []).some(p => (p.categoria || "").toLowerCase() === "vidrio");
 
   return (
     <div className="table-wrapper">
-      <table className="table inventory-table">
+      <table className="table">
         <thead>
           <tr>
-            <th>Codigo</th>
+            <th>Código</th>
             <th>Nombre</th>
             <th>Categoría</th>
-            <th>Insula</th>
-            <th>Centro</th>
-            <th>Patios</th>
+            {isVidrio && <th>mm</th>}
+            {isVidrio && <th>m²</th>}
+            {isVidrio && <th>Láminas</th>}
             <th>Total</th>
             <th>Precio 1</th>
             <th>Precio 2</th>
             <th>Precio 3</th>
             <th>Precio especial</th>
-            {isVidrio && (
-              <>
-                <th>Espesor (mm)</th>
-                <th>Área (m²)</th>
-                <th>Láminas</th>
-              </>
-            )}
             <th>Acciones</th>
           </tr>
         </thead>
         <tbody>
-          {data.length === 0 ? (
-            <tr>
-              <td colSpan={isVidrio ? 13 : 10} className="empty">
-                No hay productos
-              </td>
-            </tr>
-          ) : (
-            data.map((p) => (
+          {loading && (
+            <tr><td colSpan={isVidrio ? 12 : 9} className="empty">Cargando…</td></tr>
+          )}
+          {!loading && data.length === 0 && (
+            <tr><td colSpan={isVidrio ? 12 : 9} className="empty">Sin resultados</td></tr>
+          )}
+          {!loading && data.map((p) => {
+            const total =
+              Number(p.cantidadInsula || 0) +
+              Number(p.cantidadCentro || 0) +
+              Number(p.cantidadPatios || 0) +
+              Number(p.cantidad || 0);
+
+            return (
               <tr key={p.id}>
                 <td>{p.codigo}</td>
                 <td>{p.nombre}</td>
                 <td>{p.categoria}</td>
-                <td>{p.cantidadInsula ?? 0}</td>
-                <td>{p.cantidadCentro ?? 0}</td>
-                <td>{p.cantidadPatios ?? 0}</td>
-                <td>{getTotalCantidad(p)}</td>
+                {isVidrio && <td>{p.mm ?? "-"}</td>}
+                {isVidrio && <td>{p.m1m2 ?? "-"}</td>}
+                {isVidrio && <td>{p.laminas ?? "-"}</td>}
+                <td>{total}</td>
                 <td>{p.precio1 ?? "-"}</td>
                 <td>{p.precio2 ?? "-"}</td>
                 <td>{p.precio3 ?? "-"}</td>
                 <td>{p.precioEspecial ?? "-"}</td>
-                {isVidrio && (
-                  <>
-                    <td>{p.mm ?? "-"}</td>
-                    <td>{p.m1m2 ?? "-"}</td>
-                    <td>{p.laminas ?? "-"}</td>
-                  </>
-                )}
-                <td className="clientes-actions">
-                  {onEditar && (
-                    <button className="btnEdit" onClick={() => onEditar(p)}>
-                      <img src={editar} className="iconButton" />
-                    </button>
-                  )}
-                  {onEliminar && (
-                    <button className="btnDelete" onClick={() => onEliminar(p)}>
-                      <img src={eliminar} className="iconButton" />
-                    </button>
-                  )}
+                <td className="acciones">
+                  <button onClick={() => onEditar?.(p)}>Editar</button>
+                  <button onClick={() => onEliminar?.(p.id)}>Eliminar</button>
                 </td>
               </tr>
-            ))
-          )}
+            );
+          })}
         </tbody>
       </table>
     </div>
