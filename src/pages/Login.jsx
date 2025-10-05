@@ -1,17 +1,49 @@
 import "../styles/Login.css";
 import logo from "../assets/logocasaglass.png";
 import { useNavigate } from "react-router-dom";
-import react from "react";
+import { useState } from "react";
+import { login, saveSession } from "../services/AuthService"; 
 
 
 export default function Login() {
 
-    const navigate = useNavigate();
+  const [form, setForm] = useState({ username: "", password: "" });
+  const [loading, setLoading] = useState(false);
+  const [msg, setMsg] = useState(null);
+  const navigate = useNavigate();
 
-    const handleSubmit = (e) =>{
-        e.preventDefault();
-        navigate("/home");
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setForm((f) => ({ ...f, [name]: value }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setMsg(null);
+    setLoading(true);
+
+    try {
+      const user = await login(form); // 👈 llamado al backend
+      saveSession(user); // guarda usuario en localStorage
+
+      // Redirección por rol o sede
+      if (user.rol === "ADMIN") {
+        navigate("/home", { replace: true });
+      } else {
+        navigate("/venderpage", { replace: true });
+      }
+    } catch (err) {
+      console.error("Error login", err);
+      const text =
+        err?.response?.data ||
+        err?.response?.data?.message ||
+        "Usuario o contraseña inválidos";
+      setMsg(String(text));
+    } finally {
+      setLoading(false);
     }
+  };
+
   return (
     <div className="login-container">
       {/* Barra izquierda */}
@@ -29,11 +61,24 @@ export default function Login() {
         <h2 className="welcome">INICIAR SESION</h2>
 
         <form className="login-form" onSubmit={handleSubmit}>
-          <input type="text" placeholder="Usuario" />
-          <input type="password" placeholder="Contraseña" />
+          <input
+          type="text"
+          name="username"
+          placeholder="Usuario"
+          value={form.username}
+          onChange={handleChange}
+          required/>
 
-          <button type="submit" className="btn btn-black">
-            Iniciar Sesión
+          <input
+          type="password"
+          name="password"
+          placeholder="Contraseña"
+          value={form.password}
+          onChange={handleChange}
+          required/>
+
+          <button type="submit" className="btn btn-black" disabled={loading}>
+            {loading ? "Ingresando..." : "Iniciar Sesión"}
           </button>
         </form>
 

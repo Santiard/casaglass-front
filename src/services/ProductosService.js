@@ -1,5 +1,12 @@
 import{api} from "../lib/api";
 
+const base = "/productos";
+
+export async function getCategorias() {
+  const { data } = await api.get(`${base}/categorias`);
+  return data || [];
+}
+
 // GET /api/productos?categoria=Vidrio&q=templado
 export async function listarProductos(params = {}) {
   const { data } = await api.get("/productos", { params });
