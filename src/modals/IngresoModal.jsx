@@ -1,23 +1,27 @@
 // src/modals/IngresoModal.jsx
 import { useEffect, useMemo, useState } from "react";
 import "../styles/IngresoNuevoModal.css";
-import { toLocalDateTimeString } from "../services/IngresosService.js";
+import {
+  toLocalDateTimeString,
+  crearIngresoDesdeForm,
+  actualizarIngresoDesdeForm,
+} from "../services/IngresosService.js";
 
 export default function IngresoModal({
   isOpen,
   onClose,
-  onSave,                   // onSave(payload, isEdit)
+  onSave,                   // callback opcional para refrescar la tabla del padre
   proveedores = [],         // [{id, nombre}]
   catalogoProductos = [],   // [{id, nombre, codigo}]
-  ingresoInicial = null     // si viene => editar
+  ingresoInicial = null,    // si viene => editar
 }) {
   const empty = {
-    fecha: new Date().toISOString().substring(0, 16),
+    fecha: new Date().toISOString().substring(0, 16), // input datetime-local
     proveedorId: "",
-    proveedorNombre: "",
+    proveedorNombre: "", // (solo usado si quisieras permitir libre, aquí no lo usamos)
     numeroFactura: "",
     observaciones: "",
-    detalles: [] // [{producto:{id,nombre,codigo}, cantidad, costoUnitario}]
+    detalles: [], // [{producto:{id,nombre,codigo}, cantidad, costoUnitario}]
   };
 
   const [form, setForm] = useState(empty);
@@ -38,21 +42,23 @@ export default function IngresoModal({
         numeroFactura: ingresoInicial.numeroFactura ?? "",
         observaciones: ingresoInicial.observaciones ?? "",
         detalles: Array.isArray(ingresoInicial.detalles)
-          ? ingresoInicial.detalles.map(d => ({
+          ? ingresoInicial.detalles.map((d) => ({
               producto: {
                 id: d.producto?.id ?? "",
                 nombre: d.producto?.nombre ?? "",
-                codigo: d.producto?.codigo ?? "", // mostramos como “SKU”
+                codigo: d.producto?.codigo ?? "",
               },
               cantidad: Number(d.cantidad ?? 1),
-              costoUnitario: Number(d.costoUnitario ?? 0)
+              costoUnitario: Number(d.costoUnitario ?? 0),
             }))
-          : []
+          : [],
       });
 
-      // Opcional: tu regla UI de 2 días (la regla back real es "procesado")
+      // UI: bloquea si está procesado o > 2 días (el backend ya valida procesado)
       const base = new Date(ingresoInicial.fecha);
-      const diffDays = isNaN(base) ? 0 : (Date.now() - base.getTime()) / (1000 * 60 * 60 * 24);
+      const diffDays = isNaN(base)
+        ? 0
+        : (Date.now() - base.getTime()) / (1000 * 60 * 60 * 24);
       setEditable(diffDays <= 2 && !ingresoInicial.procesado);
     } else {
       setForm(empty);
@@ -61,63 +67,102 @@ export default function IngresoModal({
     setSearchCat("");
   }, [isOpen, ingresoInicial]);
 
+  // Catálogo filtrado
   const catalogoFiltrado = useMemo(() => {
     const q = searchCat.trim().toLowerCase();
     if (!q) return catalogoProductos;
-    return catalogoProductos.filter(p =>
-      (p.nombre ?? "").toLowerCase().includes(q) ||
-      (p.codigo ?? "").toLowerCase().includes(q)
+    return catalogoProductos.filter(
+      (p) =>
+        (p.nombre ?? "").toLowerCase().includes(q) ||
+        (p.codigo ?? "").toLowerCase().includes(q)
     );
   }, [catalogoProductos, searchCat]);
 
+  // Total costo calculado en UI (el back recalcula igual)
   const totalCosto = useMemo(
-    () => form.detalles.reduce(
-      (acc, d) => acc + Number(d.cantidad ?? 0) * Number(d.costoUnitario ?? 0),
-      0
-    ),
+    () =>
+      form.detalles.reduce(
+        (acc, d) =>
+          acc + Number(d.cantidad ?? 0) * Number(d.costoUnitario ?? 0),
+        0
+      ),
     [form.detalles]
   );
 
-  const proveedorVacio = !form.proveedorId && !form.proveedorNombre.trim();
-  const cantidadesInvalidas = form.detalles.some(d => !d.cantidad || d.cantidad <= 0 || !Number.isFinite(Number(d.cantidad)));
-  const costosInvalidos = form.detalles.some(d => d.costoUnitario == null || d.costoUnitario < 0 || !Number.isFinite(Number(d.costoUnitario)));
-  const disabledSubmit =
-    !editable || proveedorVacio || !form.fecha || form.detalles.length === 0 || cantidadesInvalidas || costosInvalidos;
+  // Validaciones básicas
+  const cantidadesInvalidas = form.detalles.some(
+    (d) =>
+      !Number.isFinite(Number(d.cantidad)) ||
+      Number(d.cantidad) < 1
+  );
+  const costosInvalidos = form.detalles.some(
+    (d) =>
+      !Number.isFinite(Number(d.costoUnitario)) ||
+      Number(d.costoUnitario) < 0
+  );
 
-  const setField = (field, value) => setForm(prev => ({ ...prev, [field]: value }));
+  const proveedorIdNum = Number(form.proveedorId);
+  const disabledSubmit =
+    !editable ||
+    !form.fecha ||
+    !Number.isFinite(proveedorIdNum) ||
+    proveedorIdNum <= 0 ||
+    form.detalles.length === 0 ||
+    cantidadesInvalidas ||
+    costosInvalidos;
+
+  // Helpers UI
+  const setField = (field, value) =>
+    setForm((prev) => ({ ...prev, [field]: value }));
 
   const handleProveedorSelect = (value) => {
     if (!editable) return;
-    setForm(prev => {
-      const prov = proveedores.find(p => String(p.id) === String(value));
-      return { ...prev, proveedorId: value, proveedorNombre: prov?.nombre ?? prev.proveedorNombre };
+    setForm((prev) => {
+      const prov = proveedores.find((p) => String(p.id) === String(value));
+      return {
+        ...prev,
+        proveedorId: value,
+        proveedorNombre: prov?.nombre ?? prev.proveedorNombre,
+      };
     });
   };
 
   const addProducto = (prod) => {
     if (!editable) return;
-    setForm(prev => {
+    setForm((prev) => {
       const key = String(prod.id);
-      const idx = prev.detalles.findIndex(d => String(d.producto.id) === key);
+      const idx = prev.detalles.findIndex(
+        (d) => String(d.producto.id) === key
+      );
       if (idx >= 0) {
         const arr = [...prev.detalles];
-        arr[idx] = { ...arr[idx], cantidad: Number(arr[idx].cantidad ?? 0) + 1 };
+        arr[idx] = {
+          ...arr[idx],
+          cantidad: Number(arr[idx].cantidad ?? 0) + 1,
+        };
         return { ...prev, detalles: arr };
       }
       return {
         ...prev,
-        detalles: [...prev.detalles, {
-          producto: { id: prod.id, nombre: prod.nombre ?? "", codigo: prod.codigo ?? "" },
-          cantidad: 1,
-          costoUnitario: 0
-        }]
+        detalles: [
+          ...prev.detalles,
+          {
+            producto: {
+              id: prod.id,
+              nombre: prod.nombre ?? "",
+              codigo: prod.codigo ?? "",
+            },
+            cantidad: 1,
+            costoUnitario: 0,
+          },
+        ],
       };
     });
   };
 
   const setDetalle = (idx, field, value) => {
     if (!editable) return;
-    setForm(prev => {
+    setForm((prev) => {
       const arr = [...prev.detalles];
       const row = { ...arr[idx] };
       if (field === "cantidad" || field === "costoUnitario") {
@@ -132,38 +177,44 @@ export default function IngresoModal({
 
   const removeDetalle = (idx) => {
     if (!editable) return;
-    setForm(prev => ({ ...prev, detalles: prev.detalles.filter((_, i) => i !== idx) }));
+    setForm((prev) => ({
+      ...prev,
+      detalles: prev.detalles.filter((_, i) => i !== idx),
+    }));
   };
 
-  const handleSubmit = () => {
+  // Submit usando los services (mapper centralizado)
+  const handleSubmit = async () => {
     if (disabledSubmit) return;
 
-    // FECHA al formato LocalDateTime sin Z para Spring
-    const fechaStr = toLocalDateTimeString(
-      form.fecha?.length === 16 ? new Date(form.fecha) : new Date()
-    );
+    // Aseguramos LocalDateTime "YYYY-MM-DDTHH:mm"
+    const fechaStr =
+      form.fecha?.length === 16
+        ? toLocalDateTimeString(new Date(form.fecha))
+        : toLocalDateTimeString(new Date());
 
-    // Forzar selección de proveedor existente (el back necesita id)
-    if (!form.proveedorId) {
-      alert("Selecciona un proveedor existente.");
-      return;
-    }
-
-    // Payload EXACTO para tu backend
-    const payload = {
-      fecha: fechaStr,
-      proveedor: { id: form.proveedorId },
-      numeroFactura: (form.numeroFactura || "").trim(),
-      observaciones: (form.observaciones || "").trim(),
-      detalles: form.detalles.map(d => ({
-        producto: { id: d.producto.id },
-        cantidad: Number(d.cantidad),
-        costoUnitario: Number(d.costoUnitario),
-      })),
+    const formParaService = {
+      ...form,
+      fecha: fechaStr, // normalizada para el mapper
     };
 
-    onSave?.(payload, isEdit);
-    // el cierre final lo hace el padre tras persistir
+    try {
+      if (isEdit) {
+        await actualizarIngresoDesdeForm(ingresoInicial.id, formParaService);
+      } else {
+        await crearIngresoDesdeForm(formParaService);
+      }
+      onSave?.();   // refresca la tabla desde el padre si quieres
+      onClose?.();
+    } catch (e) {
+      console.error("Error guardando ingreso", {
+        status: e?.response?.status,
+        data: e?.response?.data,
+      });
+      alert(
+        e?.response?.data?.message || "No se pudo guardar el ingreso."
+      );
+    }
   };
 
   if (!isOpen) return null;
@@ -184,13 +235,31 @@ export default function IngresoModal({
           {!isEdit && form.detalles.length === 0 && (
             <div className="alert warning">Agrega al menos un producto.</div>
           )}
-          {(!isEdit || editable) && (proveedorVacio || cantidadesInvalidas || costosInvalidos) && (
-            <>
-              {proveedorVacio && <div className="alert warning">Debes seleccionar un proveedor.</div>}
-              {cantidadesInvalidas && <div className="alert error">Hay cantidades inválidas (&gt; 0).</div>}
-              {costosInvalidos && <div className="alert error">Hay costos inválidos (≥ 0).</div>}
-            </>
-          )}
+          {(!isEdit || editable) &&
+            (form.detalles.length === 0 ||
+              !Number.isFinite(proveedorIdNum) ||
+              proveedorIdNum <= 0 ||
+              cantidadesInvalidas ||
+              costosInvalidos) && (
+              <>
+                {(!Number.isFinite(proveedorIdNum) ||
+                  proveedorIdNum <= 0) && (
+                  <div className="alert warning">
+                    Debes seleccionar un proveedor.
+                  </div>
+                )}
+                {cantidadesInvalidas && (
+                  <div className="alert error">
+                    Hay cantidades inválidas (&gt; 0).
+                  </div>
+                )}
+                {costosInvalidos && (
+                  <div className="alert error">
+                    Hay costos inválidos (≥ 0).
+                  </div>
+                )}
+              </>
+            )}
         </div>
 
         <div className="modal-grid">
@@ -225,8 +294,10 @@ export default function IngresoModal({
                   disabled={!editable && isEdit}
                 >
                   <option value="">-- Ninguno --</option>
-                  {proveedores.map(p => (
-                    <option key={p.id} value={p.id}>{p.nombre}</option>
+                  {proveedores.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.nombre}
+                    </option>
                   ))}
                 </select>
               </label>
@@ -245,13 +316,15 @@ export default function IngresoModal({
             <h3 style={{ marginTop: 8 }}>Productos del ingreso</h3>
             <div className="selected-products">
               {form.detalles.length === 0 ? (
-                <div className="empty-sub">Doble clic en la tabla de la derecha para agregar.</div>
+                <div className="empty-sub">
+                  Doble clic en la tabla de la derecha para agregar.
+                </div>
               ) : (
                 <table className="mini-table">
                   <thead>
                     <tr>
                       <th>Nombre</th>
-                      <th>Codigo</th>
+                      <th>Código</th>
                       <th style={{ width: 110 }}>Cantidad</th>
                       <th style={{ width: 130 }}>Costo unit.</th>
                       <th style={{ width: 60 }}></th>
@@ -259,12 +332,16 @@ export default function IngresoModal({
                   </thead>
                   <tbody>
                     {form.detalles.map((d, idx) => (
-                      <tr key={String(d.producto.id ?? `${d.producto.nombre}-${idx}`)}>
+                      <tr
+                        key={String(d.producto.id ?? `${d.producto.nombre}-${idx}`)}
+                      >
                         <td>
                           <input
                             type="text"
                             value={d.producto.nombre}
-                            onChange={(e) => setDetalle(idx, "nombre", e.target.value)}
+                            onChange={(e) =>
+                              setDetalle(idx, "nombre", e.target.value)
+                            }
                             disabled={!editable && isEdit}
                           />
                         </td>
@@ -272,7 +349,9 @@ export default function IngresoModal({
                           <input
                             type="text"
                             value={d.producto.codigo ?? ""}
-                            onChange={(e) => setDetalle(idx, "codigo", e.target.value)}
+                            onChange={(e) =>
+                              setDetalle(idx, "codigo", e.target.value)
+                            }
                             disabled={!editable && isEdit}
                           />
                         </td>
@@ -282,7 +361,9 @@ export default function IngresoModal({
                             type="number"
                             min={1}
                             value={Number(d.cantidad ?? 1)}
-                            onChange={(e) => setDetalle(idx, "cantidad", e.target.value)}
+                            onChange={(e) =>
+                              setDetalle(idx, "cantidad", e.target.value)
+                            }
                             disabled={!editable && isEdit}
                           />
                         </td>
@@ -293,7 +374,9 @@ export default function IngresoModal({
                             min={0}
                             step="0.01"
                             value={Number(d.costoUnitario ?? 0)}
-                            onChange={(e) => setDetalle(idx, "costoUnitario", e.target.value)}
+                            onChange={(e) =>
+                              setDetalle(idx, "costoUnitario", e.target.value)
+                            }
                             disabled={!editable && isEdit}
                           />
                         </td>
@@ -303,7 +386,11 @@ export default function IngresoModal({
                             type="button"
                             onClick={() => removeDetalle(idx)}
                             disabled={!editable && isEdit}
-                            title={(!editable && isEdit) ? "Edición bloqueada" : "Quitar"}
+                            title={
+                              !editable && isEdit
+                                ? "Edición bloqueada"
+                                : "Quitar"
+                            }
                           >
                             ✕
                           </button>
@@ -311,10 +398,15 @@ export default function IngresoModal({
                       </tr>
                     ))}
                     <tr>
-                      <td colSpan={3} style={{ textAlign: "right", fontWeight: 600 }}>Total</td>
+                      <td colSpan={3} style={{ textAlign: "right", fontWeight: 600 }}>
+                        Total
+                      </td>
                       <td colSpan={2} style={{ fontWeight: 700 }}>
-                        {new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 })
-                          .format(totalCosto)}
+                        {new Intl.NumberFormat("es-CO", {
+                          style: "currency",
+                          currency: "COP",
+                          maximumFractionDigits: 0,
+                        }).format(totalCosto)}
                       </td>
                     </tr>
                   </tbody>
@@ -348,14 +440,26 @@ export default function IngresoModal({
                 </thead>
                 <tbody>
                   {catalogoFiltrado.length === 0 ? (
-                    <tr><td colSpan={3} className="empty">Sin resultados</td></tr>
+                    <tr>
+                      <td colSpan={3} className="empty">
+                        Sin resultados
+                      </td>
+                    </tr>
                   ) : (
-                    catalogoFiltrado.map(item => (
+                    catalogoFiltrado.map((item) => (
                       <tr
                         key={String(item.id)}
-                        onDoubleClick={() => { if (editable || !isEdit) addProducto(item); }}
-                        title={(!editable && isEdit) ? "Edición bloqueada" : "Doble clic para agregar"}
-                        style={{ cursor: (!editable && isEdit) ? "not-allowed" : "pointer" }}
+                        onDoubleClick={() => {
+                          if (editable || !isEdit) addProducto(item);
+                        }}
+                        title={
+                          !editable && isEdit
+                            ? "Edición bloqueada"
+                            : "Doble clic para agregar"
+                        }
+                        style={{
+                          cursor: !editable && isEdit ? "not-allowed" : "pointer",
+                        }}
                       >
                         <td>{item.nombre}</td>
                         <td>{item.codigo ?? "-"}</td>
@@ -379,13 +483,21 @@ export default function IngresoModal({
         </div>
 
         <div className="modal-buttons">
-          <button className="btn-cancelar" onClick={onClose} type="button">Cerrar</button>
+          <button className="btn-cancelar" onClick={onClose} type="button">
+            Cerrar
+          </button>
           <button
             className="btn-guardar"
             onClick={handleSubmit}
             type="button"
             disabled={disabledSubmit}
-            title={disabledSubmit ? "Completa proveedor, productos y corrige validaciones" : (isEdit ? "Guardar" : "Crear ingreso")}
+            title={
+              disabledSubmit
+                ? "Completa proveedor, productos y corrige validaciones"
+                : isEdit
+                ? "Guardar"
+                : "Crear ingreso"
+            }
           >
             {isEdit ? "Guardar" : "Crear ingreso"}
           </button>

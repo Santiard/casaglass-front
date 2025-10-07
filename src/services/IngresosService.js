@@ -1,35 +1,96 @@
-// src/services/ingresos.js
-import { api } from "../lib/api";
+// src/services/IngresosService.js
+import { api } from "../lib/api.js";
 
-/* Helpers de fecha (Spring LocalDateTime sin zona "YYYY-MM-DDTHH:mm:ss") */
-const pad = (n) => String(n).padStart(2, "0");
-export const toLocalDateTimeString = (dateLike) => {
-  const d = dateLike instanceof Date ? dateLike : new Date(dateLike);
-  const y = d.getFullYear(), m = pad(d.getMonth() + 1), day = pad(d.getDate());
-  const hh = pad(d.getHours()), mm = pad(d.getMinutes()), ss = pad(d.getSeconds());
-  return `${y}-${m}-${day}T${hh}:${mm}:${ss}`;
-};
-export const toInputLocal = (dateLike) => {
-  const d = dateLike instanceof Date ? dateLike : new Date(dateLike);
-  const y = d.getFullYear(), m = pad(d.getMonth() + 1), day = pad(d.getDate());
-  const hh = pad(d.getHours()), mm = pad(d.getMinutes());
+/* ===========================
+   Utilidades exportadas
+=========================== */
+
+/** Convierte un Date a "YYYY-MM-DDTHH:mm" (LocalDateTime sin zona) */
+export function toLocalDateTimeString(date = new Date()) {
+  const pad = (n) => String(n).padStart(2, "0");
+  const d = new Date(date);
+
+  const y = d.getFullYear();
+  const m = pad(d.getMonth() + 1);
+  const day = pad(d.getDate());
+  const hh = pad(d.getHours());
+  const mm = pad(d.getMinutes());
+
   return `${y}-${m}-${day}T${hh}:${mm}`;
-};
+}
 
-const base = "/ingresos";
+/* ===========================
+   Endpoints de lectura
+=========================== */
 
-export const ingresosApi = {
-  listar:        () => api.get(base).then(r => r.data),
-  obtener:       (id) => api.get(`${base}/${id}`).then(r => r.data),
-  porProveedor:  (proveedorId) => api.get(`${base}/proveedor/${proveedorId}`).then(r => r.data),
-  noProcesados:  () => api.get(`${base}/no-procesados`).then(r => r.data),
-  porFecha:      ({ fechaInicio, fechaFin }) =>
-    api.get(`${base}/por-fecha`, { params: { fechaInicio, fechaFin } }).then(r => r.data),
+export async function listarIngresos() {
+  const { data } = await api.get("/ingresos");
+  return data;
+}
 
-  crear:         (payload) => api.post(base, payload).then(r => r.data),
-  actualizar:    (id, payload) => api.put(`${base}/${id}`, payload).then(r => r.data),
-  eliminar:      (id) => api.delete(`${base}/${id}`),
+export async function obtenerIngreso(id) {
+  const { data } = await api.get(`/ingresos/${id}`);
+  return data;
+}
 
-  procesar:      (id) => api.post(`${base}/${id}/procesar`).then(r => r.data),
-  reprocesar:    (id) => api.post(`${base}/${id}/reprocesar`).then(r => r.data),
-};
+/* ===========================
+   Endpoints de escritura
+   (reciben el "form" del modal)
+=========================== */
+
+export async function crearIngresoDesdeForm(form) {
+  const payload = mapFormAIngresoAPI(form);
+  const { data } = await api.post("/ingresos", payload);
+  return data;
+}
+
+export async function actualizarIngresoDesdeForm(id, form) {
+  const payload = mapFormAIngresoAPI(form, id);
+  const { data } = await api.put(`/ingresos/${id}`, payload);
+  return data;
+}
+
+export async function eliminarIngreso(id) {
+  const { data } = await api.delete(`/ingresos/${id}`);
+  return data;
+}
+
+/* ===========================
+   Mapper centralizado
+=========================== */
+
+function mapFormAIngresoAPI(form, id) {
+  const proveedorIdNum = Number(form.proveedorId);
+
+  const detallesApi = (form.detalles || [])
+    .map((d) => ({
+      producto: { id: Number(d.producto?.id) },
+      cantidad: Number(d.cantidad),
+      costoUnitario: Number(d.costoUnitario),
+    }))
+    .filter(
+      (d) =>
+        Number.isFinite(d.producto.id) &&
+        d.producto.id > 0 &&
+        Number.isFinite(d.cantidad) &&
+        d.cantidad >= 1 &&
+        Number.isFinite(d.costoUnitario) &&
+        d.costoUnitario >= 0
+    );
+
+  // Asegura que la fecha llegue como LocalDateTime "YYYY-MM-DDTHH:mm"
+  // Si te llega con segundos o Z, córtala o normalízala aquí.
+  const fecha = (form.fecha || "").length >= 16
+    ? (form.fecha || "").slice(0, 16)
+    : toLocalDateTimeString(new Date());
+
+  return {
+    ...(id ? { id: Number(id) } : {}),
+    fecha,
+    proveedor: { id: proveedorIdNum }, // el backend espera objeto con id
+    numeroFactura: (form.numeroFactura || "").trim(),
+    observaciones: (form.observaciones || "").trim(),
+    detalles: detallesApi,
+    // No enviar totalCosto ni procesado: el backend los calcula/gestiona
+  };
+}

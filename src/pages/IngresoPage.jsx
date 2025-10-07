@@ -1,7 +1,8 @@
 // src/pages/IngresosPage.jsx
 import { useEffect, useState } from "react";
 import IngresosTable from "../componets/IngresoTable.jsx";
-import IngresoDetalleModal from "../modals/IngresoDetalleModal.jsx";import { ingresosApi } from "../services/IngresosService.js";
+import IngresoDetalleModal from "../modals/IngresoDetalleModal.jsx";
+import { listarIngresos, crearIngresoDesdeForm, actualizarIngresoDesdeForm, eliminarIngreso } from "../services/IngresosService.js";
 import { listarProveedores } from "../services/ProveedoresService.js";
 import { listarProductos } from "../services/ProductosService.js";
 
@@ -15,7 +16,7 @@ export default function IngresosPage() {
   const loadIngresos = async () => {
     setLoading(true);
     try {
-      const list = await ingresosApi.listar();
+      const list = await listarIngresos();
       setIngresos(list || []);
     } catch (e) {
       console.error("Error listar ingresos:", {
@@ -56,15 +57,15 @@ export default function IngresosPage() {
   }, []);
 
   const onCrear = async (payload) => {
-    await ingresosApi.crear(payload);
+    await crearIngresoDesdeForm(payload);
     await loadIngresos();
   };
   const onActualizar = async (id, payload) => {
-    await ingresosApi.actualizar(id, payload);
+    await actualizarIngresoDesdeForm(id, payload);
     await loadIngresos();
   };
   const onEliminar = async (id) => {
-    await ingresosApi.eliminar(id);
+    await eliminarIngreso(id);
     await loadIngresos();
   };
 
