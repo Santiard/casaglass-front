@@ -1,12 +1,14 @@
+// src/modals/IngresoModal.jsx
 import { useEffect, useMemo, useState } from "react";
 import "../styles/IngresoNuevoModal.css";
+import { toLocalDateTimeString } from "../services/IngresosService.js";
 
 export default function IngresoModal({
   isOpen,
   onClose,
   onSave,                   // onSave(payload, isEdit)
   proveedores = [],         // [{id, nombre}]
-  catalogoProductos = [],   // [{id, nombre, sku}]
+  catalogoProductos = [],   // [{id, nombre, codigo}]
   ingresoInicial = null     // si viene => editar
 }) {
   const empty = {
@@ -15,7 +17,7 @@ export default function IngresoModal({
     proveedorNombre: "",
     numeroFactura: "",
     observaciones: "",
-    detalles: [] // [{producto:{id,nombre,sku}, cantidad, costoUnitario}]
+    detalles: [] // [{producto:{id,nombre,codigo}, cantidad, costoUnitario}]
   };
 
   const [form, setForm] = useState(empty);
@@ -38,9 +40,9 @@ export default function IngresoModal({
         detalles: Array.isArray(ingresoInicial.detalles)
           ? ingresoInicial.detalles.map(d => ({
               producto: {
-                id: d.producto?.id ?? d.producto?.sku ?? d.producto?.nombre ?? "",
+                id: d.producto?.id ?? "",
                 nombre: d.producto?.nombre ?? "",
-                sku: d.producto?.sku ?? ""
+                codigo: d.producto?.codigo ?? "", // mostramos como “SKU”
               },
               cantidad: Number(d.cantidad ?? 1),
               costoUnitario: Number(d.costoUnitario ?? 0)
@@ -48,10 +50,10 @@ export default function IngresoModal({
           : []
       });
 
-      // Regla 2 días
+      // Opcional: tu regla UI de 2 días (la regla back real es "procesado")
       const base = new Date(ingresoInicial.fecha);
       const diffDays = isNaN(base) ? 0 : (Date.now() - base.getTime()) / (1000 * 60 * 60 * 24);
-      setEditable(diffDays <= 2);
+      setEditable(diffDays <= 2 && !ingresoInicial.procesado);
     } else {
       setForm(empty);
       setEditable(true);
@@ -59,13 +61,12 @@ export default function IngresoModal({
     setSearchCat("");
   }, [isOpen, ingresoInicial]);
 
-  // Hooks siempre antes del return
   const catalogoFiltrado = useMemo(() => {
     const q = searchCat.trim().toLowerCase();
     if (!q) return catalogoProductos;
     return catalogoProductos.filter(p =>
       (p.nombre ?? "").toLowerCase().includes(q) ||
-      (p.sku ?? "").toLowerCase().includes(q)
+      (p.codigo ?? "").toLowerCase().includes(q)
     );
   }, [catalogoProductos, searchCat]);
 
@@ -83,7 +84,6 @@ export default function IngresoModal({
   const disabledSubmit =
     !editable || proveedorVacio || !form.fecha || form.detalles.length === 0 || cantidadesInvalidas || costosInvalidos;
 
-  // Handlers
   const setField = (field, value) => setForm(prev => ({ ...prev, [field]: value }));
 
   const handleProveedorSelect = (value) => {
@@ -97,8 +97,8 @@ export default function IngresoModal({
   const addProducto = (prod) => {
     if (!editable) return;
     setForm(prev => {
-      const key = String(prod.id ?? prod.sku ?? prod.nombre);
-      const idx = prev.detalles.findIndex(d => String(d.producto.id ?? d.producto.sku ?? d.producto.nombre) === key);
+      const key = String(prod.id);
+      const idx = prev.detalles.findIndex(d => String(d.producto.id) === key);
       if (idx >= 0) {
         const arr = [...prev.detalles];
         arr[idx] = { ...arr[idx], cantidad: Number(arr[idx].cantidad ?? 0) + 1 };
@@ -107,7 +107,7 @@ export default function IngresoModal({
       return {
         ...prev,
         detalles: [...prev.detalles, {
-          producto: { id: prod.id ?? key, nombre: prod.nombre ?? "", sku: prod.sku ?? "" },
+          producto: { id: prod.id, nombre: prod.nombre ?? "", codigo: prod.codigo ?? "" },
           cantidad: 1,
           costoUnitario: 0
         }]
@@ -122,7 +122,7 @@ export default function IngresoModal({
       const row = { ...arr[idx] };
       if (field === "cantidad" || field === "costoUnitario") {
         row[field] = Number(value);
-      } else if (field === "nombre" || field === "sku") {
+      } else if (field === "nombre" || field === "codigo") {
         row.producto = { ...row.producto, [field]: value };
       }
       arr[idx] = row;
@@ -137,29 +137,33 @@ export default function IngresoModal({
 
   const handleSubmit = () => {
     if (disabledSubmit) return;
-    const isoFecha = form.fecha.length === 16 ? new Date(form.fecha).toISOString() : new Date().toISOString();
-    const proveedor = form.proveedorId
-      ? { id: form.proveedorId, nombre: form.proveedorNombre || (proveedores.find(p => String(p.id) === String(form.proveedorId))?.nombre ?? "") }
-      : { id: null, nombre: form.proveedorNombre };
 
+    // FECHA al formato LocalDateTime sin Z para Spring
+    const fechaStr = toLocalDateTimeString(
+      form.fecha?.length === 16 ? new Date(form.fecha) : new Date()
+    );
+
+    // Forzar selección de proveedor existente (el back necesita id)
+    if (!form.proveedorId) {
+      alert("Selecciona un proveedor existente.");
+      return;
+    }
+
+    // Payload EXACTO para tu backend
     const payload = {
-      // si editas, preserva el id original
-      id: ingresoInicial?.id ?? `ing-${Date.now()}`,
-      fecha: isoFecha,
-      proveedor,
-      numeroFactura: form.numeroFactura.trim(),
-      observaciones: form.observaciones.trim(),
+      fecha: fechaStr,
+      proveedor: { id: form.proveedorId },
+      numeroFactura: (form.numeroFactura || "").trim(),
+      observaciones: (form.observaciones || "").trim(),
       detalles: form.detalles.map(d => ({
-        producto: { id: d.producto.id, nombre: d.producto.nombre, sku: d.producto.sku },
+        producto: { id: d.producto.id },
         cantidad: Number(d.cantidad),
-        costoUnitario: Number(d.costoUnitario)
+        costoUnitario: Number(d.costoUnitario),
       })),
-      totalCosto: Number(totalCosto),
-      procesado: ingresoInicial?.procesado ?? false
     };
 
     onSave?.(payload, isEdit);
-    onClose?.();
+    // el cierre final lo hace el padre tras persistir
   };
 
   if (!isOpen) return null;
@@ -171,23 +175,18 @@ export default function IngresoModal({
           {isEdit ? "Editar ingreso" : "Nuevo ingreso"}
           {isEdit && !editable && (
             <span style={{ marginLeft: 8, fontSize: 14, color: "#8b1a1a" }}>
-              (solo lectura: &gt; 2 días)
+              (bloqueado: procesado o &gt; 2 días)
             </span>
           )}
         </h2>
 
         <div className="modal-alerts">
-          {isEdit && !editable && (
-            <div className="alert error">
-              Este ingreso fue creado hace más de 2 días. No se puede editar.
-            </div>
-          )}
           {!isEdit && form.detalles.length === 0 && (
             <div className="alert warning">Agrega al menos un producto.</div>
           )}
           {(!isEdit || editable) && (proveedorVacio || cantidadesInvalidas || costosInvalidos) && (
             <>
-              {proveedorVacio && <div className="alert warning">Debes indicar un proveedor (seleccionar o escribir un nombre).</div>}
+              {proveedorVacio && <div className="alert warning">Debes seleccionar un proveedor.</div>}
               {cantidadesInvalidas && <div className="alert error">Hay cantidades inválidas (&gt; 0).</div>}
               {costosInvalidos && <div className="alert error">Hay costos inválidos (≥ 0).</div>}
             </>
@@ -232,17 +231,6 @@ export default function IngresoModal({
                 </select>
               </label>
 
-              <label>
-                Proveedor (o escribir nombre)
-                <input
-                  type="text"
-                  placeholder="Nombre del proveedor"
-                  value={form.proveedorNombre}
-                  onChange={(e) => setField("proveedorNombre", e.target.value)}
-                  disabled={!editable && isEdit}
-                />
-              </label>
-
               <label className="full">
                 Observaciones
                 <input
@@ -263,7 +251,7 @@ export default function IngresoModal({
                   <thead>
                     <tr>
                       <th>Nombre</th>
-                      <th>SKU</th>
+                      <th>Codigo</th>
                       <th style={{ width: 110 }}>Cantidad</th>
                       <th style={{ width: 130 }}>Costo unit.</th>
                       <th style={{ width: 60 }}></th>
@@ -271,7 +259,7 @@ export default function IngresoModal({
                   </thead>
                   <tbody>
                     {form.detalles.map((d, idx) => (
-                      <tr key={String(d.producto.id ?? d.producto.sku ?? `${d.producto.nombre}-${idx}`)}>
+                      <tr key={String(d.producto.id ?? `${d.producto.nombre}-${idx}`)}>
                         <td>
                           <input
                             type="text"
@@ -283,8 +271,8 @@ export default function IngresoModal({
                         <td>
                           <input
                             type="text"
-                            value={d.producto.sku ?? ""}
-                            onChange={(e) => setDetalle(idx, "sku", e.target.value)}
+                            value={d.producto.codigo ?? ""}
+                            onChange={(e) => setDetalle(idx, "codigo", e.target.value)}
                             disabled={!editable && isEdit}
                           />
                         </td>
@@ -315,7 +303,7 @@ export default function IngresoModal({
                             type="button"
                             onClick={() => removeDetalle(idx)}
                             disabled={!editable && isEdit}
-                            title={(!editable && isEdit) ? "Edición bloqueada (&gt; 2 días)" : "Quitar"}
+                            title={(!editable && isEdit) ? "Edición bloqueada" : "Quitar"}
                           >
                             ✕
                           </button>
@@ -325,7 +313,8 @@ export default function IngresoModal({
                     <tr>
                       <td colSpan={3} style={{ textAlign: "right", fontWeight: 600 }}>Total</td>
                       <td colSpan={2} style={{ fontWeight: 700 }}>
-                        {new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(totalCosto)}
+                        {new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 })
+                          .format(totalCosto)}
                       </td>
                     </tr>
                   </tbody>
@@ -341,7 +330,7 @@ export default function IngresoModal({
               <input
                 className="inv-search"
                 type="text"
-                placeholder="Buscar por nombre o SKU…"
+                placeholder="Buscar por nombre o código…"
                 value={searchCat}
                 onChange={(e) => setSearchCat(e.target.value)}
                 disabled={!editable && isEdit}
@@ -353,7 +342,7 @@ export default function IngresoModal({
                 <thead>
                   <tr>
                     <th style={{ width: "55%" }}>Nombre</th>
-                    <th style={{ width: "30%" }}>SKU</th>
+                    <th style={{ width: "30%" }}>Código</th>
                     <th style={{ width: "15%" }}>Agregar</th>
                   </tr>
                 </thead>
@@ -363,20 +352,19 @@ export default function IngresoModal({
                   ) : (
                     catalogoFiltrado.map(item => (
                       <tr
-                        key={String(item.id ?? item.sku ?? item.nombre)}
+                        key={String(item.id)}
                         onDoubleClick={() => { if (editable || !isEdit) addProducto(item); }}
-                        title={(!editable && isEdit) ? "Edición bloqueada (&gt; 2 días)" : "Doble clic para agregar"}
+                        title={(!editable && isEdit) ? "Edición bloqueada" : "Doble clic para agregar"}
                         style={{ cursor: (!editable && isEdit) ? "not-allowed" : "pointer" }}
                       >
                         <td>{item.nombre}</td>
-                        <td>{item.sku ?? "-"}</td>
+                        <td>{item.codigo ?? "-"}</td>
                         <td>
                           <button
                             className="btn-ghost"
                             type="button"
                             onClick={() => addProducto(item)}
                             disabled={!editable && isEdit}
-                            title={(!editable && isEdit) ? "Edición bloqueada (&gt; 2 días)" : "Agregar"}
                           >
                             +
                           </button>
@@ -390,7 +378,6 @@ export default function IngresoModal({
           </div>
         </div>
 
-        {/* Botones */}
         <div className="modal-buttons">
           <button className="btn-cancelar" onClick={onClose} type="button">Cerrar</button>
           <button
@@ -398,7 +385,7 @@ export default function IngresoModal({
             onClick={handleSubmit}
             type="button"
             disabled={disabledSubmit}
-            title={disabledSubmit ? (isEdit && !editable ? "Edición bloqueada (&gt; 2 días)" : "Completa proveedor, productos y corrige validaciones") : (isEdit ? "Guardar" : "Crear ingreso")}
+            title={disabledSubmit ? "Completa proveedor, productos y corrige validaciones" : (isEdit ? "Guardar" : "Crear ingreso")}
           >
             {isEdit ? "Guardar" : "Crear ingreso"}
           </button>

@@ -1,4 +1,4 @@
-import "../styles/Table.css";
+import "../styles/ProveedorTable.css";
 import { useMemo, useState } from "react";
 import eliminar from "../assets/eliminar.png";
 import editar from "../assets/editar.png";
@@ -69,7 +69,7 @@ export default function ProveedorTable({
   const showingTo   = Math.min(start + rowsPerPage, total);
 
   return (
-    <div className="table-container">
+    <div className="table-container prov">
       <div className="toolbar">
         <input
           className="clientes-input"

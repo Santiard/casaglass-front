@@ -1,0 +1,220 @@
+.prov.table-container {
+  border-radius: 0.75rem;
+  border: 0.0625rem solid var(--color-light-gray);
+  background: var(--color-white);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* ===== Toolbar (filtros) ===== */
+.prov .toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  padding: 0.75rem 1rem;
+  background: color-mix(in oklab, var(--color-light-gray) 45%, white);
+  border-bottom: 0.0625rem solid var(--color-light-gray);
+  border-radius: 0.75rem 0.75rem 0 0;
+}
+
+/* Inputs/selects */
+.prov .clientes-input,
+.prov .clientes-select {
+  height: 2.25rem;
+  padding: 0 0.875rem;
+  border: 0.0625rem solid var(--color-gray);
+  border-radius: 999rem;
+  background: var(--color-white);
+  color: var(--color-black);
+  font-size: 0.875rem;
+  outline: none;
+  transition: box-shadow .2s ease, border-color .2s ease, background-color .2s ease;
+}
+
+.prov .clientes-input {
+  min-width: 14rem;
+  flex: 1 1 18rem;
+}
+
+.prov .clientes-select { min-width: 10rem; }
+
+.prov .clientes-input::placeholder { color: color-mix(in oklab, var(--color-dark-gray) 55%, white); }
+
+.prov .clientes-input:focus,
+.prov .clientes-select:focus {
+  border-color: var(--color-light-blue);
+  box-shadow: 0 0 0 0.1875rem color-mix(in oklab, var(--color-light-blue) 25%, transparent);
+  background: color-mix(in oklab, var(--color-white) 85%, var(--color-light-gray));
+}
+
+/* Bloque "Filas:" + select + botón */
+.prov .rows-per-page {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: auto;
+}
+
+.prov .rows-per-page > span {
+  font-size: 0.875rem;
+  color: var(--color-dark-gray);
+}
+
+/* Botón Agregar */
+.prov .addButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  height: 2.25rem;
+  padding: 0 1rem;
+  border: 0;
+  border-radius: 999rem;
+  background: var(--color-dark-blue);
+  color: var(--color-white);
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform .06s ease, filter .2s ease, background-color .2s ease;
+}
+
+.prov .addButton:hover { filter: brightness(1.05); }
+.prov .addButton:active { transform: translateY(0.0625rem); }
+.prov .addButton .iconButton { width: 1rem; filter: brightness(0) invert(1); }
+
+/* ===== Tabla scrolleable ===== */
+.prov .table-wrapper {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+/* Cabecera de tabla */
+.prov .table thead {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--color-light-blue);
+  color: var(--color-white);
+}
+
+/* Tabla y celdas */
+.prov .table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+  color: var(--color-black);
+}
+
+.prov .table th,
+.prov .table td {
+  padding: 0.625rem 0.75rem;
+  border-bottom: 0.0625rem solid var(--color-light-gray);
+  text-align: left;
+  vertical-align: middle;
+}
+
+.prov .table tbody tr:nth-child(even) { background-color: color-mix(in oklab, var(--color-white) 92%, var(--color-light-gray)); }
+.prov .table tbody tr:hover { background-color: color-mix(in oklab, var(--color-white) 80%, var(--color-light-gray)); }
+
+/* Celda con colspan (estados vacíos/cargando) */
+.prov .table td[colspan] {
+  text-align: center;
+  font-style: italic;
+  color: var(--color-dark-gray);
+}
+
+/* Dirección larga: truncado */
+.prov .clientes-dir {
+  max-width: 24rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Acciones */
+.prov .clientes-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.prov .btnEdit,
+.prov .btnDelete {
+  border: 0.0625rem solid transparent;
+  border-radius: 0.5rem;
+  height: 2rem;
+  width: 2rem;
+  display: inline-grid;
+  place-items: center;
+  background: var(--color-white);
+  cursor: pointer;
+  transition: border-color .15s ease, background .15s ease, transform .06s ease, filter .15s ease;
+}
+
+/* Editar: tono light-blue suave al hover */
+.prov .btnEdit:hover   { background: color-mix(in oklab, var(--color-light-blue) 12%, var(--color-white)); border-color: color-mix(in oklab, var(--color-light-blue) 25%, var(--color-white)); }
+
+.prov .btnDelete       { background: color-mix(in oklab, var(--color-black) 0%, var(--color-dark-gray)); border-color: color-mix(in oklab, var(--color-black) 0%, var(--color-dark-gray)); }
+.prov .btnDelete:hover { background: color-mix(in oklab, var(--color-black) 0%, var(--color-dark-gray) 90%); border-color: color-mix(in oklab, var(--color-black) 0%, var(--color-dark-gray) 90%); }
+.prov .btnEdit img     { width: 1rem; filter: none; }
+.prov .btnDelete img   { width: 1rem; filter: brightness(0) invert(1); }
+
+.prov .btnEdit:active,
+.prov .btnDelete:active { transform: translateY(0.0625rem); }
+
+/* ===== Paginación ===== */
+.prov .pagination-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border-top: 0.0625rem solid var(--color-light-gray);
+  background: var(--color-white);
+  border-radius: 0 0 0.75rem 0.75rem;
+}
+
+.prov .pagination-info {
+  font-size: 0.875rem;
+  color: var(--color-dark-gray);
+}
+
+.prov .pagination-controls {
+  display: inline-flex;
+  gap: 0.25rem;
+}
+
+.prov .pg-btn {
+  min-width: 2rem;
+  height: 2rem;
+  padding: 0 0.5rem;
+  border-radius: 0.5rem;
+  border: 0.0625rem solid var(--color-gray);
+  background: var(--color-white);
+  color: var(--color-black);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background .15s ease, border-color .15s ease, color .15s ease, transform .06s ease;
+}
+
+.prov .pg-btn:hover { background: color-mix(in oklab, var(--color-white) 92%, var(--color-light-gray)); }
+.prov .pg-btn.active {
+  border-color: var(--color-light-blue);
+  color: var(--color-light-blue);
+  background: color-mix(in oklab, var(--color-light-blue) 10%, var(--color-white));
+}
+.prov .pg-btn:disabled {
+  opacity: .5;
+  cursor: not-allowed;
+}
+.prov .pg-btn:active { transform: translateY(0.0625rem); }
+
+/* ===== Responsive ===== */
+@media (max-width: 48rem) {
+  .prov .toolbar { gap: 0.5rem; padding: 0.5rem 0.75rem; }
+  .prov .clientes-input { flex: 1 1 12rem; min-width: 12rem; }
+  .prov .rows-per-page { width: 100%; justify-content: flex-end; }
+  .prov .addButton { height: 2.125rem; padding: 0 0.875rem; font-size: 0.875rem; }
+  .prov .table th, .prov .table td { padding: 0.5rem 0.625rem; }
+}

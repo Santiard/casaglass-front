@@ -67,3 +67,86 @@
     display: inline-block;
   }
 }
+
+.pill-switch {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  width: 22.5rem;              /* ≈360px */
+  height: 2.75rem;             /* ≈44px */
+  border: 0.125rem solid var(--color-light-blue);
+  border-radius: 999rem;
+  padding: 0.375rem;           /* ≈6px */
+  background: #fff;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.pill-thumb {
+  --gap: 0.5rem;               /* ≈8px */
+  position: absolute;
+  top: 0.375rem;
+  left: 0.375rem;
+  width: calc(50% - (var(--gap) + 0.375rem));
+  height: calc(100% - 0.75rem);
+  background: var(--color-light-blue);
+  border-radius: 999rem;
+  transition: transform 220ms ease;
+  z-index: 0;
+  box-shadow: 0 0.125rem 0.5rem rgba(123, 97, 255, 0.35);
+}
+
+.pill-option {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.625rem;               /* ≈10px */
+  padding: 0 1rem;             /* ≈16px */
+  color: var(--color-light-blue);
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  border-radius: 999rem;
+  user-select: none;
+}
+
+.pill-option.is-active {
+  color: #fff;
+}
+
+.pill-option:focus-visible {
+  outline: 0.125rem solid rgba(123, 97, 255, 0.7);
+  outline-offset: 0.125rem;
+}
+
+.pill-input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.pill-label {
+  line-height: 1;
+}
+
+.filters-toolbar .pill-switch {
+  margin-right: 0.75rem;
+  min-width: 13.75rem;         /* ≈220px */
+}
+
+.pill-icon {
+  width: 1.125rem;     /* ≈18px */
+  height: 1.125rem;
+  object-fit: contain;
+  filter: brightness(0) saturate(100%) invert(40%) sepia(95%) saturate(500%) hue-rotate(220deg);
+  opacity: 0.8;
+  transition: all 0.25s ease;
+}
+
+.pill-icon.active {
+  filter: brightness(0) invert(1); /* se vuelve blanco cuando está activo */
+  opacity: 1;
+  transform: scale(1.05);          /* pequeño énfasis visual */
+}
