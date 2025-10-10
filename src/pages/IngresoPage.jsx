@@ -57,12 +57,22 @@ export default function IngresosPage() {
   }, []);
 
   const onCrear = async (payload) => {
-    await crearIngresoDesdeForm(payload);
-    await loadIngresos();
+    try {
+      await crearIngresoDesdeForm(payload);
+      await loadIngresos();
+    } catch (e) {
+      console.error("Error en onCrear:", e);
+      throw e; // Re-lanza el error para que lo maneje el componente padre
+    }
   };
   const onActualizar = async (id, payload) => {
-    await actualizarIngresoDesdeForm(id, payload);
-    await loadIngresos();
+    try {
+      await actualizarIngresoDesdeForm(id, payload);
+      await loadIngresos();
+    } catch (e) {
+      console.error("Error en onActualizar:", e);
+      throw e; // Re-lanza el error para que lo maneje el componente padre
+    }
   };
   const onEliminar = async (id) => {
     await eliminarIngreso(id);

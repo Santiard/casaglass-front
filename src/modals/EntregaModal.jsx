@@ -11,7 +11,7 @@ export default function EntregaModal({
   gastosDisponibles = [],     // [{id, descripcion, monto, asignadoEntregaId}]
 }) {
   const empty = {
-    fechaEntrega: new Date().toISOString().substring(0, 16),
+    fechaEntrega: new Date().toISOString().substring(0, 10),
     sede: { id: "sede-1", nombre: "Sede Principal" },
     empleado: { id: "emp-1", nombre: "Cajero (mock)" },
     observaciones: "",
@@ -32,7 +32,7 @@ export default function EntregaModal({
   useEffect(() => {
     if (entregaInicial) {
       const f = new Date(entregaInicial.fechaEntrega ?? Date.now());
-      const fechaLocal = (isNaN(f) ? new Date() : f).toISOString().substring(0, 16);
+      const fechaLocal = (isNaN(f) ? new Date() : f).toISOString().substring(0, 10);
       setForm({
         id: entregaInicial.id,
         fechaEntrega: fechaLocal,
@@ -113,7 +113,7 @@ export default function EntregaModal({
 
   const handleSubmit = () => {
     if (disabledSubmit) return;
-    const isoFecha = form.fechaEntrega.length === 16 ? new Date(form.fechaEntrega).toISOString() : new Date().toISOString();
+    const isoFecha = form.fechaEntrega.length === 10 ? new Date(form.fechaEntrega).toISOString() : new Date().toISOString();
     const payload = {
       id: entregaInicial?.id ?? `ent-${Date.now()}`,
       fechaEntrega: isoFecha,
@@ -168,7 +168,7 @@ export default function EntregaModal({
               <label>
                 Fecha entrega
                 <input
-                  type="datetime-local"
+                  type="date"
                   value={form.fechaEntrega}
                   onChange={(e) => setField("fechaEntrega", e.target.value)}
                   disabled={!editable}

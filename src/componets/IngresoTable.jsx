@@ -1,4 +1,4 @@
-// src/componets/IngresoTable.jsx
+// src/components/IngresoTable.jsx
 import "../styles/Table.css";
 import { useEffect, useMemo, useState } from "react";
 import editar from "../assets/editar.png";
@@ -8,12 +8,12 @@ export default function IngresosTable({
   data = [],
   rowsPerPage = 10,
   loading = false,
-  proveedores = [],          // [{id, nombre}]
-  catalogoProductos = [],    // [{id, nombre, codigo}]
-  onVerDetalles,             // (ingreso) => void
-  onCrear,                   // (payload) => Promise<void>
-  onActualizar,              // (id, payload) => Promise<void>
-  onEliminar,                // (id) => Promise<void>
+  proveedores = [],
+  catalogoProductos = [],
+  onVerDetalles,
+  onCrear,
+  onActualizar,
+  onEliminar,
 }) {
   const [ingresos, setIngresos] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -21,50 +21,84 @@ export default function IngresosTable({
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
 
-  useEffect(() => { setIngresos(Array.isArray(data) ? data : []); }, [data]);
+  useEffect(() => {
+    setIngresos(Array.isArray(data) ? data : []);
+  }, [data]);
 
-  const openNuevo = () => { setIngresoEditando(null); setIsModalOpen(true); };
+  const openNuevo = () => {
+    setIngresoEditando(null);
+    setIsModalOpen(true);
+  };
+
   const openEditar = (ing) => {
-    if (ing.procesado) {
-      alert("Este ingreso ya fue procesado y no se puede editar.");
-      return;
-    }
     setIngresoEditando(ing);
     setIsModalOpen(true);
   };
 
   const handleGuardarIngreso = async (payload, isEdit) => {
     try {
-      if (isEdit) await onActualizar?.(ingresoEditando.id, payload);
-      else        await onCrear?.(payload); // el back lo procesará automáticamente
+      if (isEdit) {
+        await onActualizar?.(ingresoEditando.id, payload);
+      } else {
+        await onCrear?.(payload);
+      }
       setIsModalOpen(false);
       setIngresoEditando(null);
       setPage(1);
     } catch (e) {
-      console.error(e);
-      alert(e?.response?.data || "No se pudo guardar el ingreso.");
+      console.error("Error en handleGuardarIngreso:", e);
+      throw new Error(
+        e?.message || e?.response?.data?.message || "No se pudo guardar el ingreso."
+      );
     }
   };
 
   const eliminar = async (ing) => {
-    if (ing.procesado) {
-      alert("No se puede eliminar un ingreso ya procesado.");
+    // Solo bloqueamos eliminación si el ingreso tiene más de 2 días
+    const d = parseLocalDate(ing.fecha);
+    const diff = diffDaysFromToday(d);
+    if (diff > 2) {
+      alert("No se puede eliminar un ingreso con más de 2 días de antigüedad.");
       return;
     }
     if (!confirm("¿Eliminar este ingreso?")) return;
     await onEliminar?.(ing.id);
   };
 
+  // === Helpers de fecha ===
+  const parseLocalDate = (s) => {
+    if (!s) return null;
+    const [y, m, d] = String(s).split("-").map(Number);
+    return new Date(y, (m ?? 1) - 1, d ?? 1);
+  };
+  const diffDaysFromToday = (dateObj) => {
+    if (!dateObj || isNaN(dateObj)) return Infinity;
+    const ms = Date.now() - dateObj.getTime();
+    return Math.floor(ms / (1000 * 60 * 60 * 24));
+  };
+  const canEdit = (ing) => {
+    const d = parseLocalDate(ing.fecha);
+    const days = diffDaysFromToday(d);
+    return Number.isFinite(days) && days <= 2;
+  };
+
   const fmtFecha = (iso) => {
-    const d = new Date(iso);
-    return isNaN(d) ? "-" : d.toLocaleString("es-CO", {
-      year: "numeric", month: "2-digit", day: "2-digit",
-      hour: "2-digit", minute: "2-digit"
-    });
+    const d = parseLocalDate(iso);
+    return !d || isNaN(d)
+      ? "-"
+      : d.toLocaleDateString("es-CO", {
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+        });
   };
   const fmtCOP = (n) =>
     typeof n === "number"
-      ? new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(n)
+      ? new Intl.NumberFormat("es-CO", {
+          style: "currency",
+          currency: "COP",
+          maximumFractionDigits: 0,
+        }).format(n)
       : n ?? "-";
 
   const [rowsPerPageState, setRpp] = useState(rowsPerPage);
@@ -78,9 +112,12 @@ export default function IngresosTable({
             ing.numeroFactura,
             ing.observaciones,
             ing.proveedor?.nombre,
-            ing.procesado ? "procesado" : "pendiente",
-            ...((ing.detalles ?? []).map(d => `${d.producto?.nombre ?? ""} ${d.producto?.codigo ?? ""}`))
-          ].filter(Boolean).some(v => String(v).toLowerCase().includes(q))
+            ...((ing.detalles ?? []).map(
+              (d) => `${d.producto?.nombre ?? ""} ${d.producto?.codigo ?? ""}`
+            )),
+          ]
+            .filter(Boolean)
+            .some((v) => String(v).toLowerCase().includes(q))
         )
       : ingresos;
 
@@ -103,15 +140,41 @@ export default function IngresosTable({
           type="text"
           placeholder="Buscar por proveedor, factura, observaciones o producto..."
           value={query}
-          onChange={(e) => { setQuery(e.target.value); setPage(1); }}
+          onChange={(e) => {
+            setQuery(e.target.value);
+            setPage(1);
+          }}
         />
 
-        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginLeft: "auto" }}>
-          <span style={{ opacity: .7 }}>{total} registro(s)</span>
-          <button className="btn" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={curPage <= 1}>◀</button>
-          <span>{curPage}/{maxPage}</span>
-          <button className="btn" onClick={() => setPage(p => Math.min(maxPage, p + 1))} disabled={curPage >= maxPage}>▶</button>
-          <button className="btn" type="button" onClick={openNuevo}>+ Nuevo ingreso</button>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "0.5rem",
+            marginLeft: "auto",
+          }}
+        >
+          <span style={{ opacity: 0.7 }}>{total} registro(s)</span>
+          <button
+            className="btn"
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            disabled={curPage <= 1}
+          >
+            ◀
+          </button>
+          <span>
+            {curPage}/{maxPage}
+          </span>
+          <button
+            className="btn"
+            onClick={() => setPage((p) => Math.min(maxPage, p + 1))}
+            disabled={curPage >= maxPage}
+          >
+            ▶
+          </button>
+          <button className="btn" type="button" onClick={openNuevo}>
+            + Nuevo ingreso
+          </button>
         </div>
       </div>
 
@@ -126,56 +189,88 @@ export default function IngresosTable({
               <th>Observaciones</th>
               <th>Ítems</th>
               <th>Total costo</th>
-              <th>Estado</th>
               <th>Detalle</th>
               <th>Acciones</th>
             </tr>
           </thead>
 
           <tbody>
-            {loading && <tr><td colSpan={9} className="empty">Cargando…</td></tr>}
-            {!loading && pageData.length === 0 && <tr><td colSpan={9} className="empty">No hay ingresos registrados</td></tr>}
+            {loading && (
+              <tr>
+                <td colSpan={8} className="empty">
+                  Cargando…
+                </td>
+              </tr>
+            )}
+            {!loading && pageData.length === 0 && (
+              <tr>
+                <td colSpan={8} className="empty">
+                  No hay ingresos registrados
+                </td>
+              </tr>
+            )}
 
-            {!loading && pageData.map((ing) => {
-              const dets = Array.isArray(ing.detalles) ? ing.detalles : [];
-              const disabled = !!ing.procesado;
+            {!loading &&
+              pageData.map((ing) => {
+                const dets = Array.isArray(ing.detalles) ? ing.detalles : [];
+                const editable = canEdit(ing);
 
-              return (
-                <tr key={ing.id} onDoubleClick={() => onVerDetalles?.(ing)} style={{ cursor:"pointer" }}>
-                  <td>{fmtFecha(ing.fecha)}</td>
-                  <td>{ing.proveedor?.nombre ?? "-"}</td>
-                  <td>{ing.numeroFactura ?? "-"}</td>
-                  <td className="cut">{ing.observaciones ?? "-"}</td>
-                  <td><span className="badge">{dets.length}</span></td>
-                  <td>{fmtCOP(Number(ing.totalCosto))}</td>
-                  <td>{ing.procesado ? <span className="status ok">Procesado</span> : <span className="status pending">Pendiente</span>}</td>
-                  <td>
-                    <button className="btnLink" type="button" onClick={() => onVerDetalles?.(ing)}>
-                      Ver detalles
-                    </button>
-                  </td>
-                  <td className="clientes-actions" style={{ gap: ".25rem" }}>
-                    {/* SIN procesar/reprocesar */}
-                    <button
-                      className="btnEdit"
-                      onClick={() => openEditar(ing)}
-                      title={disabled ? "Ingreso procesado: no editable" : "Editar"}
-                      disabled={disabled}
-                    >
-                      <img src={editar} className="iconButton" alt="Editar" />
-                    </button>
-                    <button
-                      className="btn"
-                      onClick={() => eliminar(ing)}
-                      disabled={disabled}
-                      title={disabled ? "Ingreso procesado: no eliminable" : "Eliminar"}
-                    >
-                      Eliminar
-                    </button>
-                  </td>
-                </tr>
-              );
-            })}
+                return (
+                  <tr
+                    key={ing.id}
+                    onDoubleClick={() => onVerDetalles?.(ing)}
+                    style={{ cursor: "pointer" }}
+                  >
+                    <td>{fmtFecha(ing.fecha)}</td>
+                    <td>{ing.proveedor?.nombre ?? "-"}</td>
+                    <td>{ing.numeroFactura ?? "-"}</td>
+                    <td className="cut">{ing.observaciones ?? "-"}</td>
+                    <td>
+                      <span className="badge">{dets.length}</span>
+                    </td>
+                    <td>{fmtCOP(Number(ing.totalCosto))}</td>
+                    <td>
+                      <button
+                        className="btnLink"
+                        type="button"
+                        onClick={() => onVerDetalles?.(ing)}
+                      >
+                        Ver detalles
+                      </button>
+                    </td>
+                    <td className="clientes-actions" style={{ gap: ".25rem" }}>
+                      <button
+                        className="btnEdit"
+                        onClick={() => openEditar(ing)}
+                        title={
+                          editable
+                            ? "Editar ingreso"
+                            : "No editable (más de 2 días)"
+                        }
+                        disabled={!editable}
+                      >
+                        <img
+                          src={editar}
+                          className="iconButton"
+                          alt="Editar"
+                        />
+                      </button>
+                      <button
+                        className="btn"
+                        onClick={() => eliminar(ing)}
+                        title={
+                          editable
+                            ? "Eliminar ingreso"
+                            : "No eliminable (más de 2 días)"
+                        }
+                        disabled={!editable}
+                      >
+                        Eliminar
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
           </tbody>
         </table>
       </div>
@@ -183,7 +278,10 @@ export default function IngresosTable({
       {/* Modal para crear/editar */}
       <IngresoModal
         isOpen={isModalOpen}
-        onClose={() => { setIsModalOpen(false); setIngresoEditando(null); }}
+        onClose={() => {
+          setIsModalOpen(false);
+          setIngresoEditando(null);
+        }}
         onSave={handleGuardarIngreso}
         proveedores={proveedores}
         catalogoProductos={catalogoProductos}

@@ -11,7 +11,7 @@ export default function EntregaDetallePanel({ entrega, onClose }){
   const fmtCOP = (n) => new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(Number(n||0));
   const fmtFecha = (iso) => {
     const d = new Date(iso);
-    return isNaN(d) ? "-" : d.toLocaleString("es-CO", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
+    return isNaN(d) ? "-" : d.toLocaleString("es-CO", { year: "numeric", month: "2-digit", day: "2-digit" });
   };
 
   const esperado = Number(entrega.montoEsperado ?? 0);

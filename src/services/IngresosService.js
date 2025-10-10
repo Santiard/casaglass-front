@@ -1,28 +1,75 @@
 // src/services/IngresosService.js
 import { api } from "../lib/api.js";
 
-/* ===========================
-   Utilidades exportadas
-=========================== */
-
-/** Convierte un Date a "YYYY-MM-DDTHH:mm" (LocalDateTime sin zona) */
-export function toLocalDateTimeString(date = new Date()) {
-  const pad = (n) => String(n).padStart(2, "0");
-  const d = new Date(date);
-
+// === Utils ===
+export function toLocalDateString(date) {
+  const d = date instanceof Date ? date : new Date(date);
   const y = d.getFullYear();
-  const m = pad(d.getMonth() + 1);
-  const day = pad(d.getDate());
-  const hh = pad(d.getHours());
-  const mm = pad(d.getMinutes());
-
-  return `${y}-${m}-${day}T${hh}:${mm}`;
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
 }
 
-/* ===========================
-   Endpoints de lectura
-=========================== */
+// Convierte el form del modal al payload que espera el backend
+function mapFormAIngresoAPI(form = {}) {
+  console.log("🔍 mapFormAIngresoAPI - Formulario recibido:", form);
+  
+  if (!form || typeof form !== "object") {
+    throw new Error("Formulario vacío o inválido.");
+  }
 
+  console.log("🔍 proveedorId del form:", form.proveedorId, "tipo:", typeof form.proveedorId);
+  const proveedorIdNum = Number(form.proveedorId);
+  console.log("🔍 proveedorIdNum convertido:", proveedorIdNum);
+  
+  if (!Number.isFinite(proveedorIdNum) || proveedorIdNum <= 0) {
+    console.error("❌ Proveedor inválido:", { proveedorId: form.proveedorId, proveedorIdNum });
+    throw new Error("Proveedor inválido. Debes seleccionar un proveedor.");
+  }
+
+  const fecha = form.fecha
+    ? toLocalDateString(form.fecha.length === 16 ? new Date(form.fecha) : new Date(form.fecha))
+    : toLocalDateString(new Date());
+
+  const detalles = Array.isArray(form.detalles) ? form.detalles : [];
+  if (detalles.length === 0) throw new Error("Debes agregar al menos un producto.");
+
+  const mappedDetalles = detalles.map((d, idx) => {
+    const prodId = Number(d?.producto?.id);
+    const cantidad = Number(d?.cantidad);
+    const costoUnitario = Number(d?.costoUnitario);
+
+    if (!Number.isFinite(prodId) || prodId <= 0) {
+      throw new Error(`Detalle #${idx + 1}: producto inválido.`);
+    }
+    if (!Number.isFinite(cantidad) || cantidad < 1) {
+      throw new Error(`Detalle #${idx + 1}: cantidad debe ser ≥ 1.`);
+    }
+    if (!Number.isFinite(costoUnitario) || costoUnitario <= 0) {
+      throw new Error(`Detalle #${idx + 1}: costo unitario debe ser > 0.`);
+    }
+
+    return {
+      producto: { id: prodId },
+      cantidad,
+      costoUnitario,
+    };
+  });
+
+  const payload = {
+    fecha,
+    proveedor: { id: proveedorIdNum },
+    numeroFactura: (form.numeroFactura || "").trim(),
+    observaciones: (form.observaciones || "").trim(),
+    detalles: mappedDetalles,
+    // totalCosto/procesado los calcula/gestiona el backend
+  };
+
+  console.log("✅ Payload final para enviar al backend:", payload);
+  return payload;
+}
+
+// === API CRUD ===
 export async function listarIngresos() {
   const { data } = await api.get("/ingresos");
   return data;
@@ -33,11 +80,6 @@ export async function obtenerIngreso(id) {
   return data;
 }
 
-/* ===========================
-   Endpoints de escritura
-   (reciben el "form" del modal)
-=========================== */
-
 export async function crearIngresoDesdeForm(form) {
   const payload = mapFormAIngresoAPI(form);
   const { data } = await api.post("/ingresos", payload);
@@ -45,52 +87,11 @@ export async function crearIngresoDesdeForm(form) {
 }
 
 export async function actualizarIngresoDesdeForm(id, form) {
-  const payload = mapFormAIngresoAPI(form, id);
+  const payload = mapFormAIngresoAPI(form);
   const { data } = await api.put(`/ingresos/${id}`, payload);
   return data;
 }
 
 export async function eliminarIngreso(id) {
-  const { data } = await api.delete(`/ingresos/${id}`);
-  return data;
-}
-
-/* ===========================
-   Mapper centralizado
-=========================== */
-
-function mapFormAIngresoAPI(form, id) {
-  const proveedorIdNum = Number(form.proveedorId);
-
-  const detallesApi = (form.detalles || [])
-    .map((d) => ({
-      producto: { id: Number(d.producto?.id) },
-      cantidad: Number(d.cantidad),
-      costoUnitario: Number(d.costoUnitario),
-    }))
-    .filter(
-      (d) =>
-        Number.isFinite(d.producto.id) &&
-        d.producto.id > 0 &&
-        Number.isFinite(d.cantidad) &&
-        d.cantidad >= 1 &&
-        Number.isFinite(d.costoUnitario) &&
-        d.costoUnitario >= 0
-    );
-
-  // Asegura que la fecha llegue como LocalDateTime "YYYY-MM-DDTHH:mm"
-  // Si te llega con segundos o Z, córtala o normalízala aquí.
-  const fecha = (form.fecha || "").length >= 16
-    ? (form.fecha || "").slice(0, 16)
-    : toLocalDateTimeString(new Date());
-
-  return {
-    ...(id ? { id: Number(id) } : {}),
-    fecha,
-    proveedor: { id: proveedorIdNum }, // el backend espera objeto con id
-    numeroFactura: (form.numeroFactura || "").trim(),
-    observaciones: (form.observaciones || "").trim(),
-    detalles: detallesApi,
-    // No enviar totalCosto ni procesado: el backend los calcula/gestiona
-  };
+  await api.delete(`/ingresos/${id}`);
 }

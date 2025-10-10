@@ -2,9 +2,7 @@
 import { useEffect, useMemo, useState } from "react";
 import "../styles/IngresoNuevoModal.css";
 import {
-  toLocalDateTimeString,
-  crearIngresoDesdeForm,
-  actualizarIngresoDesdeForm,
+  toLocalDateString,
 } from "../services/IngresosService.js";
 
 export default function IngresoModal({
@@ -16,7 +14,7 @@ export default function IngresoModal({
   ingresoInicial = null,    // si viene => editar
 }) {
   const empty = {
-    fecha: new Date().toISOString().substring(0, 16), // input datetime-local
+    fecha: new Date().toISOString().substring(0, 10), // input date
     proveedorId: "",
     proveedorNombre: "", // (solo usado si quisieras permitir libre, aquí no lo usamos)
     numeroFactura: "",
@@ -31,41 +29,50 @@ export default function IngresoModal({
   const isEdit = Boolean(ingresoInicial?.id);
 
   useEffect(() => {
-    if (ingresoInicial) {
-      const f = new Date(ingresoInicial.fecha ?? Date.now());
-      const fechaLocal = (isNaN(f) ? new Date() : f).toISOString().substring(0, 16);
+  if (!isOpen) return;
 
-      setForm({
-        fecha: fechaLocal,
-        proveedorId: ingresoInicial.proveedor?.id ?? "",
-        proveedorNombre: ingresoInicial.proveedor?.nombre ?? "",
-        numeroFactura: ingresoInicial.numeroFactura ?? "",
-        observaciones: ingresoInicial.observaciones ?? "",
-        detalles: Array.isArray(ingresoInicial.detalles)
-          ? ingresoInicial.detalles.map((d) => ({
-              producto: {
-                id: d.producto?.id ?? "",
-                nombre: d.producto?.nombre ?? "",
-                codigo: d.producto?.codigo ?? "",
-              },
-              cantidad: Number(d.cantidad ?? 1),
-              costoUnitario: Number(d.costoUnitario ?? 0),
-            }))
-          : [],
-      });
+  if (ingresoInicial) {
+    setForm({
+      fecha: ingresoInicial.fecha ?? new Date().toISOString().substring(0, 10),
+      proveedorId: ingresoInicial.proveedor?.id ?? "",
+      proveedorNombre: ingresoInicial.proveedor?.nombre ?? "",
+      numeroFactura: ingresoInicial.numeroFactura ?? "",
+      observaciones: ingresoInicial.observaciones ?? "",
+      detalles: Array.isArray(ingresoInicial.detalles)
+        ? ingresoInicial.detalles.map((d) => ({
+            producto: {
+              id: d.producto?.id ?? "",
+              nombre: d.producto?.nombre ?? "",
+              codigo: d.producto?.codigo ?? "",
+            },
+            cantidad: Number(d.cantidad ?? 1),
+            costoUnitario: Number(d.costoUnitario ?? 0),
+          }))
+        : [],
+    });
 
-      // UI: bloquea si está procesado o > 2 días (el backend ya valida procesado)
-      const base = new Date(ingresoInicial.fecha);
-      const diffDays = isNaN(base)
-        ? 0
-        : (Date.now() - base.getTime()) / (1000 * 60 * 60 * 24);
-      setEditable(diffDays <= 2 && !ingresoInicial.procesado);
-    } else {
-      setForm(empty);
-      setEditable(true);
-    }
-    setSearchCat("");
-  }, [isOpen, ingresoInicial]);
+    // Calcula días de diferencia (sin helpers)
+    const base = new Date(ingresoInicial.fecha);
+    const hoy = new Date();
+    const diffDays = Math.floor(
+      (hoy.getTime() - base.getTime()) / (1000 * 60 * 60 * 24)
+    );
+
+    setEditable(diffDays <= 2);
+  } else {
+    setForm({
+      fecha: new Date().toISOString().substring(0, 10),
+      proveedorId: "",
+      proveedorNombre: "",
+      numeroFactura: "",
+      observaciones: "",
+      detalles: [],
+    });
+    setEditable(true);
+  }
+
+  setSearchCat("");
+}, [isOpen, ingresoInicial]);
 
   // Catálogo filtrado
   const catalogoFiltrado = useMemo(() => {
@@ -183,15 +190,15 @@ export default function IngresoModal({
     }));
   };
 
-  // Submit usando los services (mapper centralizado)
+  // Submit usando el callback del padre
   const handleSubmit = async () => {
     if (disabledSubmit) return;
 
-    // Aseguramos LocalDateTime "YYYY-MM-DDTHH:mm"
+    // Aseguramos Date "YYYY-MM-DD"
     const fechaStr =
-      form.fecha?.length === 16
-        ? toLocalDateTimeString(new Date(form.fecha))
-        : toLocalDateTimeString(new Date());
+      form.fecha?.length === 10
+        ? toLocalDateString(new Date(form.fecha))
+        : toLocalDateString(new Date());
 
     const formParaService = {
       ...form,
@@ -199,20 +206,17 @@ export default function IngresoModal({
     };
 
     try {
-      if (isEdit) {
-        await actualizarIngresoDesdeForm(ingresoInicial.id, formParaService);
-      } else {
-        await crearIngresoDesdeForm(formParaService);
-      }
-      onSave?.();   // refresca la tabla desde el padre si quieres
-      onClose?.();
+      // Llamamos al callback del padre que manejará la lógica de crear/actualizar
+      await onSave?.(formParaService, isEdit);
+      // Si llegamos aquí, fue exitoso - el modal se cerrará desde el padre
     } catch (e) {
       console.error("Error guardando ingreso", {
         status: e?.response?.status,
         data: e?.response?.data,
+        message: e?.message,
       });
       alert(
-        e?.response?.data?.message || "No se pudo guardar el ingreso."
+        e?.message || e?.response?.data?.message || "No se pudo guardar el ingreso."
       );
     }
   };
@@ -269,7 +273,7 @@ export default function IngresoModal({
               <label>
                 Fecha
                 <input
-                  type="datetime-local"
+                  type="date"
                   value={form.fecha}
                   onChange={(e) => setField("fecha", e.target.value)}
                   disabled={isEdit && !editable}

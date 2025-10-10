@@ -14,8 +14,7 @@ export default function IngresoDetallePanel({ ingreso, onClose }){
   const fmtFecha = (iso) => {
     const d = new Date(iso);
     return isNaN(d) ? "-" : d.toLocaleString("es-CO", {
-      year: "numeric", month: "2-digit", day: "2-digit",
-      hour: "2-digit", minute: "2-digit"
+      year: "numeric", month: "2-digit", day: "2-digit"
     });
   };
 
