@@ -5,8 +5,19 @@ import "../styles/CrudModal.css";
 const VACIO = {
   sedeOrigenId: "",
   sedeDestinoId: "",
-  fecha: new Date().toISOString().substring(0, 10),
+  fecha: new Date().toISOString().slice(0, 10),
   productos: [], // { id, nombre, sku?, cantidad }
+};
+
+// Asegura un string YYYY-MM-DD, sin zonas horarias raras
+const toLocalDateOnly = (val) => {
+  if (!val) return new Date().toISOString().slice(0, 10);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(val)) return val;
+  const d = new Date(val);
+  if (isNaN(d)) return new Date().toISOString().slice(0, 10);
+  return new Date(d.getTime() - d.getTimezoneOffset() * 60000)
+    .toISOString()
+    .slice(0, 10);
 };
 
 export default function MovimientoModal({
@@ -14,21 +25,31 @@ export default function MovimientoModal({
   isOpen,
   onClose,
   onSave,
-  sedes = [], // [{ id, nombre }]
-  catalogoProductos = [], // [{ id, nombre, codigo }]
+  sedes = [],            // [{ id, nombre }]
+  catalogoProductos = [],// [{ id, nombre, codigo }]
 }) {
   const isEdit = Boolean(movimiento?.id);
   const [form, setForm] = useState(VACIO);
   const [search, setSearch] = useState("");
-  const [editable, setEditable] = useState(true);
+  const [editableWithin2d, setEditableWithin2d] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
+
+  // En edición: solo permitimos cambiar cabecera (fecha/sedes).
+  // Los productos del traslado se gestionan con endpoints de detalles y aquí se muestran en solo lectura.
+  const canEditHeader = !isEdit || editableWithin2d;
+  const canEditProducts = !isEdit; // productos editables solo en creación
 
   // Cargar datos iniciales
   useEffect(() => {
+    setErrorMsg("");
     if (movimiento) {
       const base = {
         sedeOrigenId: movimiento.sedeOrigen?.id ?? "",
         sedeDestinoId: movimiento.sedeDestino?.id ?? "",
-        fecha: movimiento.fecha?.substring(0, 10) ?? new Date().toISOString().substring(0, 10),
+        fecha:
+          toLocalDateOnly(movimiento.fecha) ??
+          new Date().toISOString().slice(0, 10),
         productos: Array.isArray(movimiento.detalles)
           ? movimiento.detalles.map((d) => ({
               id: d.producto?.id ?? "",
@@ -40,15 +61,18 @@ export default function MovimientoModal({
       };
       setForm(base);
 
-      // Bloquear edición si pasaron más de 2 días
-      const f = new Date(movimiento.fecha);
-      const diff = (Date.now() - f.getTime()) / (1000 * 60 * 60 * 24);
-      setEditable(diff <= 2);
+      // Bloquear edición completa si pasaron más de 2 días (afecta cabecera)
+      const f = new Date(`${base.fecha}T00:00:00`);
+      const diff = isNaN(f)
+        ? 0
+        : (Date.now() - f.getTime()) / (1000 * 60 * 60 * 24);
+      setEditableWithin2d(diff <= 2);
     } else {
       setForm(VACIO);
-      setEditable(true);
+      setEditableWithin2d(true);
     }
     setSearch("");
+    setIsSubmitting(false);
   }, [movimiento, isOpen]);
 
   // Filtro de catálogo
@@ -70,23 +94,25 @@ export default function MovimientoModal({
     (p) => !p.cantidad || p.cantidad <= 0 || !Number.isFinite(Number(p.cantidad))
   );
 
-  const disabledSubmit =
-    (!editable && isEdit) ||
-    faltanCampos ||
-    mismaSede ||
-    cantidadesInvalidas ||
-    form.productos.length === 0;
+  const disabledSubmitBase =
+    faltanCampos || mismaSede || cantidadesInvalidas || isSubmitting;
+
+  // En crear: debe haber productos; en editar: se ignoran productos, no bloquea
+  const disabledSubmit = isEdit
+    ? (!canEditHeader || disabledSubmitBase)
+    : (disabledSubmitBase || form.productos.length === 0);
 
   // Handlers
   const handleChange = (field, value) => {
-    if (!editable && isEdit) return;
+    // Cabecera solo editable si canEditHeader
+    if (!canEditHeader) return;
     setForm((prev) => ({ ...prev, [field]: value }));
   };
 
   const addProducto = (item) => {
-    if (!editable && isEdit) return;
+    if (!canEditProducts) return;
     setForm((prev) => {
-      if (prev.productos.some((p) => p.id === item.id)) return prev; // evitar duplicados
+      if (prev.productos.some((p) => String(p.id) === String(item.id))) return prev; // evitar duplicados
       return {
         ...prev,
         productos: [
@@ -103,7 +129,7 @@ export default function MovimientoModal({
   };
 
   const handleProductoChange = (idx, field, value) => {
-    if (!editable && isEdit) return;
+    if (!canEditProducts) return;
     setForm((prev) => {
       const arr = [...prev.productos];
       arr[idx] = {
@@ -115,7 +141,7 @@ export default function MovimientoModal({
   };
 
   const removeProducto = (idx) => {
-    if (!editable && isEdit) return;
+    if (!canEditProducts) return;
     setForm((prev) => ({
       ...prev,
       productos: prev.productos.filter((_, i) => i !== idx),
@@ -125,19 +151,39 @@ export default function MovimientoModal({
   // Guardar
   const handleSubmit = async () => {
     if (disabledSubmit) return;
-
-    const payload = {
-      fecha: form.fecha,
-      sedeOrigen: { id: Number(form.sedeOrigenId) },
-      sedeDestino: { id: Number(form.sedeDestinoId) },
-      detalles: form.productos.map((p) => ({
-        producto: { id: Number(p.id) },
-        cantidad: Number(p.cantidad),
-      })),
-    };
-
-    await onSave(payload, isEdit);
-    onClose();
+    setErrorMsg("");
+    setIsSubmitting(true);
+    try {
+      if (isEdit) {
+        // Editar: solo cabecera (coincide con PUT /api/traslados/{id})
+        const payload = {
+          fecha: toLocalDateOnly(form.fecha),
+          sedeOrigen: { id: Number(form.sedeOrigenId) },
+          sedeDestino: { id: Number(form.sedeDestinoId) },
+        };
+        await onSave(payload, true);
+      } else {
+        // Crear: cabecera + detalles
+        const payload = {
+          fecha: toLocalDateOnly(form.fecha),
+          sedeOrigen: { id: Number(form.sedeOrigenId) },
+          sedeDestino: { id: Number(form.sedeDestinoId) },
+          detalles: form.productos.map((p) => ({
+            producto: { id: Number(p.id) },
+            cantidad: Number(p.cantidad),
+          })),
+        };
+        await onSave(payload, false);
+      }
+      onClose();
+    } catch (e) {
+      const msg =
+        e?.response?.data ||
+        e?.message ||
+        "No se pudo guardar el traslado.";
+      setErrorMsg(String(msg));
+      setIsSubmitting(false);
+    }
   };
 
   if (!isOpen) return null;
@@ -147,7 +193,7 @@ export default function MovimientoModal({
       <div className="modal-container modal-wide">
         <h2>
           {isEdit ? "Editar traslado" : "Nuevo traslado"}
-          {isEdit && !editable && (
+          {isEdit && !editableWithin2d && (
             <span style={{ marginLeft: 8, fontSize: 14, color: "#a00" }}>
               (solo lectura: &gt; 2 días)
             </span>
@@ -156,6 +202,7 @@ export default function MovimientoModal({
 
         {/* Alertas */}
         <div className="modal-alerts">
+          {errorMsg && <div className="alert error">{errorMsg}</div>}
           {mismaSede && (
             <div className="alert error">
               La sede de origen y destino no pueden ser la misma.
@@ -166,9 +213,14 @@ export default function MovimientoModal({
               Hay cantidades inválidas (deben ser números &gt; 0).
             </div>
           )}
-          {form.productos.length === 0 && (
+          {!isEdit && form.productos.length === 0 && (
             <div className="alert warning">
               Debes agregar al menos un producto al traslado.
+            </div>
+          )}
+          {isEdit && (
+            <div className="alert info">
+              En edición solo se actualiza la cabecera (fecha y sedes). Los productos se gestionan con endpoints de detalles.
             </div>
           )}
         </div>
@@ -181,10 +233,8 @@ export default function MovimientoModal({
                 Sede origen
                 <select
                   value={form.sedeOrigenId}
-                  onChange={(e) =>
-                    handleChange("sedeOrigenId", e.target.value)
-                  }
-                  disabled={!editable && isEdit}
+                  onChange={(e) => handleChange("sedeOrigenId", e.target.value)}
+                  disabled={!canEditHeader}
                 >
                   <option value="">Selecciona...</option>
                   {sedes.map((s) => (
@@ -206,7 +256,7 @@ export default function MovimientoModal({
                   onChange={(e) =>
                     handleChange("sedeDestinoId", e.target.value)
                   }
-                  disabled={!editable && isEdit}
+                  disabled={!canEditHeader}
                 >
                   <option value="">Selecciona...</option>
                   {sedes.map((s) => (
@@ -227,7 +277,7 @@ export default function MovimientoModal({
                   type="date"
                   value={form.fecha}
                   onChange={(e) => handleChange("fecha", e.target.value)}
-                  disabled={!editable && isEdit}
+                  disabled={!canEditHeader}
                 />
               </label>
             </div>
@@ -235,8 +285,8 @@ export default function MovimientoModal({
             <h3>Productos del traslado</h3>
             {form.productos.length === 0 ? (
               <div className="empty-sub">
-                {isEdit && !editable
-                  ? "Traslado bloqueado para edición."
+                {isEdit
+                  ? "Productos en solo lectura (edición de cabecera)."
                   : "Doble clic en el catálogo para agregar productos."}
               </div>
             ) : (
@@ -262,14 +312,14 @@ export default function MovimientoModal({
                           onChange={(e) =>
                             handleProductoChange(idx, "cantidad", e.target.value)
                           }
-                          disabled={!editable && isEdit}
+                          disabled={!canEditProducts}
                         />
                       </td>
                       <td>
                         <button
                           className="btn-ghost"
                           onClick={() => removeProducto(idx)}
-                          disabled={!editable && isEdit}
+                          disabled={!canEditProducts}
                         >
                           ✕
                         </button>
@@ -286,7 +336,11 @@ export default function MovimientoModal({
             <div className="inv-header">
               <div>
                 <h3 style={{ margin: 0 }}>Catálogo de productos</h3>
-                <small>Selecciona un producto para agregarlo al traslado</small>
+                <small>
+                  {isEdit
+                    ? "Solo lectura en edición."
+                    : "Selecciona un producto para agregarlo al traslado"}
+                </small>
               </div>
               <input
                 className="inv-search"
@@ -294,7 +348,7 @@ export default function MovimientoModal({
                 placeholder="Buscar por nombre o código…"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                disabled={!editable && isEdit}
+                disabled={!canEditProducts}
               />
             </div>
 
@@ -306,11 +360,17 @@ export default function MovimientoModal({
                   <div
                     key={p.id}
                     className="inventory-item"
-                    title="Doble clic para agregar"
-                    onDoubleClick={() => addProducto(p)}
+                    title={
+                      isEdit
+                        ? "Solo lectura en edición"
+                        : "Doble clic para agregar"
+                    }
+                    onDoubleClick={() => {
+                      if (canEditProducts) addProducto(p);
+                    }}
                     style={{
-                      cursor: !editable && isEdit ? "not-allowed" : "pointer",
-                      opacity: !editable && isEdit ? 0.6 : 1,
+                      cursor: canEditProducts ? "pointer" : "not-allowed",
+                      opacity: canEditProducts ? 1 : 0.6,
                     }}
                   >
                     <div className="inv-name">{p.nombre}</div>
@@ -326,15 +386,20 @@ export default function MovimientoModal({
 
         {/* Botones */}
         <div className="modal-buttons">
-          <button className="btn-cancelar" onClick={onClose}>
-            {isEdit && !editable ? "Cerrar" : "Cancelar"}
+          <button className="btn-cancelar" onClick={onClose} disabled={isSubmitting}>
+            {isEdit && !editableWithin2d ? "Cerrar" : "Cancelar"}
           </button>
           <button
             className="btn-guardar"
             onClick={handleSubmit}
             disabled={disabledSubmit}
+            title={
+              disabledSubmit
+                ? "Completa la información o corrige validaciones"
+                : (isEdit ? "Guardar cambios" : "Crear traslado")
+            }
           >
-            {isEdit ? "Guardar cambios" : "Crear traslado"}
+            {isSubmitting ? "Guardando..." : isEdit ? "Guardar cambios" : "Crear traslado"}
           </button>
         </div>
       </div>

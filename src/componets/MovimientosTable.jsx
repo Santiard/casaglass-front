@@ -4,7 +4,18 @@ import { useMemo, useState, Fragment } from "react";
 import editar from "../assets/editar.png";
 import add from "../assets/add.png";
 import MovimientoModal from "../modals/MovimientoModal.jsx";
-import { toLocalDateStringOnly } from "../services/TrasladosService.js";
+
+// Helper local para asegurar YYYY-MM-DD
+const toLocalDateOnly = (val) => {
+  if (!val) return new Date().toISOString().slice(0, 10);
+  // Si ya viene como YYYY-MM-DD, devolver tal cual
+  if (/^\d{4}-\d{2}-\d{2}$/.test(val)) return val;
+  const d = new Date(val);
+  if (isNaN(d)) return new Date().toISOString().slice(0, 10);
+  return new Date(d.getTime() - d.getTimezoneOffset() * 60000) // normaliza TZ
+    .toISOString()
+    .slice(0, 10);
+};
 
 export default function MovimientosTable({
   data = [],
@@ -44,18 +55,23 @@ export default function MovimientosTable({
   const handleSaveMovimiento = async (form, isEdit) => {
     try {
       if (isEdit) {
+        // Para editar la CABECERA, el backend espera:
+        // { fecha: "YYYY-MM-DD", sedeOrigen:{id}, sedeDestino:{id} }
         await onActualizar?.(movimientoEditando.id, {
-          fecha: toLocalDateStringOnly(form.fecha),
+          fecha: toLocalDateOnly(form.fecha),
           sedeOrigen: { id: Number(form.sedeOrigenId) },
           sedeDestino: { id: Number(form.sedeDestinoId) },
         });
       } else {
+        // Para crear, el modal ya construye el payload correcto:
+        // { fecha, sedeOrigen:{id}, sedeDestino:{id}, detalles:[{producto:{id}, cantidad}] }
         await onCrear?.(form);
       }
       setIsModalOpen(false);
       setMovimientoEditando(null);
     } catch (e) {
       console.error(e);
+      alert(e?.response?.data || e?.message || "Error al guardar el traslado.");
     }
   };
 
@@ -158,7 +174,7 @@ export default function MovimientosTable({
             {!loading &&
               pageData.map((mov) => {
                 const id = mov.id;
-                const detalles = mov.detalles ?? [];
+                const detalles = Array.isArray(mov.detalles) ? mov.detalles : [];
                 return (
                   <Fragment key={id}>
                     <tr>
@@ -176,18 +192,23 @@ export default function MovimientosTable({
                             setMovimientoEditando(mov);
                             setIsModalOpen(true);
                           }}
+                          title="Editar traslado"
+                          type="button"
                         >
                           <img src={editar} className="iconButton" alt="Editar" />
                         </button>
                         <button
                           className="btn"
                           onClick={() => onEliminar?.(mov.id)}
+                          type="button"
+                          title="Eliminar traslado"
                         >
                           Eliminar
                         </button>
                         <button
                           className="btnLink"
                           onClick={() => toggleExpand(id)}
+                          type="button"
                         >
                           {expanded[id] ? "Ocultar" : "Ver"}
                         </button>
@@ -202,8 +223,8 @@ export default function MovimientosTable({
                           ) : (
                             <ul>
                               {detalles.map((d, i) => (
-                                <li key={i}>
-                                  {d.producto?.nombre} — {d.cantidad}
+                                <li key={d.id ?? i}>
+                                  {d.producto?.nombre ?? "-"} — {d.cantidad ?? 0}
                                 </li>
                               ))}
                             </ul>

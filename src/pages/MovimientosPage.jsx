@@ -1,8 +1,12 @@
+// src/pages/MovimientosPage.jsx
 import { useEffect, useState } from "react";
 import MovimientosTable from "../componets/MovimientosTable";
 
+// Estos dos servicios deben existir en tu proyecto.
+// Si la ruta difiere, ajusta adentro de cada servicio.
 import { listarSedes } from "../services/SedesService.js";
 import { listarProductos } from "../services/ProductosService.js";
+
 import {
   listarTraslados,
   crearTraslado,
@@ -15,49 +19,26 @@ export default function MovimientosPage() {
   const [traslados, setTraslados] = useState([]);
   const [sedes, setSedes] = useState([]);
   const [catalogoProductos, setCatalogoProductos] = useState([]);
-
   const [loading, setLoading] = useState(true);
-  const [errors, setErrors] = useState({ sedes: null, productos: null, traslados: null });
 
   useEffect(() => {
     (async () => {
-      setLoading(true);
-      setErrors({ sedes: null, productos: null, traslados: null });
-
-      const results = await Promise.allSettled([
-        listarSedes(),       // 0
-        listarProductos(),   // 1
-        listarTraslados(),   // 2
-      ]);
-
-      // Sedes
-      if (results[0].status === "fulfilled") {
-        setSedes(Array.isArray(results[0].value) ? results[0].value : []);
-      } else {
-        const e = results[0].reason;
-        console.error("Error /sedes:", { status: e?.response?.status, data: e?.response?.data, err: e });
-        setErrors(prev => ({ ...prev, sedes: e?.response?.data || e?.message || "Error listando sedes" }));
+      try {
+        setLoading(true);
+        const [sedesRes, prodsRes, trasladosRes] = await Promise.all([
+          listarSedes(),       // GET /api/sedes  => [{id, nombre, ...}]
+          listarProductos(),   // GET /api/productos => [{id, nombre, codigo}]
+          listarTraslados(),   // GET /api/traslados
+        ]);
+        setSedes(Array.isArray(sedesRes) ? sedesRes : []);
+        setCatalogoProductos(Array.isArray(prodsRes) ? prodsRes : []);
+        setTraslados(Array.isArray(trasladosRes) ? trasladosRes : []);
+      } catch (e) {
+        console.error("Error cargando datos:", e);
+        alert("No se pudieron cargar traslados/sedes/productos.");
+      } finally {
+        setLoading(false);
       }
-
-      // Productos
-      if (results[1].status === "fulfilled") {
-        setCatalogoProductos(Array.isArray(results[1].value) ? results[1].value : []);
-      } else {
-        const e = results[1].reason;
-        console.error("Error /productos:", { status: e?.response?.status, data: e?.response?.data, err: e });
-        setErrors(prev => ({ ...prev, productos: e?.response?.data || e?.message || "Error listando productos" }));
-      }
-
-      // Traslados
-      if (results[2].status === "fulfilled") {
-        setTraslados(Array.isArray(results[2].value) ? results[2].value : []);
-      } else {
-        const e = results[2].reason;
-        console.error("Error /traslados:", { status: e?.response?.status, data: e?.response?.data, err: e });
-        setErrors(prev => ({ ...prev, traslados: e?.response?.data || e?.message || "Error listando traslados" }));
-      }
-
-      setLoading(false);
     })();
   }, []);
 
@@ -67,69 +48,60 @@ export default function MovimientosPage() {
       const res = await listarTraslados();
       setTraslados(Array.isArray(res) ? res : []);
     } catch (e) {
-      console.error("Error recargando /traslados:", { status: e?.response?.status, data: e?.response?.data, err: e });
-      setErrors(prev => ({ ...prev, traslados: e?.response?.data || e?.message || "Error recargando traslados" }));
+      console.error("Error recargando traslados:", e);
+      alert("No se pudieron recargar los traslados.");
     } finally {
       setLoading(false);
     }
   };
 
+  // Crear
   const onCrear = async (payload) => {
     try {
       await crearTraslado(payload);
       await reloadTraslados();
     } catch (e) {
-      console.error("Error creando traslado:", { status: e?.response?.status, data: e?.response?.data, err: e });
-      alert(e?.response?.data || e.message || "No se pudo crear el traslado.");
-      throw e;
+      console.error("Error creando traslado:", e);
+      throw new Error(e?.response?.data || e?.message || "No se pudo crear el traslado.");
     }
   };
 
+  // Actualizar cabecera
   const onActualizar = async (id, payload) => {
     try {
       await actualizarCabecera(id, payload);
       await reloadTraslados();
     } catch (e) {
-      console.error("Error actualizando traslado:", { status: e?.response?.status, data: e?.response?.data, err: e });
-      alert(e?.response?.data || e.message || "No se pudo actualizar el traslado.");
-      throw e;
+      console.error("Error actualizando traslado:", e);
+      throw new Error(e?.response?.data || e?.message || "No se pudo actualizar el traslado.");
     }
   };
 
-  const onEliminar = async (id) => {
-    if (!confirm("¿Eliminar este traslado?")) return;
-    try {
-      await eliminarTraslado(id);
-      await reloadTraslados();
-    } catch (e) {
-      console.error("Error eliminando traslado:", { status: e?.response?.status, data: e?.response?.data, err: e });
-      alert(e?.response?.data || e.message || "No se pudo eliminar el traslado.");
-    }
-  };
-
+  // Confirmar llegada
   const onConfirmar = async (id, trabajadorId) => {
     try {
       await confirmarTraslado(id, trabajadorId);
       await reloadTraslados();
     } catch (e) {
-      console.error("Error confirmando traslado:", { status: e?.response?.status, data: e?.response?.data, err: e });
-      alert(e?.response?.data || e.message || "No se pudo confirmar el traslado.");
+      console.error("Error confirmando traslado:", e);
+      alert(e?.response?.data || e?.message || "No se pudo confirmar el traslado.");
+    }
+  };
+
+  // Eliminar
+  const onEliminar = async (id) => {
+    try {
+      await eliminarTraslado(id);
+      await reloadTraslados();
+    } catch (e) {
+      console.error("Error eliminando traslado:", e);
+      alert(e?.response?.data || "No se pudo eliminar el traslado.");
     }
   };
 
   return (
     <div>
       <h1>Traslados</h1>
-
-      {/* Mensajes rápidos si algo falló (no bloquean la UI) */}
-      {(errors.sedes || errors.productos || errors.traslados) && (
-        <div style={{ marginBottom: 12 }}>
-          {errors.sedes && <div className="alert error">Error sedes: {String(errors.sedes)}</div>}
-          {errors.productos && <div className="alert error">Error productos: {String(errors.productos)}</div>}
-          {errors.traslados && <div className="alert error">Error traslados: {String(errors.traslados)}</div>}
-        </div>
-      )}
-
       <MovimientosTable
         data={traslados}
         loading={loading}

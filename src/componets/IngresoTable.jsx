@@ -31,9 +31,10 @@ export default function IngresosTable({
   };
 
   const openEditar = (ing) => {
-    setIngresoEditando(ing);
-    setIsModalOpen(true);
-  };
+  // Permite abrir el modal SIEMPRE, pero dentro decidirá si es editable
+  setIngresoEditando(ing);
+  setIsModalOpen(true);
+};
 
   const handleGuardarIngreso = async (payload, isEdit) => {
     try {
@@ -54,16 +55,15 @@ export default function IngresosTable({
   };
 
   const eliminar = async (ing) => {
-    // Solo bloqueamos eliminación si el ingreso tiene más de 2 días
-    const d = parseLocalDate(ing.fecha);
-    const diff = diffDaysFromToday(d);
-    if (diff > 2) {
-      alert("No se puede eliminar un ingreso con más de 2 días de antigüedad.");
-      return;
-    }
-    if (!confirm("¿Eliminar este ingreso?")) return;
-    await onEliminar?.(ing.id);
-  };
+  const d = parseLocalDate(ing.fecha);
+  const diff = diffDaysFromToday(d);
+  if (diff > 2) {
+    alert("❌ No se puede eliminar un ingreso con más de 2 días de antigüedad.");
+    return;
+  }
+  if (!confirm("¿Eliminar este ingreso?")) return;
+  await onEliminar?.(ing.id);
+};
 
   // === Helpers de fecha ===
   const parseLocalDate = (s) => {
@@ -240,15 +240,14 @@ export default function IngresosTable({
                     </td>
                     <td className="clientes-actions" style={{ gap: ".25rem" }}>
                       <button
-                        className="btnEdit"
-                        onClick={() => openEditar(ing)}
-                        title={
-                          editable
-                            ? "Editar ingreso"
-                            : "No editable (más de 2 días)"
-                        }
-                        disabled={!editable}
-                      >
+                          className="btnEdit"
+                          onClick={() => openEditar(ing)}
+                          title={
+                            editable
+                              ? "Editar ingreso"
+                              : "Solo lectura (más de 2 días)"
+                          }
+                        >
                         <img
                           src={editar}
                           className="iconButton"
@@ -256,17 +255,12 @@ export default function IngresosTable({
                         />
                       </button>
                       <button
-                        className="btn"
-                        onClick={() => eliminar(ing)}
-                        title={
-                          editable
-                            ? "Eliminar ingreso"
-                            : "No eliminable (más de 2 días)"
-                        }
-                        disabled={!editable}
-                      >
-                        Eliminar
-                      </button>
+                      className="btn"
+                      onClick={() => eliminar(ing)}
+                      title="Eliminar ingreso"
+                    >
+                      Eliminar
+                    </button>
                     </td>
                   </tr>
                 );

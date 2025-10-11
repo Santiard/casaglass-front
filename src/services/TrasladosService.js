@@ -15,11 +15,20 @@ export async function obtenerTraslado(id) {
   return data;
 }
 
+/** payload:
+ * {
+ *   fecha: "YYYY-MM-DD",
+ *   sedeOrigen: { id },
+ *   sedeDestino: { id },
+ *   detalles?: [{ producto:{id}, cantidad }]
+ * }
+ */
 export async function crearTraslado(payload) {
   const { data } = await api.post(base, payload);
   return data;
 }
 
+/** Actualiza SOLO cabecera */
 export async function actualizarCabecera(id, payload) {
   const { data } = await api.put(`${base}/${id}`, payload);
   return data;
@@ -36,7 +45,7 @@ export async function confirmarTraslado(id, trabajadorId) {
   return data;
 }
 
-/* ========= DETALLES (anidados) ========= */
+/* ========= DETALLES ========= */
 
 export async function listarDetalles(trasladoId) {
   const { data } = await api.get(`${base}/${trasladoId}/detalles`);
@@ -49,21 +58,10 @@ export async function agregarDetalle(trasladoId, payload) {
 }
 
 export async function actualizarDetalle(trasladoId, detalleId, payload) {
-  const { data } = await api.put(
-    `${base}/${trasladoId}/detalles/${detalleId}`,
-    payload
-  );
+  const { data } = await api.put(`${base}/${trasladoId}/detalles/${detalleId}`, payload);
   return data;
 }
 
 export async function eliminarDetalle(trasladoId, detalleId) {
   await api.delete(`${base}/${trasladoId}/detalles/${detalleId}`);
-}
-
-/* ========= UTILIDAD OPCIONAL ========= */
-export function toLocalDateStringOnly(date) {
-  if (!date) return "";
-  const d = new Date(date);
-  if (isNaN(d)) return date;
-  return d.toISOString().substring(0, 10);
 }
