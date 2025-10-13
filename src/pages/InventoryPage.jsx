@@ -1,5 +1,3 @@
-// 👉 Pegar COMPLETO para reemplazar tu InventoryPage si quieres sidebar de categorías también en "Corte"
-// src/pages/InventoryPage.jsx
 import { useState, useMemo, useEffect, useCallback } from "react";
 
 // === Producto ===
@@ -29,12 +27,12 @@ import {
   eliminarProductoVidrio,
 } from "../services/ProductosVidrioService";
 
-const CATEGORY_ORDER = ["Vidrio", "Aluminio", "Accesorios"];
+import { listarCategorias } from "../services/CategoriasService"; // 👈 nuevo import
 
 const CORTES_MOCK = [
   { id: 1, codigo: "C-0001", nombre: "Corte ventana 60x80", categoria: "Vidrio", color: "Claro", cantidad: 5, largoCm: 80, precio: 95000, observacion: "Bisel 1cm", sede: "Centro" },
-  { id: 2, codigo: "C-0002", nombre: "Corte repisa 25x60",  categoria: "Vidrio", color: "Bronce", cantidad: 2, largoCm: 60, precio: 70000,  observacion: "Cantos pulidos", sede: "Insula" },
-  { id: 3, codigo: "C-0003", nombre: "Corte puerta 70x200", categoria: "Vidrio", color: "Claro", cantidad: 0, largoCm: 200, precio: 220000, observacion: "",               sede: "Patios" },
+  { id: 2, codigo: "C-0002", nombre: "Corte repisa 25x60", categoria: "Vidrio", color: "Bronce", cantidad: 2, largoCm: 60, precio: 70000, observacion: "Cantos pulidos", sede: "Insula" },
+  { id: 3, codigo: "C-0003", nombre: "Corte puerta 70x200", categoria: "Vidrio", color: "Claro", cantidad: 0, largoCm: 200, precio: 220000, observacion: "", sede: "Patios" },
 ];
 
 export default function InventoryPage() {
@@ -43,7 +41,7 @@ export default function InventoryPage() {
   // ======= PRODUCTO =======
   const [filters, setFilters] = useState({
     search: "",
-    category: "Vidrio",
+    categoryId: null, // 👈 ahora guardamos el id de categoría
     status: "",
     sede: "",
     priceMin: "",
@@ -53,13 +51,29 @@ export default function InventoryPage() {
   const [loading, setLoading] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
+  const [categories, setCategories] = useState([]); // 👈 categorías dinámicas
 
+  // === Cargar categorías al montar ===
+  useEffect(() => {
+    const fetchCategorias = async () => {
+      try {
+        const cats = await listarCategorias();
+        setCategories(cats || []);
+      } catch (e) {
+        console.error("Error cargando categorías:", e);
+        alert("No se pudieron cargar las categorías desde el servidor.");
+      }
+    };
+    fetchCategorias();
+  }, []);
+
+  // === Cargar productos ===
   const fetchData = useCallback(async () => {
     if (view !== "producto") return;
     setLoading(true);
     try {
       const params = {};
-      if (filters.category) params.categoria = filters.category;
+      if (filters.categoryId) params.categoriaId = filters.categoryId; // 👈 cambia categoria por categoriaId
       if (filters.search?.trim()) params.q = filters.search.trim();
       const productos = await listarProductos(params);
       setData(productos || []);
@@ -69,7 +83,7 @@ export default function InventoryPage() {
     } finally {
       setLoading(false);
     }
-  }, [view, filters.category, filters.search]);
+  }, [view, filters.categoryId, filters.search]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -78,7 +92,8 @@ export default function InventoryPage() {
 
   const handleSaveProduct = async (product) => {
     try {
-      const esVidrio = (product.categoria || "").toLowerCase() === "vidrio";
+      const categoriaNombre = product.categoria?.nombre?.toLowerCase() || "";
+      const esVidrio = categoriaNombre === "vidrio";
       const editando = !!editingProduct?.id;
 
       if (esVidrio) {
@@ -103,7 +118,8 @@ export default function InventoryPage() {
       if (!prod) return;
       if (!confirm("¿Eliminar este producto?")) return;
 
-      const esVidrio = (prod.categoria || "").toLowerCase() === "vidrio";
+      const categoriaNombre = prod.categoria?.nombre?.toLowerCase() || "";
+      const esVidrio = categoriaNombre === "vidrio";
       if (esVidrio) await eliminarProductoVidrio(id);
       else await eliminarProducto(id);
 
@@ -114,8 +130,7 @@ export default function InventoryPage() {
     }
   };
 
-  const categories = CATEGORY_ORDER;
-
+  // === Filtrado secundario (status, sede, precio) ===
   const filteredData = useMemo(() => {
     if (view !== "producto") return [];
     const status = filters.status || "";
@@ -149,10 +164,11 @@ export default function InventoryPage() {
       });
   }, [view, data, filters.status, filters.sede, filters.priceMin, filters.priceMax]);
 
-  const handleSelectCategory = (cat) => {
+  // === Selección de categoría desde el sidebar ===
+  const handleSelectCategory = (catId) => {
     setFilters((prev) => ({
       ...prev,
-      category: prev.category === cat ? "" : cat,
+      categoryId: prev.categoryId === catId ? null : catId,
     }));
   };
 
@@ -160,7 +176,7 @@ export default function InventoryPage() {
   const [cortes, setCortes] = useState(CORTES_MOCK);
   const [corteFilters, setCorteFilters] = useState({
     search: "",
-    category: "Vidrio",  // 👈 categoría para el sidebar
+    category: "Vidrio",
     sede: "",
     status: "",
     largoMin: "",
@@ -235,12 +251,12 @@ export default function InventoryPage() {
           {view === "producto" ? (
             <CategorySidebar
               categories={categories}
-              selected={filters.category}
+              selectedId={filters.categoryId}
               onSelect={handleSelectCategory}
             />
           ) : (
             <CategorySidebar
-              categories={categories}
+              categories={categories.map((c) => c.nombre)} // para cortes, usa nombre
               selected={corteFilters.category}
               onSelect={handleSelectCorteCategory}
             />

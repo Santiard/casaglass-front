@@ -197,6 +197,15 @@ export default function MovimientosTable({
                         >
                           <img src={editar} className="iconButton" alt="Editar" />
                         </button>
+                        
+                        <button
+                          className="btnLink"
+                          onClick={() => toggleExpand(id)}
+                          type="button"
+                        >
+                          {expanded[id] ? "Ocultar" : "Ver Detalles"}
+                        </button>
+
                         <button
                           className="btn"
                           onClick={() => onEliminar?.(mov.id)}
@@ -204,13 +213,6 @@ export default function MovimientosTable({
                           title="Eliminar traslado"
                         >
                           Eliminar
-                        </button>
-                        <button
-                          className="btnLink"
-                          onClick={() => toggleExpand(id)}
-                          type="button"
-                        >
-                          {expanded[id] ? "Ocultar" : "Ver"}
                         </button>
                       </td>
                     </tr>

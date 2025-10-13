@@ -1,11 +1,11 @@
 /* Contenedor raíz del componente */
 .table-container {
-  flex: 1;               /* ocupa todo el alto disponible */
-  min-height: 0;         /* 👈 CLAVE para que el overflow funcione */
+  flex: 1;
+  min-height: 0; /* 👈 necesario para scroll */
   display: flex;
   flex-direction: column;
-  border: 1px solid #ccc; /* opcional */
-  border-radius: 8px;
+  border: 0.0625rem solid #ccc; /* 1px */
+  border-radius: 0.5rem; /* 8px */
 }
 
 /* Toolbar arriba */
@@ -16,16 +16,16 @@
   flex-wrap: wrap;
   background: var(--color-light-blue);
   padding: 0.75rem 1rem;
-  border-radius: 12px;
+  border-radius: 0.75rem; /* 12px */
   margin-bottom: 1rem;
-  border: 1px solid #e5e7eb;
+  border: 0.0625rem solid #e5e7eb; /* 1px */
 }
 
-/* El cuerpo que scrollea */
+/* Cuerpo con scroll */
 .table-wrapper {
-  flex: 1;               /* 👈 ocupa todo lo que queda */
+  flex: 1;
   min-height: 0;
-  overflow-y: auto;       /* scroll si la tabla es más alta */
+  overflow-y: auto;
 }
 
 /* Paginación abajo */
@@ -34,9 +34,9 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: .5rem;
-  padding: .5rem .25rem;
-  border-top: 1px solid #ddd;
+  gap: 0.5rem;
+  padding: 0.5rem 0.25rem;
+  border-top: 0.0625rem solid #ddd;
 }
 
 /* Tabla */
@@ -44,7 +44,7 @@
   width: 100%;
   border-collapse: collapse;
   font-family: Arial, sans-serif;
-  font-size: 14px;
+  font-size: 0.875rem; /* 14px */
 }
 
 .table thead {
@@ -54,13 +54,17 @@
 
 .table th,
 .table td {
-  padding: 6px 10px;
+  padding: 0.375rem 0.625rem; /* 6px 10px */
   text-align: left;
-  border-bottom: 1px solid #ddd;
+  border-bottom: 0.0625rem solid #ddd;
 }
 
-.table tbody tr:nth-child(even) { background-color: #f9f9f9; }
-.table tbody tr:hover { background-color: #e6f0ff; }
+.table tbody tr:nth-child(even) {
+  background-color: #f9f9f9;
+}
+.table tbody tr:hover {
+  background-color: #e6f0ff;
+}
 
 .table td[colspan] {
   text-align: center;
@@ -70,25 +74,48 @@
 
 /* Botones */
 .btn-delete {
-  padding: 5px 10px;
+  padding: 0.3125rem 0.625rem; /* 5px 10px */
   border: none;
-  border-radius: 4px;
+  border-radius: 0.25rem; /* 4px */
   cursor: pointer;
-  font-size: 12px;
-  margin-right: 5px;
+  font-size: 0.75rem; /* 12px */
+  margin-right: 0.3125rem; /* 5px */
   background-color: #ff4d4d;
   color: #fff;
 }
-.btn-delete:hover { background-color: #cc0000; }
+.btn-delete:hover {
+  background-color: #cc0000;
+}
 
-.iconButton { width: 1rem; }
-.btnEdit, .btnDelete :hover { cursor: pointer; }
-.btnEdit { margin: 0 1rem; }
+.btnLink {
+  padding: 0.3125rem 0.625rem;
+  border: none;
+  border-radius: 0.25rem;
+  cursor: pointer;
+  font-size: 0.75rem;
+  margin-right: 0.3125rem;
+  background-color: var(--color-light-blue);
+  color: #fff;
+}
+
+.iconButton {
+  width: 1rem;
+}
+
+.btnEdit,
+.btnDelete :hover {
+  cursor: pointer;
+}
+.btnEdit {
+  margin: 0 1rem;
+}
 .btnDelete {
   background: #cc0000;
   border-color: #cc0000;
 }
-.btnDelete img { filter: brightness(0) invert(1); }
+.btnDelete img {
+  filter: brightness(0) invert(1);
+}
 
 /* Inputs y selects */
 .clientes-pager {
@@ -100,10 +127,10 @@
 
 .clientes-input,
 .clientes-select {
-  padding: 8px 12px;
-  border: 1px solid #d1d5db;
+  padding: 0.5rem 0.75rem; /* 8px 12px */
+  border: 0.0625rem solid #d1d5db;
   border-radius: 9999px;
-  font-size: 14px;
+  font-size: 0.875rem; /* 14px */
   background-color: #fff;
   outline: none;
   transition: all 0.2s ease;
@@ -111,15 +138,15 @@
 .clientes-input:focus,
 .clientes-select:focus {
   border-color: #6366f1;
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+  box-shadow: 0 0 0 0.1875rem rgba(99, 102, 241, 0.2); /* 3px */
 }
 
 /* Botón "Agregar Nuevo Cliente" */
 .toolbar button {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 10px 16px;
+  gap: 0.375rem; /* 6px */
+  padding: 0.625rem 1rem; /* 10px 16px */
   background: var(--color-dark-blue);
   color: white;
   font-weight: 500;
@@ -128,10 +155,19 @@
   cursor: pointer;
   transition: background-color 0.2s ease;
 }
-.toolbar button:hover { background: var(--color-dark-blue); }
-.addButton img { filter: brightness(0) invert(1); }
+.toolbar button:hover {
+  background: var(--color-dark-blue);
+}
+.addButton img {
+  filter: brightness(0) invert(1);
+}
 
 /* Quitar flechas numéricas */
 input[type="number"]::-webkit-inner-spin-button,
-input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
-input[type="number"] { -moz-appearance: textfield; }
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+}
