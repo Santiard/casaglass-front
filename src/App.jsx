@@ -15,16 +15,18 @@ import EntregasPage from "./pages/EntregaPage.jsx";
 import HomePage from "./pages/HomePage.jsx";
 import TaxSettingsPage from "./pages/TaxSettingsPage.jsx";
 import CortesPage from "./pages/CortesPage.jsx";
+import { AuthProvider } from "./context/AuthContext.jsx";
 
 function App() {
   return (
     <Router>
-      <Routes>
-        {/* Ruta sin layout */}
-        <Route path="/" element={<Login />} />
+      <AuthProvider>
+        <Routes>
+          {/* Ruta sin layout */}
+          <Route path="/" element={<Login />} />
 
-        {/* Rutas que SÍ usan layout */}
-        <Route element={<DashboardLayout username="Nicole Velandia" />}>
+          {/* Rutas que SÍ usan layout */}
+          <Route element={<DashboardLayout />}>
           <Route path="/adminpage" element={<AdminPage />} />
           <Route path="/inventorypage" element={<InventoryPage />} />
           <Route path="/venderpage" element={<VenderPage/>}/>
@@ -39,6 +41,7 @@ function App() {
           <Route path="/cortes" element={<CortesPage />} />
         </Route>
       </Routes>
+      </AuthProvider>
     </Router>
   );
 }

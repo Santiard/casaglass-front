@@ -1,4 +1,6 @@
 // src/componets/InventoryTable.jsx
+import "../styles/Table.css"
+
 export default function InventoryTable({ data = [], filters, loading, onEditar, onEliminar }) {
   const isVidrio =
     (filters?.category || "").toLowerCase() === "vidrio" ||
@@ -51,8 +53,8 @@ export default function InventoryTable({ data = [], filters, loading, onEditar, 
                 <td>{p.precio3 ?? "-"}</td>
                 <td>{p.precioEspecial ?? "-"}</td>
                 <td className="acciones">
-                  <button onClick={() => onEditar?.(p)}>Editar</button>
-                  <button onClick={() => onEliminar?.(p.id)}>Eliminar</button>
+                  <button className="btnLink" onClick={() => onEditar?.(p)}>Editar</button>
+                  <button className="btnLink" onClick={() => onEliminar?.(p.id)}>Eliminar</button>
                 </td>
               </tr>
             );

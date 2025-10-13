@@ -11,11 +11,17 @@ import CorteTable from "../componets/CorteTable.jsx";
 import CorteFilters from "../componets/CorteFilters.jsx";
 import CorteModal from "../modals/CorteModal.jsx";
 
+// ===Inventario ===
+//producto
+import { listarInventarioCompleto, listarInventarioAgrupado, listarCortesInventarioCompleto } from "../services/InventarioService";
+//corte
+import {listarInventarioCortesAgrupado} from "../services/InventarioCorteService.js";
+
+
 import "../styles/InventoryPage.css";
 import "../styles/InventaryFilters.css";
 
 import {
-  listarProductos,
   crearProducto,
   actualizarProducto,
   eliminarProducto,
@@ -67,25 +73,41 @@ export default function InventoryPage() {
     fetchCategorias();
   }, []);
 
-  // === Cargar productos ===
+  // === Cargar TODOS los productos con inventario completo ===
   const fetchData = useCallback(async () => {
     if (view !== "producto") return;
     setLoading(true);
     try {
-      const params = {};
-      if (filters.categoryId) params.categoriaId = filters.categoryId; // 👈 cambia categoria por categoriaId
-      if (filters.search?.trim()) params.q = filters.search.trim();
-      const productos = await listarProductos(params);
+      // Sin parámetros - traemos todo el inventario
+      const productos = await listarInventarioCompleto();
       setData(productos || []);
     } catch (e) {
-      console.error("Error cargando inventario", e);
+      console.error("Error cargando inventario completo", e);
       alert(e?.response?.data?.message || "No se pudo cargar el inventario.");
     } finally {
       setLoading(false);
     }
-  }, [view, filters.categoryId, filters.search]);
+  }, [view]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
+
+  // === Cargar TODOS los cortes con inventario completo ===
+  const fetchCortesData = useCallback(async () => {
+    if (view !== "corte") return;
+    setLoading(true);
+    try {
+      // Sin parámetros - traemos todo el inventario de cortes
+      const cortesData = await listarCortesInventarioCompleto();
+      setCortes(cortesData || []);
+    } catch (e) {
+      console.error("Error cargando inventario completo de cortes", e);
+      alert(e?.response?.data?.message || "No se pudo cargar el inventario de cortes.");
+    } finally {
+      setLoading(false);
+    }
+  }, [view]);
+
+  useEffect(() => { fetchCortesData(); }, [fetchCortesData]);
 
   const handleAddProduct = () => { setEditingProduct(null); setModalOpen(true); };
   const handleEditProduct = (product) => { setEditingProduct(product); setModalOpen(true); };
@@ -130,15 +152,41 @@ export default function InventoryPage() {
     }
   };
 
-  // === Filtrado secundario (status, sede, precio) ===
+  // === Filtrado completo (categoría, búsqueda, status, sede, precio) ===
   const filteredData = useMemo(() => {
     if (view !== "producto") return [];
+    
+    const categoryId = filters.categoryId;
+    const search = filters.search?.trim()?.toLowerCase() || "";
     const status = filters.status || "";
     const sede = filters.sede || "";
     const min = filters.priceMin !== "" ? Number(filters.priceMin) : -Infinity;
     const max = filters.priceMax !== "" ? Number(filters.priceMax) : Infinity;
 
     return (data || [])
+      // Filtro por categoría (CategorySidebar)
+      .filter((item) => {
+        if (!categoryId) return true;
+        
+        // Buscar la categoría seleccionada para obtener su nombre
+        const selectedCategory = categories.find(cat => cat.id === categoryId);
+        if (!selectedCategory) return true;
+        
+        // Comparar por ID o por nombre de categoría
+        return (
+          item.categoriaId === categoryId || 
+          item.categoria_id === categoryId ||
+          (item.categoria || "").toLowerCase() === selectedCategory.nombre.toLowerCase()
+        );
+      })
+      // Filtro por búsqueda (nombre, código)
+      .filter((item) => {
+        if (!search) return true;
+        const nombre = (item.nombre || "").toLowerCase();
+        const codigo = (item.codigo || "").toLowerCase();
+        return nombre.includes(search) || codigo.includes(search);
+      })
+      // Filtro por status (Disponible/Agotado)
       .filter((item) => {
         if (!status) return true;
         const total =
@@ -149,6 +197,7 @@ export default function InventoryPage() {
         const estado = total > 0 ? "Disponible" : "Agotado";
         return estado === status;
       })
+      // Filtro por sede (Insula/Centro/Patios)
       .filter((item) => {
         if (!sede) return true;
         const map = {
@@ -158,11 +207,12 @@ export default function InventoryPage() {
         };
         return (map[sede] ?? 0) > 0;
       })
+      // Filtro por rango de precios
       .filter((item) => {
         const precio = Number(item.precio1 || 0);
         return precio >= min && precio <= max;
       });
-  }, [view, data, filters.status, filters.sede, filters.priceMin, filters.priceMax]);
+  }, [view, data, categories, filters.categoryId, filters.search, filters.status, filters.sede, filters.priceMin, filters.priceMax]);
 
   // === Selección de categoría desde el sidebar ===
   const handleSelectCategory = (catId) => {
@@ -173,10 +223,11 @@ export default function InventoryPage() {
   };
 
   // ======= CORTE =======
-  const [cortes, setCortes] = useState(CORTES_MOCK);
+  const [cortes, setCortes] = useState([]);
   const [corteFilters, setCorteFilters] = useState({
     search: "",
-    category: "Vidrio",
+    categoryId: null,        // Para el CategorySidebar
+    category: "Vidrio",      // Mantener por compatibilidad
     sede: "",
     status: "",
     largoMin: "",
@@ -195,26 +246,53 @@ export default function InventoryPage() {
     const maxPrecio = corteFilters.priceMax !== "" ? Number(corteFilters.priceMax) : Infinity;
 
     return (cortes || [])
-      .filter((c) => !corteFilters.category ? true : (c.categoria || "") === corteFilters.category)
+      // Filtro por categoría (CategorySidebar)
+      .filter((c) => {
+        if (!corteFilters.categoryId) return true;
+        
+        // Buscar la categoría seleccionada para obtener su nombre
+        const selectedCategory = categories.find(cat => cat.id === corteFilters.categoryId);
+        if (!selectedCategory) return true;
+        
+        // Comparar por nombre de categoría
+        return (c.categoria || "").toLowerCase() === selectedCategory.nombre.toLowerCase();
+      })
+      // Filtro por búsqueda (nombre, código, observación)
       .filter((c) => {
         const q = (corteFilters.search || "").toLowerCase().trim();
         if (!q) return true;
         return (
           (c.nombre || "").toLowerCase().includes(q) ||
           (c.codigo || "").toLowerCase().includes(q) ||
-          (c.color || "").toLowerCase().includes(q) ||
           (c.observacion || "").toLowerCase().includes(q)
         );
       })
-      .filter((c) => (!corteFilters.sede ? true : (c.sede || "") === corteFilters.sede))
+      // Filtro por sede (usando las cantidades por sede del DTO)
+      .filter((c) => {
+        if (!corteFilters.sede) return true;
+        const map = {
+          Insula: Number(c.cantidadInsula || 0),
+          Centro: Number(c.cantidadCentro || 0),
+          Patios: Number(c.cantidadPatios || 0),
+        };
+        return (map[corteFilters.sede] ?? 0) > 0;
+      })
+      // Filtro por status (usando cantidadTotal del DTO)
       .filter((c) => {
         if (!corteFilters.status) return true;
-        const estado = Number(c.cantidad || 0) > 0 ? "Disponible" : "Agotado";
+        const total = Number(c.cantidadTotal || 0) || 
+                     (Number(c.cantidadInsula || 0) + Number(c.cantidadCentro || 0) + Number(c.cantidadPatios || 0));
+        const estado = total > 0 ? "Disponible" : "Agotado";
         return estado === corteFilters.status;
       })
+      // Filtro por rango de largo
       .filter((c) => Number(c.largoCm || 0) >= minLargo && Number(c.largoCm || 0) <= maxLargo)
-      .filter((c) => Number(c.precio || 0) >= minPrecio && Number(c.precio || 0) <= maxPrecio);
-  }, [view, cortes, corteFilters]);
+      // Filtro por rango de precios (usando precio1 como principal)
+      .filter((c) => {
+        const precio = Number(c.precio1 || c.precio || 0);
+        return precio >= minPrecio && precio <= maxPrecio;
+      });
+  }, [view, cortes, categories, corteFilters]);
 
   const handleAddCorte = () => { setEditingCorte(null); setCorteModalOpen(true); };
   const handleEditCorte = (c) => { setEditingCorte(c); setCorteModalOpen(true); };
@@ -232,12 +310,13 @@ export default function InventoryPage() {
     setCorteModalOpen(false);
   };
 
-  const handleSelectCorteCategory = (cat) => {
+  const handleSelectCorteCategory = (catId) => {
     setCorteFilters((prev) => ({
-      ...prev,
-      category: prev.category === cat ? "" : cat,
-    }));
+    ...prev,
+    categoryId: prev.categoryId === catId ? null : catId,
+  }));
   };
+
 
   useEffect(() => {
     if (view === "producto") fetchData();
@@ -246,7 +325,7 @@ export default function InventoryPage() {
   return (
     <>
       <div className="inventory-layout">
-        {/* 🔹 Sidebar en AMBAS vistas */}
+        {/* Sidebar en AMBAS vistas */}
         <aside className="inventory-categories">
           {view === "producto" ? (
             <CategorySidebar
@@ -256,8 +335,8 @@ export default function InventoryPage() {
             />
           ) : (
             <CategorySidebar
-              categories={categories.map((c) => c.nombre)} // para cortes, usa nombre
-              selected={corteFilters.category}
+              categories={categories}
+              selectedId={corteFilters.categoryId}
               onSelect={handleSelectCorteCategory}
             />
           )}

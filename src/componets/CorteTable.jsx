@@ -1,3 +1,5 @@
+
+
 export default function CorteTable({ data = [], onEditar, onEliminar }) {
   return (
     <div className="table-wrapper">
@@ -36,8 +38,8 @@ export default function CorteTable({ data = [], onEditar, onEliminar }) {
                 {c.observacion || "-"}
               </td>
               <td className="acciones">
-                <button onClick={() => onEditar?.(c)}>Editar</button>
-                <button onClick={() => onEliminar?.(c.id)}>Eliminar</button>
+                <button className="btnLink" onClick={() => onEditar?.(c)}>Editar</button>
+                <button className="btnLink" onClick={() => onEliminar?.(c.id)}>Eliminar</button>
               </td>
             </tr>
           ))}

@@ -2,7 +2,8 @@ import "../styles/Login.css";
 import logo from "../assets/logocasaglass.png";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
-import { login, saveSession } from "../services/AuthService"; 
+import { login, saveSession } from "../services/AuthService";
+import { useAuth } from "../context/AuthContext.jsx"; 
 
 
 export default function Login() {
@@ -11,6 +12,7 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState(null);
   const navigate = useNavigate();
+  const { updateUser } = useAuth();
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -25,9 +27,10 @@ export default function Login() {
     try {
       const user = await login(form); // 👈 llamado al backend
       saveSession(user); // guarda usuario en localStorage
+      updateUser(user); // 🔥 ACTUALIZA EL ESTADO REACTIVO
 
-      // Redirección por rol o sede
-      if (user.rol === "ADMIN") {
+      // Redirección por rol
+      if (user.rol === "ADMINISTRADOR") {
         navigate("/home", { replace: true });
       } else {
         navigate("/venderpage", { replace: true });
