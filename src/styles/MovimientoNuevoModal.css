@@ -26,10 +26,10 @@
 .alert.error { background: #ffe8e8; color: #8b1a1a; border: 1px solid #f5bcbc; }
 .alert.warning { background: #fff6e5; color: #7a4b00; border: 1px solid #f3d39a; }
 
-.modal-wide { width: 960px; max-width: 98vw; }
+.modal-wide { width: 1200px; max-width: 98vw; }
 .modal-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr 200px 1fr;
   gap: 14px;
 }
 .pane {
@@ -38,6 +38,19 @@
   border-radius: 10px;
   padding: 12px;
   min-height: 420px;
+}
+
+.pane.pane-sidebar {
+  min-height: 460px;
+  max-height: 460px;
+  overflow-y: auto;
+  padding: 10px;
+}
+
+.category-section h4 {
+  margin: 0 0 8px 0;
+  color: #1e2753;
+  font-size: 0.95rem;
 }
 
 /* Formulario */
@@ -86,27 +99,32 @@
   border-radius: 8px;
   min-width: 220px;
 }
-.inventory-list {
-  max-height: 340px;
+
+.inventory-scroll {
+  max-height: 360px;
   overflow: auto;
-  display: grid;
-  gap: 8px;
-}
-.inventory-item {
-  padding: 10px;
-  border: 1px solid #dfe3f0;
+  border: 1px solid #e6e8f0;
   border-radius: 10px;
   background: #fff;
-  cursor: pointer;
 }
-.inventory-item:hover {
-  background: #f4f7ff;
-  border-color: #c7d2ff;
+
+.inv-table { width: 100%; border-collapse: separate; border-spacing: 0; }
+.inv-table thead th {
+  position: sticky;
+  top: 0;
+  background: #f4f6ff;
+  z-index: 1;
+  text-align: left;
+  padding: 8px;
+  border-bottom: 1px solid #e6e8f0;
+  font-weight: 600;
 }
-.inv-name { font-weight: 600; color: #1e2753; }
-.inv-meta { font-size: 0.85rem; color: #616270; display: flex; gap: 6px; align-items: center; }
-.inv-meta .dot { opacity: .6; }
-.sku { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+.inv-table tbody td {
+  padding: 8px;
+  border-bottom: 1px solid #f0f1f7;
+}
+.inv-table tbody tr:hover { background: #f9fbff; }
+.empty { text-align: center; padding: 10px; color: #666; }
 
 /* Botonera */
 .modal-buttons {
@@ -137,4 +155,40 @@
   padding: 10px;
   border-radius: 10px;
   text-align: center;
+}
+
+/* Responsividad */
+@media (max-width: 1250px) {
+  .modal-container.modal-wide {
+    width: 95vw;
+  }
+  
+  .modal-grid {
+    grid-template-columns: 1fr 180px 1fr;
+    gap: 10px;
+  }
+}
+
+@media (max-width: 1000px) {
+  .modal-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  
+  .pane.pane-sidebar {
+    min-height: auto;
+    max-height: none;
+  }
+  
+  .category-section {
+    max-height: 200px;
+    overflow-y: auto;
+  }
+}
+
+@media (max-width: 640px) {
+  .modal-container.modal-wide {
+    width: 98vw;
+    padding: 1rem;
+  }
 }

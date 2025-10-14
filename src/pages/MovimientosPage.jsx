@@ -31,7 +31,14 @@ export default function MovimientosPage() {
           listarTraslados(),   // GET /api/traslados
         ]);
         setSedes(Array.isArray(sedesRes) ? sedesRes : []);
-        setCatalogoProductos(Array.isArray(prodsRes) ? prodsRes : []);
+        setCatalogoProductos(
+          (prodsRes || []).map((p) => ({
+            id: p.id,
+            nombre: p.nombre,
+            codigo: p.codigo ?? "",
+            categoria: p.categoria?.nombre ?? p.categoria ?? "", // ✅ Extraemos el nombre si es objeto
+          }))
+        );
         setTraslados(Array.isArray(trasladosRes) ? trasladosRes : []);
       } catch (e) {
         console.error("Error cargando datos:", e);
@@ -80,11 +87,12 @@ export default function MovimientosPage() {
   // Confirmar llegada
   const onConfirmar = async (id, trabajadorId) => {
     try {
-      await confirmarTraslado(id, trabajadorId);
+      const response = await confirmarTraslado(id, trabajadorId);
       await reloadTraslados();
+      return response; // Retornamos la respuesta para mostrar el mensaje de éxito
     } catch (e) {
       console.error("Error confirmando traslado:", e);
-      alert(e?.response?.data || e?.message || "No se pudo confirmar el traslado.");
+      throw e; // Re-lanzamos el error para que lo maneje el componente
     }
   };
 

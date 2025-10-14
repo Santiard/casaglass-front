@@ -1,6 +1,7 @@
 // src/componets/MovimientosTable.jsx
 import "../styles/Table.css";
 import { useMemo, useState, Fragment } from "react";
+import { useAuth } from "../context/AuthContext.jsx";
 import editar from "../assets/editar.png";
 import add from "../assets/add.png";
 import MovimientoModal from "../modals/MovimientoModal.jsx";
@@ -26,7 +27,9 @@ export default function MovimientosTable({
   onCrear,
   onActualizar,
   onEliminar,
+  onConfirmar,
 }) {
+  const { isAdmin, user } = useAuth(); // Obtener rol y datos del usuario
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
   const [expanded, setExpanded] = useState({});
@@ -72,6 +75,24 @@ export default function MovimientosTable({
     } catch (e) {
       console.error(e);
       alert(e?.response?.data || e?.message || "Error al guardar el traslado.");
+    }
+  };
+
+  const handleConfirmarTraslado = async (trasladoId) => {
+    if (window.confirm("¿Confirmas que has recibido este traslado?")) {
+      try {
+        const response = await onConfirmar(trasladoId, user?.id);
+        // Mostrar mensaje de éxito si la respuesta incluye un mensaje
+        if (response?.message) {
+          alert(response.message);
+        } else {
+          alert("Traslado confirmado exitosamente");
+        }
+      } catch (e) {
+        console.error("Error confirmando traslado:", e);
+        const errorMsg = e?.response?.data?.message || e?.message || "Error al confirmar el traslado";
+        alert(errorMsg);
+      }
     }
   };
 
@@ -138,16 +159,19 @@ export default function MovimientosTable({
             ▶
           </button>
 
-          <button
-            onClick={() => {
-              setMovimientoEditando(null);
-              setIsModalOpen(true);
-            }}
-            className="addButton"
-          >
-            <img src={add} className="iconButton" alt="Agregar" />
-            Nuevo traslado
-          </button>
+          {/* Botón Nuevo solo para ADMINISTRADORES */}
+          {isAdmin && (
+            <button
+              onClick={() => {
+                setMovimientoEditando(null);
+                setIsModalOpen(true);
+              }}
+              className="addButton"
+            >
+              <img src={add} className="iconButton" alt="Agregar" />
+              Nuevo traslado
+            </button>
+          )}
         </div>
       </div>
 
@@ -160,13 +184,15 @@ export default function MovimientosTable({
               <th>Fecha</th>
               <th>Día</th>
               <th>Ítems</th>
+              <th>Estado</th>
+              <th>Confirmado por</th>
               <th>Acciones</th>
             </tr>
           </thead>
           <tbody>
             {loading && (
               <tr>
-                <td colSpan={6} className="empty">
+                <td colSpan={8} className="empty">
                   Cargando...
                 </td>
               </tr>
@@ -186,18 +212,21 @@ export default function MovimientosTable({
                         <span className="badge">{detalles.length}</span>
                       </td>
                       <td>
-                        <button
-                          className="btnEdit"
-                          onClick={() => {
-                            setMovimientoEditando(mov);
-                            setIsModalOpen(true);
-                          }}
-                          title="Editar traslado"
-                          type="button"
-                        >
-                          <img src={editar} className="iconButton" alt="Editar" />
-                        </button>
-                        
+                        {mov.trabajadorConfirmacion ? (
+                          <span className="badge" style={{ backgroundColor: '#22c55e' }}>Confirmado</span>
+                        ) : (
+                          <span className="badge" style={{ backgroundColor: '#f59e0b' }}>Pendiente</span>
+                        )}
+                      </td>
+                      <td>
+                        {mov.trabajadorConfirmacion?.nombre ? (
+                          <span>{mov.trabajadorConfirmacion.nombre}</span>
+                        ) : (
+                          <span style={{ color: '#9ca3af' }}>-</span>
+                        )}
+                      </td>
+                      <td>
+                        {/* Botón Ver Detalles - Siempre visible */}
                         <button
                           className="btnLink"
                           onClick={() => toggleExpand(id)}
@@ -206,20 +235,57 @@ export default function MovimientosTable({
                           {expanded[id] ? "Ocultar" : "Ver Detalles"}
                         </button>
 
-                        <button
-                          className="btn"
-                          onClick={() => onEliminar?.(mov.id)}
-                          type="button"
-                          title="Eliminar traslado"
-                        >
-                          Eliminar
-                        </button>
+                        {/* Botones solo para ADMINISTRADORES */}
+                        {isAdmin && (
+                          <>
+                            <button
+                              className="btnEdit"
+                              onClick={() => {
+                                setMovimientoEditando(mov);
+                                setIsModalOpen(true);
+                              }}
+                              title="Editar traslado"
+                              type="button"
+                            >
+                              <img src={editar} className="iconButton" alt="Editar" />
+                            </button>
+
+                            <button
+                              className="btn"
+                              onClick={() => onEliminar?.(mov.id)}
+                              type="button"
+                              title="Eliminar traslado"
+                            >
+                              Eliminar
+                            </button>
+                          </>
+                        )}
+
+                        {/* Botón Confirmar Recepción solo para VENDEDORES y si no está confirmado */}
+                        {!isAdmin && !mov.trabajadorConfirmacion && (
+                          <button
+                            className="btn"
+                            onClick={() => handleConfirmarTraslado(mov.id)}
+                            type="button"
+                            title="Confirmar recepción del traslado"
+                            style={{ backgroundColor: '#22c55e' }}
+                          >
+                            Confirmar Recepción
+                          </button>
+                        )}
+
+                        {/* Mensaje para vendedores si ya está confirmado */}
+                        {!isAdmin && mov.trabajadorConfirmacion && (
+                          <span style={{ color: '#22c55e', fontSize: '0.9rem' }}>
+                            ✓ Ya confirmado
+                          </span>
+                        )}
                       </td>
                     </tr>
 
                     {expanded[id] && (
                       <tr>
-                        <td colSpan={6}>
+                        <td colSpan={8}>
                           {detalles.length === 0 ? (
                             <div className="empty-sub">Sin productos.</div>
                           ) : (

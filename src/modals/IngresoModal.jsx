@@ -4,6 +4,8 @@ import "../styles/IngresoNuevoModal.css";
 import {
   toLocalDateString,
 } from "../services/IngresosService.js";
+import CategorySidebar from "../componets/CategorySidebar.jsx";
+import { listarCategorias } from "../services/CategoriasService.js";
 
 export default function IngresoModal({
   isOpen,
@@ -25,6 +27,8 @@ export default function IngresoModal({
   const [form, setForm] = useState(empty);
   const [searchCat, setSearchCat] = useState("");
   const [editable, setEditable] = useState(true);
+  const [selectedCategoryId, setSelectedCategoryId] = useState(null);
+  const [categorias, setCategorias] = useState([]);
 
   const isEdit = Boolean(ingresoInicial?.id);
 
@@ -72,18 +76,55 @@ export default function IngresoModal({
   }
 
   setSearchCat("");
+  setSelectedCategoryId(null);
 }, [isOpen, ingresoInicial]);
 
-  // Catálogo filtrado
+  // Cargar categorías desde el servidor
+  useEffect(() => {
+    const fetchCategorias = async () => {
+      try {
+        const cats = await listarCategorias();
+        setCategorias(cats || []);
+      } catch (e) {
+        console.error("Error cargando categorías:", e);
+        setCategorias([]); // Asegurar que quede un array vacío
+        // No mostramos alert para evitar interrumpir la UX del modal
+      }
+    };
+    
+    if (isOpen) {
+      fetchCategorias();
+    } else {
+      // Reset categorías cuando se cierre el modal
+      setCategorias([]);
+    }
+  }, [isOpen]);
+
+  // Catálogo filtrado por búsqueda y categoría
   const catalogoFiltrado = useMemo(() => {
+    let filtered = catalogoProductos;
+    
+    // Filtrar por categoría si está seleccionada
+    if (selectedCategoryId) {
+      const selectedCategory = categorias.find(cat => cat.id === selectedCategoryId);
+      
+      if (selectedCategory) {
+        filtered = filtered.filter(p => p.categoria === selectedCategory.nombre);
+      }
+    }
+    
+    // Filtrar por búsqueda de texto
     const q = searchCat.trim().toLowerCase();
-    if (!q) return catalogoProductos;
-    return catalogoProductos.filter(
-      (p) =>
-        (p.nombre ?? "").toLowerCase().includes(q) ||
-        (p.codigo ?? "").toLowerCase().includes(q)
-    );
-  }, [catalogoProductos, searchCat]);
+    if (q) {
+      filtered = filtered.filter(
+        (p) =>
+          (p.nombre ?? "").toLowerCase().includes(q) ||
+          (p.codigo ?? "").toLowerCase().includes(q)
+      );
+    }
+    
+    return filtered;
+  }, [catalogoProductos, searchCat, selectedCategoryId, categorias]);
 
   // Total costo calculado en UI (el back recalcula igual)
   const totalCosto = useMemo(
@@ -267,7 +308,7 @@ export default function IngresoModal({
         </div>
 
         <div className="modal-grid">
-          {/* Izquierda */}
+          {/* Izquierda - Formulario y productos seleccionados */}
           <div className="pane pane-left">
             <div className="form grid-2">
               <label>
@@ -419,10 +460,31 @@ export default function IngresoModal({
             </div>
           </div>
 
-          {/* Derecha */}
+          {/* Centro - Sidebar de categorías */}
+          <div className="pane pane-sidebar">
+            <div className="category-section">
+              <CategorySidebar 
+                categories={[
+                  { id: null, nombre: "Todas" },
+                  ...categorias
+                ]}
+                selectedId={selectedCategoryId}
+                onSelect={(id) => setSelectedCategoryId(id === null ? null : id)}
+              />
+            </div>
+          </div>
+
+          {/* Derecha - Inventario/Catálogo */}
           <div className="pane pane-right">
             <div className="inv-header">
-              <h3 style={{ margin: 0 }}>Inventario / Catálogo</h3>
+              <h3 style={{ margin: 0 }}>
+                Catálogo de Productos
+                {selectedCategoryId && categorias.find(c => c.id === selectedCategoryId) && (
+                  <span style={{ fontSize: '0.8rem', color: '#666', fontWeight: 'normal' }}>
+                    {' '}• {categorias.find(c => c.id === selectedCategoryId)?.nombre}
+                  </span>
+                )}
+              </h3>
               <input
                 className="inv-search"
                 type="text"
@@ -432,6 +494,12 @@ export default function IngresoModal({
                 disabled={!editable && isEdit}
               />
             </div>
+
+            {catalogoFiltrado.length > 0 && (
+              <div style={{ fontSize: '0.85rem', color: '#666', marginBottom: '8px', textAlign: 'right' }}>
+                {catalogoFiltrado.length} producto{catalogoFiltrado.length !== 1 ? 's' : ''} encontrado{catalogoFiltrado.length !== 1 ? 's' : ''}
+              </div>
+            )}
 
             <div className="inventory-scroll">
               <table className="inv-table">

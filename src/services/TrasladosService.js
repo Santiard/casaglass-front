@@ -6,7 +6,7 @@ const base = "/traslados";
 /* ========= CABECERA ========= */
 
 export async function listarTraslados(params = {}) {
-  const { data } = await api.get(base, { params });
+  const { data } = await api.get("/traslados-movimientos", { params });
   return data;
 }
 
@@ -24,23 +24,23 @@ export async function obtenerTraslado(id) {
  * }
  */
 export async function crearTraslado(payload) {
-  const { data } = await api.post(base, payload);
+  const { data } = await api.post("/traslados-movimientos", payload);
   return data;
 }
 
 /** Actualiza SOLO cabecera */
 export async function actualizarCabecera(id, payload) {
-  const { data } = await api.put(`${base}/${id}`, payload);
+  const { data } = await api.put(`/traslados-movimientos/${id}`, payload);
   return data;
 }
 
 export async function eliminarTraslado(id) {
-  await api.delete(`${base}/${id}`);
+  await api.delete(`/traslados-movimientos/${id}`);
 }
 
 export async function confirmarTraslado(id, trabajadorId) {
-  const { data } = await api.post(`${base}/${id}/confirmar`, null, {
-    params: { trabajadorId },
+  const { data } = await api.put(`/traslados-movimientos/${id}/confirmar`, {
+    trabajadorId: trabajadorId
   });
   return data;
 }

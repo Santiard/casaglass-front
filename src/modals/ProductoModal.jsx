@@ -52,6 +52,14 @@ export default function ProductModal({ isOpen, onClose, onSave, product }) {
     // checkbox para esVidrio
     if (type === "checkbox" && name === "esVidrio") {
       const shouldBeVidrio = checked;
+      
+      // VALIDACIÓN: Si estamos editando un producto existente que NO es de categoría "Vidrios",
+      // no se puede marcar como esVidrio
+      if (isEditing && shouldBeVidrio && product?.categoria !== "Vidrios") {
+        alert("No se puede marcar como vidrio un producto que no pertenece a la categoría 'Vidrios'");
+        return; // No actualizar el estado
+      }
+      
       setFormData((prev) => ({
         ...prev,
         esVidrio: shouldBeVidrio,
@@ -220,8 +228,19 @@ export default function ProductModal({ isOpen, onClose, onSave, product }) {
               name="esVidrio"
               checked={!!formData.esVidrio}
               onChange={handleChange}
+              disabled={isEditing && product?.categoria !== "Vidrios"}
+              title={
+                isEditing && product?.categoria !== "Vidrios" 
+                  ? "No se puede cambiar: el producto no pertenece a la categoría 'Vidrios'"
+                  : ""
+              }
             />
             Es vidrio
+            {isEditing && product?.categoria !== "Vidrios" && (
+              <small style={{ color: '#666', marginLeft: '8px' }}>
+                (No se puede cambiar: categoría "{product?.categoria}")
+              </small>
+            )}
           </label>
 
           {/* Campos exclusivos para vidrio (se muestran si esVidrio true) */}
@@ -271,14 +290,14 @@ export default function ProductModal({ isOpen, onClose, onSave, product }) {
             </>
           )}
 
-          <div className="modal-buttons">
+          <footer className="modal-footer">
             <button type="button" onClick={onClose} className="btn-cancelar">
               Cancelar
             </button>
             <button type="submit" className="btn-guardar">
               Guardar
             </button>
-          </div>
+          </footer>
         </form>
       </div>
     </div>

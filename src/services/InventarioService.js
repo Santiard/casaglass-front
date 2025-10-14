@@ -159,10 +159,16 @@ function transformarCortesDTO(cortes, isAdmin = true, userSedeId = null) {
     }
 
     return {
-      id: corte.id,
+      id: corte.productoId || corte.id,  // Mapear productoId como id
+      productoId: corte.productoId,
       codigo: corte.codigo,
       nombre: corte.nombre,
+      posicion: corte.posicion,
+      tipo: corte.tipo,
+      color: corte.color,
       categoria: corte.categoria,
+      descripcion: corte.descripcion,
+      costo: corte.costo,
       largoCm: corte.largoCm,
       precio: corte.precio,
       observacion: corte.observacion,

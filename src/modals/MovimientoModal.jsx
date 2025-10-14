@@ -1,6 +1,8 @@
 // src/modals/MovimientoModal.jsx
 import { useEffect, useMemo, useState } from "react";
-import "../styles/CrudModal.css";
+import "../styles/MovimientoNuevoModal.css";
+import CategorySidebar from "../componets/CategorySidebar.jsx";
+import { listarCategorias } from "../services/CategoriasService.js";
 
 const VACIO = {
   sedeOrigenId: "",
@@ -31,6 +33,8 @@ export default function MovimientoModal({
   const isEdit = Boolean(movimiento?.id);
   const [form, setForm] = useState(VACIO);
   const [search, setSearch] = useState("");
+  const [selectedCategoryId, setSelectedCategoryId] = useState(null);
+  const [categorias, setCategorias] = useState([]);
   const [editableWithin2d, setEditableWithin2d] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
@@ -72,19 +76,53 @@ export default function MovimientoModal({
       setEditableWithin2d(true);
     }
     setSearch("");
+    setSelectedCategoryId(null);
     setIsSubmitting(false);
   }, [movimiento, isOpen]);
 
-  // Filtro de catálogo
+  // Cargar categorías desde el servidor
+  useEffect(() => {
+    const fetchCategorias = async () => {
+      try {
+        const cats = await listarCategorias();
+        setCategorias(cats || []);
+      } catch (e) {
+        console.error("Error cargando categorías:", e);
+        setCategorias([]);
+      }
+    };
+    
+    if (isOpen) {
+      fetchCategorias();
+    } else {
+      setCategorias([]);
+    }
+  }, [isOpen]);
+
+  // Filtro de catálogo por categoría y búsqueda
   const catalogoFiltrado = useMemo(() => {
+    let filtered = catalogoProductos;
+    
+    // Filtrar por categoría si está seleccionada
+    if (selectedCategoryId) {
+      const selectedCategory = categorias.find(cat => cat.id === selectedCategoryId);
+      if (selectedCategory) {
+        filtered = filtered.filter(p => p.categoria === selectedCategory.nombre);
+      }
+    }
+    
+    // Filtrar por búsqueda de texto
     const q = search.trim().toLowerCase();
-    if (!q) return catalogoProductos;
-    return catalogoProductos.filter(
-      (p) =>
-        (p.nombre ?? "").toLowerCase().includes(q) ||
-        (p.codigo ?? "").toLowerCase().includes(q)
-    );
-  }, [catalogoProductos, search]);
+    if (q) {
+      filtered = filtered.filter(
+        (p) =>
+          (p.nombre ?? "").toLowerCase().includes(q) ||
+          (p.codigo ?? "").toLowerCase().includes(q)
+      );
+    }
+    
+    return filtered;
+  }, [catalogoProductos, search, selectedCategoryId, categorias]);
 
   // Validaciones
   const mismaSede =
@@ -331,17 +369,31 @@ export default function MovimientoModal({
             )}
           </div>
 
+          {/* Centro - Sidebar de categorías */}
+          <div className="pane pane-sidebar">
+            <div className="category-section">
+              <CategorySidebar 
+                categories={[
+                  { id: null, nombre: "Todas" },
+                  ...categorias
+                ]}
+                selectedId={selectedCategoryId}
+                onSelect={(id) => setSelectedCategoryId(id === null ? null : id)}
+              />
+            </div>
+          </div>
+
           {/* Panel derecho: catálogo */}
           <div className="pane pane-right">
             <div className="inv-header">
-              <div>
-                <h3 style={{ margin: 0 }}>Catálogo de productos</h3>
-                <small>
-                  {isEdit
-                    ? "Solo lectura en edición."
-                    : "Selecciona un producto para agregarlo al traslado"}
-                </small>
-              </div>
+              <h3 style={{ margin: 0 }}>
+                Catálogo de Productos
+                {selectedCategoryId && categorias.find(c => c.id === selectedCategoryId) && (
+                  <span style={{ fontSize: '0.8rem', color: '#666', fontWeight: 'normal' }}>
+                    {' '}• {categorias.find(c => c.id === selectedCategoryId)?.nombre}
+                  </span>
+                )}
+              </h3>
               <input
                 className="inv-search"
                 type="text"
@@ -352,34 +404,64 @@ export default function MovimientoModal({
               />
             </div>
 
-            <div className="inventory-list">
-              {catalogoFiltrado.length === 0 ? (
-                <div className="empty-sub">Sin resultados</div>
-              ) : (
-                catalogoFiltrado.map((p) => (
-                  <div
-                    key={p.id}
-                    className="inventory-item"
-                    title={
-                      isEdit
-                        ? "Solo lectura en edición"
-                        : "Doble clic para agregar"
-                    }
-                    onDoubleClick={() => {
-                      if (canEditProducts) addProducto(p);
-                    }}
-                    style={{
-                      cursor: canEditProducts ? "pointer" : "not-allowed",
-                      opacity: canEditProducts ? 1 : 0.6,
-                    }}
-                  >
-                    <div className="inv-name">{p.nombre}</div>
-                    <div className="inv-meta">
-                      <span>{p.codigo ?? "-"}</span>
-                    </div>
-                  </div>
-                ))
-              )}
+            {catalogoFiltrado.length > 0 && (
+              <div style={{ fontSize: '0.85rem', color: '#666', marginBottom: '8px', textAlign: 'right' }}>
+                {catalogoFiltrado.length} producto{catalogoFiltrado.length !== 1 ? 's' : ''} encontrado{catalogoFiltrado.length !== 1 ? 's' : ''}
+              </div>
+            )}
+
+            <div className="inventory-scroll">
+              <table className="inv-table">
+                <thead>
+                  <tr>
+                    <th style={{ width: "55%" }}>Nombre</th>
+                    <th style={{ width: "30%" }}>Código</th>
+                    <th style={{ width: "15%" }}>Agregar</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {catalogoFiltrado.length === 0 ? (
+                    <tr>
+                      <td colSpan={3} className="empty">
+                        Sin resultados
+                      </td>
+                    </tr>
+                  ) : (
+                    catalogoFiltrado.map((item) => (
+                      <tr
+                        key={String(item.id)}
+                        onDoubleClick={() => {
+                          if (canEditProducts) addProducto(item);
+                        }}
+                        title={
+                          isEdit
+                            ? "Solo lectura en edición"
+                            : "Doble clic para agregar"
+                        }
+                        style={{
+                          cursor: canEditProducts ? "pointer" : "not-allowed",
+                          opacity: canEditProducts ? 1 : 0.6,
+                        }}
+                      >
+                        <td>{item.nombre}</td>
+                        <td>{item.codigo ?? "-"}</td>
+                        <td>
+                          <button
+                            className="btn-ghost"
+                            type="button"
+                            onClick={() => {
+                              if (canEditProducts) addProducto(item);
+                            }}
+                            disabled={!canEditProducts}
+                          >
+                            +
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
             </div>
           </div>
         </div>

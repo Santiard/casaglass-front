@@ -37,12 +37,16 @@ export default function IngresosPage() {
         listarProveedores(),
         listarProductos(),
       ]);
+      
+
+      
       setProveedores(prov || []);
       setCatalogo(
         (prods || []).map((p) => ({
           id: p.id,
           nombre: p.nombre,
           codigo: p.codigo ?? "",
+          categoria: p.categoria?.nombre ?? p.categoria ?? "", // ✅ Extraemos el nombre si es objeto
         }))
       );
     } catch (e) {

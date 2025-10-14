@@ -64,14 +64,14 @@ export default function Sidebar({isOpen}){
         )}
         
         {/* Movimientos - Solo ADMIN */}
-        {isAdmin && (
+
           <li>
             <Link to="/movimientos">
               <img src={movimientos } alt="MOVIMIENTOS " className="logos"/>
               <span className="text">Movimientos</span>
             </Link>
           </li>
-        )}
+
         <li>
           <Link to="/venderpage">
             <img src={ventas } alt="Vender " className="logos"/>

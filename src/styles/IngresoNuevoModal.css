@@ -18,7 +18,7 @@
 }
 
 .modal-container.modal-wide {
-  width: 980px;       /* ancho grande para 2 columnas */
+  width: 1200px;       /* ancho grande para 3 columnas */
   max-width: 98vw;
 }
 
@@ -30,11 +30,15 @@
 .alert.error { background: #ffe8e8; color: #8b1a1a; border: 1px solid #f5bcbc; }
 .alert.warning { background: #fff6e5; color: #7a4b00; border: 1px solid #f3d39a; }
 
-/* === Layout dos paneles === */
+/* === Layout tres paneles === */
 .modal-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;   /* izquierda / derecha */
+  grid-template-columns: 1fr 200px 1fr;   /* izquierda / sidebar / derecha */
   gap: 14px;
+}
+
+.modal-grid.two-columns {
+  grid-template-columns: 1fr 1fr;   /* fallback para 2 columnas */
 }
 
 .pane {
@@ -43,6 +47,19 @@
   border-radius: 10px;
   padding: 12px;
   min-height: 420px;
+}
+
+.pane.pane-sidebar {
+  min-height: 460px;
+  max-height: 460px;
+  overflow-y: auto;
+  padding: 10px;
+}
+
+.category-section h4 {
+  margin: 0 0 8px 0;
+  color: #1e2753;
+  font-size: 0.95rem;
 }
 
 /* Formulario */
@@ -120,3 +137,39 @@
   padding: 10px; border-radius: 10px; text-align: center;
 }
 .empty { text-align: center; padding: 10px; color: #666; }
+
+/* Responsividad */
+@media (max-width: 1250px) {
+  .modal-container.modal-wide {
+    width: 95vw;
+  }
+  
+  .modal-grid {
+    grid-template-columns: 1fr 180px 1fr;
+    gap: 10px;
+  }
+}
+
+@media (max-width: 1000px) {
+  .modal-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  
+  .pane.pane-sidebar {
+    min-height: auto;
+    max-height: none;
+  }
+  
+  .category-section {
+    max-height: 200px;
+    overflow-y: auto;
+  }
+}
+
+@media (max-width: 640px) {
+  .modal-container.modal-wide {
+    width: 98vw;
+    padding: 1rem;
+  }
+}
