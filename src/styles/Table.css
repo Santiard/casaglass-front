@@ -170,4 +170,14 @@ input[type="number"]::-webkit-outer-spin-button {
 }
 input[type="number"] {
   -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+/* Estilo para filas sin stock */
+.row-sin-stock {
+  background-color: #ffebee !important; /* Rojo muy suave */
+}
+
+.row-sin-stock:hover {
+  background-color: #ffcdd2 !important; /* Rojo ligeramente más intenso en hover */
 }

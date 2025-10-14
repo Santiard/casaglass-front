@@ -2,56 +2,56 @@
 * { box-sizing: border-box; }
 .layout {
   display: flex;
-  margin-top: 60px;                  /* deja espacio para el header */
-  min-height: calc(100vh - 60px);
+  margin-top: 3.75rem;                  /* 60px - deja espacio para el header */
+  min-height: calc(100vh - 3.75rem);   /* 60px */
 }
 
 .mainContent {
   flex: 1;                            /* rellena el espacio restante */
   background: #e8e8e8; 
   margin-left: 3%;                
-  padding: 24px;
-  min-height: calc(100vh - 60px);
-  box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-  border-radius: 15px;
+  padding: 1.5rem;                    /* 24px */
+  min-height: calc(100vh - 3.75rem);  /* 60px */
+  box-shadow: 0 0.25rem 0.625rem rgba(0,0,0,0.2); /* 4px 10px */
+  border-radius: 0.9375rem;           /* 15px */
   
 }
 
 /* Contenedor que distribuye las cards */
 .cards-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); /* Se ajusta solo */
-  gap: 20px;
+  grid-template-columns: repeat(auto-fit, minmax(15.625rem, 1fr)); /* 250px - Se ajusta solo */
+  gap: 1.25rem;                       /* 20px */
 
   /* 🔹 Centrar todo el bloque cuando haya menos de las columnas máximas */
   justify-content: center;  
   justify-items: center;      /* centra cada card en su celda */
   margin-bottom: 2%;
   width: 100%;
-  max-width: 1200px;          /* opcional: limita ancho máximo */
+  max-width: 75rem;                   /* 1200px - opcional: limita ancho máximo */
   margin-left: auto;          /* centra el grid en el contenedor */
   margin-right: auto;
 }
 /* Cada card individual */
 .card {
   background-color: #fff;
-  padding: 20px;
-  border-radius: 10px;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  padding: 1.25rem;                   /* 20px */
+  border-radius: 0.625rem;            /* 10px */
+  box-shadow: 0 0.125rem 0.3125rem rgba(0,0,0,0.1); /* 2px 5px */
   text-align: center;
   width: 100%;           /* asegura ancho completo en la celda */
-  max-width: 300px;   
+  max-width: 18.75rem;               /* 300px */
 }
 
 .card img {
-  width: 50px;
-  height: 50px;
-  margin-bottom: 10px;
+  width: 3.125rem;                    /* 50px */
+  height: 3.125rem;                   /* 50px */
+  margin-bottom: 0.625rem;            /* 10px */
 }
 
-@media (max-width: 1100px) {
+@media (max-width: 68.75rem) {        /* 1100px */
   .cards-grid { grid-template-columns: repeat(2, 1fr); }
 }
-@media (max-width: 680px) {
+@media (max-width: 42.5rem) {         /* 680px */
   .cards-grid { grid-template-columns: 1fr; }
 }

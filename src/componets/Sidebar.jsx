@@ -17,7 +17,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
  
 
-export default function Sidebar({isOpen}){
+export default function Sidebar({isOpen, isCollapsed}){
     const navigate = useNavigate();
     const { isAdmin, logout } = useAuth();
     
@@ -27,27 +27,27 @@ export default function Sidebar({isOpen}){
     };
 
     return (
-        <div className={`sidebar ${isOpen ? 'open' : 'closed'}`}>
+        <div className={`sidebar ${isOpen ? 'open' : 'closed'} ${isCollapsed ? 'collapsed' : ''}`}>
       <ul>
         <li>
           <img src={logo } alt="Logo Casaglass" className="logocasaglass"/>
         </li>
         <li>
-            <Link to="/home">
+            <Link to="/home" title="Inicio">
             <img src={home } alt="HOME " className="logos"/>
             <span className="text">Inicio</span>
           </Link>
         </li>
         {/* Inventario - Disponible para todos */}
         <li>
-          <Link to="/inventorypage">
+          <Link to="/inventorypage" title="Inventario">
             <img src={inventario } alt="INVENTARIO " className="logos"/>
             <span className="text">Inventario</span>
           </Link>
         </li>
         
         <li>
-          <Link to="/clientes">
+          <Link to="/clientes" title="Clientes">
             <img src={clientes } alt="CLIENTES " className="logos"/>
             <span className="text">Clientes</span>
           </Link>
@@ -56,7 +56,7 @@ export default function Sidebar({isOpen}){
         {/* Analíticas - Solo ADMIN */}
         {isAdmin && (
           <li>
-            <Link to ="/analiticas">
+            <Link to ="/analiticas" title="Analíticas">
               <img src={analiticas} alt="Analiticas" className="logos"/>
               <span className="text">Analiticas</span>
             </Link>
@@ -66,14 +66,14 @@ export default function Sidebar({isOpen}){
         {/* Movimientos - Solo ADMIN */}
 
           <li>
-            <Link to="/movimientos">
+            <Link to="/movimientos" title="Movimientos">
               <img src={movimientos } alt="MOVIMIENTOS " className="logos"/>
               <span className="text">Movimientos</span>
             </Link>
           </li>
 
         <li>
-          <Link to="/venderpage">
+          <Link to="/venderpage" title="Vender">
             <img src={ventas } alt="Vender " className="logos"/>
             <span className="text">Vender</span>
           </Link>
@@ -81,7 +81,7 @@ export default function Sidebar({isOpen}){
         {/* Ingresos - Solo ADMIN */}
         {isAdmin && (
           <li>
-            <Link to="/ingresos">
+            <Link to="/ingresos" title="Ingresos Producto">
               <img src={producto } alt="Ingresos " className="logos"/>
               <span className="text">Ingresos Producto</span>
             </Link>
@@ -91,7 +91,7 @@ export default function Sidebar({isOpen}){
         {/* Entregas - Solo ADMIN */}
         {isAdmin && (
           <li>
-            <Link to="/entregas">
+            <Link to="/entregas" title="Entregas Dinero">
               <img src={entrega } alt="Entregas " className="logos"/>
               <span className="text">Entregas Dinero</span>
             </Link>
@@ -101,7 +101,7 @@ export default function Sidebar({isOpen}){
         {/* Proveedores - Solo ADMIN */}
         {isAdmin && (
           <li>
-            <Link to ="/proveedores">
+            <Link to ="/proveedores" title="Proveedores">
               <img src={proveedor} alt="Proveedores " className="logos"/>
               <span className="text">Proveedores</span>
             </Link>
@@ -113,7 +113,7 @@ export default function Sidebar({isOpen}){
         {/* Configuración - Solo ADMIN */}
         {isAdmin && (
           <li>
-            <Link to ="/tax-settings">
+            <Link to ="/tax-settings" title="Configuración">
               <img src={Configuracion } alt="CONFIGURACION " className="logos"/>
               <span className="text">Configuración</span>
             </Link>
@@ -122,7 +122,7 @@ export default function Sidebar({isOpen}){
         
 
         <li >
-            <a href="#logout" onClick={handleLogout}>
+            <a href="#logout" onClick={handleLogout} title="Salir">
             <img src={salir } alt="SALIR " className="logos"/>
             <span className="text">Salir</span>
           </a>

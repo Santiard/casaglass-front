@@ -26,8 +26,12 @@ export default function InventoryTable({ data = [], filters, loading, onEditar, 
                 <th>Total</th>
               </>
             ) : (
-              // Para VENDEDOR: solo mostrar cantidad de su sede
-              <th>Cantidad ({userSede})</th>
+              // Para VENDEDOR: mostrar cantidades de todas las sedes pero sin total
+              <>
+                <th>Insula</th>
+                <th>Centro</th>
+                <th>Patios</th>
+              </>
             )}
             {/* Precios según el rol */}
             {isAdmin ? (
@@ -45,10 +49,10 @@ export default function InventoryTable({ data = [], filters, loading, onEditar, 
         </thead>
         <tbody>
           {loading && (
-            <tr><td colSpan={isAdmin ? (isVidrio ? 13 : 10) : (isVidrio ? 8 : 5)} className="empty">Cargando…</td></tr>
+            <tr><td colSpan={isAdmin ? (isVidrio ? 13 : 10) : (isVidrio ? 12 : 9)} className="empty">Cargando…</td></tr>
           )}
           {!loading && data.length === 0 && (
-            <tr><td colSpan={isAdmin ? (isVidrio ? 13 : 10) : (isVidrio ? 8 : 5)} className="empty">Sin resultados</td></tr>
+            <tr><td colSpan={isAdmin ? (isVidrio ? 13 : 10) : (isVidrio ? 12 : 9)} className="empty">Sin resultados</td></tr>
           )}
           {!loading && data.map((p) => {
             const total = Number(p.cantidadTotal || 0) || 
@@ -56,11 +60,16 @@ export default function InventoryTable({ data = [], filters, loading, onEditar, 
 
             // Para vendedores, obtener la cantidad de su sede específica
             const cantidadVendedor = isAdmin ? total : (
-              Number(p.cantidadInsula || 0) + Number(p.cantidadCentro || 0) + Number(p.cantidadPatios || 0)
+              userSede === "Insula" ? Number(p.cantidadInsula || 0) :
+              userSede === "Centro" ? Number(p.cantidadCentro || 0) :
+              userSede === "Patios" ? Number(p.cantidadPatios || 0) : 0
             );
 
+            // Determinar si la fila debe pintarse de rojo (sin stock)
+            const sinStock = isAdmin ? total === 0 : cantidadVendedor === 0;
+
             return (
-              <tr key={p.id}>
+              <tr key={p.id} className={sinStock ? "row-sin-stock" : ""}>
                 <td>{p.codigo}</td>
                 <td>{p.nombre}</td>
                 <td>{p.categoria}</td>
@@ -77,7 +86,12 @@ export default function InventoryTable({ data = [], filters, loading, onEditar, 
                     <td><strong>{total}</strong></td>
                   </>
                 ) : (
-                  <td><strong>{cantidadVendedor}</strong></td>
+                  // Para VENDEDOR: mostrar cantidades de todas las sedes pero sin total
+                  <>
+                    <td>{p.cantidadInsula ?? 0}</td>
+                    <td>{p.cantidadCentro ?? 0}</td>
+                    <td>{p.cantidadPatios ?? 0}</td>
+                  </>
                 )}
                 
                 {/* Precios según el rol */}

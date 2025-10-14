@@ -1,10 +1,10 @@
 /* Contenedor principal del carrito */
 .shopcar {
   position: fixed;
-  right: 20px;
+  right: 1.25rem;                      /* 20px */
   bottom: 0;
-  width: 300px;
-  max-height: 400px;
+  width: 18.75rem;                     /* 300px */
+  max-height: 25rem;                   /* 400px */
   transform: translateY(85%); /* Solo la pestaña visible */
   transition: transform 0.3s ease;
   box-shadow: -2px 0 10px rgba(0,0,0,0.2);
@@ -32,7 +32,7 @@
 }
 
 .tab img {
-  width: 20px;
+  width: 1.25rem;                      /* 20px */
   transition: transform 0.3s ease;
   filter: brightness(0) invert(1);
 }

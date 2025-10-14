@@ -36,17 +36,6 @@ export default function CorteFilters({
         <option value="Patios">Patios</option>
       </select>
 
-      {/* 🔹 Estado */}
-      <select
-        className="filter-select"
-        value={filters.status || ""}
-        onChange={(e) => setFilters({ ...filters, status: e.target.value })}
-      >
-        <option value="">Todos los estados</option>
-        <option value="Disponible">Disponible</option>
-        <option value="Agotado">Agotado</option>
-      </select>
-
       {/* 🔹 Rangos (largo y precio) */}
       <input
         className="filter-input"

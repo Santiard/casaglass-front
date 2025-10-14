@@ -14,10 +14,24 @@
   overflow: hidden;                 /* el scroll queda en los hijos (tabla) */
   box-sizing: border-box;
   padding: 1rem;
-  
+  transition: margin-left 0.3s ease, width 0.3s ease;
 }
 
-@media (max-width: 700px) {
-  .dashboard-main { margin-left: 0;
-    width: 100%;}
+/* Ajustes cuando la sidebar está colapsada */
+.dashboard-layout[data-sidebar-collapsed="true"] .dashboard-main {
+  margin-left: 4rem;                /* ancho del sidebar colapsada */
+  width: calc(100% - 4rem);
+}
+
+@media (max-width: 43.75rem) {        /* 700px */
+  .dashboard-main { 
+    margin-left: 0;
+    width: 100%;
+  }
+  
+  /* En móvil, ignorar el estado colapsado */
+  .dashboard-layout[data-sidebar-collapsed="true"] .dashboard-main {
+    margin-left: 0;
+    width: 100%;
+  }
 }

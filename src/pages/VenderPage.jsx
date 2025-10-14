@@ -1,18 +1,110 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
+import { useAuth } from "../context/AuthContext.jsx";
+import { useSidebar } from "../layouts/DashboardLayout.jsx"; // Importar el hook
+
+// === Componentes específicos de venta ===
+import VentaTable from "../componets/VentaTable.jsx";
+import VentaCortesTable from "../componets/VentaCortesTable.jsx";
+import InventaryFilters from "../componets/InventaryFilters.jsx";
+import CategorySidebar from "../componets/CategorySidebar.jsx";
+import CorteFilters from "../componets/CorteFilters.jsx";
+import ListadoOrden from "../componets/ListadoOrden.jsx";
+
+// === Servicios ===
+import { listarInventarioCompleto, listarCortesInventarioCompleto } from "../services/InventarioService";
+import { listarCategorias } from "../services/CategoriasService";
+
+// === Estilos ===
 import "../styles/VenderPage.css";
-import Table from "../componets/VenderTable.jsx";
-import Filter from "../componets/InventaryFilters.jsx";
-import ShopCar from "../componets/ShopCar.jsx";
 
 export default function VenderPage() {
+  const { isAdmin, sedeId } = useAuth(); // Obtener info del usuario logueado
+  const [view, setView] = useState("producto"); // "producto" | "corte"
+
+  // ======= Estados del Carrito =======
   const [productosCarrito, setProductosCarrito] = useState([]);
 
-  // Agregar producto al carrito con la cantidad seleccionada
-  const agregarProducto = (producto, cantidad) => {
+  // ======= Estados del Inventario =======
+  const [data, setData] = useState([]);
+  const [cortesData, setCortesData] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  // ======= Filtros =======
+  const [filters, setFilters] = useState({
+    search: "",
+    categoryId: null, // 👈 ahora guardamos el id de categoría
+    status: "",
+    sede: "",
+    priceMin: "",
+    priceMax: "",
+  });
+
+  const [cortesFilters, setCortesFilters] = useState({
+    search: "",
+    categoryId: null, // 👈 ahora guardamos el id de categoría
+    status: "",
+    sede: "",
+    priceMin: "",
+    priceMax: "",
+  });
+
+  const [selectedCategory, setSelectedCategory] = useState(null);
+
+  // ======= Cargar Categorías =======
+  useEffect(() => {
+    const fetchCategorias = async () => {
+      try {
+        const cats = await listarCategorias();
+        setCategories(cats || []);
+      } catch (e) {
+        console.error("Error cargando categorías:", e);
+        alert("No se pudieron cargar las categorías desde el servidor.");
+      }
+    };
+    fetchCategorias();
+  }, []);
+
+  // ======= Cargar Productos =======
+  const fetchData = useCallback(async () => {
+    if (view !== "producto") return;
+    setLoading(true);
+    try {
+      const productos = await listarInventarioCompleto({}, isAdmin, sedeId);
+      setData(productos || []);
+    } catch (e) {
+      console.error("Error cargando inventario completo", e);
+      alert(e?.response?.data?.message || "No se pudo cargar el inventario.");
+    } finally {
+      setLoading(false);
+    }
+  }, [view, isAdmin, sedeId]);
+
+  useEffect(() => { fetchData(); }, [fetchData]);
+
+  // ======= Cargar Cortes =======
+  const fetchCortesData = useCallback(async () => {
+    if (view !== "corte") return;
+    setLoading(true);
+    try {
+      const cortes = await listarCortesInventarioCompleto({}, isAdmin, sedeId);
+      setCortesData(cortes || []);
+    } catch (e) {
+      console.error("Error cargando inventario de cortes", e);
+      alert(e?.response?.data?.message || "No se pudo cargar el inventario de cortes.");
+    } finally {
+      setLoading(false);
+    }
+  }, [view, isAdmin, sedeId]);
+
+  useEffect(() => { fetchCortesData(); }, [fetchCortesData]);
+
+  // ======= Funciones del Carrito =======
+  const agregarProducto = (producto, cantidad, precioUsado) => {
     if (cantidad <= 0) return; // No agregar si la cantidad es 0 o negativa
 
     const index = productosCarrito.findIndex(
-      (p) => p.id === producto.id && p.precioUsado === producto.precioUsado
+      (p) => p.id === producto.id && p.precioUsado === precioUsado
     );
 
     if (index !== -1) {
@@ -20,11 +112,17 @@ export default function VenderPage() {
       newCarrito[index].cantidadVender += cantidad;
       setProductosCarrito(newCarrito);
     } else {
-      setProductosCarrito([...productosCarrito, { ...producto, cantidadVender: cantidad }]);
+      setProductosCarrito([
+        ...productosCarrito, 
+        { 
+          ...producto, 
+          cantidadVender: cantidad,
+          precioUsado: precioUsado 
+        }
+      ]);
     }
   };
 
-  // Actualizar precio de un producto ya agregado
   const actualizarPrecio = (id, precioUsado) => {
     const index = productosCarrito.findIndex((p) => p.id === id);
     if (index !== -1) {
@@ -35,68 +133,31 @@ export default function VenderPage() {
   };
 
   const limpiarCarrito = () => {
-  setProductosCarrito([]);
-  localStorage.removeItem("shopItems"); // también limpia localStorage
-};
+    setProductosCarrito([]);
+    localStorage.removeItem("shopItems");
+  };
 
+  const eliminarProducto = (index) => {
+    const nuevosProductos = productosCarrito.filter((_, i) => i !== index);
+    setProductosCarrito(nuevosProductos);
+  };
 
-  // Datos de inventario
-  const [data] = useState([
-    {
-      id: 1,
-      nombre: "Vidrio templado",
-      categoria: "Vidrios",
-      cantidadInsula: 40,
-      cantidadCentro: 30,
-      cantidadPatios: 30,
-      precio: 100,
-      precioEspecial: 90,
-    },
-    {
-      id: 2,
-      nombre: "Perfil aluminio",
-      categoria: "Aluminio",
-      cantidadInsula: 0,
-      cantidadCentro: 18,
-      cantidadPatios: 30,
-      precio: 50,
-      precioEspecial: 45,
-    },
-    {
-      id: 3,
-      nombre: "Bisagra acero",
-      categoria: "Accesorios",
-      cantidadInsula: 0,
-      cantidadCentro: 0,
-      cantidadPatios: 0,
-      precio: 12,
-      precioEspecial: 10,
-    },
-  ]);
-
-  // Filtros
-  const [filters, setFilters] = useState({
-    search: "",
-    category: "",
-    status: "",
-    sede: "",
-    priceMin: "",
-    priceMax: "",
-  });
-
-  // Filtrado de datos
+  // ======= Filtrado de datos =======
   const filteredData = useMemo(() => {
-    const search = (filters.search || "").toLowerCase().trim();
-    const category = filters.category || "";
-    const status = filters.status || "";
-    const sede = filters.sede || "";
+    const currentData = view === "producto" ? data : cortesData;
+    const currentFilters = view === "producto" ? filters : cortesFilters;
 
-    const min = filters.priceMin !== "" ? Number(filters.priceMin) : -Infinity;
-    const max = filters.priceMax !== "" ? Number(filters.priceMax) : Infinity;
+    const search = (currentFilters.search || "").toLowerCase().trim();
+    const selectedCat = categories.find((cat) => cat.id === currentFilters.categoryId);
+    const categoryName = selectedCat?.nombre || "";
+    const sede = currentFilters.sede || "";
 
-    return data
+    const min = currentFilters.priceMin !== "" ? Number(currentFilters.priceMin) : -Infinity;
+    const max = currentFilters.priceMax !== "" ? Number(currentFilters.priceMax) : Infinity;
+
+    return currentData
       .filter((item) => !search || item.nombre.toLowerCase().includes(search))
-      .filter((item) => !category || item.categoria === category)
+      .filter((item) => !categoryName || item.categoria === categoryName)
       .filter((item) => {
         if (!sede) return true;
         const map = {
@@ -107,45 +168,104 @@ export default function VenderPage() {
         return (map[sede] ?? 0) > 0;
       })
       .filter((item) => {
-        if (!status) return true;
-        const total =
-          Number(item.cantidad ?? 0) +
-          Number(item.cantidadInsula || 0) +
-          Number(item.cantidadCentro || 0) +
-          Number(item.cantidadPatios || 0);
-        const estado = total > 0 ? "Disponible" : "Agotado";
-        return estado === status;
-      })
-      .filter((item) => {
-        const precio = Number(item.precio);
+        const precio = Number(item.precio1 || item.precio || 0);
         return precio >= min && precio <= max;
       });
-  }, [data, filters]);
+  }, [data, cortesData, filters, cortesFilters, categories, view]);
 
-  // Subtotal y total
+  // ======= Cálculos del carrito =======
   const subtotal = productosCarrito.reduce(
-    (acc, item) => acc + (item.precioUsado || item.precio) * item.cantidadVender,
+    (acc, item) => acc + (item.precioUsado || item.precio1 || item.precio || 0) * item.cantidadVender,
     0
   );
   const total = subtotal * 1.19;
 
+  // === Función para manejar selección de categoría en productos ===
+  const handleSelectCategory = (catId) => {
+    setFilters((prev) => ({
+      ...prev,
+      categoryId: prev.categoryId === catId ? null : catId,
+    }));
+  };
+
+  // === Función para manejar selección de categoría en cortes ===
+  const handleSelectCorteCategory = (catId) => {
+    setCortesFilters((prev) => ({
+      ...prev,
+      categoryId: prev.categoryId === catId ? null : catId,
+    }));
+  };
+
   return (
-    <div className="contenedor">
-      <div className="tablas">
-        <div className="filters">
-          <Filter filters={filters} setFilters={setFilters} />
-        </div>
-
-        <div className="table">
-          <Table
-            data={filteredData}
-            onAgregarProducto={agregarProducto}
-            onActualizarPrecio={actualizarPrecio}
+    <div className="vender-page">
+      {/* Sidebar de categorías */}
+      <aside className="vender-categories">
+        {view === "producto" ? (
+          <CategorySidebar
+            categories={categories}
+            selectedId={filters.categoryId}
+            onSelect={handleSelectCategory}
           />
-        </div>
-      </div>
+        ) : (
+          <CategorySidebar
+            categories={categories}
+            selectedId={cortesFilters.categoryId}
+            onSelect={handleSelectCorteCategory}
+          />
+        )}
+      </aside>
 
-      <ShopCar productosCarrito={productosCarrito} subtotal={subtotal} total={total} limpiarCarrito={limpiarCarrito}/>
+      {/* Contenido principal */}
+      <main className="vender-content">
+        {view === "producto" ? (
+          <>
+            <InventaryFilters
+              filters={filters}
+              setFilters={setFilters}
+              onAddProduct={null} // No agregamos productos en modo venta
+              loading={loading}
+              view={view}
+              setView={setView}
+              isAdmin={isAdmin}
+            />
+            <VentaTable
+              data={filteredData}
+              loading={loading}
+              isAdmin={isAdmin}
+              userSede={sedeId === 1 ? "Insula" : sedeId === 2 ? "Centro" : sedeId === 3 ? "Patios" : ""}
+              onAgregarProducto={agregarProducto}
+            />
+          </>
+        ) : (
+          <>
+            <CorteFilters
+              filters={cortesFilters}
+              setFilters={setCortesFilters}
+              onAdd={null} // No agregamos cortes en modo venta
+              view={view}
+              setView={setView}
+            />
+            <VentaCortesTable
+              data={filteredData}
+              loading={loading}
+              isAdmin={isAdmin}
+              userSede={sedeId === 1 ? "Insula" : sedeId === 2 ? "Centro" : sedeId === 3 ? "Patios" : ""}
+              onAgregarProducto={agregarProducto}
+            />
+          </>
+        )}
+      </main>
+
+      {/* Listado de orden */}
+      <aside className="shop-cart-sidebar">
+        <ListadoOrden 
+          productosCarrito={productosCarrito} 
+          subtotal={subtotal} 
+          total={total} 
+          limpiarCarrito={limpiarCarrito}
+          eliminarProducto={eliminarProducto}
+        />
+      </aside>
     </div>
   );
 }

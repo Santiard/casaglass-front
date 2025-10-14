@@ -1,0 +1,178 @@
+/* VenderPage.css - Estilos específicos para punto de venta */
+
+/* Botón para colapsar sidebar */
+.sidebar-toggle-btn {
+  position: fixed;
+  top: 5rem; /* Justo debajo del header */
+  left: 15.5rem; /* A la derecha de la sidebar expandida */
+  z-index: 1001;
+  background: var(--color-light-blue, #4f67ff);
+  color: white;
+  border: none;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  box-shadow: 0 0.125rem 0.375rem rgba(0,0,0,0.2);
+  transition: background-color 0.2s ease, transform 0.2s ease, left 0.3s ease;
+}
+
+/* Cuando la sidebar está colapsada, mover el botón */
+.dashboard-layout[data-sidebar-collapsed="true"] .sidebar-toggle-btn {
+  left: 4.5rem; /* A la derecha de la sidebar colapsada */
+}
+
+.sidebar-toggle-btn:hover {
+  background: var(--color-dark-blue, #2b3fb3);
+  transform: scale(1.05);
+}
+
+.toggle-icon {
+  width: 1.25rem;
+  height: 1.25rem;
+  filter: brightness(0) invert(1); /* Hacer el ícono blanco */
+  transition: transform 0.3s ease;
+}
+
+.toggle-icon.collapsed {
+  transform: rotate(180deg);
+}
+
+/* Ocultar botón en móvil */
+@media (max-width: 43.75rem) {
+  .sidebar-toggle-btn {
+    display: none;
+  }
+}
+
+/* Layout de 3 columnas para VenderPage */
+.vender-page {
+  display: grid;
+  grid-template-columns: 13.75rem 1fr 18.75rem; /* 220px | inventario | 300px carrito */
+  gap: 1rem; /* 16px */
+  padding: 1rem; /* 16px */
+  min-height: calc(100vh - 5rem); /* 80px */
+  align-items: flex-start;
+  position: relative;
+}
+
+/* Sidebar del carrito (columna derecha) */
+.shop-cart-sidebar {
+  background: #ffffff;
+  border: 0.0625rem solid #e6e6e6; /* 1px */
+  border-radius: 0.5rem; /* 8px */
+  max-height: calc(100vh - 7.5rem); /* 120px */
+  overflow: hidden; /* Cambio para que el scroll esté en el componente interno */
+  position: sticky;
+  top: 1.25rem; /* 20px */
+  display: flex;
+  flex-direction: column;
+}
+
+/* Contenido principal de venta */
+.vender-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem; /* 12px */
+}
+
+/* Sidebar de categorías en vender */
+.vender-categories {
+  width: 13.75rem; /* 220px */
+  background: #f7f7f7;
+  padding: 0.75rem; /* 12px */
+  border-radius: 0.5rem; /* 8px */
+  border: 0.0625rem solid #e6e6e6; /* 1px */
+  max-height: calc(100vh - 7.5rem); /* 120px */
+  overflow-y: auto;
+}
+
+/* Estilos específicos para las tablas de venta */
+.venta-table .table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.venta-table .cantidad-input {
+  width: 3.75rem; /* 60px */
+  padding: 0.25rem 0.5rem; /* 4px 8px */
+  border: 0.0625rem solid #ddd; /* 1px */
+  border-radius: 0.25rem; /* 4px */
+  text-align: center;
+  font-size: 0.75rem; /* 12px */
+}
+
+.venta-table .precio-select {
+  width: 6.25rem; /* 100px */
+  padding: 0.25rem 0.375rem; /* 4px 6px */
+  border: 0.0625rem solid #ddd; /* 1px */
+  border-radius: 0.25rem; /* 4px */
+  font-size: 0.75rem; /* 12px */
+  background: white;
+}
+
+.venta-table .agregar-btn {
+  background: #28a745;
+  color: white;
+  border: none;
+  padding: 0.375rem 0.75rem; /* 6px 12px */
+  border-radius: 0.25rem; /* 4px */
+  cursor: pointer;
+  font-size: 0.75rem; /* 12px */
+  white-space: nowrap;
+  min-width: 4.375rem; /* 70px */
+}
+
+.venta-table .agregar-btn:hover {
+  background: #218838;
+}
+
+.venta-table .agregar-btn:disabled {
+  background: #6c757d;
+  cursor: not-allowed;
+}
+
+/* Responsive design */
+@media (max-width: 75rem) { /* 1200px */
+  .vender-page {
+    grid-template-columns: 12.5rem 1fr 17.5rem; /* 200px | inventario | 280px */
+    gap: 0.75rem; /* 12px */
+    padding: 0.75rem; /* 12px */
+  }
+}
+
+@media (max-width: 56.25rem) { /* 900px */
+  .vender-page {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem; /* 12px */
+    padding: 0.75rem; /* 12px */
+  }
+
+  .vender-categories {
+    width: 100%;
+    max-height: 12.5rem; /* 200px */
+    order: 1;
+  }
+
+  .vender-content {
+    order: 2;
+  }
+
+  .shop-cart-sidebar {
+    order: 3;
+    position: static;
+    max-height: none;
+  }
+
+  .venta-table .cantidad-input,
+  .venta-table .precio-select,
+  .venta-table .agregar-btn {
+    width: 100%;
+    margin-bottom: 0.25rem; /* 4px */
+  }
+}

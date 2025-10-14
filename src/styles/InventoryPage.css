@@ -1,20 +1,20 @@
 /* InventoryPage.css */
 .inventory-layout {
   display: flex;
-  gap: 16px;
-  padding: 16px;
+  gap: 1rem; /* 16px */
+  padding: 1rem; /* 16px */
   align-items: flex-start;
-  min-height: calc(100vh - 80px); /* ajusta según header */
+  min-height: calc(100vh - 5rem); /* 80px ajusta según header */
 }
 
 /* SIDEBAR izquierdo (categorías) */
 .inventory-categories {
-  width: 220px; /* ancho fijo */
+  width: 13.75rem; /* 220px ancho fijo */
   background: #f7f7f7;
-  padding: 12px;
-  border-radius: 8px;
-  border: 1px solid #e6e6e6;
-  max-height: calc(100vh - 120px);
+  padding: 0.75rem; /* 12px */
+  border-radius: 0.5rem; /* 8px */
+  border: 0.0625rem solid #e6e6e6; /* 1px */
+  max-height: calc(100vh - 7.5rem); /* 120px */
   overflow-y: auto;
 }
 
@@ -23,14 +23,14 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 0.75rem; /* 12px */
 }
 
 /* Responsive: en pantallas pequeñas, apilar y ocultar sidebar */
-@media (max-width: 900px) {
+@media (max-width: 56.25rem) { /* 900px */
   .inventory-layout {
     flex-direction: column;
-    padding: 12px;
+    padding: 0.75rem; /* 12px */
   }
 
   .inventory-categories {
