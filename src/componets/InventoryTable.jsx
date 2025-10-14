@@ -1,7 +1,7 @@
 // src/componets/InventoryTable.jsx
 import "../styles/Table.css"
 
-export default function InventoryTable({ data = [], filters, loading, onEditar, onEliminar }) {
+export default function InventoryTable({ data = [], filters, loading, onEditar, onEliminar, isAdmin = true, userSede = "" }) {
   const isVidrio =
     (filters?.category || "").toLowerCase() === "vidrio" ||
     (data || []).some(p => (p.categoria || "").toLowerCase() === "vidrio");
@@ -17,27 +17,47 @@ export default function InventoryTable({ data = [], filters, loading, onEditar, 
             {isVidrio && <th>mm</th>}
             {isVidrio && <th>m²</th>}
             {isVidrio && <th>Láminas</th>}
-            <th>Total</th>
-            <th>Precio 1</th>
-            <th>Precio 2</th>
-            <th>Precio 3</th>
-            <th>Precio especial</th>
-            <th>Acciones</th>
+            {/* Para ADMINISTRADOR: mostrar todas las columnas de inventario */}
+            {isAdmin ? (
+              <>
+                <th>Insula</th>
+                <th>Centro</th>
+                <th>Patios</th>
+                <th>Total</th>
+              </>
+            ) : (
+              // Para VENDEDOR: solo mostrar cantidad de su sede
+              <th>Cantidad ({userSede})</th>
+            )}
+            {/* Precios según el rol */}
+            {isAdmin ? (
+              <>
+                <th>Precio 1</th>
+                <th>Precio 2</th>
+                <th>Precio 3</th>
+                <th>Precio especial</th>
+              </>
+            ) : (
+              <th>Precio</th>
+            )}
+            {isAdmin && <th>Acciones</th>}
           </tr>
         </thead>
         <tbody>
           {loading && (
-            <tr><td colSpan={isVidrio ? 12 : 9} className="empty">Cargando…</td></tr>
+            <tr><td colSpan={isAdmin ? (isVidrio ? 13 : 10) : (isVidrio ? 8 : 5)} className="empty">Cargando…</td></tr>
           )}
           {!loading && data.length === 0 && (
-            <tr><td colSpan={isVidrio ? 12 : 9} className="empty">Sin resultados</td></tr>
+            <tr><td colSpan={isAdmin ? (isVidrio ? 13 : 10) : (isVidrio ? 8 : 5)} className="empty">Sin resultados</td></tr>
           )}
           {!loading && data.map((p) => {
-            const total =
-              Number(p.cantidadInsula || 0) +
-              Number(p.cantidadCentro || 0) +
-              Number(p.cantidadPatios || 0) +
-              Number(p.cantidad || 0);
+            const total = Number(p.cantidadTotal || 0) || 
+              (Number(p.cantidadInsula || 0) + Number(p.cantidadCentro || 0) + Number(p.cantidadPatios || 0));
+
+            // Para vendedores, obtener la cantidad de su sede específica
+            const cantidadVendedor = isAdmin ? total : (
+              Number(p.cantidadInsula || 0) + Number(p.cantidadCentro || 0) + Number(p.cantidadPatios || 0)
+            );
 
             return (
               <tr key={p.id}>
@@ -47,15 +67,43 @@ export default function InventoryTable({ data = [], filters, loading, onEditar, 
                 {isVidrio && <td>{p.mm ?? "-"}</td>}
                 {isVidrio && <td>{p.m1m2 ?? "-"}</td>}
                 {isVidrio && <td>{p.laminas ?? "-"}</td>}
-                <td>{total}</td>
-                <td>{p.precio1 ?? "-"}</td>
-                <td>{p.precio2 ?? "-"}</td>
-                <td>{p.precio3 ?? "-"}</td>
-                <td>{p.precioEspecial ?? "-"}</td>
-                <td className="acciones">
-                  <button className="btnLink" onClick={() => onEditar?.(p)}>Editar</button>
-                  <button className="btnLink" onClick={() => onEliminar?.(p.id)}>Eliminar</button>
-                </td>
+                
+                {/* Columnas de inventario según el rol */}
+                {isAdmin ? (
+                  <>
+                    <td>{p.cantidadInsula ?? 0}</td>
+                    <td>{p.cantidadCentro ?? 0}</td>
+                    <td>{p.cantidadPatios ?? 0}</td>
+                    <td><strong>{total}</strong></td>
+                  </>
+                ) : (
+                  <td><strong>{cantidadVendedor}</strong></td>
+                )}
+                
+                {/* Precios según el rol */}
+                {isAdmin ? (
+                  <>
+                    <td>{p.precio1 ?? "-"}</td>
+                    <td>{p.precio2 ?? "-"}</td>
+                    <td>{p.precio3 ?? "-"}</td>
+                    <td>{p.precioEspecial ?? "-"}</td>
+                  </>
+                ) : (
+                  // Para VENDEDOR: mostrar solo el precio de su sede
+                  <td><strong>
+                    {userSede === "Insula" ? (p.precio1 ?? "-") : 
+                     userSede === "Centro" ? (p.precio2 ?? "-") :
+                     userSede === "Patios" ? (p.precio3 ?? "-") : "-"}
+                  </strong></td>
+                )}
+                
+                {/* Solo administradores pueden editar/eliminar */}
+                {isAdmin && (
+                  <td className="acciones">
+                    <button className="btnLink" onClick={() => onEditar?.(p)}>Editar</button>
+                    <button className="btnLink" onClick={() => onEliminar?.(p.id)}>Eliminar</button>
+                  </td>
+                )}
               </tr>
             );
           })}

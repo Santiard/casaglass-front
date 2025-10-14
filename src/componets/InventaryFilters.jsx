@@ -47,10 +47,12 @@ export default function InventoryFilters({ filters = {}, setFilters, onAddProduc
         <option value="Agotado">Agotado</option>
       </select>
 
-      <button className="btn-add" onClick={onAddProduct}>
-      <img src={add} className="iconButton"/>
-      Agregar producto
-      </button>
+      {onAddProduct && (
+        <button className="btn-add" onClick={onAddProduct}>
+          <img src={add} className="iconButton"/>
+          Agregar producto
+        </button>
+      )}
 
     </div>
   );

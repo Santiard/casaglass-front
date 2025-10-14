@@ -89,11 +89,13 @@ export default function CorteFilters({
         onChange={(e) => setFilters({ ...filters, priceMax: e.target.value })}
       />
 
-      {/* 🔹 Botón agregar */}
-      <button className="btn-add" onClick={onAdd}>
-        <img src={add} className="iconButton" />
-        Agregar corte
-      </button>
+      {/* 🔹 Botón agregar - Solo para administradores */}
+      {onAdd && (
+        <button className="btn-add" onClick={onAdd}>
+          <img src={add} className="iconButton" />
+          Agregar corte
+        </button>
+      )}
     </div>
   );
 }

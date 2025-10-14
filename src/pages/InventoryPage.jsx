@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
+import { useAuth } from "../context/AuthContext.jsx";
 
 // === Producto ===
 import Table from "../componets/InventoryTable.jsx";
@@ -42,6 +43,7 @@ const CORTES_MOCK = [
 ];
 
 export default function InventoryPage() {
+  const { isAdmin, sedeId } = useAuth(); // Obtener info del usuario logueado
   const [view, setView] = useState("producto"); // "producto" | "corte"
 
   // ======= PRODUCTO =======
@@ -78,8 +80,8 @@ export default function InventoryPage() {
     if (view !== "producto") return;
     setLoading(true);
     try {
-      // Sin parámetros - traemos todo el inventario
-      const productos = await listarInventarioCompleto();
+      // Pasar información de autenticación para filtrar según rol
+      const productos = await listarInventarioCompleto({}, isAdmin, sedeId);
       setData(productos || []);
     } catch (e) {
       console.error("Error cargando inventario completo", e);
@@ -87,7 +89,7 @@ export default function InventoryPage() {
     } finally {
       setLoading(false);
     }
-  }, [view]);
+  }, [view, isAdmin, sedeId]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -96,8 +98,8 @@ export default function InventoryPage() {
     if (view !== "corte") return;
     setLoading(true);
     try {
-      // Sin parámetros - traemos todo el inventario de cortes
-      const cortesData = await listarCortesInventarioCompleto();
+      // Pasar información de autenticación para filtrar según rol
+      const cortesData = await listarCortesInventarioCompleto({}, isAdmin, sedeId);
       setCortes(cortesData || []);
     } catch (e) {
       console.error("Error cargando inventario completo de cortes", e);
@@ -105,7 +107,7 @@ export default function InventoryPage() {
     } finally {
       setLoading(false);
     }
-  }, [view]);
+  }, [view, isAdmin, sedeId]);
 
   useEffect(() => { fetchCortesData(); }, [fetchCortesData]);
 
@@ -348,10 +350,11 @@ export default function InventoryPage() {
               <Filter
                 filters={filters}
                 setFilters={setFilters}
-                onAddProduct={handleAddProduct}
+                onAddProduct={isAdmin ? handleAddProduct : null}
                 loading={loading}
                 view={view}
                 setView={setView}
+                isAdmin={isAdmin}
               />
               <Table
                 data={filteredData}
@@ -359,6 +362,8 @@ export default function InventoryPage() {
                 loading={loading}
                 onEditar={handleEditProduct}
                 onEliminar={(id) => handleDeleteProduct(id)}
+                isAdmin={isAdmin}
+                userSede={sedeId === 1 ? "Insula" : sedeId === 2 ? "Centro" : sedeId === 3 ? "Patios" : ""}
               />
             </>
           ) : (
@@ -366,7 +371,7 @@ export default function InventoryPage() {
               <CorteFilters
                 filters={corteFilters}
                 setFilters={setCorteFilters}
-                onAdd={handleAddCorte}
+                onAdd={isAdmin ? handleAddCorte : null}
                 view={view}
                 setView={setView}
               />
@@ -374,6 +379,8 @@ export default function InventoryPage() {
                 data={filteredCortes}
                 onEditar={handleEditCorte}
                 onEliminar={handleDeleteCorte}
+                isAdmin={isAdmin}
+                userSede={sedeId === 1 ? "Insula" : sedeId === 2 ? "Centro" : sedeId === 3 ? "Patios" : ""}
               />
             </>
           )}

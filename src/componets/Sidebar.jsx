@@ -38,15 +38,13 @@ export default function Sidebar({isOpen}){
             <span className="text">Inicio</span>
           </Link>
         </li>
-        {/* Inventario - Solo ADMIN */}
-        {isAdmin && (
-          <li>
-            <Link to="/inventorypage">
-              <img src={inventario } alt="INVENTARIO " className="logos"/>
-              <span className="text">Inventario</span>
-            </Link>
-          </li>
-        )}
+        {/* Inventario - Disponible para todos */}
+        <li>
+          <Link to="/inventorypage">
+            <img src={inventario } alt="INVENTARIO " className="logos"/>
+            <span className="text">Inventario</span>
+          </Link>
+        </li>
         
         <li>
           <Link to="/clientes">
