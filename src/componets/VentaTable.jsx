@@ -18,7 +18,7 @@ export default function VentaTable({
   const handleCantidadChange = (productId, cantidad) => {
     setCantidadesVenta(prev => ({
       ...prev,
-      [productId]: cantidad
+      [productId]: cantidad === "" ? "" : parseInt(cantidad) || ""
     }));
   };
 
@@ -29,9 +29,10 @@ export default function VentaTable({
     }));
   };
 
-  const handleAgregarCarrito = (producto) => {
-    const cantidad = parseInt(cantidadesVenta[producto.id] || 1);
-    const precioSeleccionado = preciosSeleccionados[producto.id] || 
+  const handleAgregarCarrito = (producto, uniqueKey) => {
+    const cantidad = parseInt(cantidadesVenta[uniqueKey]) || 1;
+    // Usar siempre el precio correspondiente a la sede (admin usa precio1, vendedores su sede)
+    const precioSeleccionado = isAdmin ? producto.precio1 :
       (userSede === "Insula" ? producto.precio1 :
        userSede === "Centro" ? producto.precio2 :
        userSede === "Patios" ? producto.precio3 : producto.precio1);
@@ -39,7 +40,7 @@ export default function VentaTable({
     if (cantidad > 0 && onAgregarProducto) {
       onAgregarProducto(producto, cantidad, precioSeleccionado);
       // Limpiar valores después de agregar
-      setCantidadesVenta(prev => ({ ...prev, [producto.id]: 1 }));
+      setCantidadesVenta(prev => ({ ...prev, [uniqueKey]: "" }));
     }
   };
 
@@ -50,7 +51,6 @@ export default function VentaTable({
           <tr>
             <th>Código</th>
             <th>Nombre</th>
-            <th>Categoría</th>
             {isVidrio && <th>mm</th>}
             {isVidrio && <th>m²</th>}
             {isVidrio && <th>Láminas</th>}
@@ -74,38 +74,35 @@ export default function VentaTable({
             
             {/* Precios según el rol */}
             {isAdmin ? (
-              <>
-                <th>Precio 1</th>
-                <th>Precio 2</th>
-                <th>Precio 3</th>
-                <th>Precio especial</th>
-              </>
+              <th>Precio de venta</th>
             ) : (
-              <th>Precio</th>
+              <th>Precio de venta</th>
             )}
             
             {/* Columnas específicas de venta */}
             <th>Cantidad</th>
-            {isAdmin && <th>Precio a usar</th>}
             <th>Acción</th>
           </tr>
         </thead>
         <tbody>
           {loading && (
             <tr>
-              <td colSpan={isAdmin ? (isVidrio ? 15 : 12) : (isVidrio ? 13 : 10)} className="empty">
+              <td colSpan={isAdmin ? (isVidrio ? 12 : 9) : (isVidrio ? 11 : 8)} className="empty">
                 Cargando…
               </td>
             </tr>
           )}
           {!loading && data.length === 0 && (
             <tr>
-              <td colSpan={isAdmin ? (isVidrio ? 15 : 12) : (isVidrio ? 13 : 10)} className="empty">
+              <td colSpan={isAdmin ? (isVidrio ? 12 : 9) : (isVidrio ? 11 : 8)} className="empty">
                 Sin resultados
               </td>
             </tr>
           )}
-          {!loading && data.map((p) => {
+          {!loading && data.map((p, index) => {
+            // Crear una clave única que combine ID, código y índice
+            const uniqueKey = `${p.id || 'no-id'}-${p.codigo || 'no-codigo'}-${index}`;
+            
             const total = Number(p.cantidadTotal || 0) || 
               (Number(p.cantidadInsula || 0) + Number(p.cantidadCentro || 0) + Number(p.cantidadPatios || 0));
 
@@ -120,10 +117,9 @@ export default function VentaTable({
             const sinStock = isAdmin ? total === 0 : cantidadDisponible === 0;
 
             return (
-              <tr key={p.id} className={sinStock ? "row-sin-stock" : ""}>
+              <tr key={uniqueKey} className={sinStock ? "row-sin-stock" : ""}>
                 <td>{p.codigo}</td>
                 <td>{p.nombre}</td>
-                <td>{p.categoria}</td>
                 {isVidrio && <td>{p.mm ?? "-"}</td>}
                 {isVidrio && <td>{p.m1m2 ?? "-"}</td>}
                 {isVidrio && <td>{p.laminas ?? "-"}</td>}
@@ -147,12 +143,7 @@ export default function VentaTable({
                 
                 {/* Precios según el rol */}
                 {isAdmin ? (
-                  <>
-                    <td>${p.precio1 ?? "-"}</td>
-                    <td>${p.precio2 ?? "-"}</td>
-                    <td>${p.precio3 ?? "-"}</td>
-                    <td>${p.precioEspecial ?? "-"}</td>
-                  </>
+                  <td><strong>${p.precio1 ?? "-"}</strong></td>
                 ) : (
                   <td><strong>
                     ${userSede === "Insula" ? (p.precio1 ?? "-") : 
@@ -167,37 +158,21 @@ export default function VentaTable({
                     type="number"
                     min="1"
                     max={cantidadDisponible}
-                    value={cantidadesVenta[p.id] || 1}
-                    onChange={(e) => handleCantidadChange(p.id, e.target.value)}
+                    value={cantidadesVenta[uniqueKey] ?? ""}
+                    placeholder="1"
+                    onChange={(e) => handleCantidadChange(uniqueKey, e.target.value)}
                     className="cantidad-input"
                     disabled={cantidadDisponible <= 0}
                     style={{ width: '60px', textAlign: 'center' }}
                   />
                 </td>
                 
-                {/* Selector de precio (solo para admin) */}
-                {isAdmin && (
-                  <td>
-                    <select
-                      value={preciosSeleccionados[p.id] || p.precio1}
-                      onChange={(e) => handlePrecioChange(p.id, e.target.value)}
-                      className="precio-select"
-                      style={{ width: '100px', fontSize: '12px' }}
-                    >
-                      {p.precio1 && <option value={p.precio1}>P1: ${p.precio1}</option>}
-                      {p.precio2 && <option value={p.precio2}>P2: ${p.precio2}</option>}
-                      {p.precio3 && <option value={p.precio3}>P3: ${p.precio3}</option>}
-                      {p.precioEspecial && <option value={p.precioEspecial}>Esp: ${p.precioEspecial}</option>}
-                    </select>
-                  </td>
-                )}
-                
                 {/* Botón agregar al carrito */}
                 <td>
                   <button
-                    onClick={() => handleAgregarCarrito(p)}
+                    onClick={() => handleAgregarCarrito(p, uniqueKey)}
                     className="agregar-btn"
-                    disabled={cantidadDisponible <= 0 || !cantidadesVenta[p.id] || cantidadesVenta[p.id] <= 0}
+                    disabled={cantidadDisponible <= 0 || !cantidadesVenta[uniqueKey] || cantidadesVenta[uniqueKey] <= 0}
                     style={{
                       background: cantidadDisponible > 0 ? '#28a745' : '#6c757d',
                       color: 'white',

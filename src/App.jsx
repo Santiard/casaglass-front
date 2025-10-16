@@ -15,7 +15,9 @@ import EntregasPage from "./pages/EntregaPage.jsx";
 import HomePage from "./pages/HomePage.jsx";
 import TaxSettingsPage from "./pages/TaxSettingsPage.jsx";
 import CortesPage from "./pages/CortesPage.jsx";
+import OrdenesPage from "./pages/OrdenesPage.jsx";
 import { AuthProvider } from "./context/AuthContext.jsx";
+
 
 function App() {
   return (
@@ -39,6 +41,7 @@ function App() {
           <Route path="/home"  element={<HomePage/>}/>
           <Route path="/tax-settings" element={<TaxSettingsPage />} />
           <Route path="/cortes" element={<CortesPage />} />
+          <Route path="/ordenes" element={<OrdenesPage />} />
         </Route>
       </Routes>
       </AuthProvider>

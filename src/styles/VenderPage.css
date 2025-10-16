@@ -52,42 +52,174 @@
 /* Layout de 3 columnas para VenderPage */
 .vender-page {
   display: grid;
-  grid-template-columns: 13.75rem 1fr 18.75rem; /* 220px | inventario | 300px carrito */
-  gap: 1rem; /* 16px */
-  padding: 1rem; /* 16px */
-  min-height: calc(100vh - 5rem); /* 80px */
+  grid-template-columns: 13.75rem 1fr 18rem; /* Aumentar sidebar del carrito */
+  gap: 0.5rem;
+  padding: 0.5rem;
+  height: calc(100vh - 4rem);
   align-items: flex-start;
   position: relative;
+  overflow: hidden;
 }
 
-/* Sidebar del carrito (columna derecha) */
+/* Sidebar del carrito (columna derecha) - Diseño estático */
 .shop-cart-sidebar {
   background: #ffffff;
-  border: 0.0625rem solid #e6e6e6; /* 1px */
-  border-radius: 0.5rem; /* 8px */
-  max-height: calc(100vh - 7.5rem); /* 120px */
-  overflow: hidden; /* Cambio para que el scroll esté en el componente interno */
-  position: sticky;
-  top: 1.25rem; /* 20px */
+  border: 0.0625rem solid #e6e6e6;
+  border-radius: 0.5rem;
+  height: calc(100vh - 7rem);
+  max-height: calc(100vh - 5rem);
+  overflow-y: auto; /* Scroll interno si es necesario */
+  position: relative;
+  top: 0.5rem;
   display: flex;
   flex-direction: column;
+  z-index: 100;
+  width: 18rem; /* Ancho fijo más amplio */
+  max-width: calc(100vw - 15rem); /* Responsivo - no exceder ancho de pantalla */
+}
+
+/* Eliminar botón de toggle */
+.cart-toggle-btn {
+  display: none !important; /* Ocultar completamente */
+}
+
+/* Eliminar todos los estilos del botón */
+.shop-cart-sidebar:not(.collapsed) .cart-toggle-btn,
+.shop-cart-sidebar.collapsed .cart-toggle-btn,
+.cart-toggle-btn:hover {
+  display: none !important;
+}
+
+/* Eliminar estilos del icono */
+.toggle-icon,
+.toggle-icon.collapsed {
+  display: none !important;
 }
 
 /* Contenido principal de venta */
 .vender-content {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem; /* 12px */
+  gap: 0.5rem; /* Reducido de 0.75rem */
+  height: calc(100vh - 5rem); /* Altura fija */
+  overflow: hidden; /* Controlar overflow aquí */
+}
+
+/* Contenedor para la tabla con scroll */
+.vender-content .table-wrapper {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden; /* Cambiar para controlar scroll específicamente */
+  display: flex;
+  flex-direction: column;
+}
+
+/* Tabla de venta con headers fijos */
+.vender-content .table-wrapper .table {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.vender-content .table-wrapper .table thead {
+  flex-shrink: 0; /* Headers no se comprimen */
+  display: block;
+  background: var(--color-light-blue, #4f67ff);
+  color: white;
+}
+
+.vender-content .table-wrapper .table thead tr {
+  display: flex;
+  width: 100%;
+}
+
+.vender-content .table-wrapper .table tbody {
+  flex: 1;
+  overflow-y: auto; /* Solo el cuerpo hace scroll */
+  display: block;
+}
+
+.vender-content .table-wrapper .table tbody tr {
+  display: flex;
+  width: 100%;
+}
+
+/* Ajustar ancho de columnas para que coincidan header y body */
+.vender-content .table-wrapper .table th,
+.vender-content .table-wrapper .table td {
+  flex: 1;
+  padding: 0.25rem 0.5rem; /* Reducido de 0.5rem */
+  border-bottom: 0.0625rem solid #ddd;
+  text-align: left;
+  min-width: 0;
+  font-size: 0.875rem; /* Reducir tamaño de fuente */
+}
+
+/* Columnas específicas con ancho fijo optimizado */
+.vender-content .table-wrapper .table th:first-child,
+.vender-content .table-wrapper .table td:first-child {
+  min-width: 4rem; /* Código - reducido */
+  flex: 0 0 4rem;
+  text-align: center;
+}
+
+.vender-content .table-wrapper .table th:nth-child(2),
+.vender-content .table-wrapper .table td:nth-child(2) {
+  min-width: 12rem; /* Nombre - aumentado para ver más texto */
+  flex: 0 0 12rem;
+  white-space: nowrap; /* No hacer wrap */
+  overflow: hidden; /* Ocultar overflow */
+  text-overflow: ellipsis; /* Mostrar ... si es muy largo */
+}
+
+/* Columnas de cantidades - muy compactas */
+.vender-content .table-wrapper .table th:nth-child(3),
+.vender-content .table-wrapper .table td:nth-child(3),
+.vender-content .table-wrapper .table th:nth-child(4),
+.vender-content .table-wrapper .table td:nth-child(4),
+.vender-content .table-wrapper .table th:nth-child(5),
+.vender-content .table-wrapper .table td:nth-child(5),
+.vender-content .table-wrapper .table th:nth-child(6),
+.vender-content .table-wrapper .table td:nth-child(6) {
+  min-width: 3rem; /* Cantidades - muy compacto */
+  flex: 0 0 3rem;
+  text-align: center;
+  font-size: 0.75rem;
+}
+
+/* Columna de precio */
+.vender-content .table-wrapper .table th:nth-child(7),
+.vender-content .table-wrapper .table td:nth-child(7) {
+  min-width: 5rem; /* Precio - compacto */
+  flex: 0 0 5rem;
+  text-align: center;
+}
+
+/* Columna de cantidad a vender */
+.vender-content .table-wrapper .table th:nth-child(8),
+.vender-content .table-wrapper .table td:nth-child(8) {
+  min-width: 4rem; /* Input cantidad - compacto */
+  flex: 0 0 4rem;
+  text-align: center;
+}
+
+/* Última columna - acciones */
+.vender-content .table-wrapper .table th:last-child,
+.vender-content .table-wrapper .table td:last-child {
+  min-width: 5rem; /* Acciones - reducido */
+  flex: 0 0 5rem;
+  text-align: center;
 }
 
 /* Sidebar de categorías en vender */
 .vender-categories {
-  width: 13.75rem; /* 220px */
+  width: 12.5rem; /* 200px */
   background: #f7f7f7;
-  padding: 0.75rem; /* 12px */
+  padding: 0.5rem; /* Reducido de 0.75rem */
   border-radius: 0.5rem; /* 8px */
   border: 0.0625rem solid #e6e6e6; /* 1px */
-  max-height: calc(100vh - 7.5rem); /* 120px */
+  height: calc(100vh - 5rem); /* Altura fija para que no se salga */
+  max-height: calc(100vh - 5rem); /* Máxima altura */
   overflow-y: auto;
 }
 
@@ -98,20 +230,20 @@
 }
 
 .venta-table .cantidad-input {
-  width: 3.75rem; /* 60px */
-  padding: 0.25rem 0.5rem; /* 4px 8px */
+  width: 2.5rem; /* Más compacto - 40px */
+  padding: 0.125rem 0.25rem; /* Padding reducido */
   border: 0.0625rem solid #ddd; /* 1px */
   border-radius: 0.25rem; /* 4px */
   text-align: center;
-  font-size: 0.75rem; /* 12px */
+  font-size: 0.625rem; /* Fuente más pequeña - 10px */
 }
 
 .venta-table .precio-select {
-  width: 6.25rem; /* 100px */
-  padding: 0.25rem 0.375rem; /* 4px 6px */
+  width: 4rem; /* Más compacto - 64px */
+  padding: 0.125rem 0.25rem; /* Padding reducido */
   border: 0.0625rem solid #ddd; /* 1px */
   border-radius: 0.25rem; /* 4px */
-  font-size: 0.75rem; /* 12px */
+  font-size: 0.625rem; /* Fuente más pequeña - 10px */
   background: white;
 }
 
@@ -119,12 +251,12 @@
   background: #28a745;
   color: white;
   border: none;
-  padding: 0.375rem 0.75rem; /* 6px 12px */
+  padding: 0.25rem 0.5rem; /* Padding reducido */
   border-radius: 0.25rem; /* 4px */
   cursor: pointer;
-  font-size: 0.75rem; /* 12px */
+  font-size: 0.625rem; /* Fuente más pequeña - 10px */
   white-space: nowrap;
-  min-width: 4.375rem; /* 70px */
+  min-width: 3rem; /* Más compacto - 48px */
 }
 
 .venta-table .agregar-btn:hover {
@@ -136,12 +268,67 @@
   cursor: not-allowed;
 }
 
+/* Filas sin stock */
+.venta-table .row-sin-stock {
+  background-color: #ffebee;
+  /* Quitar color de texto, mantener solo el fondo */
+}
+
+/* Celdas de cantidades con formato compacto */
+.venta-table td:nth-child(3),
+.venta-table td:nth-child(4),
+.venta-table td:nth-child(5),
+.venta-table td:nth-child(6) {
+  font-weight: 500;
+  font-size: 0.75rem;
+}
+
 /* Responsive design */
+@media (max-width: 90rem) { /* 1440px - pantallas grandes */
+  .vender-page {
+    grid-template-columns: 13rem 1fr 17rem; /* Ajustar ligeramente */
+  }
+  
+  .shop-cart-sidebar {
+    width: 17rem;
+    max-width: calc(100vw - 14rem); /* Asegurar que no se salga */
+  }
+}
+
 @media (max-width: 75rem) { /* 1200px */
   .vender-page {
-    grid-template-columns: 12.5rem 1fr 17.5rem; /* 200px | inventario | 280px */
-    gap: 0.75rem; /* 12px */
-    padding: 0.75rem; /* 12px */
+    grid-template-columns: 12.5rem 1fr 16rem; /* Ajustar proporcionalmente */
+    gap: 0.5rem;
+    padding: 0.5rem;
+  }
+  
+  .shop-cart-sidebar {
+    width: 16rem;
+    max-width: calc(100vw - 13.5rem); /* Responsivo */
+  }
+  
+  /* Ajustar columna de nombre para pantallas medianas */
+  .vender-content .table-wrapper .table th:nth-child(2),
+  .vender-content .table-wrapper .table td:nth-child(2) {
+    min-width: 10rem; /* Reducir un poco en pantallas medianas */
+    flex: 0 0 10rem;
+  }
+}
+
+@media (max-width: 64rem) { /* 1024px - tablets */
+  .vender-page {
+    grid-template-columns: 11rem 1fr 15rem;
+  }
+  
+  .shop-cart-sidebar {
+    width: 15rem;
+    max-width: calc(100vw - 12rem);
+  }
+  
+  .vender-content .table-wrapper .table th:nth-child(2),
+  .vender-content .table-wrapper .table td:nth-child(2) {
+    min-width: 8rem; /* Más compacto en tablets */
+    flex: 0 0 8rem;
   }
 }
 
@@ -149,24 +336,30 @@
   .vender-page {
     display: flex;
     flex-direction: column;
-    gap: 0.75rem; /* 12px */
-    padding: 0.75rem; /* 12px */
+    gap: 0.5rem; /* Consistente */
+    padding: 0.5rem; /* Consistente */
+    height: auto; /* En móvil permitir altura automática */
   }
 
   .vender-categories {
     width: 100%;
+    height: auto; /* En móvil altura automática */
     max-height: 12.5rem; /* 200px */
     order: 1;
   }
 
   .vender-content {
     order: 2;
+    height: auto; /* En móvil altura automática */
   }
 
   .shop-cart-sidebar {
     order: 3;
-    position: static;
+    position: static; /* En móvil volver a posición normal */
+    height: auto; /* En móvil altura automática */
     max-height: none;
+    width: 100%;
+    max-width: 100%; /* Asegurar que use todo el ancho disponible en móvil */
   }
 
   .venta-table .cantidad-input,

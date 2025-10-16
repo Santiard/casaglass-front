@@ -6,7 +6,10 @@ export default function VenderTable({ data = [], onAgregarProducto, onActualizar
   const [cantidades, setCantidades] = useState({});
 
   const handleCantidadChange = (id, valor) => {
-    setCantidades({ ...cantidades, [id]: valor });
+    setCantidades(prev => ({ 
+      ...prev, 
+      [id]: valor === "" ? "" : Number(valor) 
+    }));
   };
 
   return (
@@ -60,8 +63,9 @@ export default function VenderTable({ data = [], onAgregarProducto, onActualizar
                       min={0}
                       max={999}
                       step={1}
-                      value={cantidades[item.id] ?? 0}
-                      onChange={(e) => handleCantidadChange(item.id, Number(e.target.value))}
+                      value={cantidades[item.id] ?? ""}
+                      placeholder="0"
+                      onChange={(e) => handleCantidadChange(item.id, e.target.value)}
                     />
                   </td>
                   <td>

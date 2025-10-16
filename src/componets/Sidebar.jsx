@@ -12,6 +12,7 @@ import producto from "../assets/producto.png";
 import entrega from "../assets/entrega.png";
 import proveedor from "../assets/proveedor.png";
 import analiticas from "../assets/analiticas.png";
+import orden from "../assets/order.png";
 import { Link } from 'react-router-dom';
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
@@ -107,6 +108,13 @@ export default function Sidebar({isOpen, isCollapsed}){
             </Link>
           </li>
         )}
+        <li>
+          <Link to ="/ordenes" title="Órdenes de Compra">
+          <img src={orden} alt="Órdenes de Compra " className="logos"/>
+          <span className="text">Órdenes de Compra</span>
+          </Link>
+        </li>
+
         <div className="SideBar-Space">
 
         </div>

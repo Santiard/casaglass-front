@@ -14,9 +14,10 @@ export default function VentaCortesTable({
 
   // Funciones para manejar la venta
   const handleCantidadChange = (corteId, cantidad) => {
+    const valor = parseInt(cantidad) || "";
     setCantidadesVenta(prev => ({
       ...prev,
-      [corteId]: cantidad
+      [corteId]: valor
     }));
   };
 
@@ -27,9 +28,10 @@ export default function VentaCortesTable({
     }));
   };
 
-  const handleAgregarCarrito = (corte) => {
-    const cantidad = parseInt(cantidadesVenta[corte.id] || 1);
-    const precioSeleccionado = preciosSeleccionados[corte.id] || 
+  const handleAgregarCarrito = (corte, uniqueKey) => {
+    const cantidad = parseInt(cantidadesVenta[uniqueKey]) || 1;
+    // Usar siempre el precio correspondiente a la sede (admin usa precio1, vendedores su sede)
+    const precioSeleccionado = isAdmin ? corte.precio1 :
       (userSede === "Insula" ? corte.precio1 :
        userSede === "Centro" ? corte.precio2 :
        userSede === "Patios" ? corte.precio3 : corte.precio1);
@@ -37,7 +39,7 @@ export default function VentaCortesTable({
     if (cantidad > 0 && onAgregarProducto) {
       onAgregarProducto(corte, cantidad, precioSeleccionado);
       // Limpiar valores después de agregar
-      setCantidadesVenta(prev => ({ ...prev, [corte.id]: 1 }));
+      setCantidadesVenta(prev => ({ ...prev, [uniqueKey]: "" }));
     }
   };
 
@@ -48,7 +50,6 @@ export default function VentaCortesTable({
           <tr>
             <th>Código</th>
             <th>Nombre</th>
-            <th>Categoría</th>
             <th>Largo (cm)</th>
             
             {/* Inventario según el rol */}
@@ -70,40 +71,37 @@ export default function VentaCortesTable({
             
             {/* Precios según el rol */}
             {isAdmin ? (
-              <>
-                <th>Precio 1</th>
-                <th>Precio 2</th>
-                <th>Precio 3</th>
-                <th>Precio especial</th>
-              </>
+              <th>Precio de venta</th>
             ) : (
-              <th>Precio</th>
+              <th>Precio de venta</th>
             )}
             
             <th>Observación</th>
             
             {/* Columnas específicas de venta */}
             <th>Cantidad</th>
-            {isAdmin && <th>Precio a usar</th>}
             <th>Acción</th>
           </tr>
         </thead>
         <tbody>
           {loading && (
             <tr>
-              <td colSpan={isAdmin ? 15 : 12} className="empty">
+              <td colSpan={isAdmin ? 11 : 10} className="empty">
                 Cargando…
               </td>
             </tr>
           )}
           {!loading && data.length === 0 && (
             <tr>
-              <td colSpan={isAdmin ? 15 : 12} className="empty">
+              <td colSpan={isAdmin ? 11 : 10} className="empty">
                 Sin resultados
               </td>
             </tr>
           )}
-          {!loading && data.map((c) => {
+          {!loading && data.map((c, index) => {
+            // Crear una clave única que combine ID, código y índice
+            const uniqueKey = `corte-${c.id || 'no-id'}-${c.codigo || 'no-codigo'}-${index}`;
+            
             const total = Number(c.cantidadTotal || 0) || 
               (Number(c.cantidadInsula || 0) + Number(c.cantidadCentro || 0) + Number(c.cantidadPatios || 0));
 
@@ -118,10 +116,9 @@ export default function VentaCortesTable({
             const sinStock = isAdmin ? total === 0 : cantidadDisponible === 0;
 
             return (
-              <tr key={c.id} className={sinStock ? "row-sin-stock" : ""}>
+              <tr key={uniqueKey} className={sinStock ? "row-sin-stock" : ""}>
                 <td>{c.codigo}</td>
                 <td>{c.nombre}</td>
-                <td>{c.categoria}</td>
                 <td>{c.largoCm ?? "-"}</td>
                 
                 {/* Columnas de inventario según el rol */}
@@ -143,12 +140,7 @@ export default function VentaCortesTable({
                 
                 {/* Precios según el rol */}
                 {isAdmin ? (
-                  <>
-                    <td>${c.precio1 ?? "-"}</td>
-                    <td>${c.precio2 ?? "-"}</td>
-                    <td>${c.precio3 ?? "-"}</td>
-                    <td>${c.precioEspecial ?? "-"}</td>
-                  </>
+                  <td><strong>${c.precio1 ?? "-"}</strong></td>
                 ) : (
                   <td><strong>
                     ${userSede === "Insula" ? (c.precio1 ?? "-") : 
@@ -165,37 +157,21 @@ export default function VentaCortesTable({
                     type="number"
                     min="1"
                     max={cantidadDisponible}
-                    value={cantidadesVenta[c.id] || 1}
-                    onChange={(e) => handleCantidadChange(c.id, e.target.value)}
+                    value={cantidadesVenta[uniqueKey] ?? ""}
+                    placeholder="1"
+                    onChange={(e) => handleCantidadChange(uniqueKey, e.target.value)}
                     className="cantidad-input"
                     disabled={cantidadDisponible <= 0}
                     style={{ width: '60px', textAlign: 'center' }}
                   />
                 </td>
                 
-                {/* Selector de precio (solo para admin) */}
-                {isAdmin && (
-                  <td>
-                    <select
-                      value={preciosSeleccionados[c.id] || c.precio1}
-                      onChange={(e) => handlePrecioChange(c.id, e.target.value)}
-                      className="precio-select"
-                      style={{ width: '100px', fontSize: '12px' }}
-                    >
-                      {c.precio1 && <option value={c.precio1}>P1: ${c.precio1}</option>}
-                      {c.precio2 && <option value={c.precio2}>P2: ${c.precio2}</option>}
-                      {c.precio3 && <option value={c.precio3}>P3: ${c.precio3}</option>}
-                      {c.precioEspecial && <option value={c.precioEspecial}>Esp: ${c.precioEspecial}</option>}
-                    </select>
-                  </td>
-                )}
-                
                 {/* Botón agregar al carrito */}
                 <td>
                   <button
-                    onClick={() => handleAgregarCarrito(c)}
+                    onClick={() => handleAgregarCarrito(c, uniqueKey)}
                     className="agregar-btn"
-                    disabled={cantidadDisponible <= 0 || !cantidadesVenta[c.id] || cantidadesVenta[c.id] <= 0}
+                    disabled={cantidadDisponible <= 0 || !cantidadesVenta[uniqueKey] || cantidadesVenta[uniqueKey] <= 0}
                     style={{
                       background: cantidadDisponible > 0 ? '#28a745' : '#6c757d',
                       color: 'white',
