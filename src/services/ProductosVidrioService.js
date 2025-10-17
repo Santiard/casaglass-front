@@ -1,3 +1,4 @@
+// src/services/ProductosVidrioService.js
 import {api} from "../lib/api";
 
 /** Productos de vidrio (tienen mm, m1m2, laminas) */

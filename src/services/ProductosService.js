@@ -1,3 +1,4 @@
+// src/services/ProductosService.js
 import{api} from "../lib/api";
 
 const base = "/productos";

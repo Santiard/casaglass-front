@@ -91,20 +91,6 @@ export default function OrdenesTable({
             setPage(1);
           }}
         />
-
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <span style={{ opacity: 0.7 }}>{total} registro(s)</span>
-          <button
-            onClick={() => {
-              setOrdenEditando(null);
-              setIsModalOpen(true);
-            }}
-            className="addButton"
-          >
-            <img src={add} className="iconButton" />
-            Nueva orden
-          </button>
-        </div>
       </div>
 
       {/* Tabla */}
@@ -269,8 +255,14 @@ export default function OrdenesTable({
         onClose={() => {
           setIsModalOpen(false);
           setOrdenEditando(null);
+          // ✅ Forzar refresco cuando se cierra tras guardar
+          onEditar?.({}, true); // ejecuta fetchData desde el padre
         }}
-        onSave={handleGuardar}
+        onSave={async () => {
+          await onEditar({}, true); // refresca tabla tras guardar
+          setIsModalOpen(false);
+          setOrdenEditando(null);
+        }}
         orden={ordenEditando}
       />
     </div>

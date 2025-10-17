@@ -1,3 +1,4 @@
+// src/services/ClientesService.js
 import { api } from "../lib/api"; // el api.js que creamos antes
 
 export async function listarClientes() {
