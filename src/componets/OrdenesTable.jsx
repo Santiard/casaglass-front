@@ -146,6 +146,7 @@ export default function OrdenesTable({
                         <button
                           className="btnEdit"
                           onClick={() => {
+                            console.log("🔍 Orden seleccionada para editar:", o);
                             setOrdenEditando(o);
                             setIsModalOpen(true);
                           }}
@@ -252,16 +253,19 @@ export default function OrdenesTable({
       {/* Modal para crear/editar */}
       <OrdenModal
         isOpen={isModalOpen}
-        onClose={() => {
+        onClose={async () => {
           setIsModalOpen(false);
           setOrdenEditando(null);
-          // ✅ Forzar refresco cuando se cierra tras guardar
-          onEditar?.({}, true); // ejecuta fetchData desde el padre
+          // Refrescar tabla cuando se cierra el modal (tras guardar)
+          try {
+            await onEditar(null, true); // Solo refresh, sin datos
+          } catch (e) {
+            console.error("Error refrescando tabla:", e);
+          }
         }}
         onSave={async () => {
-          await onEditar({}, true); // refresca tabla tras guardar
-          setIsModalOpen(false);
-          setOrdenEditando(null);
+          // Esta función ya no se usa, el modal maneja el guardado internamente
+          console.log("onSave llamado - no debería usarse");
         }}
         orden={ordenEditando}
       />

@@ -6,8 +6,9 @@ import { listarSedes } from "../services/SedesService.js";
 import { listarTrabajadores } from "../services/TrabajadoresService.js";
 import { listarProductos } from "../services/ProductosService.js";
 import { listarCategorias } from "../services/CategoriasService.js";
-import { actualizarOrden } from "../services/OrdenesService.js";
+import { actualizarOrden, obtenerOrden } from "../services/OrdenesService.js";
 
+import { api } from "../lib/api";
 // Utilidad para formato de fecha
 const toLocalDateOnly = (val) => {
   if (!val) return new Date().toISOString().slice(0, 10);
@@ -40,34 +41,80 @@ export default function OrdenEditarModal({
   // Cargar datos iniciales
   // =============================
   useEffect(() => {
-    if (!isOpen || !orden) return;
+    if (!isOpen || !orden?.id) return;
 
-    const base = {
-      id: orden.id,
-      fecha: toLocalDateOnly(orden.fecha),
-      obra: orden.obra ?? "",
-      venta: orden.venta ?? false,
-      credito: orden.credito ?? false,
-      clienteNombre: orden.cliente?.nombre ?? "",
-      trabajadorNombre: orden.trabajador?.nombre ?? "",
-      sedeNombre: orden.sede?.nombre ?? "",
-      clienteId: "",
-      trabajadorId: "",
-      sedeId: "",
-      items:
-        orden.items?.map((i) => ({
-          id: i.id,
-          productoId: null, // se resuelve al agregar/editar
-          codigo: i.producto?.codigo ?? "",
-          nombre: i.producto?.nombre ?? "",
-          descripcion: i.descripcion ?? "",
-          cantidad: Number(i.cantidad ?? 1),
-          precioUnitario: Number(i.precioUnitario ?? 0),
-          totalLinea: Number(i.totalLinea ?? 0),
-          eliminar: false,
-        })) ?? [],
+    // Obtener datos frescos de la orden desde el backend
+    const cargarOrdenCompleta = async () => {
+      try {
+        console.log("🔄 Cargando orden completa desde backend, ID:", orden.id);
+        const ordenCompleta = await obtenerOrden(orden.id);
+        console.log("📥 Orden completa recibida:", ordenCompleta);
+        
+        const base = {
+          id: ordenCompleta.id,
+          fecha: toLocalDateOnly(ordenCompleta.fecha),
+          obra: ordenCompleta.obra ?? "",
+          venta: ordenCompleta.venta ?? false,
+          credito: ordenCompleta.credito ?? false,
+          clienteNombre: ordenCompleta.cliente?.nombre ?? "",
+          trabajadorNombre: ordenCompleta.trabajador?.nombre ?? "",
+          sedeNombre: ordenCompleta.sede?.nombre ?? "",
+          clienteId: ordenCompleta.cliente?.id ?? "",
+          trabajadorId: ordenCompleta.trabajador?.id ?? "",
+          sedeId: ordenCompleta.sede?.id ?? "",
+          items:
+            ordenCompleta.items?.map((i) => ({
+              id: i.id,
+              productoId: null, // se resuelve al agregar/editar
+              codigo: i.producto?.codigo ?? "",
+              nombre: i.producto?.nombre ?? "",
+              descripcion: i.descripcion ?? "",
+              cantidad: Number(i.cantidad ?? 1),
+              precioUnitario: Number(i.precioUnitario ?? 0),
+              totalLinea: Number(i.totalLinea ?? 0),
+              eliminar: false,
+            })) ?? [],
+        };
+        
+        console.log("🔍 Inicializando form con orden completa:", ordenCompleta);
+        console.log("📋 Base form generado:", base);
+        setForm(base);
+      } catch (e) {
+        console.error("Error cargando orden completa:", e);
+        // Fallback a los datos que ya tenemos
+        const base = {
+          id: orden.id,
+          fecha: toLocalDateOnly(orden.fecha),
+          obra: orden.obra ?? "",
+          venta: orden.venta ?? false,
+          credito: orden.credito ?? false,
+          clienteNombre: orden.cliente?.nombre ?? "",
+          trabajadorNombre: orden.trabajador?.nombre ?? "",
+          sedeNombre: orden.sede?.nombre ?? "",
+          clienteId: orden.cliente?.id ?? "",
+          trabajadorId: orden.trabajador?.id ?? "",
+          sedeId: orden.sede?.id ?? "",
+          items:
+            orden.items?.map((i) => ({
+              id: i.id,
+              productoId: null, // se resuelve al agregar/editar
+              codigo: i.producto?.codigo ?? "",
+              nombre: i.producto?.nombre ?? "",
+              descripcion: i.descripcion ?? "",
+              cantidad: Number(i.cantidad ?? 1),
+              precioUnitario: Number(i.precioUnitario ?? 0),
+              totalLinea: Number(i.totalLinea ?? 0),
+              eliminar: false,
+            })) ?? [],
+        };
+        
+        console.log("🔍 Fallback: Inicializando form con orden recibida:", orden);
+        console.log("📋 Base form generado (fallback):", base);
+        setForm(base);
+      }
     };
-    setForm(base);
+
+    cargarOrdenCompleta();
   }, [orden, isOpen]);
 
   // =============================
@@ -220,48 +267,49 @@ export default function OrdenEditarModal({
   };
 
   const handleSubmit = async () => {
-    setErrorMsg("");
-    setIsSubmitting(true);
-    try {
-      const payload = {
-        id: form.id,
-        fecha: toLocalDateOnly(form.fecha),
-        obra: form.obra,
-        venta: form.venta,
-        credito: form.credito,
-        clienteId: Number(form.clienteId),
-        trabajadorId: Number(form.trabajadorId),
-        sedeId: Number(form.sedeId),
-        items: form.items.map((i) => ({
-          id: i.id,
-          productoId: i.productoId,
-          descripcion: i.descripcion,
-          cantidad: i.cantidad,
-          precioUnitario: i.precioUnitario,
-          totalLinea: i.totalLinea,
-          eliminar: i.eliminar,
-        })),
-      };
+  try {
+    const payload = {
+    id: orden.id,
+    fecha: toLocalDateOnly(form.fecha),
+    obra: form.obra,
+    venta: form.venta,
+    credito: form.credito,
+    clienteId: Number(form.clienteId),
+    trabajadorId: Number(form.trabajadorId),
+    sedeId: Number(form.sedeId),
+    items: form.items.map((i) => ({
+    id: i.id ?? null,
+    // 👇 Aquí la clave: obtener id real del producto
+    productoId: Number(i.productoId ?? i.producto?.id ?? i.id ?? 0),
+    descripcion: i.descripcion ?? "",
+    cantidad: Number(i.cantidad ?? 1),
+    precioUnitario: Number(i.precioUnitario ?? 0),
+    totalLinea: Number(i.totalLinea ?? 0),
+    eliminar: Boolean(i.eliminar ?? false),
+  })),
+};
 
-      console.log("🔄 Guardando orden con payload:", payload);
-      
-      // Usar el servicio en lugar de llamar directamente a la API
-      await actualizarOrden(form.id, payload);
-      
-      console.log("✅ Orden guardada exitosamente");
-      await onSave(payload, true); // Pasar el payload y indicar que es edición
-      onClose();
-    } catch (e) {
-      console.error("Error completo:", e);
-      console.error("Response data:", e?.response?.data);
-      console.error("Status:", e?.response?.status);
-      setErrorMsg(
-        e?.response?.data?.message || "Error actualizando orden."
-      );
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+    console.log("Guardando orden con payload:", payload);
+    const data = await actualizarOrden(form.id, payload);
+
+    console.log("Respuesta backend:", data);
+    alert("Orden actualizada correctamente");
+
+    // Solo cerrar el modal, la tabla se refrescará desde onClose
+    onClose();
+  } catch (e) {
+    console.error("Error al guardar orden:", e);
+    console.log("Response data:", e?.response?.data);
+    console.log("Status:", e?.response?.status);
+
+    const msg =
+      e?.response?.data?.message ||
+      e?.message ||
+      "Error al guardar la orden.";
+    alert(msg);
+  }
+};
+
 
   // =============================
   // Render
