@@ -1,0 +1,141 @@
+.modal-overlay.factura {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+}
+
+.modal-container.modal-wide {
+  background: white;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 1100px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.factura-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #4f67ff;
+  color: white;
+  padding: 1rem 1.5rem;
+}
+
+.btn-cerrar {
+  background: transparent;
+  border: none;
+  color: white;
+  font-size: 1.3rem;
+  cursor: pointer;
+}
+
+.factura-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.5fr;
+  gap: 1rem;
+  padding: 1rem 1.5rem;
+  overflow-y: auto;
+}
+
+.factura-form label {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 0.8rem;
+  font-weight: 500;
+  color: #333;
+}
+
+.factura-form select,
+.factura-form input[type="text"] {
+  margin-top: 4px;
+  padding: 6px 8px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+}
+
+.factura-checks {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.factura-total {
+  margin-top: 1.5rem;
+  font-size: 1.2rem;
+  font-weight: bold;
+}
+
+.factura-items {
+  border-left: 1px solid #ddd;
+  padding-left: 1rem;
+}
+
+.factura-items-scroll {
+  max-height: 400px;
+  overflow-y: auto;
+  border: 1px solid #eee;
+  border-radius: 8px;
+}
+
+.factura-items table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.factura-items th,
+.factura-items td {
+  padding: 6px 8px;
+  border-bottom: 1px solid #eee;
+  text-align: left;
+}
+
+.factura-footer {
+  padding: 1rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  border-top: 1px solid #ddd;
+}
+
+.factura-msg {
+  text-align: center;
+  font-weight: 500;
+}
+
+.factura-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+}
+
+.btn-cancelar,
+.btn-guardar {
+  border: none;
+  padding: 0.6rem 1.2rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.btn-cancelar {
+  background: #ccc;
+  color: #333;
+}
+
+.btn-guardar {
+  background: #4f67ff;
+  color: white;
+}
+
+.btn-guardar:disabled {
+  background: #888;
+  cursor: not-allowed;
+}

@@ -1,15 +1,14 @@
-// src/components/OrdenesTable.jsx
 import "../styles/Table.css";
 import { useMemo, useState, Fragment } from "react";
-import add from "../assets/add.png";
 import editar from "../assets/editar.png";
 import eliminar from "../assets/eliminar.png";
+import add from "../assets/add.png";
 import OrdenModal from "../modals/OrdenModal.jsx";
 
 export default function OrdenesTable({
   data = [],
   onEditar,
-  onEliminar,
+  onAnular,
   onCrear,
   rowsPerPage = 10,
   loading = false,
@@ -19,11 +18,14 @@ export default function OrdenesTable({
   const [expanded, setExpanded] = useState({});
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [ordenEditando, setOrdenEditando] = useState(null);
+  const [filtroEstado, setFiltroEstado] = useState(""); // Filtro de estado
 
+  // 🔹 Alternar expandir/ocultar items
   const toggleExpand = (ordenId) => {
     setExpanded((prev) => ({ ...prev, [ordenId]: !prev[ordenId] }));
   };
 
+  // 🔹 Formatear fecha local
   const fmtFecha = (iso) =>
     iso
       ? new Date(iso).toLocaleDateString("es-CO", {
@@ -33,28 +35,58 @@ export default function OrdenesTable({
         })
       : "-";
 
-  // Calcular el total de la orden sumando totalLinea de todos los items
+  // 🔹 Calcular total de orden
   const calcularTotal = (items) => {
     if (!Array.isArray(items)) return 0;
     return items.reduce((sum, item) => sum + (item.totalLinea || 0), 0);
   };
 
+  // 🔹 Formatear estado de la orden
+  const formatearEstado = (estado) => {
+    const estadoLimpio = estado?.toLowerCase() || 'activa';
+    const textos = {
+      'activa': 'Activa',
+      'anulada': 'Anulada', 
+      'pendiente': 'Pendiente',
+      'completada': 'Completada'
+    };
+    
+    const texto = textos[estadoLimpio] || estado || 'Activa';
+    
+    return (
+      <span className={`estado-badge ${estadoLimpio}`}>
+        {texto}
+      </span>
+    );
+  };
+
+  // 🔹 Filtrar y paginar
   const filtrados = useMemo(() => {
     const q = query.trim().toLowerCase();
-    const arr = q
-      ? data.filter((o) =>
-          [
-            o.numero,
-            o.fecha,
-            o.cliente?.nombre,
-            o.sede?.nombre,
-            o.obra,
-            o.venta ? "venta" : "cotizacion",
-          ]
-            .filter(Boolean)
-            .some((v) => String(v).toLowerCase().includes(q))
-        )
-      : data;
+    
+    // Aplicar filtros
+    let arr = data;
+    
+    // Filtro por texto (sin incluir estado)
+    if (q) {
+      arr = arr.filter((o) =>
+        [
+          o.numero,
+          o.fecha,
+          o.cliente?.nombre,
+          o.sede?.nombre,
+          o.obra,
+          o.venta ? "venta" : "cotizacion",
+        ]
+          .filter(Boolean)
+          .some((v) => String(v).toLowerCase().includes(q))
+      );
+    }
+    
+    // Filtro por estado
+    if (filtroEstado) {
+      arr = arr.filter((o) => o.estado === filtroEstado);
+    }
 
     const total = arr.length;
     const maxPage = Math.max(1, Math.ceil(total / rowsPerPage));
@@ -62,10 +94,11 @@ export default function OrdenesTable({
     const start = (curPage - 1) * rowsPerPage;
     const pageData = arr.slice(start, start + rowsPerPage);
     return { pageData, total, maxPage, curPage };
-  }, [data, query, page, rowsPerPage]);
+  }, [data, query, page, rowsPerPage, filtroEstado]);
 
   const { pageData, total, maxPage, curPage } = filtrados;
 
+  // 🔹 Guardar orden (actualizar)
   const handleGuardar = async (form, isEdit) => {
     try {
       await onEditar(form, isEdit);
@@ -77,23 +110,80 @@ export default function OrdenesTable({
     }
   };
 
+  // 🔹 Refrescar tabla tras cerrar modal
+  const handleCloseModal = async () => {
+    setIsModalOpen(false);
+    setOrdenEditando(null);
+    try {
+      await onEditar(null, true); // fuerza refresh de tabla
+    } catch (e) {
+      console.error("Error refrescando tabla:", e);
+    }
+  };
+
   return (
     <div className="table-container">
-      {/* Toolbar */}
-      <div className="toolbar">
-        <input
-          className="clientes-input"
-          type="text"
-          placeholder="Buscar orden..."
-          value={query}
-          onChange={(e) => {
-            setQuery(e.target.value);
-            setPage(1);
-          }}
-        />
+      {/* 🔍 Buscador y Filtros */}
+      <div className="ordenes-toolbar">
+        <div className="ordenes-filters">
+          <input
+            className="clientes-input ordenes-search"
+            type="text"
+            placeholder="Buscar orden..."
+            value={query}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              setPage(1);
+            }}
+          />
+          
+          <select
+            className="clientes-input ordenes-estado-filter"
+            value={filtroEstado}
+            onChange={(e) => {
+              setFiltroEstado(e.target.value);
+              setPage(1);
+            }}
+          >
+            <option value="">Todos los estados</option>
+            <option value="ACTIVA">Activas</option>
+            <option value="ANULADA">Anuladas</option>
+            <option value="PENDIENTE">Pendientes</option>
+            <option value="COMPLETADA">Completadas</option>
+          </select>
+          
+          {(query || filtroEstado) && (
+            <button
+              onClick={() => {
+                setQuery("");
+                setFiltroEstado("");
+                setPage(1);
+              }}
+              className="btn-clear-filters"
+            >
+              Limpiar filtros
+            </button>
+          )}
+        </div>
+
+        <div className="ordenes-actions">
+          <span className="ordenes-count">
+            {total} registro(s)
+          </span>
+          <button
+            onClick={() => {
+              setOrdenEditando(null);
+              setIsModalOpen(true);
+            }}
+            className="addButton"
+          >
+            <img src={add} className="iconButton" />
+            Nueva orden
+          </button>
+        </div>
       </div>
 
-      {/* Tabla */}
+      {/* 📋 Tabla principal */}
       <div className="table-wrapper">
         <table className="table">
           <thead>
@@ -105,6 +195,7 @@ export default function OrdenesTable({
               <th>Obra</th>
               <th>Tipo</th>
               <th>Crédito</th>
+              <th>Estado</th>
               <th>Total</th>
               <th>Acciones</th>
             </tr>
@@ -113,7 +204,7 @@ export default function OrdenesTable({
           <tbody>
             {loading && (
               <tr>
-                <td colSpan={9} className="empty">
+                <td colSpan={10} className="empty">
                   Cargando...
                 </td>
               </tr>
@@ -124,8 +215,9 @@ export default function OrdenesTable({
                 const detalles = Array.isArray(o.items) ? o.items : [];
                 const totalOrden = calcularTotal(detalles);
                 const id = o.id;
+
                 return (
-                  <Fragment key={id}>
+                  <Fragment key={`orden-${id}`}>
                     <tr>
                       <td>{o.numero}</td>
                       <td>{fmtFecha(o.fecha)}</td>
@@ -134,8 +226,9 @@ export default function OrdenesTable({
                       <td>{o.obra ?? "-"}</td>
                       <td>{o.venta ? "Venta" : "Cotización"}</td>
                       <td>{o.credito ? "Sí" : "No"}</td>
+                      <td>{formatearEstado(o.estado)}</td>
                       <td>${totalOrden.toLocaleString("es-CO")}</td>
-                      <td>
+                      <td className="actions-cell">
                         <button
                           className="btnLink"
                           onClick={() => toggleExpand(id)}
@@ -146,7 +239,7 @@ export default function OrdenesTable({
                         <button
                           className="btnEdit"
                           onClick={() => {
-                            console.log("🔍 Orden seleccionada para editar:", o);
+                            console.log("✏️ Editando orden:", o);
                             setOrdenEditando(o);
                             setIsModalOpen(true);
                           }}
@@ -155,48 +248,43 @@ export default function OrdenesTable({
                         </button>
 
                         <button
-                          className="btnDelete"
-                          onClick={() => onEliminar?.(o)}
+                          className="btnAnular"
+                          onClick={() => onAnular?.(o)}
+                          title="Anular orden"
                         >
-                          <img src={eliminar} className="iconButton" />
+                          <img className="iconButton" src={eliminar} />
+                          <span className="btnAnular-text">Anular</span>
                         </button>
                       </td>
                     </tr>
 
                     {expanded[id] && (
-                      <tr>
-                        <td colSpan={9}>
+                      <tr key={`detalles-${id}`}>
+                        <td colSpan={10}>
                           {detalles.length === 0 ? (
                             <div className="empty-sub">Sin ítems.</div>
                           ) : (
-                            <div style={{ padding: "0.5rem" }}>
-                              <table style={{ width: "100%", fontSize: "0.875rem" }}>
+                            <div className="orden-detalles-container">
+                              <table className="orden-detalles-table">
                                 <thead>
-                                  <tr style={{ 
-                                    backgroundColor: "var(--color-light-blue, #4f67ff)",
-                                    color: "white"
-                                  }}>
-                                    <th style={{ padding: "0.25rem", textAlign: "left" }}>Código</th>
-                                    <th style={{ padding: "0.25rem", textAlign: "left" }}>Producto</th>
-                                    <th style={{ padding: "0.25rem", textAlign: "left" }}>Descripción</th>
-                                    <th style={{ padding: "0.25rem", textAlign: "center" }}>Cantidad</th>
-                                    <th style={{ padding: "0.25rem", textAlign: "right" }}>Precio Unit.</th>
-                                    <th style={{ padding: "0.25rem", textAlign: "right" }}>Total Línea</th>
+                                  <tr>
+                                    <th>Código</th>
+                                    <th>Producto</th>
+                                    <th>Descripción</th>
+                                    <th>Cantidad</th>
+                                    <th>Precio Unit.</th>
+                                    <th>Total Línea</th>
                                   </tr>
                                 </thead>
                                 <tbody>
                                   {detalles.map((d, i) => (
-                                    <tr key={d.id ?? i}>
-                                      <td style={{ padding: "0.25rem" }}>{d.producto?.codigo ?? "-"}</td>
-                                      <td style={{ padding: "0.25rem" }}>{d.producto?.nombre ?? "-"}</td>
-                                      <td style={{ padding: "0.25rem" }}>{d.descripcion ?? "-"}</td>
-                                      <td style={{ padding: "0.25rem", textAlign: "center" }}>{d.cantidad}</td>
-                                      <td style={{ padding: "0.25rem", textAlign: "right" }}>
-                                        ${d.precioUnitario?.toLocaleString("es-CO")}
-                                      </td>
-                                      <td style={{ padding: "0.25rem", textAlign: "right" }}>
-                                        ${d.totalLinea?.toLocaleString("es-CO")}
-                                      </td>
+                                    <tr key={`item-${d.id || i}-${id}`}>
+                                      <td>{d.producto?.codigo ?? "-"}</td>
+                                      <td>{d.producto?.nombre ?? "-"}</td>
+                                      <td>{d.descripcion ?? "-"}</td>
+                                      <td className="text-center">{d.cantidad}</td>
+                                      <td>${d.precioUnitario?.toLocaleString("es-CO")}</td>
+                                      <td>${d.totalLinea?.toLocaleString("es-CO")}</td>
                                     </tr>
                                   ))}
                                 </tbody>
@@ -213,7 +301,7 @@ export default function OrdenesTable({
         </table>
       </div>
 
-      {/* Paginación */}
+      {/* 📄 Paginación */}
       {maxPage > 1 && (
         <div className="pagination">
           <button
@@ -250,23 +338,11 @@ export default function OrdenesTable({
         </div>
       )}
 
-      {/* Modal para crear/editar */}
+      {/* Modal de edición */}
       <OrdenModal
         isOpen={isModalOpen}
-        onClose={async () => {
-          setIsModalOpen(false);
-          setOrdenEditando(null);
-          // Refrescar tabla cuando se cierra el modal (tras guardar)
-          try {
-            await onEditar(null, true); // Solo refresh, sin datos
-          } catch (e) {
-            console.error("Error refrescando tabla:", e);
-          }
-        }}
-        onSave={async () => {
-          // Esta función ya no se usa, el modal maneja el guardado internamente
-          console.log("onSave llamado - no debería usarse");
-        }}
+        onClose={handleCloseModal}
+        onSave={handleGuardar}
         orden={ordenEditando}
       />
     </div>

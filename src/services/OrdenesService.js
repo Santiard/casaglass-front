@@ -4,6 +4,12 @@ import { api } from "../lib/api";
    📦 ÓRDENES - CRUD PRINCIPAL
    ================================================ */
 
+// GET /api/ordenes → datos básicos  
+export async function listarOrdenes(params = {}) {
+  const { data } = await api.get("/ordenes", { params });
+  return data || [];
+}
+
 // GET /api/ordenes/tabla → datos optimizados
 export async function listarOrdenesTabla(params = {}) {
   const { data } = await api.get("/ordenes/tabla", { params });
@@ -22,6 +28,34 @@ export async function crearOrden(payload) {
   return data;
 }
 
+// POST /api/ordenes/venta - Crear orden de venta específica
+export async function crearOrdenVenta(payload) {
+  try {
+    console.log("🔄 Intentando crear orden con endpoint /ordenes/venta...");
+    const { data } = await api.post("/ordenes/venta", payload);
+    return data;
+  } catch (error) {
+    console.warn("⚠️ Endpoint /ordenes/venta falló:", error.response?.status, error.response?.data?.message);
+    
+    // Solo hacer fallback si es 404 (endpoint no existe), no en otros errores
+    if (error.response?.status === 404) {
+      console.log("🔄 Usando endpoint fallback /ordenes...");
+      const { data } = await api.post("/ordenes", payload);
+      return data;
+    }
+    
+    // Para errores 400, 500 etc, no hacer fallback, propagar el error
+    throw error;
+  }
+}
+
+// Función alternativa para probar directamente con el endpoint original
+export async function crearOrdenOriginal(payload) {
+  console.log("🔄 Creando orden con endpoint original /ordenes...");
+  const { data } = await api.post("/ordenes", payload);
+  return data;
+}
+
 // ✅ PUT /api/ordenes/tabla/{id} (endpoint correcto del backend)
 export async function actualizarOrden(id, payload) {
   if (!id) throw new Error("ID de la orden no proporcionado");
@@ -33,6 +67,13 @@ export async function actualizarOrden(id, payload) {
 export async function eliminarOrden(id) {
   await api.delete(`/ordenes/${id}`);
   return true;
+}
+
+// PUT /api/ordenes/{id}/anular
+export async function anularOrden(id) {
+  if (!id) throw new Error("ID de la orden no proporcionado");
+  const { data } = await api.put(`/ordenes/${id}/anular`);
+  return data;
 }
 
 // GET /api/ordenes/proximo-numero

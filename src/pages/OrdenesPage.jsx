@@ -2,10 +2,11 @@ import React, { useEffect, useState, useCallback } from "react";
 import OrdenesTable from "../componets/OrdenesTable";
 import "../styles/Table.css";
 import {
+  listarOrdenes,
   listarOrdenesTabla,
   crearOrden,
   actualizarOrden,
-  eliminarOrden,
+  anularOrden,
 } from "../services/OrdenesService";
 
 export default function OrdenesPage() {
@@ -15,8 +16,15 @@ export default function OrdenesPage() {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const arr = await listarOrdenesTabla();
-      setData(arr);
+      // Intentar primero con tabla optimizada, fallback a básico
+      try {
+        const arr = await listarOrdenesTabla();
+        setData(arr);
+      } catch (tablaError) {
+        console.warn("Endpoint /ordenes/tabla no disponible, usando /ordenes básico:", tablaError);
+        const arr = await listarOrdenes();
+        setData(arr);
+      }
     } catch (e) {
       console.error("Error listando órdenes", e);
     } finally {
@@ -58,15 +66,21 @@ export default function OrdenesPage() {
     }
   };
 
-  // 🔹 Eliminar orden
-  const handleEliminar = async (orden) => {
-    if (!window.confirm("¿Seguro que deseas eliminar esta orden?")) return;
+  // 🔹 Anular orden
+  const handleAnular = async (orden) => {
+    if (!window.confirm(`¿Seguro que deseas anular la orden #${orden.numero}?`)) return;
     try {
-      await eliminarOrden(orden.id);
-      await fetchData();
+      console.log(`🔄 Anulando orden ID: ${orden.id}`);
+      const response = await anularOrden(orden.id);
+      console.log("✅ Respuesta de anulación:", response);
+      
+      // Mostrar mensaje de éxito
+      alert(`${response.message}\nOrden #${response.numero} - Estado: ${response.estado}`);
+      
+      await fetchData(); // Refrescar tabla
     } catch (e) {
-      console.error("Error eliminando orden", e);
-      const msg = e?.response?.data?.message || "No se pudo eliminar la orden.";
+      console.error("Error anulando orden", e);
+      const msg = e?.response?.data?.message || "No se pudo anular la orden.";
       alert(msg);
     }
   };
@@ -78,7 +92,7 @@ export default function OrdenesPage() {
           data={data}
           loading={loading}
           onEditar={handleGuardar}
-          onEliminar={handleEliminar}
+          onAnular={handleAnular}
           onCrear={(o) => handleGuardar(o, false)}
         />
       </div>

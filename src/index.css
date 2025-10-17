@@ -17,4 +17,15 @@ html, body, #root {
   --color-gray: #c2c2c3;
   --color-light-gray: #e0e0e0;
   --color-dark-gray: #3a393b;
-  --color-white: #f9f9f9;}
+  --color-white: #f9f9f9;
+  
+  /* Estados de órdenes */
+  --color-success: #28a745;
+  --color-success-bg: #d4edda;
+  --color-danger: #dc3545;
+  --color-danger-bg: #f8d7da;
+  --color-warning: #ffc107;
+  --color-warning-bg: #fff3cd;
+  --color-info: #17a2b8;
+  --color-info-bg: #d1ecf1;
+}

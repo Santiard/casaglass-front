@@ -1,24 +1,14 @@
 import { useState, useEffect } from "react";
+import FacturarOrdenModal from "../modals/FacturarOrdenModal.jsx";
 import "../styles/ListadoOrden.css";
 
 export default function ListadoOrden({ productosCarrito, subtotal, total, limpiarCarrito, eliminarProducto }) {
   const [items, setItems] = useState([]);
-
+  const [isFacturarOpen, setIsFacturarOpen] = useState(false);
   // Cargar productos desde props
   useEffect(() => {
     setItems(productosCarrito || []);
   }, [productosCarrito]);
-
-  const handleFacturarOrden = () => {
-    if (items.length === 0) {
-      alert("No hay productos en la orden para facturar");
-      return;
-    }
-    
-    // Aquí iría la lógica para facturar
-    alert("Orden facturada exitosamente!");
-    limpiarCarrito();
-  };
 
   const handleImprimirOrden = () => {
     if (items.length === 0) {
@@ -90,7 +80,7 @@ export default function ListadoOrden({ productosCarrito, subtotal, total, limpia
         <div className="orden-acciones">
           <button 
             className="btn-facturar"
-            onClick={handleFacturarOrden}
+            onClick={() => setIsFacturarOpen(true)}
             disabled={items.length === 0}
           >
             Facturar Orden
@@ -104,6 +94,14 @@ export default function ListadoOrden({ productosCarrito, subtotal, total, limpia
           </button>
         </div>
       </div>
+
+      <FacturarOrdenModal
+        isOpen={isFacturarOpen}
+        onClose={() => setIsFacturarOpen(false)}
+        productosCarrito={items}
+        onFacturacionExitosa={limpiarCarrito}
+      />
+
     </div>
   );
 }
