@@ -1,0 +1,350 @@
+/* ================================================
+   MODAL CONFIRMAR ENTREGA - OVERLAY Y CONTENEDOR
+   ================================================ */
+
+.confirmar-entrega-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.confirmar-entrega-modal {
+  background: white;
+  border-radius: 10px;
+  width: 90%;
+  max-width: 600px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+}
+
+/* ================================================
+   HEADER DEL MODAL
+   ================================================ */
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem;
+  border-bottom: 2px solid #f1f1f1;
+  background: var(--color-warning, #f39c12);
+  color: white;
+  border-radius: 10px 10px 0 0;
+}
+
+.modal-header h2 {
+  margin: 0;
+  font-size: 1.4rem;
+  font-weight: 600;
+}
+
+.btn-close {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 3px;
+  transition: background-color 0.3s ease;
+}
+
+.btn-close:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+/* ================================================
+   INFORMACIÓN DE LA ENTREGA
+   ================================================ */
+
+.entrega-info {
+  padding: 1.5rem;
+  background: #f8f9fa;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+
+.info-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0;
+}
+
+.info-item label {
+  font-weight: 600;
+  color: var(--color-dark, #333);
+  font-size: 0.9rem;
+}
+
+.info-item span {
+  font-weight: 500;
+  color: var(--color-muted, #555);
+}
+
+.info-item.highlight {
+  background: #e3f2fd;
+  padding: 0.8rem;
+  border-radius: 6px;
+  border-left: 4px solid var(--color-primary, #3498db);
+}
+
+.info-item.highlight label,
+.info-item.highlight span {
+  color: var(--color-primary, #2c3e50);
+  font-weight: 600;
+}
+
+/* ================================================
+   ESTADOS
+   ================================================ */
+
+.estado-badge {
+  padding: 0.25rem 0.8rem;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.estado-badge.pendiente {
+  background: #fff3cd;
+  color: #856404;
+}
+
+.estado-badge.entregada {
+  background: #d4edda;
+  color: #155724;
+}
+
+.estado-badge.verificada {
+  background: #cce5ff;
+  color: #004085;
+}
+
+.estado-badge.rechazada {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+/* ================================================
+   FORMULARIO DE CONFIRMACIÓN
+   ================================================ */
+
+.confirmar-form {
+  padding: 1.5rem;
+}
+
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+.form-group label {
+  display: block;
+  font-weight: 600;
+  color: var(--color-dark, #333);
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.monto-input-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.currency-symbol {
+  position: absolute;
+  left: 1rem;
+  font-weight: 600;
+  color: var(--color-muted, #666);
+  font-size: 1.1rem;
+  z-index: 1;
+}
+
+.monto-input-container input {
+  width: 100%;
+  padding: 1rem 1rem 1rem 2.5rem;
+  border: 2px solid #ddd;
+  border-radius: 8px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  transition: border-color 0.3s ease;
+}
+
+.monto-input-container input:focus {
+  outline: none;
+  border-color: var(--color-primary, #3498db);
+}
+
+.form-group textarea {
+  width: 100%;
+  padding: 0.8rem;
+  border: 2px solid #ddd;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-family: inherit;
+  resize: vertical;
+  transition: border-color 0.3s ease;
+}
+
+.form-group textarea:focus {
+  outline: none;
+  border-color: var(--color-primary, #3498db);
+}
+
+/* ================================================
+   ALERTAS DE DIFERENCIA
+   ================================================ */
+
+.diferencia-alert {
+  padding: 1rem;
+  border-radius: 8px;
+  margin: 1rem 0;
+  border: 1px solid;
+}
+
+.diferencia-alert.negativa {
+  background: #fff5f5;
+  border-color: #fed7d7;
+  color: #c53030;
+}
+
+.diferencia-alert.positiva {
+  background: #f0fff4;
+  border-color: #c6f6d5;
+  color: #2d3748;
+}
+
+.diferencia-header {
+  font-size: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.diferencia-amount {
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.diferencia-description {
+  font-size: 0.9rem;
+  line-height: 1.4;
+  opacity: 0.8;
+}
+
+/* ================================================
+   MENSAJES DE ERROR
+   ================================================ */
+
+.error-message {
+  background-color: #fee;
+  color: var(--color-danger, #e74c3c);
+  padding: 1rem;
+  border-radius: 6px;
+  border-left: 4px solid var(--color-danger, #e74c3c);
+  margin: 1rem 0;
+  font-size: 0.9rem;
+}
+
+/* ================================================
+   ACCIONES DEL MODAL
+   ================================================ */
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  margin-top: 2rem;
+  padding-top: 1rem;
+  border-top: 2px solid #f1f1f1;
+}
+
+.modal-actions button {
+  padding: 0.8rem 1.5rem;
+  border-radius: 6px;
+  border: none;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-cancelar {
+  background: var(--color-muted, #95a5a6);
+  color: white;
+}
+
+.btn-cancelar:hover {
+  background: #7f8c8d;
+}
+
+.btn-confirmar {
+  background: var(--color-warning, #f39c12);
+  color: white;
+}
+
+.btn-confirmar:hover:not(:disabled) {
+  background: var(--color-warning-dark, #e67e22);
+}
+
+.btn-confirmar:disabled {
+  background: #bdc3c7;
+  cursor: not-allowed;
+}
+
+/* ================================================
+   RESPONSIVE DESIGN
+   ================================================ */
+
+@media (max-width: 768px) {
+  .confirmar-entrega-modal {
+    width: 95%;
+    margin: 1rem;
+  }
+  
+  .info-grid {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+  
+  .modal-actions {
+    flex-direction: column;
+  }
+  
+  .modal-actions button {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .modal-header {
+    padding: 1rem;
+  }
+  
+  .modal-header h2 {
+    font-size: 1.2rem;
+  }
+  
+  .confirmar-form {
+    padding: 1rem;
+  }
+  
+  .entrega-info {
+    padding: 1rem;
+  }
+}

@@ -4,21 +4,24 @@ import editar from "../assets/editar.png";
 import EntregaModal from "../modals/EntregaModal.jsx";
 import EntregaConfirmarModal from "../modals/EntregaConfirmarModal.jsx";
 import EntregaCancelarModal from "../modals/EntregaCancelarModal.jsx";
-import { ENTREGAS_MOCK, ORDENES_DISPONIBLES_MOCK, GASTOS_DISPONIBLES_MOCK } from "../mocks/mocks_entregas.js";
 
 export default function EntregasTable({
   data = [],
   rowsPerPage = 10,
   onVerDetalles, // (entrega) => void
+  onConfirmar, // (entrega) => void
+  onCancelar, // (entrega, motivo) => void
 }) {
-  const [entregas, setEntregas] = useState(() => (Array.isArray(data) && data.length ? data : ENTREGAS_MOCK));
+  const [entregas, setEntregas] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [isCancelOpen, setIsCancelOpen] = useState(false);
   const [entregaEditando, setEntregaEditando] = useState(null);
 
-  const [ordenesDisponibles, setOrdenesDisponibles] = useState(ORDENES_DISPONIBLES_MOCK);
-  const [gastosDisponibles, setGastosDisponibles] = useState(GASTOS_DISPONIBLES_MOCK);
+  // Actualizar entregas cuando cambian los datos del padre
+  useEffect(() => {
+    setEntregas(Array.isArray(data) ? data : []);
+  }, [data]);
 
   useEffect(() => {
     if (Array.isArray(data) && data.length) setEntregas(data);
@@ -36,29 +39,23 @@ export default function EntregasTable({
       }
       return [payload, ...prev];
     });
-    // Marcar/Desmarcar en los catálogos simples de mock según selección
-    setOrdenesDisponibles(prev => prev.map(o => ({ ...o, incluidaEntrega: payload.detalles.some(d => String(d.orden?.id) === String(o.id)) })));
-    setGastosDisponibles(prev => prev.map(g => ({ ...g, asignadoEntregaId: payload.gastos?.some(x => String(x.id) === String(g.id)) ? payload.id : null })));
 
     setIsModalOpen(false);
     setEntregaEditando(null);
   };
 
-  const handleConfirmar = ({ id, montoEntregado, observaciones }) => {
-    setEntregas(prev => prev.map(e => {
-      if (String(e.id) !== String(id)) return e;
-      const esperadoNeto = Number(e.montoEsperado ?? 0) - Number(e.montoGastos ?? 0);
-      const diferencia = Number(montoEntregado ?? 0) - esperadoNeto;
-      return { ...e, montoEntregado: Number(montoEntregado), observaciones, estado: "ENTREGADA", diferencia };
-    }));
+  const handleConfirmar = (entrega) => {
+    if (onConfirmar) {
+      onConfirmar(entrega);
+    }
     setIsConfirmOpen(false);
     setEntregaEditando(null);
   };
 
-  const handleCancelar = ({ id, motivo }) => {
-    setEntregas(prev => prev.map(e => (String(e.id) === String(id) ? { ...e, estado: "RECHAZADA", observaciones: motivo } : e)));
-    // Liberar gastos asociados en el mock
-    setGastosDisponibles(prev => prev.map(g => (g.asignadoEntregaId === id ? { ...g, asignadoEntregaId: null } : g)));
+  const handleCancelar = ({ motivo }) => {
+    if (onCancelar && entregaEditando) {
+      onCancelar(entregaEditando, motivo);
+    }
     setIsCancelOpen(false);
     setEntregaEditando(null);
   };
@@ -67,13 +64,9 @@ export default function EntregasTable({
     if (ent.estado === "ENTREGADA") return; // Regla: no eliminar confirmadas
     if (!confirm(`¿Eliminar entrega #${ent.id}?`)) return;
     setEntregas(prev => prev.filter(e => String(e.id) !== String(ent.id)));
-    // Liberar órdenes y gastos en los catálogos mock
-    setOrdenesDisponibles(prev => prev.map(o => ({ ...o, incluidaEntrega: o.incluidaEntrega && ent.detalles.every(d => String(d.orden?.id) !== String(o.id)) ? false : o.incluidaEntrega })));
-    setGastosDisponibles(prev => prev.map(g => (g.asignadoEntregaId === ent.id ? { ...g, asignadoEntregaId: null } : g)));
   };
 
-  // Filtro y paginación
-  const [query, setQuery] = useState("");
+  // Paginación simple sin filtros (los filtros están en la página padre)  
   const [page, setPage] = useState(1);
 
   const fmtFecha = (iso) => {
@@ -85,26 +78,13 @@ export default function EntregasTable({
   const fmtCOP = (n) => new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(Number(n||0));
 
   const filtrados = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    const base = q
-      ? entregas.filter((e) =>
-          [
-            e.observaciones,
-            e.sede?.nombre,
-            e.empleado?.nombre,
-            e.estado,
-            ...(e.detalles ?? []).map(d => `${d.numeroOrden ?? ""}`)
-          ].filter(Boolean).some(v => String(v).toLowerCase().includes(q))
-        )
-      : entregas;
-
-    const total = base.length;
+    const total = entregas.length;
     const maxPage = Math.max(1, Math.ceil(total / rowsPerPage));
     const curPage = Math.min(page, maxPage);
     const start = (curPage - 1) * rowsPerPage;
-    const pageData = base.slice(start, start + rowsPerPage);
+    const pageData = entregas.slice(start, start + rowsPerPage);
     return { pageData, total, maxPage, curPage };
-  }, [entregas, query, page, rowsPerPage]);
+  }, [entregas, page, rowsPerPage]);
 
   const { pageData, total, maxPage, curPage } = filtrados;
 
@@ -112,24 +92,6 @@ export default function EntregasTable({
 
   return (
     <div className="table-container">
-      {/* Toolbar */}
-      <div className="toolbar">
-        <input
-          className="clientes-input"
-          type="text"
-          placeholder="Buscar por sede, empleado, observaciones u orden..."
-          value={query}
-          onChange={(e) => { setQuery(e.target.value); setPage(1); }}
-        />
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginLeft: "auto" }}>
-          <span style={{ opacity: .7 }}>{total} registro(s)</span>
-          <button className="btn" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={curPage <= 1}>◀</button>
-          <span>{curPage}/{maxPage}</span>
-          <button className="btn" onClick={() => setPage(p => Math.min(maxPage, p + 1))} disabled={curPage >= maxPage}>▶</button>
-          <button className="btn" type="button" onClick={openNuevo}>+ Nueva entrega</button>
-        </div>
-      </div>
-
       {/* Tabla principal */}
       <div className="table-wrapper">
         <table className="table entregas-table">
@@ -180,7 +142,7 @@ export default function EntregasTable({
                     </button>
                   </td>
                   <td className="clientes-actions" style={{ display: "flex", gap: 6 }}>
-                    <button className="btnEdit" onClick={() => openEditar(ent)} title="Editar" disabled={ent.estado === "ENTREGADA"}>
+                    <button className="btnEdit" onClick={() => openEditar(ent)} title="Editar (Temporalmente deshabilitado)" disabled={true}>
                       <img src={editar} className="iconButton" alt="Editar" />
                     </button>
                     <button className="btn" onClick={() => openConfirmar(ent)} disabled={ent.estado !== "PENDIENTE"}>Confirmar</button>
@@ -194,14 +156,33 @@ export default function EntregasTable({
         </table>
       </div>
 
+      {/* Paginación */}
+      <div className="pagination-bar">
+        <div className="pagination-info">
+          Mostrando {Math.min((curPage - 1) * rowsPerPage + 1, total)}–{Math.min(curPage * rowsPerPage, total)} de {total}
+        </div>
+        <div className="pagination-controls">
+          <button className="pg-btn" onClick={() => setPage(1)} disabled={curPage <= 1}>«</button>
+          <button className="pg-btn" onClick={() => setPage(curPage - 1)} disabled={curPage <= 1}>‹</button>
+          {Array.from({ length: Math.min(5, maxPage) }, (_, i) => {
+            const p = Math.max(1, Math.min(curPage - 2, maxPage - 4)) + i;
+            return p <= maxPage ? (
+              <button key={p} className={`pg-btn ${p === curPage ? "active" : ""}`} onClick={() => setPage(p)}>{p}</button>
+            ) : null;
+          })}
+          <button className="pg-btn" onClick={() => setPage(curPage + 1)} disabled={curPage >= maxPage}>›</button>
+          <button className="pg-btn" onClick={() => setPage(maxPage)} disabled={curPage >= maxPage}>»</button>
+        </div>
+      </div>
+
       {/* Modales */}
       <EntregaModal
         isOpen={isModalOpen}
         onClose={() => { setIsModalOpen(false); setEntregaEditando(null); }}
         onSave={handleGuardarEntrega}
         entregaInicial={entregaEditando}
-        ordenesDisponibles={ordenesDisponibles}
-        gastosDisponibles={gastosDisponibles}
+        ordenesDisponibles={[]}
+        gastosDisponibles={[]}
       />
 
       <EntregaConfirmarModal

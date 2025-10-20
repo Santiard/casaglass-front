@@ -34,53 +34,55 @@ export default function EntregaDetallePanel({ entrega, onClose }){
         <div className="span2"><strong>Observaciones:</strong> {entrega.observaciones ?? "—"}</div>
       </div>
 
-      <h4 style={{ marginTop: 8 }}>Órdenes</h4>
-      <div className="table-wrapper">
-        <table className="table subtable">
-          <thead>
-            <tr>
-              <th># Orden</th>
-              <th>Fecha</th>
-              <th>Monto</th>
-            </tr>
-          </thead>
-          <tbody>
-            {dets.length === 0 ? (
-              <tr><td colSpan={3} className="empty">Sin órdenes</td></tr>
-            ) : dets.map((d) => (
-              <tr key={d.id}>
-                <td>{d.numeroOrden}</td>
-                <td>{new Date(d.fechaOrden).toLocaleDateString("es-CO")}</td>
-                <td>{fmtCOP(d.montoOrden)}</td>
+      <div className="ingreso-panel__content">
+        <h4>Órdenes</h4>
+        <div className="table-wrapper">
+          <table className="table subtable">
+            <thead>
+              <tr>
+                <th># Orden</th>
+                <th>Fecha</th>
+                <th>Monto</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {dets.length === 0 ? (
+                <tr><td colSpan={3} className="empty">Sin órdenes</td></tr>
+              ) : dets.map((d) => (
+                <tr key={d.id}>
+                  <td>{d.numeroOrden}</td>
+                  <td>{new Date(d.fechaOrden).toLocaleDateString("es-CO")}</td>
+                  <td>{fmtCOP(d.montoOrden)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <h4>Gastos</h4>
+        <div className="table-wrapper">
+          <table className="table subtable">
+            <thead>
+              <tr>
+                <th>Descripción</th>
+                <th>Monto</th>
+              </tr>
+            </thead>
+            <tbody>
+              {gastos.length === 0 ? (
+                <tr><td colSpan={2} className="empty">Sin gastos</td></tr>
+              ) : gastos.map((g) => (
+                <tr key={g.id}>
+                  <td>{g.descripcion}</td>
+                  <td>{fmtCOP(g.monto)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
 
-      <h4 style={{ marginTop: 8 }}>Gastos</h4>
-      <div className="table-wrapper">
-        <table className="table subtable">
-          <thead>
-            <tr>
-              <th>Descripción</th>
-              <th>Monto</th>
-            </tr>
-          </thead>
-          <tbody>
-            {gastos.length === 0 ? (
-              <tr><td colSpan={2} className="empty">Sin gastos</td></tr>
-            ) : gastos.map((g) => (
-              <tr key={g.id}>
-                <td>{g.descripcion}</td>
-                <td>{fmtCOP(g.monto)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      <div className="ingreso-panel__foot" style={{ display:"grid", gridTemplateColumns:"repeat(4, 1fr)", gap:8 }}>
+      <div className="ingreso-panel__foot" style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit, minmax(120px, 1fr))", gap:"0.5rem" }}>
         <div><strong>Esperado:</strong> {fmtCOP(esperado)}</div>
         <div><strong>Gastos:</strong> {fmtCOP(totalGastos)}</div>
         <div><strong>Neto esperado:</strong> {fmtCOP(neto)}</div>

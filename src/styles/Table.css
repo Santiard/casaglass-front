@@ -398,3 +398,95 @@ input[type="number"] {
   flex-wrap: nowrap;
   justify-content: flex-start;
 }
+
+/* ================================================
+   PAGINACIÓN ESTILO PROVEEDORES PARA ENTREGAS
+   ================================================ */
+
+/* Actualizar el contenedor de tabla para entregas */
+.table-container {
+  border-radius: 0.75rem;
+  border: 0.0625rem solid var(--color-light-gray);
+  background: var(--color-white);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* Wrapper de tabla con scroll horizontal */
+.table-wrapper {
+  flex: 1;
+  min-height: 0;
+  overflow: auto; /* Esto permite scroll horizontal y vertical */
+}
+
+/* Paginación estilo proveedores */
+.pagination-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border-top: 0.0625rem solid var(--color-light-gray);
+  background: var(--color-white);
+  border-radius: 0 0 0.75rem 0.75rem;
+}
+
+.pagination-info {
+  font-size: 0.875rem;
+  color: var(--color-dark-gray);
+}
+
+.pagination-controls {
+  display: inline-flex;
+  gap: 0.25rem;
+}
+
+.pg-btn {
+  min-width: 2rem;
+  height: 2rem;
+  padding: 0 0.5rem;
+  border-radius: 0.5rem;
+  border: 0.0625rem solid var(--color-gray);
+  background: var(--color-white);
+  color: var(--color-black);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background .15s ease, border-color .15s ease, color .15s ease, transform .06s ease;
+}
+
+.pg-btn:hover { 
+  background: color-mix(in oklab, var(--color-white) 92%, var(--color-light-gray)); 
+}
+
+.pg-btn.active {
+  border-color: var(--color-light-blue);
+  color: var(--color-light-blue);
+  background: color-mix(in oklab, var(--color-light-blue) 10%, var(--color-white));
+}
+
+.pg-btn:disabled {
+  opacity: .5;
+  cursor: not-allowed;
+}
+
+.pg-btn:active { 
+  transform: translateY(0.0625rem); 
+}
+
+/* Responsive para paginación */
+@media (max-width: 48rem) {
+  .pagination-bar {
+    flex-direction: column;
+    gap: 0.5rem;
+    text-align: center;
+  }
+  
+  .pagination-info {
+    order: 2;
+  }
+  
+  .pagination-controls {
+    order: 1;
+  }
+}
