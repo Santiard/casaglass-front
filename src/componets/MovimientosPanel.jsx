@@ -12,8 +12,19 @@ return (
 <ul>
 {entregasPendientes.map((m) => (
 <li key={m.id}>
-<div className="list__title">{m.tipo} · {m.referencia}</div>
-<div className="list__meta">Programado para {new Date(m.fechaEntrega).toLocaleString("es-CO")} — {m.montoEntregar ? new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(m.montoEntregar) : "Sin monto"}</div>
+<div className="list__title">
+{m.tipo} · {m.referencia}
+{m.direccion && (
+<span className={`badge ${m.direccion === 'ENTRADA' ? 'info' : 'warning'}`} style={{marginLeft: '8px'}}>
+{m.direccion === 'ENTRADA' ? '⬇️' : '⬆️'}
+</span>
+)}
+</div>
+<div className="list__meta">
+Programado para {new Date(m.fechaEntrega).toLocaleDateString("es-CO")}
+{m.totalProductos && ` — ${m.totalProductos} productos`}
+{m.montoEntregar && ` — ${new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(m.montoEntregar)}`}
+</div>
 </li>
 ))}
 </ul>

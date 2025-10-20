@@ -1,97 +1,145 @@
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import StatCard from "../componets/StatCard.jsx";
 import LowStockPanel from "../componets/LowStockPanel.jsx";
 import MovimientosPanel from "../componets/MovimientosPanel.jsx";
-import {
-  HOME_SEDE,
-  HOME_VENTAS_HOY,
-  HOME_ENTREGAS,
-  HOME_VENTAS_DESDE_ULTIMA,
-  HOME_STOCK_ALERTS
-} from "../mocks/mocks_home.js";
+import { DashboardService } from "../services/DashboardService.js";
+import { useAuth } from "../context/AuthContext.jsx";
 import "../styles/HomeWidgets.css";
 
 export default function HomePage(){
+  const { sedeId, user } = useAuth();
   const [loading, setLoading] = useState(true);
-  const [sede, setSede] = useState(HOME_SEDE);
-  const [ventasHoy, setVentasHoy] = useState(HOME_VENTAS_HOY);
-  const [entregas, setEntregas] = useState(HOME_ENTREGAS);
-  const [ventasDesdeUltima, setVentasDesdeUltima] = useState(HOME_VENTAS_DESDE_ULTIMA);
-  const [stockAlerts, setStockAlerts] = useState(HOME_STOCK_ALERTS);
+  const [error, setError] = useState(null);
+  const [dashboardData, setDashboardData] = useState({
+    sede: {},
+    ventasHoy: {},
+    faltanteEntrega: {},
+    creditosPendientes: {},
+    trasladosPendientes: { totalPendientes: 0, trasladosRecibir: [], trasladosEnviar: [] },
+    alertasStock: { total: 0, productosBajos: [] }
+  });
 
+  // Cargar datos del dashboard
   useEffect(() => {
-    // Simula carga inicial (en futuro: reemplazar por fetch/axios)
-    const t = setTimeout(() => setLoading(false), 300);
-    return () => clearTimeout(t);
-  }, []);
+    const loadDashboardData = async () => {
+      if (!sedeId) {
+        console.warn('⚠️ No sedeId available, skipping dashboard load');
+        setLoading(false);
+        return;
+      }
 
-  const ultimaEntrega = useMemo(() => {
-    const ordenadas = [...entregas].sort((a,b) => new Date(b.fechaEntrega) - new Date(a.fechaEntrega));
-    return ordenadas.find(e => e.estado === "ENTREGADA") || null;
-  }, [entregas]);
+      try {
+        setLoading(true);
+        setError(null);
+        console.log('🔄 Loading dashboard data for sedeId:', sedeId);
+        
+        const data = await DashboardService.getDashboardData(sedeId);
+        setDashboardData(data);
+        
+        console.log('✅ Dashboard data loaded successfully:', data);
+      } catch (err) {
+        console.error('❌ Error loading dashboard data:', err);
+        setError(err.message);
+        
+        // Mantener estructura vacía en caso de error para evitar crashes
+        setDashboardData({
+          sede: { nombre: user?.sedeNombre || 'Sede Desconocida' },
+          ventasHoy: { cantidad: 0, total: 0 },
+          faltanteEntrega: { montoFaltante: 0 },
+          creditosPendientes: { totalCreditos: 0, montoPendiente: 0 },
+          trasladosPendientes: { totalPendientes: 0, trasladosRecibir: [], trasladosEnviar: [] },
+          alertasStock: { total: 0, productosBajos: [] }
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const faltanteDesdeUltima = useMemo(() => {
-    // Definición mock: ventas generadas después de la última entrega menos dinero entregado después de esa fecha
-    const fechaRef = ultimaEntrega ? new Date(ultimaEntrega.fechaEntrega) : null;
-    const ventasPosteriores = ventasDesdeUltima
-      .filter(v => !fechaRef || new Date(v.fecha) > fechaRef)
-      .reduce((acc, v) => acc + Number(v.total), 0);
-    const dineroEntregadoPosterior = entregas
-      .filter(e => (!fechaRef || new Date(e.fechaEntrega) > fechaRef) && e.estado === "ENTREGADA")
-      .reduce((acc, e) => acc + Number(e.montoEntregado || 0), 0);
-    return ventasPosteriores - dineroEntregadoPosterior;
-  }, [ventasDesdeUltima, entregas, ultimaEntrega]);
+    loadDashboardData();
+  }, [sedeId, user]);
 
-  const pendientes = useMemo(() => entregas.filter(e => e.estado === "PENDIENTE"), [entregas]);
+  // Formatear traslados para el componente MovimientosPanel
+  const trasladosFormateados = DashboardService.formatTrasladosForPanel(dashboardData.trasladosPendientes);
+
+  // Mostrar mensaje de error si hay problemas
+  if (error && !loading) {
+    return (
+      <div className="home-page">
+        <div className="error-container">
+          <h2>⚠️ Error cargando dashboard</h2>
+          <p>{error}</p>
+          <button onClick={() => window.location.reload()} className="button">
+            Recargar página
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="home-page">
       <div className="rowSuperior home-grid">
         <StatCard
           title="Sede"
-          value={sede?.nombre || "-"}
-          subtitle={`Responsable: ${sede?.responsable || "—"}`}
+          value={dashboardData.sede?.nombre || user?.sedeNombre || "-"}
+          subtitle={user?.nombre ? `Usuario: ${user.nombre}` : "Sin usuario"}
           icon="🏢"
           loading={loading}
         />
         <StatCard
           title="Ventas de hoy"
-          value={ventasHoy?.cantidad ?? 0}
-          subtitle={new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(ventasHoy?.total ?? 0)}
+          value={dashboardData.ventasHoy?.cantidad ?? 0}
+          subtitle={new Intl.NumberFormat("es-CO", { 
+            style: "currency", 
+            currency: "COP", 
+            maximumFractionDigits: 0 
+          }).format(dashboardData.ventasHoy?.total ?? 0)}
           icon="🧾"
           loading={loading}
           status="ok"
         />
         <StatCard
           title="Faltante desde última entrega"
-          value={new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(Math.max(0, faltanteDesdeUltima))}
-          subtitle={ultimaEntrega ? `Última entrega: ${new Date(ultimaEntrega.fechaEntrega).toLocaleString("es-CO")}` : "Sin entregas previas"}
+          value={new Intl.NumberFormat("es-CO", { 
+            style: "currency", 
+            currency: "COP", 
+            maximumFractionDigits: 0 
+          }).format(Math.max(0, dashboardData.faltanteEntrega?.montoFaltante ?? 0))}
+          subtitle={
+            dashboardData.faltanteEntrega?.ultimaEntrega 
+              ? `Última entrega: ${new Date(dashboardData.faltanteEntrega.ultimaEntrega).toLocaleDateString("es-CO")}` 
+              : "Sin entregas previas"
+          }
           icon="💸"
           loading={loading}
-          status={faltanteDesdeUltima > 0 ? (faltanteDesdeUltima > 500000 ? "error" : "warning") : "ok"}
+          status={
+            (dashboardData.faltanteEntrega?.montoFaltante ?? 0) > 0 
+              ? ((dashboardData.faltanteEntrega?.montoFaltante ?? 0) > 500000 ? "error" : "warning") 
+              : "ok"
+          }
         />
         <StatCard
-          title="Movimientos programados"
-          value={pendientes.length}
-          subtitle="Pendientes por confirmar"
+          title="Traslados pendientes"
+          value={dashboardData.trasladosPendientes?.totalPendientes ?? 0}
+          subtitle={`${dashboardData.trasladosPendientes?.trasladosRecibir?.length ?? 0} a recibir, ${dashboardData.trasladosPendientes?.trasladosEnviar?.length ?? 0} a enviar`}
           icon="📦"
           loading={loading}
-          status={pendientes.length > 0 ? "warning" : "ok"}
+          status={(dashboardData.trasladosPendientes?.totalPendientes ?? 0) > 0 ? "warning" : "ok"}
         />
         <StatCard
           title="Alertas de stock"
-          value={stockAlerts.length}
+          value={dashboardData.alertasStock?.total ?? 0}
           subtitle="Productos bajos en inventario"
           icon="⚠️"
           loading={loading}
-          status={stockAlerts.length ? "warning" : "ok"}
+          status={(dashboardData.alertasStock?.total ?? 0) > 0 ? "warning" : "ok"}
         />
       </div>
 
       <div className="rowInferior home-grid-2cols">
-        <LowStockPanel items={stockAlerts} />
-        <MovimientosPanel entregasPendientes={pendientes} />
+        <LowStockPanel items={dashboardData.alertasStock?.productosBajos || []} />
+        <MovimientosPanel entregasPendientes={trasladosFormateados} />
       </div>
       <div className="button-group">
         <button className="button">Vender</button>

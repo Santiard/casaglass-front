@@ -1,7 +1,6 @@
 // src/App.jsx
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Login from "./pages/Login.jsx";
-import Home from "./pages/Home.jsx";
 import AdminPage from "./pages/AdminPage.jsx";
 import InventoryPage from "./pages/InventoryPage.jsx";
 import DashboardLayout from "./layouts/DashboardLayout.jsx";
