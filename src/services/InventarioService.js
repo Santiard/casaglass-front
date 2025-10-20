@@ -10,53 +10,35 @@ import { api } from "../lib/api";
  */
 function transformarInventarioDTO(productos, isAdmin = true, userSedeId = null) {
   return productos.map(producto => {
-    // Mapear inventarios a cantidades por sede (IDs fijos: 1=Insula, 2=Centro, 3=Patios)
-    const inventarios = producto.inventarios || [];
-    let cantidadInsula = 0;
-    let cantidadCentro = 0; 
-    let cantidadPatios = 0;
+    // El backend ya devuelve cantidadInsula, cantidadCentro, cantidadPatios directamente
+    // No necesitamos transformar si ya vienen en el formato correcto
+    let cantidadInsula = producto.cantidadInsula || 0;
+    let cantidadCentro = producto.cantidadCentro || 0; 
+    let cantidadPatios = producto.cantidadPatios || 0;
 
-    inventarios.forEach(inv => {
-      switch(inv.sedeId) {
-        case 1:
-          cantidadInsula = inv.cantidad || 0;
-          break;
-        case 2:
-          cantidadCentro = inv.cantidad || 0;
-          break;
-        case 3:
-          cantidadPatios = inv.cantidad || 0;
-          break;
-      }
-    });
+    // Si por alguna razón viene con array de inventarios (compatibilidad con versiones anteriores)
+    if (producto.inventarios && Array.isArray(producto.inventarios)) {
+      cantidadInsula = 0;
+      cantidadCentro = 0;
+      cantidadPatios = 0;
 
-    // Para vendedores, mostrar solo su sede
-    if (!isAdmin && userSedeId) {
-      const miInventario = inventarios.find(inv => inv.sedeId === userSedeId);
-      const miCantidad = miInventario?.cantidad || 0;
-      
-      // Resetear todas las cantidades y mostrar solo la del vendedor en la sede correspondiente
-      switch(userSedeId) {
-        case 1: // Insula
-          cantidadInsula = miCantidad;
-          cantidadCentro = 0;
-          cantidadPatios = 0;
-          break;
-        case 2: // Centro
-          cantidadInsula = 0;
-          cantidadCentro = miCantidad;
-          cantidadPatios = 0;
-          break;
-        case 3: // Patios
-          cantidadInsula = 0;
-          cantidadCentro = 0;
-          cantidadPatios = miCantidad;
-          break;
-      }
+      producto.inventarios.forEach(inv => {
+        switch(inv.sedeId) {
+          case 1:
+            cantidadInsula = inv.cantidad || 0;
+            break;
+          case 2:
+            cantidadCentro = inv.cantidad || 0;
+            break;
+          case 3:
+            cantidadPatios = inv.cantidad || 0;
+            break;
+        }
+      });
     }
 
     return {
-      id: producto.productoId,
+      id: producto.productoId || producto.id,
       codigo: producto.codigo,
       nombre: producto.nombre,
       posicion: producto.posicion,
@@ -72,14 +54,16 @@ function transformarInventarioDTO(productos, isAdmin = true, userSedeId = null) 
       cantidadInsula,
       cantidadCentro,
       cantidadPatios,
-      cantidadTotal: isAdmin ? producto.cantidadTotal : (cantidadInsula + cantidadCentro + cantidadPatios),
+      cantidadTotal: producto.cantidadTotal || (cantidadInsula + cantidadCentro + cantidadPatios),
       // Campos para vidrios
       largoCm: producto.largoCm,
       anchoCm: producto.anchoCm,
       grosorMm: producto.grosorMm,
+      esVidrio: producto.esVidrio,
       // Compatibilidad
-      mm: producto.grosorMm,
-      m1m2: producto.largoCm && producto.anchoCm ? (producto.largoCm * producto.anchoCm / 10000).toFixed(2) : null
+      mm: producto.mm || producto.grosorMm,
+      m1m2: producto.m1m2 || (producto.largoCm && producto.anchoCm ? (producto.largoCm * producto.anchoCm / 10000).toFixed(2) : null),
+      laminas: producto.laminas
     };
   });
 }

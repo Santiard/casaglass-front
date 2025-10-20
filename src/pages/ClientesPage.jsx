@@ -30,6 +30,18 @@ export default function ClientesPage() {
   // El modal te pasa (cliente, isEdit)
   const handleGuardar = async (cliente, isEdit) => {
     try {
+      // Validación adicional para NITs duplicados al crear (no al editar)
+      if (!isEdit && cliente.nit) {
+        const nitExiste = data.some(clienteExistente => 
+          clienteExistente.nit === cliente.nit
+        );
+        
+        if (nitExiste) {
+          alert(`Ya existe un cliente registrado con el NIT ${cliente.nit}. Por favor, verifique el número ingresado.`);
+          throw new Error(`NIT duplicado: ${cliente.nit}`);
+        }
+      }
+
       if (isEdit) {
         await actualizarCliente(cliente.id, cliente);
       } else {
@@ -38,7 +50,17 @@ export default function ClientesPage() {
       await fetchData();
     } catch (e) {
       console.error("Error guardando cliente", e);
-      alert("No se pudo guardar el cliente. Revisa consola.");
+      
+      // Si es error de NIT duplicado, no mostrar alert adicional (ya se mostró arriba)
+      if (e.message && e.message.includes('NIT duplicado')) {
+        return;
+      }
+      
+      // Para otros errores, mostrar mensaje apropiado
+      const msg = e?.response?.data?.message 
+               || e?.response?.data?.error
+               || "No se pudo guardar el cliente. Revisa consola.";
+      alert(msg);
     }
   };
 

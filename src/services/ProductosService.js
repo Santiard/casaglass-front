@@ -15,8 +15,18 @@ export async function listarProductos(params = {}) {
 }
 
 export async function crearProducto(payload) {
-  const { data } = await api.post("/productos", payload);
-  return data;
+  try {
+    const { data } = await api.post("/productos", payload, {
+      headers: {
+        'Content-Type': 'application/json',
+      }
+    });
+    return data;
+  } catch (error) {
+    console.error("Error en crearProducto:", error);
+    console.error("Response data:", error.response?.data);
+    throw error;
+  }
 }
 export async function actualizarProducto(id, payload) {
   const { data } = await api.put(`/productos/${id}`, payload);

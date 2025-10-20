@@ -2,13 +2,15 @@
 
 export default function CorteTable({ data = [], onEditar, onEliminar, isAdmin = true, userSede = "" }) {
   return (
-    <div className="table-wrapper">
-      <table className="table">
+    <div className="table-container">
+      <div className="table-wrapper">
+        <table className="table">
         <thead>
           <tr>
             <th>Código</th>
             <th>Nombre</th>
             <th>Categoría</th>
+            <th>Color</th>
             <th>Largo (cm)</th>
             
             {/* Columnas de inventario según el rol */}
@@ -43,7 +45,7 @@ export default function CorteTable({ data = [], onEditar, onEliminar, isAdmin = 
         <tbody>
           {data.length === 0 && (
             <tr>
-              <td colSpan={isAdmin ? 11 : 6} className="empty">Sin resultados</td>
+              <td colSpan={isAdmin ? 12 : 7} className="empty">Sin resultados</td>
             </tr>
           )}
 
@@ -61,6 +63,7 @@ export default function CorteTable({ data = [], onEditar, onEliminar, isAdmin = 
                 <td>{c.codigo}</td>
                 <td>{c.nombre}</td>
                 <td>{c.categoria || "-"}</td>
+                <td>{c.color ?? "N/A"}</td>
                 <td>{c.largoCm ?? "-"}</td>
                 
                 {/* Columnas de inventario según el rol */}
@@ -107,6 +110,7 @@ export default function CorteTable({ data = [], onEditar, onEliminar, isAdmin = 
           })}
         </tbody>
       </table>
+      </div>
     </div>
   );
 }

@@ -17,13 +17,16 @@ export default function InventoryFilters({ filters = {}, setFilters, onAddProduc
 
       <select
         className="filter-select"
-        value={filters.sede || ""}
-        onChange={(e) => setFilters({ ...filters, sede: e.target.value })}
+        value={filters.color || ""}
+        onChange={(e) => setFilters({ ...filters, color: e.target.value })}
       >
-        <option value="">Todas las sedes</option>
-        <option value="Insula">Insula</option>
-        <option value="Centro">Centro</option>
-        <option value="Patios">Patios</option>
+        <option value="">Todos los colores</option>
+        <option value="MATE">MATE</option>
+        <option value="BLANCO">BLANCO</option>
+        <option value="NEGRO">NEGRO</option>
+        <option value="BRONCE">BRONCE</option>
+        <option value="NATURAL">NATURAL</option>
+        <option value="NA">NA</option>
       </select>
 
       {onAddProduct && (

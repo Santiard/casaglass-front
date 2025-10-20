@@ -221,6 +221,7 @@ export default function ClientesTable({
           onClose={() => setIsModalOpen(false)}
           onSave={handleSaveCliente}
           clienteAEditar={clienteEditando}
+          clientesExistentes={data} // 👈 pasamos la lista completa para validar duplicados
         />
       
     </div>

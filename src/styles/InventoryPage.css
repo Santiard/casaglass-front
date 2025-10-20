@@ -5,6 +5,8 @@
   padding: 1rem; /* 16px */
   align-items: flex-start;
   min-height: calc(100vh - 5rem); /* 80px ajusta según header */
+  width: 100%; /* Usar todo el ancho disponible */
+  box-sizing: border-box; /* Incluir padding en el ancho */
 }
 
 /* SIDEBAR izquierdo (categorías) */
@@ -24,6 +26,8 @@
   display: flex;
   flex-direction: column;
   gap: 0.75rem; /* 12px */
+  min-width: 0; /* Permite que el contenido se encoja */
+  height: calc(100vh - 7rem); /* Altura fija para controlar el overflow */
 }
 
 /* Responsive: en pantallas pequeñas, apilar y ocultar sidebar */
@@ -42,7 +46,21 @@
 
   .inventory-content {
     order: 1;
+    min-width: 0;
+    height: calc(100vh - 5rem); /* Ajustar altura en móvil */
   }
 
   /* Si quieres mostrar un SELECT en mobile (hiddeable en desktop), en InventoryFilters style show it */
+}
+
+/* Estilos adicionales para tabla responsiva */
+@media (max-width: 48rem) { /* 768px */
+  .inventory-layout {
+    padding: 0.5rem;
+    gap: 0.5rem;
+  }
+  
+  .inventory-content {
+    gap: 0.5rem;
+  }
 }

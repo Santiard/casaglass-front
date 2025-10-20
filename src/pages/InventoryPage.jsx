@@ -51,7 +51,7 @@ export default function InventoryPage() {
     search: "",
     categoryId: null, // 👈 ahora guardamos el id de categoría
     status: "",
-    sede: "",
+    color: "",
     priceMin: "",
     priceMax: "",
   });
@@ -161,7 +161,7 @@ export default function InventoryPage() {
     const categoryId = filters.categoryId;
     const search = filters.search?.trim()?.toLowerCase() || "";
     const status = filters.status || "";
-    const sede = filters.sede || "";
+    const color = filters.color || "";
     const min = filters.priceMin !== "" ? Number(filters.priceMin) : -Infinity;
     const max = filters.priceMax !== "" ? Number(filters.priceMax) : Infinity;
 
@@ -199,22 +199,17 @@ export default function InventoryPage() {
         const estado = total > 0 ? "Disponible" : "Agotado";
         return estado === status;
       })
-      // Filtro por sede (Insula/Centro/Patios)
+      // Filtro por color
       .filter((item) => {
-        if (!sede) return true;
-        const map = {
-          Insula: Number(item.cantidadInsula || 0),
-          Centro: Number(item.cantidadCentro || 0),
-          Patios: Number(item.cantidadPatios || 0),
-        };
-        return (map[sede] ?? 0) > 0;
+        if (!color) return true;
+        return (item.color || "").toUpperCase() === color.toUpperCase();
       })
       // Filtro por rango de precios
       .filter((item) => {
         const precio = Number(item.precio1 || 0);
         return precio >= min && precio <= max;
       });
-  }, [view, data, categories, filters.categoryId, filters.search, filters.status, filters.sede, filters.priceMin, filters.priceMax]);
+  }, [view, data, categories, filters.categoryId, filters.search, filters.status, filters.color, filters.priceMin, filters.priceMax]);
 
   // === Selección de categoría desde el sidebar ===
   const handleSelectCategory = (catId) => {
@@ -230,7 +225,7 @@ export default function InventoryPage() {
     search: "",
     categoryId: null,        // Para el CategorySidebar
     category: "Vidrio",      // Mantener por compatibilidad
-    sede: "",
+    color: "",
     status: "",
     largoMin: "",
     largoMax: "",
@@ -269,15 +264,10 @@ export default function InventoryPage() {
           (c.observacion || "").toLowerCase().includes(q)
         );
       })
-      // Filtro por sede (usando las cantidades por sede del DTO)
+      // Filtro por color
       .filter((c) => {
-        if (!corteFilters.sede) return true;
-        const map = {
-          Insula: Number(c.cantidadInsula || 0),
-          Centro: Number(c.cantidadCentro || 0),
-          Patios: Number(c.cantidadPatios || 0),
-        };
-        return (map[corteFilters.sede] ?? 0) > 0;
+        if (!corteFilters.color) return true;
+        return (c.color || "").toUpperCase() === corteFilters.color.toUpperCase();
       })
       // Filtro por status (usando cantidadTotal del DTO)
       .filter((c) => {

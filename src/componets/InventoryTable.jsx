@@ -7,13 +7,15 @@ export default function InventoryTable({ data = [], filters, loading, onEditar, 
     (data || []).some(p => (p.categoria || "").toLowerCase() === "vidrio");
 
   return (
-    <div className="table-wrapper">
-      <table className="table">
+    <div className="table-container">
+      <div className="table-wrapper">
+        <table className="table">
         <thead>
           <tr>
             <th>Código</th>
             <th>Nombre</th>
             <th>Categoría</th>
+            <th>Color</th>
             {isVidrio && <th>mm</th>}
             {isVidrio && <th>m²</th>}
             {isVidrio && <th>Láminas</th>}
@@ -26,12 +28,8 @@ export default function InventoryTable({ data = [], filters, loading, onEditar, 
                 <th>Total</th>
               </>
             ) : (
-              // Para VENDEDOR: mostrar cantidades de todas las sedes pero sin total
-              <>
-                <th>Insula</th>
-                <th>Centro</th>
-                <th>Patios</th>
-              </>
+              // Para VENDEDOR: mostrar solo la cantidad de su sede
+              <th>Cantidad ({userSede})</th>
             )}
             {/* Precios según el rol */}
             {isAdmin ? (
@@ -49,10 +47,10 @@ export default function InventoryTable({ data = [], filters, loading, onEditar, 
         </thead>
         <tbody>
           {loading && (
-            <tr><td colSpan={isAdmin ? (isVidrio ? 13 : 10) : (isVidrio ? 12 : 9)} className="empty">Cargando…</td></tr>
+            <tr><td colSpan={isAdmin ? (isVidrio ? 14 : 11) : (isVidrio ? 11 : 8)} className="empty">Cargando…</td></tr>
           )}
           {!loading && data.length === 0 && (
-            <tr><td colSpan={isAdmin ? (isVidrio ? 13 : 10) : (isVidrio ? 12 : 9)} className="empty">Sin resultados</td></tr>
+            <tr><td colSpan={isAdmin ? (isVidrio ? 14 : 11) : (isVidrio ? 11 : 8)} className="empty">Sin resultados</td></tr>
           )}
           {!loading && data.map((p) => {
             const total = Number(p.cantidadTotal || 0) || 
@@ -73,6 +71,7 @@ export default function InventoryTable({ data = [], filters, loading, onEditar, 
                 <td>{p.codigo}</td>
                 <td>{p.nombre}</td>
                 <td>{p.categoria}</td>
+                <td>{p.color ?? "N/A"}</td>
                 {isVidrio && <td>{p.mm ?? "-"}</td>}
                 {isVidrio && <td>{p.m1m2 ?? "-"}</td>}
                 {isVidrio && <td>{p.laminas ?? "-"}</td>}
@@ -86,12 +85,8 @@ export default function InventoryTable({ data = [], filters, loading, onEditar, 
                     <td><strong>{total}</strong></td>
                   </>
                 ) : (
-                  // Para VENDEDOR: mostrar cantidades de todas las sedes pero sin total
-                  <>
-                    <td>{p.cantidadInsula ?? 0}</td>
-                    <td>{p.cantidadCentro ?? 0}</td>
-                    <td>{p.cantidadPatios ?? 0}</td>
-                  </>
+                  // Para VENDEDOR: mostrar solo la cantidad de su sede
+                  <td><strong>{cantidadVendedor}</strong></td>
                 )}
                 
                 {/* Precios según el rol */}
@@ -123,6 +118,7 @@ export default function InventoryTable({ data = [], filters, loading, onEditar, 
           })}
         </tbody>
       </table>
+      </div>
     </div>
   );
 }

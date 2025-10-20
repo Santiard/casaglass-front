@@ -157,6 +157,7 @@ export default function ProveedorTable({
         onClose={() => setIsModalOpen(false)}
         onSave={handleSave}                  // 👈 aquí va el save real
         proveedorAEditar={itemEditando}
+        proveedoresExistentes={data}        // 👈 pasamos la lista completa para validar duplicados
       />
     </div>
   );
