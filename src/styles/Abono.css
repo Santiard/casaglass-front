@@ -1,0 +1,93 @@
+.abono-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.abono-modal {
+  background: #fff;
+  padding: 2rem;
+  border-radius: 12px;
+  width: 420px;
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.25);
+  animation: fadeIn 0.2s ease-in;
+}
+
+.abono-modal h2 {
+  margin-bottom: 1rem;
+  text-align: center;
+  color: #333;
+}
+
+.abono-modal form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.abono-modal label {
+  font-weight: 600;
+  color: #444;
+}
+
+.abono-modal input,
+.abono-modal select {
+  padding: 8px 10px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.6rem;
+  margin-top: 1rem;
+}
+
+.btn-cancel {
+  background: #ccc;
+  color: #333;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 14px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-cancel:hover {
+  background: #bbb;
+}
+
+.btn-confirm {
+  background: #007bff;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 14px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-confirm:hover {
+  background: #0069d9;
+}
+
+.error-msg {
+  color: red;
+  font-size: 13px;
+  text-align: center;
+  margin-top: 0.5rem;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}

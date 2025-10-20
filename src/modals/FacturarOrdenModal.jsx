@@ -103,13 +103,14 @@ export default function FacturarOrdenModal({
 
     console.log("🛒 Productos en carrito (antes de procesar):", productosCarrito);
     
+    // Formato actualizado para el backend
     const payload = {
-      clienteId: Number(form.clienteId),
-      sedeId: Number(form.sedeId),
-      trabajadorId: Number(form.trabajadorId),
       obra: form.obra || "",
       credito: Boolean(form.credito),
       incluidaEntrega: Boolean(form.incluidaEntrega),
+      clienteId: Number(form.clienteId),
+      sedeId: Number(form.sedeId),
+      trabajadorId: Number(form.trabajadorId),
       items: productosCarrito.map((p, index) => {
         console.log(`📦 Procesando item ${index}:`, p);
         
@@ -193,7 +194,32 @@ export default function FacturarOrdenModal({
     try {
       const response = await crearOrdenVenta(payload);
       console.log("✅ Respuesta del backend:", response);
-      setMensaje(`✅ ${response.mensaje} (N° ${response.numero})`);
+      
+      // Acceder a los datos de la nueva estructura de respuesta
+      const orden = response.orden;
+      const numero = response.numero;
+      const mensaje = response.mensaje;
+      
+      // Mensaje personalizado según el tipo de orden
+      let mensajeCompleto = `✅ ${mensaje} (N° ${numero})`;
+      
+      // Si es orden a crédito, mostrar información del crédito
+      if (orden.credito && orden.creditoDetalle) {
+        const credito = orden.creditoDetalle;
+        console.log('💳 Crédito creado:', {
+          id: credito.id,
+          totalCredito: credito.totalCredito,
+          saldoPendiente: credito.saldoPendiente,
+          estado: credito.estado
+        });
+        
+        mensajeCompleto += `\n💳 Crédito por $${credito.totalCredito.toLocaleString('es-CO')}`;
+        mensajeCompleto += `\nSaldo pendiente: $${credito.saldoPendiente.toLocaleString('es-CO')}`;
+      } else {
+        mensajeCompleto += `\n💰 Venta de contado - Total: $${orden.total?.toLocaleString('es-CO')}`;
+      }
+      
+      setMensaje(mensajeCompleto);
       
       // Limpiar carrito cuando la facturación sea exitosa
       if (onFacturacionExitosa) {
@@ -203,7 +229,7 @@ export default function FacturarOrdenModal({
       // Cerrar modal después de un tiempo
       setTimeout(() => {
         onClose();
-      }, 2000);
+      }, 3000); // 3 segundos para leer el mensaje completo
       
     } catch (e) {
       console.error("❌ Error al facturar orden:", e);
@@ -220,13 +246,18 @@ export default function FacturarOrdenModal({
         const errorMsg = e.response.data.message;
         
         // Detectar errores específicos del backend
-        if (errorMsg.includes("Duplicate entry") && errorMsg.includes("uk_inventario_producto_sede")) {
+        if (errorMsg.includes("Transaction silently rolled back")) {
+          msg = "Error de transacción: La operación fue cancelada por el servidor. Verifica que todos los datos sean válidos.";
+        } else if (errorMsg.includes("Duplicate entry") && errorMsg.includes("uk_inventario_producto_sede")) {
           msg = "Error: Este producto ya existe en el inventario de esta sede. El backend necesita actualizar el inventario en lugar de crear una nueva entrada.";
         } else if (errorMsg.includes("could not execute statement")) {
           msg = "Error de base de datos: " + errorMsg.split("] [")[0].split("[")[1];
         } else {
           msg = errorMsg;
         }
+      } else if (e?.response?.data?.tipo && e?.response?.data?.error) {
+        // Nueva estructura de errores del backend
+        msg = `Error ${e.response.data.tipo}: ${e.response.data.error}`;
       } else if (e?.response?.data?.error) {
         msg = e.response.data.error;
       } else if (e?.response?.status === 400) {
@@ -374,7 +405,13 @@ export default function FacturarOrdenModal({
 
         {/* 🔹 Footer */}
         <div className="factura-footer">
-          {mensaje && <p className="factura-msg">{mensaje}</p>}
+          {mensaje && (
+            <div className="factura-msg">
+              {mensaje.split('\n').map((linea, index) => (
+                <div key={index}>{linea}</div>
+              ))}
+            </div>
+          )}
 
           <div className="factura-actions">
             <button className="btn-cancelar" onClick={onClose}>

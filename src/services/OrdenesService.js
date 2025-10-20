@@ -6,41 +6,61 @@ import { api } from "../lib/api";
 
 // GET /api/ordenes → datos básicos  
 export async function listarOrdenes(params = {}) {
-  const { data } = await api.get("/ordenes", { params });
+  const { data } = await api.get("ordenes", { params });
   return data || [];
 }
 
 // GET /api/ordenes/tabla → datos optimizados
 export async function listarOrdenesTabla(params = {}) {
-  const { data } = await api.get("/ordenes/tabla", { params });
+  const { data } = await api.get("ordenes/tabla", { params });
   return data || [];
 }
 
 // GET /api/ordenes/{id}
 export async function obtenerOrden(id) {
-  const { data } = await api.get(`/ordenes/${id}`);
+  const { data } = await api.get(`ordenes/${id}`);
   return data;
 }
 
 // POST /api/ordenes
 export async function crearOrden(payload) {
-  const { data } = await api.post("/ordenes", payload);
+  const { data } = await api.post("ordenes", payload);
   return data;
 }
 
 // POST /api/ordenes/venta - Crear orden de venta específica
 export async function crearOrdenVenta(payload) {
   try {
-    console.log("🔄 Intentando crear orden con endpoint /ordenes/venta...");
-    const { data } = await api.post("/ordenes/venta", payload);
+    console.log("🔄 Intentando crear orden con endpoint ordenes/venta...");
+    
+    // Formato correcto para el backend actualizado
+    const ordenData = {
+      obra: payload.obra || "",
+      venta: true, // Siempre true para órdenes de venta
+      credito: Boolean(payload.credito),
+      incluidaEntrega: Boolean(payload.incluidaEntrega || false),
+      clienteId: parseInt(payload.clienteId),
+      trabajadorId: parseInt(payload.trabajadorId),
+      sedeId: parseInt(payload.sedeId),
+      items: payload.items.map(item => ({
+        productoId: parseInt(item.productoId),
+        cantidad: parseInt(item.cantidad),
+        descripcion: String(item.descripcion || ""),
+        precioUnitario: parseFloat(item.precioUnitario)
+      }))
+    };
+    
+    console.log("📦 Payload formateado para backend:", ordenData);
+    
+    const { data } = await api.post("ordenes/venta", ordenData);
     return data;
   } catch (error) {
-    console.warn("⚠️ Endpoint /ordenes/venta falló:", error.response?.status, error.response?.data?.message);
+    console.warn("⚠️ Endpoint ordenes/venta falló:", error.response?.status, error.response?.data?.message);
     
     // Solo hacer fallback si es 404 (endpoint no existe), no en otros errores
     if (error.response?.status === 404) {
-      console.log("🔄 Usando endpoint fallback /ordenes...");
-      const { data } = await api.post("/ordenes", payload);
+      console.log("🔄 Usando endpoint fallback ordenes...");
+      const { data } = await api.post("ordenes", payload);
       return data;
     }
     
@@ -51,34 +71,34 @@ export async function crearOrdenVenta(payload) {
 
 // Función alternativa para probar directamente con el endpoint original
 export async function crearOrdenOriginal(payload) {
-  console.log("🔄 Creando orden con endpoint original /ordenes...");
-  const { data } = await api.post("/ordenes", payload);
+  console.log("🔄 Creando orden con endpoint original ordenes...");
+  const { data } = await api.post("ordenes", payload);
   return data;
 }
 
 // ✅ PUT /api/ordenes/tabla/{id} (endpoint correcto del backend)
 export async function actualizarOrden(id, payload) {
   if (!id) throw new Error("ID de la orden no proporcionado");
-  const { data } = await api.put(`/ordenes/tabla/${id}`, payload);
+  const { data } = await api.put(`ordenes/tabla/${id}`, payload);
   return data;
 }
 
 // DELETE /api/ordenes/{id}
 export async function eliminarOrden(id) {
-  await api.delete(`/ordenes/${id}`);
+  await api.delete(`ordenes/${id}`);
   return true;
 }
 
 // PUT /api/ordenes/{id}/anular
 export async function anularOrden(id) {
   if (!id) throw new Error("ID de la orden no proporcionado");
-  const { data } = await api.put(`/ordenes/${id}/anular`);
+  const { data } = await api.put(`ordenes/${id}/anular`);
   return data;
 }
 
 // GET /api/ordenes/proximo-numero
 export async function obtenerProximoNumero() {
-  const { data } = await api.get("/ordenes/proximo-numero");
+  const { data } = await api.get("ordenes/proximo-numero");
   return data;
 }
 
@@ -86,21 +106,21 @@ export async function obtenerProximoNumero() {
    🧩 ÍTEMS DE ORDEN
    ================================================ */
 export async function listarItems(ordenId) {
-  const { data } = await api.get(`/ordenes/${ordenId}/items`);
+  const { data } = await api.get(`ordenes/${ordenId}/items`);
   return data || [];
 }
 
 export async function crearItem(ordenId, item) {
-  const { data } = await api.post(`/ordenes/${ordenId}/items`, item);
+  const { data } = await api.post(`ordenes/${ordenId}/items`, item);
   return data;
 }
 
 export async function actualizarItem(ordenId, itemId, item) {
-  const { data } = await api.put(`/ordenes/${ordenId}/items/${itemId}`, item);
+  const { data } = await api.put(`ordenes/${ordenId}/items/${itemId}`, item);
   return data;
 }
 
 export async function eliminarItem(ordenId, itemId) {
-  await api.delete(`/ordenes/${ordenId}/items/${itemId}`);
+  await api.delete(`ordenes/${ordenId}/items/${itemId}`);
   return true;
 }

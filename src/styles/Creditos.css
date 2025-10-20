@@ -1,0 +1,459 @@
+/* ================================================
+   CRÉDITOS PAGE - LAYOUT PRINCIPAL
+   ================================================ */
+
+.creditos-container {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 1rem;
+}
+
+.creditos-container h1 {
+  color: var(--color-dark-blue);
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 1.5rem;
+  text-align: left;
+}
+
+/* ================================================
+   FILTROS - TOOLBAR SUPERIOR
+   ================================================ */
+
+.filtros-creditos {
+  display: flex;
+  align-items: flex-end;
+  gap: 1rem;
+  flex-wrap: wrap;
+  background: var(--color-light-blue);
+  padding: 0.75rem 1rem;
+  border-radius: 0.75rem;
+  margin-bottom: 1rem;
+  border: 0.0625rem solid #e5e7eb;
+}
+
+.filtros-creditos select {
+  padding: 0.5rem 0.75rem;
+  border: 0.0625rem solid #d1d5db;
+  border-radius: 9999px;
+  font-size: 0.875rem;
+  background-color: #fff;
+  outline: none;
+  transition: all 0.2s ease;
+  min-width: 150px;
+}
+
+.filtros-creditos select:focus {
+  border-color: #6366f1;
+  box-shadow: 0 0 0 0.1875rem rgba(99, 102, 241, 0.2);
+}
+
+.filtro-rango {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.filtro-rango label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-white);
+  margin-bottom: 0.25rem;
+}
+
+.filtro-rango .inputs-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.filtro-rango input {
+  padding: 0.5rem 0.75rem;
+  border: 0.0625rem solid #d1d5db;
+  border-radius: 9999px;
+  font-size: 0.875rem;
+  background-color: #fff;
+  outline: none;
+  transition: all 0.2s ease;
+  width: 100px;
+}
+
+.filtro-rango input:focus {
+  border-color: #6366f1;
+  box-shadow: 0 0 0 0.1875rem rgba(99, 102, 241, 0.2);
+}
+
+.filtro-rango input::placeholder {
+  color: #9ca3af;
+  font-size: 0.8rem;
+}
+
+/* ================================================
+   TABLA DE CRÉDITOS
+   ================================================ */
+
+.tabla-creditos {
+  flex: 1;
+  min-height: 0;
+  border: 0.0625rem solid #ccc;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  background: white;
+}
+
+.tabla-creditos table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: Arial, sans-serif;
+  font-size: 0.875rem;
+}
+
+.tabla-creditos thead {
+  background: var(--color-light-blue);
+  color: #ffffff;
+}
+
+.tabla-creditos th,
+.tabla-creditos td {
+  padding: 0.75rem 0.625rem;
+  text-align: left;
+  border-bottom: 0.0625rem solid #ddd;
+  vertical-align: middle;
+}
+
+.tabla-creditos th {
+  font-weight: 600;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+}
+
+.tabla-creditos tbody tr:nth-child(even) {
+  background-color: #f9f9f9;
+}
+
+.tabla-creditos tbody tr:hover {
+  background-color: #e6f0ff;
+  transition: background-color 0.2s ease;
+}
+
+/* Columnas específicas */
+.tabla-creditos td:nth-child(6),
+.tabla-creditos td:nth-child(7),
+.tabla-creditos td:nth-child(8) {
+  text-align: right;
+  font-weight: 600;
+}
+
+.sin-datos {
+  text-align: center;
+  color: #6b7280;
+  font-style: italic;
+  padding: 2rem;
+}
+
+/* ================================================
+   ESTADOS - BADGES
+   ================================================ */
+
+.estado-badge {
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-align: center;
+  display: inline-block;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+}
+
+.estado-badge.abierto {
+  background-color: var(--color-success-bg);
+  color: var(--color-success);
+}
+
+.estado-badge.cerrado {
+  background-color: var(--color-info-bg);
+  color: var(--color-info);
+}
+
+.estado-badge.vencido {
+  background-color: var(--color-danger-bg);
+  color: var(--color-danger);
+}
+
+.estado-badge.anulado {
+  background-color: var(--color-light-gray);
+  color: var(--color-dark-gray);
+}
+
+/* ================================================
+   BOTONES
+   ================================================ */
+
+/* Acciones - botones alineados */
+.actions-cell {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: nowrap;
+  justify-content: flex-start;
+}
+
+/* Botones base */
+.tabla-creditos button {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.375rem 0.75rem;
+  border: none;
+  border-radius: 0.25rem;
+  cursor: pointer;
+  font-size: 0.75rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+/* Botón Ver Detalles */
+.btn-ver-detalles {
+  background: var(--color-light-blue);
+  color: white;
+}
+
+.btn-ver-detalles:hover {
+  background: var(--color-dark-blue);
+  transform: translateY(-1px);
+}
+
+.btn-ver-detalles:active {
+  transform: translateY(0);
+}
+
+/* Botón Abonar */
+.btn-abonar {
+  background: var(--color-success);
+  color: white;
+}
+
+.btn-abonar:hover {
+  background: #1e7e34;
+  transform: translateY(-1px);
+}
+
+.btn-abonar:active {
+  transform: translateY(0);
+}
+
+/* ================================================
+   DETALLES DE ABONOS - EXPANDIBLE
+   ================================================ */
+
+.detalle-abonos {
+  background: #f8fafc !important;
+  border-top: 2px solid var(--color-light-blue);
+}
+
+.detalle-abonos td {
+  padding: 1rem;
+}
+
+.detalle-abonos h4 {
+  color: var(--color-dark-blue);
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid var(--color-light-blue);
+}
+
+/* ================================================
+   TABLA DE ABONOS (INTERNA)
+   ================================================ */
+
+.tabla-abonos {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 0.75rem;
+  border: 0.0625rem solid #e5e7eb;
+  border-radius: 0.375rem;
+  overflow: hidden;
+}
+
+.tabla-abonos th {
+  background: var(--color-dark-blue);
+  color: white;
+  padding: 0.5rem;
+  text-align: center;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+}
+
+.tabla-abonos td {
+  padding: 0.5rem;
+  text-align: center;
+  font-size: 0.8rem;
+  border-bottom: 0.0625rem solid #e5e7eb;
+}
+
+.tabla-abonos tbody tr:nth-child(even) {
+  background-color: #f9fafb;
+}
+
+.tabla-abonos tbody tr:hover {
+  background-color: #f3f4f6;
+}
+
+/* Columnas de montos en tabla de abonos */
+.tabla-abonos td:nth-child(4),
+.tabla-abonos td:nth-child(5) {
+  font-weight: 600;
+  color: var(--color-dark-blue);
+}
+
+.sin-abonos {
+  color: #6b7280;
+  text-align: center;
+  padding: 1.5rem;
+  font-style: italic;
+  background: #f9fafb;
+  border-radius: 0.375rem;
+  margin-top: 0.75rem;
+}
+
+/* ================================================
+   RESPONSIVE DESIGN
+   ================================================ */
+
+@media (max-width: 768px) {
+  .filtros-creditos {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+
+  .filtro-rango .inputs-row {
+    gap: 0.375rem;
+  }
+
+  .filtro-rango input {
+    width: 80px;
+  }
+
+  .tabla-creditos {
+    font-size: 0.75rem;
+  }
+
+  .tabla-creditos th,
+  .tabla-creditos td {
+    padding: 0.5rem 0.375rem;
+  }
+
+  /* Ocultar algunas columnas en móvil */
+  .tabla-creditos th:nth-child(4),
+  .tabla-creditos td:nth-child(4),
+  .tabla-creditos th:nth-child(5),
+  .tabla-creditos td:nth-child(5) {
+    display: none;
+  }
+
+  /* Botones más pequeños en móvil */
+  .actions-cell {
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .tabla-creditos button {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.7rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .creditos-container {
+    padding: 0.5rem;
+  }
+
+  .creditos-container h1 {
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+  }
+
+  /* Más columnas ocultas en pantallas muy pequeñas */
+  .tabla-creditos th:nth-child(3),
+  .tabla-creditos td:nth-child(3) {
+    display: none;
+  }
+
+  .error-message {
+    flex-direction: column;
+    gap: 1rem;
+    text-align: center;
+  }
+}
+
+/* ================================================
+   ERROR AND LOADING STATES
+   ================================================ */
+
+.error-message {
+  background-color: #fee;
+  color: var(--color-danger, #e74c3c);
+  padding: 1rem;
+  border-radius: 6px;
+  border-left: 4px solid var(--color-danger, #e74c3c);
+  margin-bottom: 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.error-message button {
+  background-color: var(--color-danger, #e74c3c);
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background-color 0.2s ease;
+}
+
+.error-message button:hover {
+  background-color: #c0392b;
+}
+
+.loading-message {
+  text-align: center;
+  padding: 2rem;
+  font-size: 1.2rem;
+  color: var(--color-muted, #7f8c8d);
+}
+
+.reloading-indicator {
+  background-color: #e3f2fd;
+  color: var(--color-primary, #2196f3);
+  padding: 0.8rem;
+  border-radius: 6px;
+  border-left: 4px solid var(--color-primary, #2196f3);
+  margin-bottom: 1rem;
+  text-align: center;
+  font-weight: 500;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 0.8;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.8;
+  }
+}

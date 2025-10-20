@@ -16,6 +16,7 @@ import HomePage from "./pages/HomePage.jsx";
 import TaxSettingsPage from "./pages/TaxSettingsPage.jsx";
 import CortesPage from "./pages/CortesPage.jsx";
 import OrdenesPage from "./pages/OrdenesPage.jsx";
+import CreditosPage from "./pages/CreditosPage.jsx";
 import { AuthProvider } from "./context/AuthContext.jsx";
 
 
@@ -42,6 +43,7 @@ function App() {
           <Route path="/tax-settings" element={<TaxSettingsPage />} />
           <Route path="/cortes" element={<CortesPage />} />
           <Route path="/ordenes" element={<OrdenesPage />} />
+          <Route path="/creditos" element={<CreditosPage />} />
         </Route>
       </Routes>
       </AuthProvider>
