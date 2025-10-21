@@ -182,19 +182,22 @@ export default function ProductModal({ isOpen, onClose, onSave, product }) {
       tipo: toSave.tipo,
       color: toSave.color,
       cantidad: (toSave.cantidadInsula || 0) + (toSave.cantidadCentro || 0) + (toSave.cantidadPatios || 0),
-      costo: 0,
+      costo: toSave.costo || 0,
       precio1: toSave.precio1,
       precio2: toSave.precio2,
       precio3: toSave.precio3,
       precioEspecial: toSave.precioEspecial,
-      descripcion: "",
-      posicion: "",
-      version: 0
+      descripcion: toSave.descripcion || "",
+      posicion: toSave.posicion || ""
     };
 
-    // Si es edición, incluir el id
+    // Para edición, incluir campos requeridos del producto original
     if (isEditing && toSave.id) {
       backendPayload.id = toSave.id;
+      backendPayload.version = toSave.version !== undefined ? toSave.version : 0;
+    } else {
+      // Para creación, version siempre es 0
+      backendPayload.version = 0;
     }
 
     console.log("Datos que se enviarán al backend:", backendPayload);

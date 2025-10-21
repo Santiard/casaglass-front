@@ -29,8 +29,24 @@ export async function crearProducto(payload) {
   }
 }
 export async function actualizarProducto(id, payload) {
-  const { data } = await api.put(`/productos/${id}`, payload);
-  return data;
+  console.log("=== ACTUALIZANDO PRODUCTO ===");
+  console.log("ID:", id);
+  console.log("Payload completo:", JSON.stringify(payload, null, 2));
+  try {
+    const { data } = await api.put(`/productos/${id}`, payload, {
+      headers: {
+        'Content-Type': 'application/json',
+      }
+    });
+    console.log("Actualización exitosa:", data);
+    return data;
+  } catch (error) {
+    console.error("Error en actualizarProducto:", error);
+    console.error("Response data:", error.response?.data);
+    console.error("Status:", error.response?.status);
+    console.error("Headers:", error.response?.headers);
+    throw error;
+  }
 }
 export async function eliminarProducto(id) {
   await api.delete(`/productos/${id}`);
