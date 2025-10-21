@@ -1,48 +1,72 @@
 // src/modals/CorteModal.jsx
 import { useState, useEffect } from "react";
+import { listarCategorias } from "../services/CategoriasService";
 import "../styles/CrudModal.css";
 
 export default function CorteModal({ isOpen, onClose, onSave, corte }) {
   const initialState = {
     id: null,
-    productoId: null,
     codigo: "",
     nombre: "",
     posicion: "",
-    tipo: "",
-    color: "",
-    categoria: "Cortes",
+    tipo: "UNID",
+    color: "MATE",
+    categoria: "",
     descripcion: "",
-    costo: 0,
+    costo: "",
     cantidadInsula: 0,
     cantidadCentro: 0,
     cantidadPatios: 0,
-    precio1: 0,
-    precio2: 0,
-    precio3: 0,
-    precioEspecial: 0,
+    precio1: "",
+    precio2: "",
+    precio3: "",
+    precioEspecial: "",
     largoCm: "",
-    precio: 0,
+    precio: "",
     observacion: "",
   };
 
   const [formData, setFormData] = useState(initialState);
+  const [categories, setCategories] = useState([]);
 
   const isEditing = !!corte;
+
+  // Cargar categorías al montar el componente
+  useEffect(() => {
+    const fetchCategorias = async () => {
+      try {
+        const cats = await listarCategorias();
+        setCategories(cats || []);
+      } catch (e) {
+        console.error("Error cargando categorías:", e);
+      }
+    };
+    fetchCategorias();
+  }, []);
 
   useEffect(() => {
     if (corte) {
       setFormData({
         ...initialState,
         ...corte,
-        // Asegurar que los campos numéricos tengan valores por defecto
-        precio1: corte.precio1 ?? 0,
-        precio2: corte.precio2 ?? 0,
-        precio3: corte.precio3 ?? 0,
-        precioEspecial: corte.precioEspecial ?? 0,
-        largoCm: corte.largoCm ?? "",
-        precio: corte.precio ?? 0,
-        costo: corte.costo ?? 0,
+        // Asegurar que todos los valores sean strings para evitar controlled/uncontrolled
+        codigo: corte.codigo || "",
+        nombre: corte.nombre || "",
+        posicion: corte.posicion || "",
+        descripcion: corte.descripcion || "",
+        observacion: corte.observacion || "",
+        // Para edición, preservar valores existentes o mantener vacío si es 0
+        precio1: corte.precio1 ? String(corte.precio1) : "",
+        precio2: corte.precio2 ? String(corte.precio2) : "",
+        precio3: corte.precio3 ? String(corte.precio3) : "",
+        precioEspecial: corte.precioEspecial ? String(corte.precioEspecial) : "",
+        largoCm: corte.largoCm ? String(corte.largoCm) : "",
+        precio: corte.precio ? String(corte.precio) : "",
+        costo: corte.costo ? String(corte.costo) : "",
+        // Asegurar que selects tengan valores válidos
+        tipo: corte.tipo || "UNID",
+        color: corte.color || "MATE",
+        categoria: corte.categoria?.nombre || corte.categoria || "",
       });
     } else {
       setFormData(initialState);
@@ -53,11 +77,29 @@ export default function CorteModal({ isOpen, onClose, onSave, corte }) {
   if (!isOpen) return null;
 
   const handleChange = (e) => {
-    const { name, value, type } = e.target;
+    const { name, value } = e.target;
+    
+    // Definir tipos de campos para validaciones
+    const priceFields = ['precio1', 'precio2', 'precio3', 'precioEspecial', 'precio', 'costo'];
+    const numericFields = ['posicion', 'largoCm'];
+    const uppercaseFields = ['codigo', 'nombre', 'descripcion', 'observacion'];
+
+    let processedValue = value || ""; // Asegurar que nunca sea undefined/null
+
+    if (priceFields.includes(name)) {
+      // Campos de precio: solo números, pueden estar vacíos
+      processedValue = (value || "").replace(/[^0-9]/g, '');
+    } else if (numericFields.includes(name)) {
+      // Campos numéricos: solo números
+      processedValue = (value || "").replace(/[^0-9]/g, '');
+    } else if (uppercaseFields.includes(name)) {
+      // Campos de texto que van en mayúsculas
+      processedValue = (value || "").toUpperCase();
+    }
     
     setFormData((prev) => ({
       ...prev,
-      [name]: type === "number" ? value : value,
+      [name]: processedValue,
     }));
   };
 
@@ -78,17 +120,46 @@ export default function CorteModal({ isOpen, onClose, onSave, corte }) {
       return;
     }
 
-    // Preparar datos para guardar
-    const toSave = { ...formData };
+    // Preparar datos según esquema del backend
+    const backendPayload = {
+      codigo: formData.codigo,
+      nombre: formData.nombre,
+      posicion: formData.posicion || "",
+      tipo: formData.tipo,
+      color: formData.color,
+      cantidad: 0, // Siempre 0 como especificaste
+      costo: parseFloat(formData.costo) || 0,
+      precio1: parseFloat(formData.precio1) || 0,
+      precio2: parseFloat(formData.precio2) || 0,
+      precio3: parseFloat(formData.precio3) || 0,
+      precioEspecial: parseFloat(formData.precioEspecial) || 0,
+      descripcion: formData.descripcion || "",
+      largoCm: parseFloat(formData.largoCm) || 0,
+      precio: parseFloat(formData.precio) || 0,
+      observacion: formData.observacion || "",
+      version: null // Nulo como especificaste
+    };
 
-    // Si es creación, asegurar que las cantidades queden en 0 (no se ingresan al crear)
-    if (!isEditing) {
-      toSave.cantidadInsula = 0;
-      toSave.cantidadCentro = 0;
-      toSave.cantidadPatios = 0;
+    // Convertir categoría a objeto si es string
+    if (formData.categoria && typeof formData.categoria === 'string') {
+      const categoriaObj = categories.find(cat => cat.nombre === formData.categoria);
+      if (categoriaObj) {
+        backendPayload.categoria = {
+          id: categoriaObj.id,
+          nombre: categoriaObj.nombre
+        };
+      }
+    } else if (formData.categoria && typeof formData.categoria === 'object') {
+      backendPayload.categoria = formData.categoria;
     }
 
-    onSave(toSave);
+    // Si es edición, incluir el id
+    if (isEditing && formData.id) {
+      backendPayload.id = formData.id;
+    }
+
+    console.log("Datos que se enviarán al backend (corte):", backendPayload);
+    onSave(backendPayload);
     onClose();
   };
 
@@ -126,14 +197,19 @@ export default function CorteModal({ isOpen, onClose, onSave, corte }) {
 
             <label>
               Categoría:
-              <input
-                type="text"
+              <select
                 name="categoria"
-                placeholder="Categoría (ej. Cortes, Vidrios...)"
                 value={formData.categoria}
                 onChange={handleChange}
                 required
-              />
+              >
+                <option value="">Seleccionar categoría...</option>
+                {categories.map((cat) => (
+                  <option key={cat.id} value={cat.nombre}>
+                    {cat.nombre}
+                  </option>
+                ))}
+              </select>
             </label>
 
             <label>
@@ -141,7 +217,7 @@ export default function CorteModal({ isOpen, onClose, onSave, corte }) {
               <input
                 type="text"
                 name="posicion"
-                placeholder="Posición (ej. C1, C2...)"
+                placeholder="Solo números"
                 value={formData.posicion}
                 onChange={handleChange}
               />
@@ -149,24 +225,32 @@ export default function CorteModal({ isOpen, onClose, onSave, corte }) {
 
             <label>
               Tipo:
-              <input
-                type="text"
+              <select
                 name="tipo"
-                placeholder="Tipo (ej. NEGRO, CLARO...)"
                 value={formData.tipo}
                 onChange={handleChange}
-              />
+                required
+              >
+                <option value="UNID">UNIDAD</option>
+                <option value="PERFIL">PERFIL</option>
+              </select>
             </label>
 
             <label>
               Color:
-              <input
-                type="text"
+              <select
                 name="color"
-                placeholder="Color"
                 value={formData.color}
                 onChange={handleChange}
-              />
+                required
+              >
+                <option value="MATE">MATE</option>
+                <option value="BLANCO">BLANCO</option>
+                <option value="NEGRO">NEGRO</option>
+                <option value="BRONCE">BRONCE</option>
+                <option value="NATURAL">NATURAL</option>
+                <option value="NA">NA</option>
+              </select>
             </label>
           </div>
 
@@ -175,9 +259,9 @@ export default function CorteModal({ isOpen, onClose, onSave, corte }) {
             <label>
               Largo (cm):
               <input
-                type="number"
+                type="text"
                 name="largoCm"
-                step="0.01"
+                placeholder="Solo números"
                 value={formData.largoCm}
                 onChange={handleChange}
                 required
@@ -187,9 +271,9 @@ export default function CorteModal({ isOpen, onClose, onSave, corte }) {
             <label>
               Costo:
               <input
-                type="number"
+                type="text"
                 name="costo"
-                step="0.01"
+                placeholder="Solo números"
                 value={formData.costo}
                 onChange={handleChange}
               />
@@ -198,9 +282,9 @@ export default function CorteModal({ isOpen, onClose, onSave, corte }) {
             <label>
               Precio Base:
               <input
-                type="number"
+                type="text"
                 name="precio"
-                step="0.01"
+                placeholder="Solo números"
                 value={formData.precio}
                 onChange={handleChange}
               />
@@ -252,9 +336,9 @@ export default function CorteModal({ isOpen, onClose, onSave, corte }) {
               <label>
                 Precio 1 (Ínsula):
                 <input
-                  type="number"
+                  type="text"
                   name="precio1"
-                  step="0.01"
+                  placeholder="Solo números"
                   value={formData.precio1}
                   onChange={handleChange}
                 />
@@ -263,9 +347,9 @@ export default function CorteModal({ isOpen, onClose, onSave, corte }) {
               <label>
                 Precio 2 (Centro):
                 <input
-                  type="number"
+                  type="text"
                   name="precio2"
-                  step="0.01"
+                  placeholder="Solo números"
                   value={formData.precio2}
                   onChange={handleChange}
                 />
@@ -274,9 +358,9 @@ export default function CorteModal({ isOpen, onClose, onSave, corte }) {
               <label>
                 Precio 3 (Patios):
                 <input
-                  type="number"
+                  type="text"
                   name="precio3"
-                  step="0.01"
+                  placeholder="Solo números"
                   value={formData.precio3}
                   onChange={handleChange}
                 />
@@ -285,9 +369,9 @@ export default function CorteModal({ isOpen, onClose, onSave, corte }) {
               <label>
                 Precio Especial:
                 <input
-                  type="number"
+                  type="text"
                   name="precioEspecial"
-                  step="0.01"
+                  placeholder="Solo números"
                   value={formData.precioEspecial}
                   onChange={handleChange}
                 />

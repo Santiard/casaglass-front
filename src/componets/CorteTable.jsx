@@ -62,7 +62,7 @@ export default function CorteTable({ data = [], onEditar, onEliminar, isAdmin = 
               <tr key={c.id}>
                 <td>{c.codigo}</td>
                 <td>{c.nombre}</td>
-                <td>{c.categoria || "-"}</td>
+                <td>{c.categoria?.nombre || c.categoria || "-"}</td>
                 <td>{c.color ?? "N/A"}</td>
                 <td>{c.largoCm ?? "-"}</td>
                 

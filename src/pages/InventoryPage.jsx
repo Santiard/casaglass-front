@@ -12,11 +12,12 @@ import CorteTable from "../componets/CorteTable.jsx";
 import CorteFilters from "../componets/CorteFilters.jsx";
 import CorteModal from "../modals/CorteModal.jsx";
 
-// ===Inventario ===
+// === Servicios ===
 //producto
 import { listarInventarioCompleto, listarInventarioAgrupado, listarCortesInventarioCompleto } from "../services/InventarioService";
 //corte
 import {listarInventarioCortesAgrupado} from "../services/InventarioCorteService.js";
+import { crearCorte, actualizarCorte, eliminarCorte } from "../services/CortesService.js";
 
 
 import "../styles/InventoryPage.css";
@@ -288,18 +289,36 @@ export default function InventoryPage() {
 
   const handleAddCorte = () => { setEditingCorte(null); setCorteModalOpen(true); };
   const handleEditCorte = (c) => { setEditingCorte(c); setCorteModalOpen(true); };
-  const handleDeleteCorte = (id) => {
-    if (!confirm("¿Eliminar este corte?")) return;
-    setCortes((prev) => prev.filter((c) => c.id !== id));
-  };
-  const handleSaveCorte = (corte) => {
-    if (editingCorte?.id) {
-      setCortes((prev) => prev.map((c) => (c.id === editingCorte.id ? { ...c, ...corte } : c)));
-    } else {
-      const nextId = Math.max(0, ...cortes.map((d) => d.id)) + 1;
-      setCortes((prev) => [...prev, { ...corte, id: nextId }]);
+  const handleDeleteCorte = async (id) => {
+    try {
+      if (!confirm("¿Eliminar este corte?")) return;
+      
+      await eliminarCorte(id);
+      
+      // Refrescar página después de eliminar
+      window.location.reload();
+    } catch (e) {
+      console.error("Error eliminando corte", e);
+      alert(e?.response?.data?.message || "No se pudo eliminar el corte.");
     }
-    setCorteModalOpen(false);
+  };
+  const handleSaveCorte = async (corte) => {
+    try {
+      const editando = !!editingCorte?.id;
+      
+      if (editando) {
+        await actualizarCorte(editingCorte.id, corte);
+      } else {
+        await crearCorte(corte);
+      }
+
+      // Cerrar modal y refrescar página para ver cambios
+      setCorteModalOpen(false);
+      window.location.reload();
+    } catch (e) {
+      console.error("Error guardando corte", e);
+      alert(e?.response?.data?.message || "No se pudo guardar el corte.");
+    }
   };
 
   const handleSelectCorteCategory = (catId) => {

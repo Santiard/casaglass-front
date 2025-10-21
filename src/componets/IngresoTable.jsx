@@ -14,6 +14,7 @@ export default function IngresosTable({
   onCrear,
   onActualizar,
   onEliminar,
+  onProcesar,
 }) {
   const [ingresos, setIngresos] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -189,6 +190,7 @@ export default function IngresosTable({
               <th>Observaciones</th>
               <th>Ítems</th>
               <th>Total costo</th>
+              <th>Estado</th>
               <th>Detalle</th>
               <th>Acciones</th>
             </tr>
@@ -230,6 +232,21 @@ export default function IngresosTable({
                     </td>
                     <td>{fmtCOP(Number(ing.totalCosto))}</td>
                     <td>
+                      <span 
+                        className={`badge ${ing.procesado ? 'badge-success' : 'badge-warning'}`}
+                        style={{
+                          background: ing.procesado ? 'var(--color-success-bg)' : 'var(--color-warning-bg)',
+                          color: ing.procesado ? 'var(--color-success)' : 'var(--color-warning)',
+                          padding: '0.25rem 0.5rem',
+                          borderRadius: '0.375rem',
+                          fontSize: '0.75rem',
+                          fontWeight: '500'
+                        }}
+                      >
+                        {ing.procesado ? 'Procesado' : 'Pendiente'}
+                      </span>
+                    </td>
+                    <td>
                       <button
                         className="btnLink"
                         type="button"
@@ -254,6 +271,18 @@ export default function IngresosTable({
                           alt="Editar"
                         />
                       </button>
+                      
+                      {/* Botón Procesar - solo si no está procesado */}
+                      {!ing.procesado && (
+                        <button
+                          className="btn"
+                          onClick={() => onProcesar?.(ing.id)}
+                          title="Procesar ingreso"
+                        >
+                          Procesar
+                        </button>
+                      )}
+                      
                       <button
                       className="btn"
                       onClick={() => eliminar(ing)}

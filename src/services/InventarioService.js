@@ -74,6 +74,7 @@ function transformarInventarioDTO(productos, isAdmin = true, userSedeId = null) 
  */
 export async function listarInventarioCompleto(params = {}, isAdmin = true, userSedeId = null) {
   const { data } = await api.get("/inventario-completo", { params });
+  console.log("Datos del endpoint /api/inventario-completo:", data);
   return transformarInventarioDTO(data || [], isAdmin, userSedeId);
 }
 

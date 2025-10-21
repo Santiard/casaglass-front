@@ -24,6 +24,7 @@
     align-items:center;
     justify-content: space-between;
     padding: .9rem 1rem;
+    background: var(--color-light-blue);
     border-bottom:1px solid #1f2937; }
 
 .modal-header h3 {
