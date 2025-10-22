@@ -135,6 +135,14 @@ export default function VenderPage() {
   const limpiarCarrito = () => {
     setProductosCarrito([]);
     localStorage.removeItem("shopItems");
+    
+    // Refrescar automáticamente la tabla después de una venta exitosa
+    console.log("🔄 Refrescando tabla después de venta exitosa...");
+    if (view === "producto") {
+      fetchData();
+    } else {
+      fetchCortesData();
+    }
   };
 
   const eliminarProducto = (index) => {
