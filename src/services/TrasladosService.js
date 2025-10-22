@@ -24,18 +24,38 @@ export async function obtenerTraslado(id) {
  * }
  */
 export async function crearTraslado(payload) {
-  const { data } = await api.post("/traslados-movimientos", payload);
-  return data;
+  console.log("🔄 Creando traslado con payload:", payload);
+  console.log("🔄 URL completa:", `${api.defaults.baseURL}/traslados`);
+  
+  try {
+    const { data } = await api.post("/traslados", payload);
+    console.log("✅ Traslado creado exitosamente:", data);
+    return data;
+  } catch (error) {
+    console.error("❌ Error completo al crear traslado:", {
+      message: error.message,
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      data: error.response?.data,
+      headers: error.response?.headers,
+      config: {
+        url: error.config?.url,
+        method: error.config?.method,
+        data: error.config?.data
+      }
+    });
+    throw error;
+  }
 }
 
 /** Actualiza SOLO cabecera */
 export async function actualizarCabecera(id, payload) {
-  const { data } = await api.put(`/traslados-movimientos/${id}`, payload);
+  const { data } = await api.put(`/traslados/${id}`, payload);
   return data;
 }
 
 export async function eliminarTraslado(id) {
-  await api.delete(`/traslados-movimientos/${id}`);
+  await api.delete(`/traslados/${id}`);
 }
 
 export async function confirmarTraslado(id, trabajadorId) {

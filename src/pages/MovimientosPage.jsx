@@ -109,7 +109,6 @@ export default function MovimientosPage() {
 
   return (
     <div>
-      <h1>Traslados</h1>
       <MovimientosTable
         data={traslados}
         loading={loading}

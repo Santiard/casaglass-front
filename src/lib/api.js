@@ -15,3 +15,19 @@ api.interceptors.request.use((cfg) => {
   if (token) cfg.headers.Authorization = `Bearer ${token}`;
   return cfg;
 });
+
+// Interceptor para capturar errores de respuesta
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    console.error("🚨 Error de API interceptado:", {
+      url: error.config?.url,
+      method: error.config?.method,
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      data: error.response?.data,
+      headers: error.response?.headers
+    });
+    return Promise.reject(error);
+  }
+);

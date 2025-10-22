@@ -49,13 +49,16 @@ function mapFormAIngresoAPI(form = {}) {
   if (detalles.length === 0) throw new Error("Debes agregar al menos un producto.");
 
   const mappedDetalles = detalles.map((d, idx) => {
+    console.log(`🔍 Procesando detalle #${idx + 1}:`, d);
+    console.log(`🔍 Producto del detalle:`, d?.producto);
+    
     const prodId = Number(d?.producto?.id);
     const cantidad = Number(d?.cantidad);
     const costoUnitario = Number(d?.costoUnitario);
     const totalLinea = cantidad * costoUnitario;
 
     if (!Number.isFinite(prodId) || prodId <= 0) {
-      throw new Error(`Detalle #${idx + 1}: producto inválido.`);
+      throw new Error(`Detalle #${idx + 1}: producto inválido. Producto recibido: ${JSON.stringify(d?.producto)}`);
     }
     if (!Number.isFinite(cantidad) || cantidad < 1) {
       throw new Error(`Detalle #${idx + 1}: cantidad debe ser ≥ 1.`);
@@ -64,18 +67,17 @@ function mapFormAIngresoAPI(form = {}) {
       throw new Error(`Detalle #${idx + 1}: costo unitario debe ser > 0.`);
     }
 
-    return {
-      id: d?.id || 0, // ID del detalle (0 para nuevos)
-      // ingreso se maneja automáticamente en el backend por la relación
+    const detalleMapeado = {
       producto: { 
-        id: prodId,
-        // Incluir toda la información del producto que tengas disponible
-        ...(d?.producto || {})
+        id: prodId
       },
       cantidad,
       costoUnitario,
       totalLinea
     };
+    
+    console.log(`✅ Detalle #${idx + 1} mapeado:`, detalleMapeado);
+    return detalleMapeado;
   });
 
   // Calcular totalCosto
@@ -101,6 +103,19 @@ export async function listarIngresos() {
   return data;
 }
 
+// Función de prueba para verificar conectividad
+export async function probarConectividad() {
+  try {
+    console.log("🧪 Probando conectividad con el backend...");
+    const response = await api.get("/ingresos");
+    console.log("✅ Conectividad OK:", response.status);
+    return true;
+  } catch (error) {
+    console.error("❌ Error de conectividad:", error);
+    return false;
+  }
+}
+
 export async function obtenerIngreso(id) {
   const { data } = await api.get(`/ingresos/${id}`);
   return data;
@@ -108,11 +123,29 @@ export async function obtenerIngreso(id) {
 
 export async function crearIngresoDesdeForm(form) {
   const payload = mapFormAIngresoAPI(form);
-  // Al crear un ingreso nuevo, siempre va procesado: true
-  payload.procesado = true;
-  console.log("✅ Creando ingreso con procesado: true", payload);
-  const { data } = await api.post("/ingresos", payload);
-  return data;
+  // Al crear un ingreso nuevo, siempre va procesado: false
+  payload.procesado = false;
+  console.log("✅ Creando ingreso con procesado: false", payload);
+  
+  try {
+    const { data } = await api.post("/ingresos", payload);
+    console.log("✅ Ingreso creado exitosamente:", data);
+    return data;
+  } catch (error) {
+    console.error("❌ Error completo al crear ingreso:", {
+      message: error.message,
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      data: error.response?.data,
+      headers: error.response?.headers,
+      config: {
+        url: error.config?.url,
+        method: error.config?.method,
+        data: error.config?.data
+      }
+    });
+    throw error;
+  }
 }
 
 export async function actualizarIngresoDesdeForm(id, form) {
@@ -164,7 +197,7 @@ export async function eliminarIngreso(id) {
 }
 
 export async function procesarIngreso(id) {
-  console.log(`🔄 Marcando como procesado ingreso ID: ${id}`);
+  console.log(`🔄 Procesando ingreso ID: ${id} (actualización completa de inventario)`);
   
   // Validar ID
   const numericId = Number(id);
@@ -173,11 +206,59 @@ export async function procesarIngreso(id) {
   }
   
   try {
-    const { data } = await api.post(`/ingresos/${numericId}/marcar-procesado`);
+    const { data } = await api.put(`/ingresos/${numericId}/procesar`);
+    console.log(`✅ Ingreso ${numericId} procesado correctamente:`, data);
+    return data;
+  } catch (error) {
+    console.error(`❌ Error al procesar ingreso ${numericId}:`, {
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      message: error.message
+    });
+    console.error("📋 Detalle completo del error del backend:", error.response?.data);
+    throw error;
+  }
+}
+
+export async function marcarProcesado(id) {
+  console.log(`🔄 Marcando como procesado ingreso ID: ${id} (sin actualizar inventario)`);
+  
+  // Validar ID
+  const numericId = Number(id);
+  if (!Number.isFinite(numericId) || numericId <= 0) {
+    throw new Error(`ID de ingreso inválido: ${id}`);
+  }
+  
+  try {
+    const { data } = await api.put(`/ingresos/${numericId}/marcar-procesado`);
     console.log(`✅ Ingreso ${numericId} marcado como procesado:`, data);
     return data;
   } catch (error) {
     console.error(`❌ Error al marcar ingreso ${numericId} como procesado:`, {
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      message: error.message
+    });
+    console.error("📋 Detalle completo del error del backend:", error.response?.data);
+    throw error;
+  }
+}
+
+export async function reprocesarIngreso(id) {
+  console.log(`🔄 Reprocesando ingreso ID: ${id} (corrección de procesamiento previo)`);
+  
+  // Validar ID
+  const numericId = Number(id);
+  if (!Number.isFinite(numericId) || numericId <= 0) {
+    throw new Error(`ID de ingreso inválido: ${id}`);
+  }
+  
+  try {
+    const { data } = await api.put(`/ingresos/${numericId}/reprocesar`);
+    console.log(`✅ Ingreso ${numericId} reprocesado correctamente:`, data);
+    return data;
+  } catch (error) {
+    console.error(`❌ Error al reprocesar ingreso ${numericId}:`, {
       status: error.response?.status,
       statusText: error.response?.statusText,
       message: error.message
