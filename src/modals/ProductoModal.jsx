@@ -17,7 +17,6 @@ export default function ProductModal({ isOpen, onClose, onSave, product }) {
     precio1: "",
     precio2: "",
     precio3: "",
-    precioEspecial: "",
     esVidrio: false,
     mm: "",
     m1: "",
@@ -89,7 +88,7 @@ export default function ProductModal({ isOpen, onClose, onSave, product }) {
     }
 
     // Campos de precios (pueden estar vacíos)
-    const priceFields = ['precio1', 'precio2', 'precio3', 'precioEspecial', 'laminas'];
+    const priceFields = ['precio1', 'precio2', 'precio3', 'laminas'];
     // Campos de cantidades (deben tener 0 por defecto)
     const quantityFields = ['cantidadInsula', 'cantidadCentro', 'cantidadPatios'];
     // Campos de texto que deben convertirse a mayúsculas
@@ -145,7 +144,6 @@ export default function ProductModal({ isOpen, onClose, onSave, product }) {
     toSave.precio1 = toSave.precio1 === "" ? 0 : parseFloat(toSave.precio1) || 0;
     toSave.precio2 = toSave.precio2 === "" ? 0 : parseFloat(toSave.precio2) || 0;
     toSave.precio3 = toSave.precio3 === "" ? 0 : parseFloat(toSave.precio3) || 0;
-    toSave.precioEspecial = toSave.precioEspecial === "" ? 0 : parseFloat(toSave.precioEspecial) || 0;
     toSave.laminas = toSave.laminas === "" ? 0 : parseInt(toSave.laminas) || 0;
 
     // Convertir cantidades a números enteros
@@ -186,7 +184,6 @@ export default function ProductModal({ isOpen, onClose, onSave, product }) {
       precio1: toSave.precio1,
       precio2: toSave.precio2,
       precio3: toSave.precio3,
-      precioEspecial: toSave.precioEspecial,
       descripcion: toSave.descripcion || "",
       posicion: toSave.posicion || ""
     };
@@ -405,18 +402,6 @@ export default function ProductModal({ isOpen, onClose, onSave, product }) {
                 />
               </label>
 
-              <label>
-                Precio Especial:
-                <input
-                  type="text"
-                  name="precioEspecial"
-                  placeholder="Precio especial"
-                  value={formData.precioEspecial}
-                  onChange={handleChange}
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                />
-              </label>
 
               {/* Cantidades sólo al editar */}
               {isEditing && (

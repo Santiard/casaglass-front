@@ -20,7 +20,6 @@ export default function CorteModal({ isOpen, onClose, onSave, corte }) {
     precio1: "",
     precio2: "",
     precio3: "",
-    precioEspecial: "",
     largoCm: "",
     precio: "",
     observacion: "",
@@ -59,7 +58,6 @@ export default function CorteModal({ isOpen, onClose, onSave, corte }) {
         precio1: corte.precio1 ? String(corte.precio1) : "",
         precio2: corte.precio2 ? String(corte.precio2) : "",
         precio3: corte.precio3 ? String(corte.precio3) : "",
-        precioEspecial: corte.precioEspecial ? String(corte.precioEspecial) : "",
         largoCm: corte.largoCm ? String(corte.largoCm) : "",
         precio: corte.precio ? String(corte.precio) : "",
         costo: corte.costo ? String(corte.costo) : "",
@@ -80,7 +78,7 @@ export default function CorteModal({ isOpen, onClose, onSave, corte }) {
     const { name, value } = e.target;
     
     // Definir tipos de campos para validaciones
-    const priceFields = ['precio1', 'precio2', 'precio3', 'precioEspecial', 'precio', 'costo'];
+    const priceFields = ['precio1', 'precio2', 'precio3', 'precio', 'costo'];
     const numericFields = ['posicion', 'largoCm'];
     const uppercaseFields = ['codigo', 'nombre', 'descripcion', 'observacion'];
 
@@ -132,7 +130,6 @@ export default function CorteModal({ isOpen, onClose, onSave, corte }) {
       precio1: parseFloat(formData.precio1) || 0,
       precio2: parseFloat(formData.precio2) || 0,
       precio3: parseFloat(formData.precio3) || 0,
-      precioEspecial: parseFloat(formData.precioEspecial) || 0,
       descripcion: formData.descripcion || "",
       largoCm: parseFloat(formData.largoCm) || 0,
       precio: parseFloat(formData.precio) || 0,
@@ -366,16 +363,6 @@ export default function CorteModal({ isOpen, onClose, onSave, corte }) {
                 />
               </label>
 
-              <label>
-                Precio Especial:
-                <input
-                  type="text"
-                  name="precioEspecial"
-                  placeholder="Solo números"
-                  value={formData.precioEspecial}
-                  onChange={handleChange}
-                />
-              </label>
             </div>
           </div>
 

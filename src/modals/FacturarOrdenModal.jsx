@@ -4,6 +4,7 @@ import { listarClientes } from "../services/ClientesService";
 import { listarSedes } from "../services/SedesService";
 import { listarTrabajadores } from "../services/TrabajadoresService";
 import { crearOrdenVenta } from "../services/OrdenesService";
+import { useAuth } from "../context/AuthContext.jsx";
 
 export default function FacturarOrdenModal({ 
   isOpen, 
@@ -11,6 +12,7 @@ export default function FacturarOrdenModal({
   productosCarrito = [],
   onFacturacionExitosa
 }) {
+  const { user, sedeId } = useAuth();
   const [clientes, setClientes] = useState([]);
   const [trabajadores, setTrabajadores] = useState([]);
   const [sedes, setSedes] = useState([]);
@@ -26,18 +28,22 @@ export default function FacturarOrdenModal({
 
   const [loading, setLoading] = useState(false);
   const [mensaje, setMensaje] = useState("");
+  const [ordenProcesada, setOrdenProcesada] = useState(false);
+  const [reintentos, setReintentos] = useState(0);
 
   // Resetear formulario cuando se cierre el modal
   const resetForm = () => {
     setForm({
       clienteId: "",
-      sedeId: "",
-      trabajadorId: "",
+      sedeId: sedeId || "", // Preseleccionar sede del usuario logueado
+      trabajadorId: user?.id || "", // Preseleccionar trabajador (usuario logueado)
       obra: "",
       credito: false,
       incluidaEntrega: false,
     });
     setMensaje("");
+    setOrdenProcesada(false);
+    setReintentos(0);
   };
 
   useEffect(() => {
@@ -56,11 +62,26 @@ export default function FacturarOrdenModal({
         setClientes(cli || []);
         setSedes(sed || []);
         setTrabajadores(trab || []);
+        
+        // Preseleccionar sede y trabajador después de cargar los datos
+        console.log("🔍 Usuario logueado:", user);
+        console.log("🔍 Sede ID del usuario:", sedeId);
+        
+        setForm(prev => ({
+          ...prev,
+          sedeId: sedeId || "",
+          trabajadorId: user?.id || "",
+        }));
+        
+        console.log("✅ Formulario preseleccionado:", {
+          sedeId: sedeId || "",
+          trabajadorId: user?.id || "",
+        });
       } catch (e) {
         console.error("Error cargando catálogos:", e);
       }
     })();
-  }, [isOpen]);
+  }, [isOpen, sedeId, user?.id]);
 
   const handleChange = (field, value) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -90,10 +111,25 @@ export default function FacturarOrdenModal({
       errores.push("Todos los productos deben tener cantidad y precio válidos");
     }
     
+    // Log para debugging
+    console.log("🔍 Validación del formulario:", {
+      clienteId: form.clienteId,
+      trabajadorId: form.trabajadorId,
+      sedeId: form.sedeId,
+      productosCarrito: productosCarrito.length,
+      errores: errores.length
+    });
+    
     return errores;
   };
 
   const handleFacturar = async () => {
+    // Prevenir procesamiento duplicado
+    if (ordenProcesada) {
+      setMensaje("⚠️ Esta orden ya fue procesada. Por favor, cierre el modal y abra uno nuevo.");
+      return;
+    }
+
     const errores = validarFormulario();
     
     if (errores.length > 0) {
@@ -151,6 +187,12 @@ export default function FacturarOrdenModal({
     };
 
     console.log("📋 Payload completo:", payload);
+    console.log("🎯 Campos preseleccionados:", {
+      sedeId: payload.sedeId,
+      trabajadorId: payload.trabajadorId,
+      sedeNombre: sedes.find(s => s.id === payload.sedeId)?.nombre,
+      trabajadorNombre: trabajadores.find(t => t.id === payload.trabajadorId)?.nombre
+    });
 
     // Validar que todos los números sean válidos
     if (isNaN(payload.clienteId) || isNaN(payload.sedeId) || isNaN(payload.trabajadorId)) {
@@ -220,6 +262,7 @@ export default function FacturarOrdenModal({
       }
       
       setMensaje(mensajeCompleto);
+      setOrdenProcesada(true); // Marcar como procesada para prevenir duplicados
       
       // Limpiar carrito cuando la facturación sea exitosa
       if (onFacturacionExitosa) {
@@ -252,12 +295,18 @@ export default function FacturarOrdenModal({
           msg = "Error: Este producto ya existe en el inventario de esta sede. El backend necesita actualizar el inventario en lugar de crear una nueva entrada.";
         } else if (errorMsg.includes("could not execute statement")) {
           msg = "Error de base de datos: " + errorMsg.split("] [")[0].split("[")[1];
+        } else if (errorMsg.includes("Ya existe un crédito para esta orden")) {
+          msg = "⚠️ Ya existe un crédito para esta orden. Cada orden solo puede tener un crédito.\n\n💡 Solución: Cierre este modal y abra uno nuevo para crear otra orden.";
         } else {
           msg = errorMsg;
         }
       } else if (e?.response?.data?.tipo && e?.response?.data?.error) {
         // Nueva estructura de errores del backend
-        msg = `Error ${e.response.data.tipo}: ${e.response.data.error}`;
+        if (e.response.data.codigo === "CONFLICTO_STOCK") {
+          msg = `⚠️ Conflicto de Stock: Otro usuario está vendiendo el mismo producto al mismo tiempo.\n\n💡 Solución: Espere unos segundos e intente nuevamente, o verifique el stock disponible.\n\n🔄 Reintentos realizados: ${reintentos}/3\n\n🔍 Debug Info:\n- Status: ${e.response.status}\n- Código: ${e.response.data.codigo}\n- Tipo: ${e.response.data.tipo}`;
+        } else {
+          msg = `Error ${e.response.data.tipo}: ${e.response.data.error}`;
+        }
       } else if (e?.response?.data?.error) {
         msg = e.response.data.error;
       } else if (e?.response?.status === 400) {
@@ -290,6 +339,21 @@ export default function FacturarOrdenModal({
           </button>
         </div>
 
+        {/* Mensaje informativo */}
+        {(form.sedeId || form.trabajadorId) && (
+          <div style={{
+            backgroundColor: '#e8f5e8',
+            border: '1px solid #28a745',
+            borderRadius: '4px',
+            padding: '8px 12px',
+            marginBottom: '16px',
+            fontSize: '0.9em',
+            color: '#155724'
+          }}>
+            ℹ️ <strong>Campos preseleccionados:</strong> La sede y trabajador se han seleccionado automáticamente según tu usuario logueado. Puedes cambiarlos si es necesario.
+          </div>
+        )}
+
         <div className="factura-grid">
           {/* 🔹 Panel Izquierdo - Datos de la orden */}
           <div className="factura-form">
@@ -309,7 +373,7 @@ export default function FacturarOrdenModal({
             </label>
 
             <label>
-              Trabajador / Vendedor
+              Trabajador / Vendedor {form.trabajadorId && <span style={{color: '#28a745', fontSize: '0.8em'}}>✓ Preseleccionado</span>}
               <select
                 value={form.trabajadorId}
                 onChange={(e) => handleChange("trabajadorId", e.target.value)}
@@ -324,7 +388,7 @@ export default function FacturarOrdenModal({
             </label>
 
             <label>
-              Sede
+              Sede {form.sedeId && <span style={{color: '#28a745', fontSize: '0.8em'}}>✓ Preseleccionada</span>}
               <select
                 value={form.sedeId}
                 onChange={(e) => handleChange("sedeId", e.target.value)}
@@ -410,6 +474,45 @@ export default function FacturarOrdenModal({
               {mensaje.split('\n').map((linea, index) => (
                 <div key={index}>{linea}</div>
               ))}
+              {mensaje.includes("Ya existe un crédito") && (
+                <div style={{ marginTop: '10px' }}>
+                  <button 
+                    className="btn-cancelar" 
+                    onClick={onClose}
+                    style={{ fontSize: '0.9em', padding: '5px 10px' }}
+                  >
+                    Cerrar Modal
+                  </button>
+                </div>
+              )}
+              {mensaje.includes("Conflicto de Stock") && (
+                <div style={{ marginTop: '10px', display: 'flex', gap: '10px' }}>
+                  <button 
+                    className="btn-guardar" 
+                    onClick={() => {
+                      if (reintentos < 3) {
+                        setMensaje("");
+                        setOrdenProcesada(false);
+                        setReintentos(prev => prev + 1);
+                        handleFacturar();
+                      } else {
+                        setMensaje("⚠️ Máximo de reintentos alcanzado. Por favor, cierre el modal y verifique el stock disponible.");
+                      }
+                    }}
+                    style={{ fontSize: '0.9em', padding: '5px 10px' }}
+                    disabled={loading || reintentos >= 3}
+                  >
+                    🔄 Reintentar ({reintentos}/3)
+                  </button>
+                  <button 
+                    className="btn-cancelar" 
+                    onClick={onClose}
+                    style={{ fontSize: '0.9em', padding: '5px 10px' }}
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              )}
             </div>
           )}
 
@@ -420,9 +523,9 @@ export default function FacturarOrdenModal({
             <button
               className="btn-guardar"
               onClick={handleFacturar}
-              disabled={loading || productosCarrito.length === 0}
+              disabled={loading || productosCarrito.length === 0 || ordenProcesada}
             >
-              {loading ? "Facturando..." : "Confirmar Factura"}
+              {loading ? "Facturando..." : ordenProcesada ? "Orden Procesada" : "Confirmar Factura"}
             </button>
           </div>
         </div>

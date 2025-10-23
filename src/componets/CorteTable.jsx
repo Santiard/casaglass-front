@@ -31,7 +31,6 @@ export default function CorteTable({ data = [], onEditar, onEliminar, isAdmin = 
                 <th>Precio 1</th>
                 <th>Precio 2</th>
                 <th>Precio 3</th>
-                <th>Precio especial</th>
               </>
             ) : (
               <th>Precio</th>
@@ -84,7 +83,6 @@ export default function CorteTable({ data = [], onEditar, onEliminar, isAdmin = 
                     <td>{c.precio1?.toLocaleString?.("es-CO") ?? "-"}</td>
                     <td>{c.precio2?.toLocaleString?.("es-CO") ?? "-"}</td>
                     <td>{c.precio3?.toLocaleString?.("es-CO") ?? "-"}</td>
-                    <td>{c.precioEspecial?.toLocaleString?.("es-CO") ?? "-"}</td>
                   </>
                 ) : (
                   <td><strong>

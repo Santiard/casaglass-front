@@ -51,10 +51,7 @@ export default function Login() {
     <div className="login-container">
       {/* Barra izquierda */}
       <div className="login-left">
-        <h1 className="title">ALUMINIOS CASAGLASS</h1>
-        <p className="subtitle">
-          AQUI IRIA EL ESLOGAN
-        </p>
+        <h1 className="title">ALUMINIOS CASAGLASS S.A.S</h1>
       </div>
 
       {/* Barra derecha */}

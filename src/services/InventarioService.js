@@ -50,7 +50,6 @@ function transformarInventarioDTO(productos, isAdmin = true, userSedeId = null) 
       precio1: producto.precio1,
       precio2: producto.precio2,
       precio3: producto.precio3,
-      precioEspecial: producto.precioEspecial,
       cantidadInsula,
       cantidadCentro,
       cantidadPatios,
@@ -163,8 +162,7 @@ function transformarCortesDTO(cortes, isAdmin = true, userSedeId = null) {
       cantidadTotal: isAdmin ? corte.cantidadTotal : (cantidadInsula + cantidadCentro + cantidadPatios),
       precio1: corte.precio1,
       precio2: corte.precio2,
-      precio3: corte.precio3,
-      precioEspecial: corte.precioEspecial
+      precio3: corte.precio3
     };
   });
 }

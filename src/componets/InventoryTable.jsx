@@ -37,7 +37,6 @@ export default function InventoryTable({ data = [], filters, loading, onEditar, 
                 <th>Precio 1</th>
                 <th>Precio 2</th>
                 <th>Precio 3</th>
-                <th>Precio especial</th>
               </>
             ) : (
               <th>Precio</th>
@@ -95,7 +94,6 @@ export default function InventoryTable({ data = [], filters, loading, onEditar, 
                     <td>{p.precio1 ?? "-"}</td>
                     <td>{p.precio2 ?? "-"}</td>
                     <td>{p.precio3 ?? "-"}</td>
-                    <td>{p.precioEspecial ?? "-"}</td>
                   </>
                 ) : (
                   // Para VENDEDOR: mostrar solo el precio de su sede

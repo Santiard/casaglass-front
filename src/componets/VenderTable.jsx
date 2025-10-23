@@ -24,7 +24,6 @@ export default function VenderTable({ data = [], onAgregarProducto, onActualizar
             <th>Cantidad Centro</th>
             <th>Cantidad Patios</th>
             <th>Precio</th>
-            <th>Precio Especial</th>
             <th>Cantidad Vender</th>
             <th>Precio a usar</th>
             <th>Agregar</th>
@@ -56,7 +55,6 @@ export default function VenderTable({ data = [], onAgregarProducto, onActualizar
                   <td>{cantidadCentro}</td>
                   <td>{cantidadPatios}</td>
                   <td>{item.precio != null ? item.precio : "-"}</td>
-                  <td>{item.precioEspecial != null ? item.precioEspecial : "-"}</td>
                   <td>
                     <input
                       type="number"
@@ -80,11 +78,6 @@ export default function VenderTable({ data = [], onAgregarProducto, onActualizar
                       }}
                     >
                       <option value="precio">Precio normal ({item.precio})</option>
-                      {item.precioEspecial != null && (
-                        <option value="precioEspecial">
-                          Precio especial ({item.precioEspecial})
-                        </option>
-                      )}
                     </select>
                   </td>
                   <td>
