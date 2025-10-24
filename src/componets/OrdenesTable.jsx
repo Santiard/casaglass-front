@@ -87,6 +87,13 @@ export default function OrdenesTable({
     if (filtroEstado) {
       arr = arr.filter((o) => o.estado === filtroEstado);
     }
+    
+    // 🔹 Ordenar por fecha descendente (más recientes primero)
+    arr = arr.sort((a, b) => {
+      const fechaA = new Date(a.fecha);
+      const fechaB = new Date(b.fecha);
+      return fechaB - fechaA; // Descendente (más reciente primero)
+    });
 
     const total = arr.length;
     const maxPage = Math.max(1, Math.ceil(total / rowsPerPage));

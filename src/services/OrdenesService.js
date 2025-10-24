@@ -102,6 +102,10 @@ export async function actualizarOrdenVenta(id, payload) {
   try {
     console.log("🔄 Intentando actualizar orden de venta con endpoint ordenes/venta...");
     
+    // Calcular el total de la orden
+    const itemsValidos = payload.items.filter(item => !item.eliminar);
+    const totalOrden = itemsValidos.reduce((sum, item) => sum + (item.totalLinea || 0), 0);
+    
     // Formato exacto para el nuevo endpoint PUT /api/ordenes/venta/{id}
     const ordenData = {
       fecha: payload.fecha,
@@ -112,15 +116,14 @@ export async function actualizarOrdenVenta(id, payload) {
       clienteId: parseInt(payload.clienteId),
       trabajadorId: parseInt(payload.trabajadorId),
       sedeId: parseInt(payload.sedeId),
-      items: payload.items
-        .filter(item => !item.eliminar) // Solo enviar items no eliminados
-        .map(item => ({
-          productoId: parseInt(item.productoId),
-          descripcion: String(item.descripcion || ""),
-          cantidad: parseInt(item.cantidad),
-          precioUnitario: parseFloat(item.precioUnitario),
-          totalLinea: parseFloat(item.totalLinea)
-        })),
+      total: parseFloat(totalOrden), // 🆕 NUEVO: Total calculado de la orden
+      items: itemsValidos.map(item => ({
+        productoId: parseInt(item.productoId),
+        descripcion: String(item.descripcion || ""),
+        cantidad: parseInt(item.cantidad),
+        precioUnitario: parseFloat(item.precioUnitario),
+        totalLinea: parseFloat(item.totalLinea)
+      })),
       // 🆕 NUEVO: Incluir cortes pendientes si existen
       cortes: payload.cortes ? payload.cortes.map(corte => ({
         productoId: parseInt(corte.productoId),
@@ -133,6 +136,13 @@ export async function actualizarOrdenVenta(id, payload) {
     
     console.log("📦 Payload formateado para actualización de venta:", ordenData);
     console.log("🔍 Total de items enviados:", ordenData.items.length);
+    console.log("💰 Total calculado de la orden:", totalOrden);
+    console.log("📊 Desglose de totales por item:", itemsValidos.map(item => ({
+      producto: item.descripcion,
+      cantidad: item.cantidad,
+      precioUnitario: item.precioUnitario,
+      totalLinea: item.totalLinea
+    })));
     
     const { data } = await api.put(`ordenes/venta/${id}`, ordenData);
     return data;

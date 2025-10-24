@@ -98,7 +98,7 @@ export default function MovimientosTable({
 
   const filtrados = useMemo(() => {
     const q = query.trim().toLowerCase();
-    const arr = q
+    let arr = q
       ? data.filter((m) =>
           [
             m.sedeOrigen?.nombre,
@@ -114,6 +114,13 @@ export default function MovimientosTable({
             .some((v) => String(v).toLowerCase().includes(q))
         )
       : data;
+
+    // 🔹 Ordenar por fecha descendente (más recientes primero)
+    arr = arr.sort((a, b) => {
+      const fechaA = new Date(a.fecha);
+      const fechaB = new Date(b.fecha);
+      return fechaB - fechaA; // Descendente (más reciente primero)
+    });
 
     const total = arr.length;
     const maxPage = Math.max(1, Math.ceil(total / rowsPerPage));
