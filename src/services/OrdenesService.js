@@ -95,6 +95,81 @@ export async function actualizarOrden(id, payload) {
   return data;
 }
 
+// ✅ PUT /api/ordenes/venta/{id} - Actualizar orden de venta específica (maneja inventario)
+export async function actualizarOrdenVenta(id, payload) {
+  if (!id) throw new Error("ID de la orden no proporcionado");
+  
+  try {
+    console.log("🔄 Intentando actualizar orden de venta con endpoint ordenes/venta...");
+    
+    // Formato exacto para el nuevo endpoint PUT /api/ordenes/venta/{id}
+    const ordenData = {
+      fecha: payload.fecha,
+      obra: payload.obra || "",
+      venta: true, // Siempre true para órdenes de venta
+      credito: Boolean(payload.credito),
+      incluidaEntrega: Boolean(payload.incluidaEntrega || false),
+      clienteId: parseInt(payload.clienteId),
+      trabajadorId: parseInt(payload.trabajadorId),
+      sedeId: parseInt(payload.sedeId),
+      items: payload.items
+        .filter(item => !item.eliminar) // Solo enviar items no eliminados
+        .map(item => ({
+          productoId: parseInt(item.productoId),
+          descripcion: String(item.descripcion || ""),
+          cantidad: parseInt(item.cantidad),
+          precioUnitario: parseFloat(item.precioUnitario),
+          totalLinea: parseFloat(item.totalLinea)
+        })),
+      // 🆕 NUEVO: Incluir cortes pendientes si existen
+      cortes: payload.cortes ? payload.cortes.map(corte => ({
+        productoId: parseInt(corte.productoId),
+        medidaSolicitada: parseInt(corte.medidaSolicitada),
+        cantidad: parseInt(corte.cantidad || 1),
+        precioUnitarioSolicitado: parseFloat(corte.precioUnitarioSolicitado),
+        precioUnitarioSobrante: parseFloat(corte.precioUnitarioSobrante)
+      })) : []
+    };
+    
+    console.log("📦 Payload formateado para actualización de venta:", ordenData);
+    console.log("🔍 Total de items enviados:", ordenData.items.length);
+    
+    const { data } = await api.put(`ordenes/venta/${id}`, ordenData);
+    return data;
+  } catch (error) {
+    console.warn("⚠️ Error en endpoint ordenes/venta/{id}:", error.response?.status, error.response?.data?.message);
+    
+    // Manejo específico de errores del nuevo endpoint
+    if (error.response?.status === 400) {
+      const errorMsg = error.response?.data?.message || "Error de validación en la orden";
+      console.error("❌ Error 400 - Validación:", errorMsg);
+      throw new Error(`Error de validación: ${errorMsg}`);
+    }
+    
+    if (error.response?.status === 409) {
+      const errorMsg = error.response?.data?.message || "Conflicto de stock";
+      console.error("❌ Error 409 - Concurrencia:", errorMsg);
+      throw new Error(`Conflicto de stock: ${errorMsg}`);
+    }
+    
+    if (error.response?.status === 500) {
+      const errorMsg = error.response?.data?.message || "Error interno del servidor";
+      console.error("❌ Error 500 - Servidor:", errorMsg);
+      throw new Error(`Error interno del servidor: ${errorMsg}`);
+    }
+    
+    // Fallback al endpoint original solo si es 404 (endpoint no existe)
+    if (error.response?.status === 404) {
+      console.log("🔄 Endpoint específico no existe, usando fallback ordenes/tabla/{id}...");
+      const { data } = await api.put(`ordenes/tabla/${id}`, payload);
+      return data;
+    }
+    
+    // Para otros errores (500, etc), propagar el error original
+    throw error;
+  }
+}
+
 // DELETE /api/ordenes/{id}
 export async function eliminarOrden(id) {
   await api.delete(`ordenes/${id}`);

@@ -6,7 +6,7 @@ import { listarSedes } from "../services/SedesService.js";
 import { listarTrabajadores } from "../services/TrabajadoresService.js";
 import { listarProductos } from "../services/ProductosService.js";
 import { listarCategorias } from "../services/CategoriasService.js";
-import { actualizarOrden, obtenerOrden } from "../services/OrdenesService.js";
+import { actualizarOrden, obtenerOrden, actualizarOrdenVenta } from "../services/OrdenesService.js";
 
 import { api } from "../lib/api";
 // Utilidad para formato de fecha
@@ -65,7 +65,7 @@ export default function OrdenEditarModal({
           items:
             ordenCompleta.items?.map((i) => ({
               id: i.id,
-              productoId: null, // se resuelve al agregar/editar
+              productoId: i.producto?.id ?? null, // Preservar el ID real del producto
               codigo: i.producto?.codigo ?? "",
               nombre: i.producto?.nombre ?? "",
               descripcion: i.descripcion ?? "",
@@ -97,7 +97,7 @@ export default function OrdenEditarModal({
           items:
             orden.items?.map((i) => ({
               id: i.id,
-              productoId: null, // se resuelve al agregar/editar
+              productoId: i.producto?.id ?? null, // Preservar el ID real del producto
               codigo: i.producto?.codigo ?? "",
               nombre: i.producto?.nombre ?? "",
               descripcion: i.descripcion ?? "",
@@ -211,15 +211,21 @@ export default function OrdenEditarModal({
   const handleItemChange = (idx, field, value) => {
     setForm((prev) => {
       const arr = [...prev.items];
-      arr[idx] = {
-        ...arr[idx],
-        [field]:
-          field === "cantidad" ||
-          field === "precioUnitario" ||
-          field === "totalLinea"
-            ? Number(value)
-            : value,
-      };
+      const item = { ...arr[idx] };
+      
+      if (field === "cantidad") {
+        item.cantidad = Number(value) || 0;
+        // Recalcular total de línea automáticamente
+        item.totalLinea = item.cantidad * item.precioUnitario;
+      } else if (field === "precioUnitario") {
+        item.precioUnitario = Number(value) || 0;
+        // Recalcular total de línea automáticamente
+        item.totalLinea = item.cantidad * item.precioUnitario;
+      } else {
+        item[field] = field === "totalLinea" ? Number(value) : value;
+      }
+      
+      arr[idx] = item;
       return { ...prev, items: arr };
     });
   };
@@ -238,6 +244,9 @@ export default function OrdenEditarModal({
         return prev; // evitar duplicados
       }
       
+      // Obtener el precio según la sede del usuario (necesitamos acceso a la sede)
+      const precioUnitario = item.precio1 || 0; // Por ahora usar precio1, después se puede mejorar
+      
       const nuevo = {
         id: null,
         productoId: item.id,
@@ -245,8 +254,8 @@ export default function OrdenEditarModal({
         nombre: item.nombre,
         descripcion: item.descripcion || "",
         cantidad: 1,
-        precioUnitario: 0,
-        totalLinea: 0,
+        precioUnitario: precioUnitario,
+        totalLinea: precioUnitario, // 1 * precioUnitario
         eliminar: false,
       };
       
@@ -268,6 +277,12 @@ export default function OrdenEditarModal({
 
   const handleSubmit = async () => {
   try {
+    // Verificar si la orden está anulada
+    if (orden?.estado?.toLowerCase() === 'anulada') {
+      alert("No se puede editar una orden anulada. Las órdenes anuladas no pueden ser modificadas.");
+      return;
+    }
+
     const payload = {
     id: orden.id,
     fecha: toLocalDateOnly(form.fecha),
@@ -278,22 +293,51 @@ export default function OrdenEditarModal({
     trabajadorId: Number(form.trabajadorId),
     sedeId: Number(form.sedeId),
     items: form.items.map((i) => ({
-    id: i.id ?? null,
-    // 👇 Aquí la clave: obtener id real del producto
-    productoId: Number(i.productoId ?? i.producto?.id ?? i.id ?? 0),
-    descripcion: i.descripcion ?? "",
-    cantidad: Number(i.cantidad ?? 1),
-    precioUnitario: Number(i.precioUnitario ?? 0),
-    totalLinea: Number(i.totalLinea ?? 0),
-    eliminar: Boolean(i.eliminar ?? false),
-  })),
+      id: i.id ?? null,
+      // Usar el productoId que ya tenemos preservado
+      productoId: Number(i.productoId ?? 0),
+      descripcion: i.descripcion ?? "",
+      cantidad: Number(i.cantidad ?? 1),
+      precioUnitario: Number(i.precioUnitario ?? 0),
+      totalLinea: Number(i.totalLinea ?? 0),
+      eliminar: Boolean(i.eliminar ?? false),
+      // Marcar si es un producto nuevo (sin ID de item de orden)
+      esNuevo: i.id === null,
+    })),
 };
 
     console.log("Guardando orden con payload:", payload);
-    const data = await actualizarOrden(form.id, payload);
+    console.log("🔍 Detalles del payload:");
+    console.log("  - ID de orden:", form.id);
+    console.log("  - Es venta:", form.venta);
+    console.log("  - Es crédito:", form.credito);
+    console.log("  - Sede ID:", form.sedeId);
+    console.log("  - Total items:", payload.items.length);
+    console.log("  - Items nuevos:", payload.items.filter(i => i.esNuevo).length);
+    console.log("  - Items eliminados:", payload.items.filter(i => i.eliminar).length);
+    
+    // Usar el endpoint específico para órdenes de venta si es una venta
+    let data;
+    if (form.venta) {
+      console.log("🛒 Es una orden de venta, usando endpoint específico PUT /api/ordenes/venta/{id}");
+      console.log("📦 Este endpoint manejará automáticamente el inventario");
+      data = await actualizarOrdenVenta(form.id, payload);
+    } else {
+      console.log("📋 Es una orden regular, usando endpoint estándar PUT /api/ordenes/tabla/{id}");
+      data = await actualizarOrden(form.id, payload);
+    }
 
     console.log("Respuesta backend:", data);
-    alert("Orden actualizada correctamente");
+    
+    // Manejar respuesta del nuevo endpoint PUT /api/ordenes/venta/{id}
+    if (data?.mensaje && data?.orden) {
+      console.log("✅ Orden actualizada exitosamente:", data.orden);
+      console.log("📋 Número de orden:", data.numero);
+      alert(`Orden actualizada correctamente\nNúmero: ${data.numero}\nTotal: $${data.orden.total?.toLocaleString('es-CO') || '0'}`);
+    } else {
+      // Respuesta del endpoint fallback
+      alert("Orden actualizada correctamente");
+    }
 
     // Solo cerrar el modal, la tabla se refrescará desde onClose
     onClose();
@@ -421,6 +465,12 @@ export default function OrdenEditarModal({
             </div>
 
             <h3>Ítems de la orden</h3>
+            
+            {/* Total de la venta */}
+            <div style={{ marginBottom: '1rem', padding: '0.5rem', backgroundColor: '#f8f9fa', borderRadius: '4px' }}>
+              <strong>Total de la venta: ${form.items.reduce((sum, item) => sum + (item.totalLinea || 0), 0).toFixed(2)}</strong>
+            </div>
+            
             <table className="mini-table">
               <thead>
                 <tr>
@@ -444,8 +494,9 @@ export default function OrdenEditarModal({
                     <td>
                       <input
                         type="number"
-                        value={i.cantidad}
+                        value={i.cantidad || ""}
                         min={1}
+                        placeholder="1"
                         onChange={(e) =>
                           handleItemChange(idx, "cantidad", e.target.value)
                         }
@@ -456,13 +507,9 @@ export default function OrdenEditarModal({
                         type="number"
                         value={i.precioUnitario}
                         step={0.01}
-                        onChange={(e) =>
-                          handleItemChange(
-                            idx,
-                            "precioUnitario",
-                            e.target.value
-                          )
-                        }
+                        readOnly
+                        style={{ backgroundColor: '#f5f5f5', cursor: 'not-allowed' }}
+                        title="El precio no se puede modificar"
                       />
                     </td>
                     <td>

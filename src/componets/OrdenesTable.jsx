@@ -243,6 +243,8 @@ export default function OrdenesTable({
                             setOrdenEditando(o);
                             setIsModalOpen(true);
                           }}
+                          disabled={o.estado?.toLowerCase() === 'anulada'}
+                          title={o.estado?.toLowerCase() === 'anulada' ? 'No se puede editar una orden anulada' : 'Editar orden'}
                         >
                           <img src={editar} className="iconButton" />
                         </button>
