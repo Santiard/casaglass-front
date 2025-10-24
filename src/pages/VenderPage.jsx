@@ -23,6 +23,7 @@ export default function VenderPage() {
 
   // ======= Estados del Carrito =======
   const [productosCarrito, setProductosCarrito] = useState([]);
+  const [cortesPendientes, setCortesPendientes] = useState([]);
 
   // ======= Estados del Inventario =======
   const [data, setData] = useState([]);
@@ -134,6 +135,7 @@ export default function VenderPage() {
 
   const limpiarCarrito = () => {
     setProductosCarrito([]);
+    setCortesPendientes([]); // Limpiar cortes pendientes también
     localStorage.removeItem("shopItems");
     
     // Refrescar automáticamente la tabla después de una venta exitosa
@@ -142,6 +144,25 @@ export default function VenderPage() {
       fetchData();
     } else {
       fetchCortesData();
+    }
+  };
+
+  // ======= Función para Manejar Cortes =======
+  const manejarCorte = async (corteParaVender, corteSobrante) => {
+    console.log("🔪 Procesando corte:", { corteParaVender, corteSobrante });
+    
+    try {
+      // 1. Agregar el corte al carrito
+      setProductosCarrito(prev => [...prev, corteParaVender]);
+      
+      // 2. Guardar el corte sobrante en el estado para enviarlo después de facturar
+      setCortesPendientes(prev => [...prev, corteSobrante]);
+      
+      console.log("✅ Corte agregado al carrito y sobrante guardado para facturación");
+      
+    } catch (error) {
+      console.error("❌ Error al procesar corte:", error);
+      alert("Error al procesar el corte. Intente nuevamente.");
     }
   };
 
@@ -242,6 +263,7 @@ export default function VenderPage() {
               isAdmin={isAdmin}
               userSede={sedeId === 1 ? "Insula" : sedeId === 2 ? "Centro" : sedeId === 3 ? "Patios" : ""}
               onAgregarProducto={agregarProducto}
+              onCortarProducto={manejarCorte}
             />
           </>
         ) : (
@@ -272,6 +294,7 @@ export default function VenderPage() {
           total={total} 
           limpiarCarrito={limpiarCarrito}
           eliminarProducto={eliminarProducto}
+          cortesPendientes={cortesPendientes}
         />
       </aside>
     </div>

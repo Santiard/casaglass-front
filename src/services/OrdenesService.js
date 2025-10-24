@@ -47,10 +47,22 @@ export async function crearOrdenVenta(payload) {
         cantidad: parseInt(item.cantidad),
         descripcion: String(item.descripcion || ""),
         precioUnitario: parseFloat(item.precioUnitario)
-      }))
+      })),
+      // 🆕 NUEVO: Incluir cortes pendientes
+      cortes: payload.cortes ? payload.cortes.map(corte => ({
+        productoId: parseInt(corte.productoId),
+        medidaSolicitada: parseInt(corte.medidaSolicitada),
+        precioUnitarioSolicitado: parseFloat(corte.precioUnitarioSolicitado),
+        precioUnitarioSobrante: parseFloat(corte.precioUnitarioSobrante),
+        cantidadInsula: parseInt(corte.cantidadInsula || 0),
+        cantidadCentro: parseInt(corte.cantidadCentro || 0),
+        cantidadPatios: parseInt(corte.cantidadPatios || 0)
+      })) : []
     };
     
     console.log("📦 Payload formateado para backend:", ordenData);
+    console.log("🔪 Cortes en payload formateado:", ordenData.cortes);
+    console.log("🔍 Total de cortes enviados:", ordenData.cortes.length);
     
     const { data } = await api.post("ordenes/venta", ordenData);
     return data;

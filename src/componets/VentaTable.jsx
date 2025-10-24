@@ -1,16 +1,24 @@
 // src/componets/VentaTable.jsx
 import { useState } from "react";
 import "../styles/Table.css";
+import CortarModal from "../modals/CortarModal.jsx";
 
 export default function VentaTable({ 
   data = [], 
   loading, 
   isAdmin = false, 
   userSede = "",
-  onAgregarProducto
+  onAgregarProducto,
+  onCortarProducto
 }) {
   const [cantidadesVenta, setCantidadesVenta] = useState({});
   const [preciosSeleccionados, setPreciosSeleccionados] = useState({});
+  
+  // Estado para el modal de corte
+  const [modalCorte, setModalCorte] = useState({
+    isOpen: false,
+    producto: null
+  });
 
   const isVidrio = (data || []).some(p => (p.categoria || "").toLowerCase() === "vidrio");
 
@@ -27,6 +35,38 @@ export default function VentaTable({
       ...prev,
       [productId]: precio
     }));
+  };
+
+  // Funciones para manejar el modal de corte
+  const handleAbrirModalCorte = (producto) => {
+    // Calcular el precio según la sede del usuario
+    const precioSegunSede = isAdmin ? producto.precio1 :
+      (userSede === "Insula" ? producto.precio1 :
+       userSede === "Centro" ? producto.precio2 :
+       userSede === "Patios" ? producto.precio3 : producto.precio1);
+    
+    setModalCorte({
+      isOpen: true,
+      producto: {
+        ...producto,
+        precioUsado: precioSegunSede // Agregar el precio calculado
+      }
+    });
+  };
+
+  const handleCerrarModalCorte = () => {
+    setModalCorte({
+      isOpen: false,
+      producto: null
+    });
+  };
+
+  const handleCortar = async (corteParaVender, corteSobrante) => {
+    console.log("🔪 Procesando corte:", { corteParaVender, corteSobrante });
+    
+    if (onCortarProducto) {
+      await onCortarProducto(corteParaVender, corteSobrante);
+    }
   };
 
   const handleAgregarCarrito = (producto, uniqueKey) => {
@@ -167,30 +207,39 @@ export default function VentaTable({
                   />
                 </td>
                 
-                {/* Botón agregar al carrito */}
+                {/* Botones de acción */}
                 <td>
-                  <button
-                    onClick={() => handleAgregarCarrito(p, uniqueKey)}
-                    className="agregar-btn"
-                    disabled={cantidadDisponible <= 0 || !cantidadesVenta[uniqueKey] || cantidadesVenta[uniqueKey] <= 0}
-                    style={{
-                      background: cantidadDisponible > 0 ? '#28a745' : '#6c757d',
-                      color: 'white',
-                      border: 'none',
-                      padding: '6px 12px',
-                      borderRadius: '4px',
-                      cursor: cantidadDisponible > 0 ? 'pointer' : 'not-allowed',
-                      fontSize: '12px'
-                    }}
-                  >
-                    Agregar
-                  </button>
+                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                    <button
+                      onClick={() => handleAgregarCarrito(p, uniqueKey)}
+                      className="btnLink"
+                      disabled={cantidadDisponible <= 0 || !cantidadesVenta[uniqueKey] || cantidadesVenta[uniqueKey] <= 0}
+                    >
+                      Agregar
+                    </button>
+                    {p.tipo === "PERFIL" && (
+                      <button
+                        className="btnLink"
+                        onClick={() => handleAbrirModalCorte(p)}
+                      >
+                        Cortar
+                      </button>
+                    )}
+                  </div>
                 </td>
               </tr>
             );
           })}
         </tbody>
       </table>
+      
+      {/* Modal de Corte */}
+      <CortarModal
+        isOpen={modalCorte.isOpen}
+        onClose={handleCerrarModalCorte}
+        producto={modalCorte.producto}
+        onCortar={handleCortar}
+      />
     </div>
   );
 }

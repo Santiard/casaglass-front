@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import FacturarOrdenModal from "../modals/FacturarOrdenModal.jsx";
 import "../styles/ListadoOrden.css";
 
-export default function ListadoOrden({ productosCarrito, subtotal, total, limpiarCarrito, eliminarProducto }) {
+export default function ListadoOrden({ productosCarrito, subtotal, total, limpiarCarrito, eliminarProducto, cortesPendientes }) {
   const [items, setItems] = useState([]);
   const [isFacturarOpen, setIsFacturarOpen] = useState(false);
   // Cargar productos desde props
@@ -99,6 +99,7 @@ export default function ListadoOrden({ productosCarrito, subtotal, total, limpia
         isOpen={isFacturarOpen}
         onClose={() => setIsFacturarOpen(false)}
         productosCarrito={items}
+        cortesPendientes={cortesPendientes || []}
         onFacturacionExitosa={limpiarCarrito}
       />
 

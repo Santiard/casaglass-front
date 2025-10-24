@@ -10,6 +10,7 @@ export default function FacturarOrdenModal({
   isOpen, 
   onClose, 
   productosCarrito = [],
+  cortesPendientes = [],
   onFacturacionExitosa
 }) {
   const { user, sedeId } = useAuth();
@@ -175,18 +176,49 @@ export default function FacturarOrdenModal({
           precioUnitario: Number(p.precioUsado),
         };
         
-        // Si el productoId sigue siendo NaN, usar el código como string
-        if (isNaN(item.productoId) && p.codigo) {
-          console.log(`⚠️ Usando código como string para ${p.nombre}: ${p.codigo}`);
-          item.productoId = p.codigo; // Enviar como string
+        // Si el productoId sigue siendo NaN, usar el productoOriginal para cortes
+        if (isNaN(item.productoId)) {
+          if (p.esCorte && p.productoOriginal) {
+            console.log(`🔪 Usando productoOriginal para corte: ${p.productoOriginal}`);
+            item.productoId = Number(p.productoOriginal);
+          } else if (p.codigo) {
+            console.log(`⚠️ Usando código como string para ${p.nombre}: ${p.codigo}`);
+            item.productoId = p.codigo; // Enviar como string
+          }
         }
         
         console.log(`✅ Item procesado ${index}:`, item);
         return item;
       }),
+      // 🆕 NUEVO: Agregar cortes pendientes al payload
+      cortes: cortesPendientes.map((corte, index) => {
+        console.log(`🔪 Procesando corte ${index}:`, corte);
+        
+        // Determinar cantidades por sede según la sede de la venta
+        const sedeId = Number(form.sedeId);
+        const cantidadesPorSede = {
+          cantidadInsula: sedeId === 1 ? 1 : 0,
+          cantidadCentro: sedeId === 2 ? 1 : 0,
+          cantidadPatios: sedeId === 3 ? 1 : 0
+        };
+        
+        const corteMapeado = {
+          productoId: Number(corte.productoId),
+          medidaSolicitada: Number(corte.medidaSolicitada),
+          precioUnitarioSolicitado: Number(corte.precioUnitarioSolicitado),
+          precioUnitarioSobrante: Number(corte.precioUnitarioSobrante),
+          ...cantidadesPorSede // 🆕 NUEVO: Cantidades por sede
+        };
+        console.log(`✅ Corte ${index} mapeado:`, corteMapeado);
+        console.log(`🏢 Sede de venta: ${sedeId}, Cantidades:`, cantidadesPorSede);
+        return corteMapeado;
+      })
     };
 
     console.log("📋 Payload completo:", payload);
+    console.log("🔪 Cortes en el payload:", payload.cortes);
+    console.log("🔍 Total de cortes pendientes:", cortesPendientes.length);
+    console.log("🔍 Total de cortes en payload:", payload.cortes.length);
     console.log("🎯 Campos preseleccionados:", {
       sedeId: payload.sedeId,
       trabajadorId: payload.trabajadorId,

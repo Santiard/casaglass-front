@@ -1,15 +1,44 @@
 import "../styles/Table.css";
 import { useState } from "react";
+import CortarModal from "../modals/CortarModal.jsx";
 
-export default function VenderTable({ data = [], onAgregarProducto, onActualizarPrecio }) {
+export default function VenderTable({ data = [], onAgregarProducto, onActualizarPrecio, onCortarProducto }) {
   // Guardamos las cantidades locales por producto
   const [cantidades, setCantidades] = useState({});
+  
+  // Estado para el modal de corte
+  const [modalCorte, setModalCorte] = useState({
+    isOpen: false,
+    producto: null
+  });
 
   const handleCantidadChange = (id, valor) => {
     setCantidades(prev => ({ 
       ...prev, 
       [id]: valor === "" ? "" : Number(valor) 
     }));
+  };
+
+  const handleAbrirModalCorte = (producto) => {
+    setModalCorte({
+      isOpen: true,
+      producto: producto
+    });
+  };
+
+  const handleCerrarModalCorte = () => {
+    setModalCorte({
+      isOpen: false,
+      producto: null
+    });
+  };
+
+  const handleCortar = async (corteParaVender, corteSobrante) => {
+    console.log("🔪 Procesando corte:", { corteParaVender, corteSobrante });
+    
+    if (onCortarProducto) {
+      await onCortarProducto(corteParaVender, corteSobrante);
+    }
   };
 
   return (
@@ -26,7 +55,7 @@ export default function VenderTable({ data = [], onAgregarProducto, onActualizar
             <th>Precio</th>
             <th>Cantidad Vender</th>
             <th>Precio a usar</th>
-            <th>Agregar</th>
+            <th>Acción</th>
           </tr>
         </thead>
         <tbody>
@@ -81,14 +110,24 @@ export default function VenderTable({ data = [], onAgregarProducto, onActualizar
                     </select>
                   </td>
                   <td>
-                    <button
-                      className="btn-edit"
-                      onClick={() =>
-                        onAgregarProducto(item, cantidades[item.id] ?? 0)
-                      }
-                    >
-                      Agregar
-                    </button>
+                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                      <button
+                        className="btn-edit"
+                        onClick={() =>
+                          onAgregarProducto(item, cantidades[item.id] ?? 0)
+                        }
+                      >
+                        Agregar
+                      </button>
+                      {item.tipo === "PERFIL" && (
+                        <button
+                          className="btn"
+                          onClick={() => handleAbrirModalCorte(item)}
+                        >
+                          Cortar
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               );
@@ -96,6 +135,14 @@ export default function VenderTable({ data = [], onAgregarProducto, onActualizar
           )}
         </tbody>
       </table>
+      
+      {/* Modal de Corte */}
+      <CortarModal
+        isOpen={modalCorte.isOpen}
+        onClose={handleCerrarModalCorte}
+        producto={modalCorte.producto}
+        onCortar={handleCortar}
+      />
     </div>
   );
 }
