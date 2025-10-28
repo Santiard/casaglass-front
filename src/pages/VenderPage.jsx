@@ -203,11 +203,15 @@ export default function VenderPage() {
   }, [data, cortesData, filters, cortesFilters, categories, view]);
 
   // ======= Cálculos del carrito =======
-  const subtotal = productosCarrito.reduce(
+  // El precio ya incluye IVA, así que calculamos el total y luego extraemos el IVA
+  const total = productosCarrito.reduce(
     (acc, item) => acc + (item.precioUsado || item.precio1 || item.precio || 0) * item.cantidadVender,
     0
   );
-  const total = subtotal * 1.19;
+  
+  // Extraer el IVA del total (si el IVA es 19%, entonces: IVA = total * 19 / 119)
+  const iva = total * 0.19 / 1.19; // 19% incluido en el precio
+  const subtotal = total - iva;
 
   // === Función para manejar selección de categoría en productos ===
   const handleSelectCategory = (catId) => {

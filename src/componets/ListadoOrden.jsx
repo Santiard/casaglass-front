@@ -68,8 +68,12 @@ export default function ListadoOrden({ productosCarrito, subtotal, total, limpia
       <div className="orden-resumen">
         <div className="totales">
           <div className="subtotal">
-            <span>Subtotal:</span>
+            <span>Subtotal (sin IVA):</span>
             <span>${subtotal?.toLocaleString()}</span>
+          </div>
+          <div className="iva">
+            <span>IVA (19%):</span>
+            <span>${total ? ((total * 0.19 / 1.19)?.toLocaleString()) : 0}</span>
           </div>
           <div className="total">
             <span>Total (IVA incluido):</span>

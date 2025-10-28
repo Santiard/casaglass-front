@@ -14,6 +14,7 @@ import proveedor from "../assets/proveedor.png";
 import analiticas from "../assets/analiticas.png";
 import orden from "../assets/order.png";
 import credito from "../assets/credito.png";
+import facturas from "../assets/check.png";
 import { Link } from 'react-router-dom';
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
@@ -122,7 +123,15 @@ export default function Sidebar({isOpen, isCollapsed}){
           <span className="text">Créditos</span>
         </Link>
         </li>
-
+        {/* Configuración - Solo ADMIN */}
+        {isAdmin && (
+          <li>
+            <Link to ="/facturas" title="facturas">
+              <img src={facturas } alt="FACTURAS " className="logos"/>
+              <span className="text">Facturas</span>
+            </Link>
+          </li>
+        )}
         <div className="SideBar-Space">
 
         </div>

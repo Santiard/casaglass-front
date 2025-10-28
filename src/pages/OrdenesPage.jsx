@@ -8,6 +8,7 @@ import {
   actualizarOrden,
   anularOrden,
 } from "../services/OrdenesService";
+import { crearFactura } from "../services/FacturasService";
 
 export default function OrdenesPage() {
   const [data, setData] = useState([]);
@@ -85,6 +86,43 @@ export default function OrdenesPage() {
     }
   };
 
+  // 🔹 Facturar orden
+  const handleFacturar = async (orden) => {
+    try {
+      console.log(`📄 Facturando orden ID: ${orden.id}`);
+      
+      // Calcular totales de la orden
+      const subtotal = orden.total || 0;
+      const iva = 0; // El IVA se calcula en el backend
+      
+      // Preparar payload para crear la factura
+      const facturaPayload = {
+        ordenId: orden.id,
+        fecha: new Date().toISOString().split('T')[0],
+        subtotal: subtotal,
+        descuentos: 0,
+        iva: iva,
+        retencionFuente: 0,
+        formaPago: "EFECTIVO",
+        observaciones: `Factura generada desde orden #${orden.numero}`,
+      };
+
+      console.log("📦 Payload de factura:", facturaPayload);
+      
+      const response = await crearFactura(facturaPayload);
+      console.log("✅ Factura creada:", response);
+      
+      alert(`Factura creada exitosamente\nNúmero: ${response.numeroFactura || response.numero}`);
+      
+      // Refrescar tabla de órdenes
+      await fetchData();
+    } catch (e) {
+      console.error("Error facturando orden", e);
+      const msg = e?.response?.data?.message || "No se pudo crear la factura.";
+      alert(msg);
+    }
+  };
+
   return (
     <div className="clientes-page">
       <div className="rowInferior fill">
@@ -94,6 +132,7 @@ export default function OrdenesPage() {
           onEditar={handleGuardar}
           onAnular={handleAnular}
           onCrear={(o) => handleGuardar(o, false)}
+          onFacturar={handleFacturar}
         />
       </div>
     </div>

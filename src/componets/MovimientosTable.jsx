@@ -167,23 +167,6 @@ export default function MovimientosTable({
           >
             {[5,10,20,50].map(n => <option key={n} value={n}>{n}</option>)}
           </select>
-          <button
-            className="btn"
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-            disabled={curPage <= 1}
-          >
-            ◀
-          </button>
-          <span>
-            {curPage}/{maxPage}
-          </span>
-          <button
-            className="btn"
-            onClick={() => setPage((p) => Math.min(maxPage, p + 1))}
-            disabled={curPage >= maxPage}
-          >
-            ▶
-          </button>
 
           {/* Botón Nuevo solo para ADMINISTRADORES */}
           {isAdmin && (

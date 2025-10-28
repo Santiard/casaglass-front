@@ -5,12 +5,14 @@ import eliminar from "../assets/eliminar.png";
 import add from "../assets/add.png";
 import OrdenModal from "../modals/OrdenModal.jsx";
 import OrdenImprimirModal from "../modals/OrdenImprimirModal.jsx";
+import FacturarOrdenModal from "../modals/FacturarOrdenModal.jsx";
 
 export default function OrdenesTable({
   data = [],
   onEditar,
   onAnular,
   onCrear,
+  onFacturar,
   rowsPerPage = 10,
   loading = false,
 }) {
@@ -23,6 +25,8 @@ export default function OrdenesTable({
   const [filtroEstado, setFiltroEstado] = useState(""); // Filtro de estado
   const [isImprimirModalOpen, setIsImprimirModalOpen] = useState(false);
   const [ordenImprimir, setOrdenImprimir] = useState(null);
+  const [isFacturarModalOpen, setIsFacturarModalOpen] = useState(false);
+  const [ordenFacturar, setOrdenFacturar] = useState(null);
 
   // 🔹 Alternar expandir/ocultar items
   const toggleExpand = (ordenId) => {
@@ -57,8 +61,42 @@ export default function OrdenesTable({
     
     const texto = textos[estadoLimpio] || estado || 'Activa';
     
+    // Determinar colores según el estado
+    let bgColor, textColor;
+    switch(estadoLimpio) {
+      case 'activa':
+        bgColor = 'var(--color-success-bg)';
+        textColor = 'var(--color-success)';
+        break;
+      case 'anulada':
+        bgColor = 'var(--color-danger-bg)';
+        textColor = 'var(--color-danger)';
+        break;
+      case 'pendiente':
+        bgColor = 'var(--color-warning-bg)';
+        textColor = 'var(--color-warning)';
+        break;
+      case 'completada':
+        bgColor = 'var(--color-info-bg)';
+        textColor = 'var(--color-info)';
+        break;
+      default:
+        bgColor = 'var(--color-gray)';
+        textColor = 'var(--color-white)';
+    }
+    
     return (
-      <span className={`estado-badge ${estadoLimpio}`}>
+      <span 
+        className="badge"
+        style={{
+          background: bgColor,
+          color: textColor,
+          padding: '0.25rem 0.5rem',
+          borderRadius: '0.375rem',
+          fontSize: '0.75rem',
+          fontWeight: '500'
+        }}
+      >
         {texto}
       </span>
     );
@@ -204,11 +242,7 @@ export default function OrdenesTable({
               {[5,10,20,50].map(n => <option key={n} value={n}>{n}</option>)}
             </select>
           </div>
-          
-          <button className="addButton" type="button" onClick={onCrear}>
-            <img src={add} className="iconButton" />
-            Nueva orden
-          </button>
+        
         </div>
       </div>
 
@@ -263,7 +297,7 @@ export default function OrdenesTable({
                           className="btnLink"
                           onClick={() => toggleExpand(id)}
                         >
-                          {expanded[id] ? "Ocultar" : "Ver Items"}
+                          {expanded[id] ? "Ocultar" : "Detalles"}
                         </button>
 
                         <button
@@ -272,6 +306,17 @@ export default function OrdenesTable({
                           title="Imprimir orden"
                         >
                           Imprimir
+                        </button>
+
+                        <button
+                          className="btnLink"
+                          onClick={() => {
+                            setOrdenFacturar(o);
+                            setIsFacturarModalOpen(true);
+                          }}
+                          title="Facturar orden"
+                        >
+                          Facturar
                         </button>
 
                         <button
@@ -386,6 +431,17 @@ export default function OrdenesTable({
           setIsImprimirModalOpen(false);
           setOrdenImprimir(null);
         }}
+      />
+
+      {/* Modal de facturación */}
+      <FacturarOrdenModal
+        isOpen={isFacturarModalOpen}
+        orden={ordenFacturar}
+        onClose={() => {
+          setIsFacturarModalOpen(false);
+          setOrdenFacturar(null);
+        }}
+        onSave={onFacturar}
       />
     </div>
   );

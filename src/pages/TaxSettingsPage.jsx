@@ -42,11 +42,14 @@ setMessage({ type: 'error', text: err.message || 'No se pudieron guardar los cam
 // Vista previa
 const [preSub, setPreSub] = useState(200000);
 const preview = useMemo(()=>{
-const ivaVal = (preSub * (iva||0))/100;
-const aplicaRete = preSub >= (umbral||0);
-const reteVal = aplicaRete ? (preSub * (rete||0))/100 : 0;
-const total = preSub + ivaVal - reteVal;
-return { ivaVal, reteVal, aplicaRete, total };
+// Si el precio incluye IVA, extraer el IVA del precio
+// IVA = precio * (tasa / (100 + tasa))
+const ivaVal = (iva && iva > 0) ? (preSub * iva) / (100 + iva) : 0;
+const subtotal = preSub - ivaVal; // Subtotal sin IVA
+const aplicaRete = subtotal >= (umbral||0);
+const reteVal = aplicaRete ? (subtotal * (rete||0))/100 : 0;
+const total = preSub - reteVal; // Total final (precio con IVA - retención)
+return { ivaVal, reteVal, aplicaRete, total, subtotal };
 }, [preSub, iva, rete, umbral]);
 
 const fmtCOP = (n)=> new Intl.NumberFormat('es-CO', { style:'currency', currency:'COP', maximumFractionDigits:0 }).format(n||0);
@@ -99,7 +102,7 @@ onChange={(e)=>setUmbral(Number(e.target.value))} />
 <section className="tax-preview">
 <h4>Vista previa</h4>
 <div className="form-row">
-<label htmlFor="preSub">Subtotal de ejemplo</label>
+<label htmlFor="preSub">Precio con IVA incluido</label>
 <div className="input-with-prefix">
 <span className="prefix">$</span>
 <input id="preSub" type="number" step="1000" min="0" value={preSub}
@@ -107,9 +110,10 @@ onChange={(e)=>setPreSub(Number(e.target.value))} />
 </div>
 </div>
 <ul className="preview-list">
-<li><span>IVA ({iva||0}%):</span><strong>{fmtCOP(preview.ivaVal)}</strong></li>
+<li><span>Subtotal (sin IVA):</span><strong>{fmtCOP(preview.subtotal)}</strong></li>
+<li><span>IVA incluido ({iva||0}%):</span><strong>{fmtCOP(preview.ivaVal)}</strong></li>
 <li><span>Retención ({rete||0}%) {preview.aplicaRete ? '(aplica)' : '(no aplica)'}:</span><strong>-{fmtCOP(preview.reteVal)}</strong></li>
-<li className="total"><span>Total (estimado):</span><strong>{fmtCOP(preview.total)}</strong></li>
+<li className="total"><span>Total a pagar:</span><strong>{fmtCOP(preview.total)}</strong></li>
 </ul>
 </section>
 {message && <div className={`callout ${message.type}`}>{message.text}</div>}

@@ -7,7 +7,6 @@
   border: 0.0625rem solid #ccc; /* 1px */
   border-radius: 0.5rem; /* 8px */
   height: 100%; /* Tomar toda la altura disponible */
-  max-height: calc(100vh - 12rem); /* Limitar la altura máxima */
 }
 
 .items-count {
@@ -561,7 +560,9 @@ input[type="number"] {
   background: var(--color-white);
   display: flex;
   flex-direction: column;
+  flex: 1;
   min-height: 0;
+  height: 100%;
 }
 
 .mov .toolbar {
@@ -707,7 +708,9 @@ input[type="number"] {
   background: var(--color-white);
   display: flex;
   flex-direction: column;
+  flex: 1;
   min-height: 0;
+  height: 100%;
 }
 
 .clientes .toolbar {
@@ -874,7 +877,9 @@ input[type="number"] {
   background: var(--color-white);
   display: flex;
   flex-direction: column;
+  flex: 1;
   min-height: 0;
+  height: 100%;
 }
 
 .ingresos .toolbar {
@@ -1057,7 +1062,9 @@ input[type="number"] {
   background: var(--color-white);
   display: flex;
   flex-direction: column;
+  flex: 1;
   min-height: 0;
+  height: 100%;
 }
 
 .ordenes .ordenes-toolbar {
@@ -1255,5 +1262,196 @@ input[type="number"] {
 }
 
 .ordenes .pg-btn:active { 
+  transform: translateY(0.0625rem); 
+}
+
+/* ===== ESTILOS DE FACTURAS (iguales a Ordenes, Clientes, etc.) ===== */
+.facturas.table-container {
+  border-radius: 0.75rem;
+  border: 0.0625rem solid var(--color-light-gray);
+  background: var(--color-white);
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+}
+
+.facturas .ordenes-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  padding: 0.75rem 1rem;
+  background: color-mix(in oklab, var(--color-light-gray) 45%, white);
+  border-bottom: 0.0625rem solid var(--color-light-gray);
+  border-radius: 0.75rem 0.75rem 0 0;
+}
+
+.facturas .ordenes-filters {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex: 1 1 auto;
+}
+
+.facturas .ordenes-search,
+.facturas .ordenes-estado-filter {
+  height: 2.25rem;
+  padding: 0 0.875rem;
+  border: 0.0625rem solid var(--color-gray);
+  border-radius: 999rem;
+  background: var(--color-white);
+  color: var(--color-black);
+  font-size: 0.875rem;
+  outline: none;
+  transition: box-shadow .2s ease, border-color .2s ease, background-color .2s ease;
+}
+
+.facturas .ordenes-search {
+  min-width: 14rem;
+  flex: 1 1 18rem;
+}
+
+.facturas .ordenes-estado-filter { min-width: 12rem; }
+
+.facturas .ordenes-search::placeholder { color: color-mix(in oklab, var(--color-dark-gray) 55%, white); }
+
+.facturas .ordenes-search:focus,
+.facturas .ordenes-estado-filter:focus {
+  border-color: var(--color-light-blue);
+  box-shadow: 0 0 0 0.1875rem color-mix(in oklab, var(--color-light-blue) 25%, transparent);
+  background: color-mix(in oklab, var(--color-white) 85%, var(--color-light-gray));
+}
+
+.facturas .ordenes-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.facturas .rows-per-page {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.facturas .rows-per-page > span {
+  font-size: 0.875rem;
+  color: var(--color-dark-gray);
+}
+
+.facturas .clientes-select {
+  height: 2.25rem;
+  padding: 0 0.875rem;
+  border: 0.0625rem solid var(--color-gray);
+  border-radius: 999rem;
+  background: var(--color-white);
+  color: var(--color-black);
+  font-size: 0.875rem;
+  outline: none;
+  transition: box-shadow .2s ease, border-color .2s ease, background-color .2s ease;
+}
+
+.facturas .table-wrapper {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.facturas .table thead {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--color-light-blue);
+  color: var(--color-white);
+}
+
+.facturas .table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.facturas .table th {
+  padding: 0.75rem;
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+.facturas .table td {
+  padding: 0.75rem;
+  border-bottom: 0.0625rem solid var(--color-light-gray);
+  font-size: 0.875rem;
+  color: var(--color-dark-gray);
+}
+
+.facturas .table tbody tr:hover {
+  background-color: color-mix(in oklab, var(--color-light-gray) 30%, white);
+}
+
+.facturas .empty {
+  text-align: center;
+  color: var(--color-gray);
+  padding: 2rem;
+  font-style: italic;
+}
+
+.facturas .pagination-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background: color-mix(in oklab, var(--color-light-gray) 45%, white);
+  border-top: 0.0625rem solid var(--color-light-gray);
+  border-radius: 0 0 0.75rem 0.75rem;
+}
+
+.facturas .pagination-info {
+  font-size: 0.875rem;
+  color: var(--color-dark-gray);
+}
+
+.facturas .pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.facturas .pg-info {
+  font-size: 0.875rem;
+  color: var(--color-dark-gray);
+  padding: 0 0.5rem;
+}
+
+.facturas .pg-btn {
+  min-width: 2rem;
+  height: 2rem;
+  padding: 0 0.5rem;
+  border: 0.0625rem solid var(--color-gray);
+  border-radius: 0.375rem;
+  background: var(--color-white);
+  color: var(--color-dark-gray);
+  cursor: pointer;
+  transition: transform .06s ease, background-color .2s ease, border-color .2s ease;
+}
+
+.facturas .pg-btn:hover:not(:disabled) {
+  background: var(--color-light-blue);
+  color: var(--color-white);
+  border-color: var(--color-light-blue);
+}
+
+.facturas .pg-btn.active {
+  border-color: var(--color-light-blue);
+  color: var(--color-light-blue);
+}
+
+.facturas .pg-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.facturas .pg-btn:active { 
   transform: translateY(0.0625rem); 
 }
