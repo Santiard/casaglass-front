@@ -2,6 +2,7 @@
 import "../styles/Table.css";
 import { useEffect, useMemo, useState } from "react";
 import editar from "../assets/editar.png";
+import add from "../assets/add.png";
 import IngresoModal from "../modals/IngresoModal.jsx";
 
 export default function IngresosTable({
@@ -21,6 +22,7 @@ export default function IngresosTable({
   const [ingresoEditando, setIngresoEditando] = useState(null);
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
+  const [rowsPerPageState, setRowsPerPageState] = useState(rowsPerPage);
 
   useEffect(() => {
     setIngresos(Array.isArray(data) ? data : []);
@@ -102,8 +104,7 @@ export default function IngresosTable({
         }).format(n)
       : n ?? "-";
 
-  const [rowsPerPageState, setRpp] = useState(rowsPerPage);
-  useEffect(() => setRpp(rowsPerPage), [rowsPerPage]);
+  useEffect(() => setRowsPerPageState(rowsPerPage), [rowsPerPage]);
 
   const filtrados = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -127,13 +128,24 @@ export default function IngresosTable({
     const curPage = Math.min(page, maxPage);
     const start = (curPage - 1) * rowsPerPageState;
     const pageData = base.slice(start, start + rowsPerPageState);
-    return { pageData, total, maxPage, curPage };
+    return { pageData, total, maxPage, curPage, start };
   }, [ingresos, query, page, rowsPerPageState]);
 
-  const { pageData, total, maxPage, curPage } = filtrados;
+  const { pageData, total, maxPage, curPage, start } = filtrados;
+
+  // Funciones de paginación
+  const canPrev = curPage > 1;
+  const canNext = curPage < maxPage;
+  const goFirst = () => setPage(1);
+  const goPrev  = () => setPage(p => Math.max(1, p - 1));
+  const goNext  = () => setPage(p => Math.min(maxPage, p + 1));
+  const goLast  = () => setPage(maxPage);
+
+  const showingFrom = total === 0 ? 0 : start + 1;
+  const showingTo   = Math.min(start + rowsPerPageState, total);
 
   return (
-    <div className="table-container">
+    <div className="table-container ingresos">
       {/* Toolbar */}
       <div className="toolbar">
         <input
@@ -147,36 +159,21 @@ export default function IngresosTable({
           }}
         />
 
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "0.5rem",
-            marginLeft: "auto",
-          }}
-        >
-          <span style={{ opacity: 0.7 }}>{total} registro(s)</span>
-          <button
-            className="btn"
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-            disabled={curPage <= 1}
+        <div className="rows-per-page">
+          <span>Filas:</span>
+          <select
+            className="clientes-select"
+            value={rowsPerPageState}
+            onChange={(e) => { setRowsPerPageState(Number(e.target.value)); setPage(1); }}
           >
-            ◀
-          </button>
-          <span>
-            {curPage}/{maxPage}
-          </span>
-          <button
-            className="btn"
-            onClick={() => setPage((p) => Math.min(maxPage, p + 1))}
-            disabled={curPage >= maxPage}
-          >
-            ▶
-          </button>
-          <button className="btn" type="button" onClick={openNuevo}>
-            + Nuevo ingreso
-          </button>
+            {[5,10,20,50].map(n => <option key={n} value={n}>{n}</option>)}
+          </select>
         </div>
+
+        <button className="addButton" type="button" onClick={openNuevo}>
+          <img src={add} className="iconButton" />
+          Nuevo ingreso
+        </button>
       </div>
 
       {/* Tabla principal */}
@@ -296,6 +293,26 @@ export default function IngresosTable({
               })}
           </tbody>
         </table>
+      </div>
+
+      {/* Paginación */}
+      <div className="pagination-bar">
+        <div className="pagination-info">
+          Mostrando {showingFrom}–{showingTo} de {total}
+        </div>
+
+        <div className="pagination-controls">
+          <button className="pg-btn" onClick={goFirst} disabled={!canPrev}>«</button>
+          <button className="pg-btn" onClick={goPrev}  disabled={!canPrev}>‹</button>
+          {Array.from({ length: Math.min(5, maxPage) }, (_, i) => {
+            const p = Math.max(1, Math.min(curPage - 2, maxPage - 4)) + i;
+            return p <= maxPage ? (
+              <button key={p} className={`pg-btn ${p === curPage ? "active" : ""}`} onClick={() => setPage(p)}>{p}</button>
+            ) : null;
+          })}
+          <button className="pg-btn" onClick={goNext} disabled={!canNext}>›</button>
+          <button className="pg-btn" onClick={goLast} disabled={!canNext}>»</button>
+        </div>
       </div>
 
       {/* Modal para crear/editar */}

@@ -4,6 +4,7 @@ import editar from "../assets/editar.png";
 import eliminar from "../assets/eliminar.png";
 import add from "../assets/add.png";
 import OrdenModal from "../modals/OrdenModal.jsx";
+import OrdenImprimirModal from "../modals/OrdenImprimirModal.jsx";
 
 export default function OrdenesTable({
   data = [],
@@ -15,10 +16,13 @@ export default function OrdenesTable({
 }) {
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
+  const [rowsPerPageState, setRowsPerPageState] = useState(rowsPerPage);
   const [expanded, setExpanded] = useState({});
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [ordenEditando, setOrdenEditando] = useState(null);
   const [filtroEstado, setFiltroEstado] = useState(""); // Filtro de estado
+  const [isImprimirModalOpen, setIsImprimirModalOpen] = useState(false);
+  const [ordenImprimir, setOrdenImprimir] = useState(null);
 
   // 🔹 Alternar expandir/ocultar items
   const toggleExpand = (ordenId) => {
@@ -60,6 +64,13 @@ export default function OrdenesTable({
     );
   };
 
+  // 🔹 Imprimir orden
+  const handleImprimir = (orden) => {
+    console.log("🖨️ Imprimiendo orden:", orden);
+    setOrdenImprimir(orden);
+    setIsImprimirModalOpen(true);
+  };
+
   // 🔹 Filtrar y paginar
   const filtrados = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -89,21 +100,40 @@ export default function OrdenesTable({
     }
     
     // 🔹 Ordenar por fecha descendente (más recientes primero)
-    arr = arr.sort((a, b) => {
+    // ⚠️ Clonar array para evitar mutar el original
+    arr = [...arr].sort((a, b) => {
       const fechaA = new Date(a.fecha);
       const fechaB = new Date(b.fecha);
-      return fechaB - fechaA; // Descendente (más reciente primero)
+      const diffFechas = fechaB - fechaA;
+      
+      // Si las fechas son iguales, ordenar por ID (más reciente primero)
+      if (diffFechas === 0) {
+        return (b.id || 0) - (a.id || 0);
+      }
+      
+      return diffFechas;
     });
 
     const total = arr.length;
-    const maxPage = Math.max(1, Math.ceil(total / rowsPerPage));
+    const maxPage = Math.max(1, Math.ceil(total / rowsPerPageState));
     const curPage = Math.min(page, maxPage);
-    const start = (curPage - 1) * rowsPerPage;
-    const pageData = arr.slice(start, start + rowsPerPage);
-    return { pageData, total, maxPage, curPage };
-  }, [data, query, page, rowsPerPage, filtroEstado]);
+    const start = (curPage - 1) * rowsPerPageState;
+    const pageData = arr.slice(start, start + rowsPerPageState);
+    return { pageData, total, maxPage, curPage, start };
+  }, [data, query, page, rowsPerPageState, filtroEstado]);
 
-  const { pageData, total, maxPage, curPage } = filtrados;
+  const { pageData, total, maxPage, curPage, start } = filtrados;
+
+  // Funciones de paginación
+  const canPrev = curPage > 1;
+  const canNext = curPage < maxPage;
+  const goFirst = () => setPage(1);
+  const goPrev  = () => setPage(p => Math.max(1, p - 1));
+  const goNext  = () => setPage(p => Math.min(maxPage, p + 1));
+  const goLast  = () => setPage(maxPage);
+
+  const showingFrom = total === 0 ? 0 : start + 1;
+  const showingTo   = Math.min(start + rowsPerPageState, total);
 
   // 🔹 Guardar orden (actualizar)
   const handleGuardar = async (form, isEdit) => {
@@ -117,19 +147,9 @@ export default function OrdenesTable({
     }
   };
 
-  // 🔹 Refrescar tabla tras cerrar modal
-  const handleCloseModal = async () => {
-    setIsModalOpen(false);
-    setOrdenEditando(null);
-    try {
-      await onEditar(null, true); // fuerza refresh de tabla
-    } catch (e) {
-      console.error("Error refrescando tabla:", e);
-    }
-  };
 
   return (
-    <div className="table-container">
+    <div className="table-container ordenes">
       {/* 🔍 Buscador y Filtros */}
       <div className="ordenes-toolbar">
         <div className="ordenes-filters">
@@ -174,16 +194,18 @@ export default function OrdenesTable({
         </div>
 
         <div className="ordenes-actions">
-          <span className="ordenes-count">
-            {total} registro(s)
-          </span>
-          <button
-            onClick={() => {
-              setOrdenEditando(null);
-              setIsModalOpen(true);
-            }}
-            className="addButton"
-          >
+          <div className="rows-per-page">
+            <span>Filas:</span>
+            <select
+              className="clientes-select"
+              value={rowsPerPageState}
+              onChange={(e) => { setRowsPerPageState(Number(e.target.value)); setPage(1); }}
+            >
+              {[5,10,20,50].map(n => <option key={n} value={n}>{n}</option>)}
+            </select>
+          </div>
+          
+          <button className="addButton" type="button" onClick={onCrear}>
             <img src={add} className="iconButton" />
             Nueva orden
           </button>
@@ -220,7 +242,8 @@ export default function OrdenesTable({
             {!loading &&
               pageData.map((o) => {
                 const detalles = Array.isArray(o.items) ? o.items : [];
-                const totalOrden = calcularTotal(detalles);
+                // Usar total del backend si existe, sino calcular desde items
+                const totalOrden = o.total !== undefined ? o.total : calcularTotal(detalles);
                 const id = o.id;
 
                 return (
@@ -241,6 +264,14 @@ export default function OrdenesTable({
                           onClick={() => toggleExpand(id)}
                         >
                           {expanded[id] ? "Ocultar" : "Ver Items"}
+                        </button>
+
+                        <button
+                          className="btnLink"
+                          onClick={() => handleImprimir(o)}
+                          title="Imprimir orden"
+                        >
+                          Imprimir
                         </button>
 
                         <button
@@ -310,49 +341,51 @@ export default function OrdenesTable({
         </table>
       </div>
 
-      {/* 📄 Paginación */}
-      {maxPage > 1 && (
-        <div className="pagination">
-          <button
-            disabled={curPage === 1}
-            onClick={() => setPage(1)}
-            className="pagination-btn"
-          >
-            ««
-          </button>
-          <button
-            disabled={curPage === 1}
-            onClick={() => setPage(curPage - 1)}
-            className="pagination-btn"
-          >
-            ‹
-          </button>
-          <span className="pagination-info">
-            Página {curPage} de {maxPage}
-          </span>
-          <button
-            disabled={curPage === maxPage}
-            onClick={() => setPage(curPage + 1)}
-            className="pagination-btn"
-          >
-            ›
-          </button>
-          <button
-            disabled={curPage === maxPage}
-            onClick={() => setPage(maxPage)}
-            className="pagination-btn"
-          >
-            »»
-          </button>
+      {/* Paginación */}
+      <div className="pagination-bar">
+        <div className="pagination-info">
+          Mostrando {showingFrom}–{showingTo} de {total}
         </div>
-      )}
+
+        <div className="pagination-controls">
+          <button className="pg-btn" onClick={goFirst} disabled={!canPrev}>«</button>
+          <button className="pg-btn" onClick={goPrev}  disabled={!canPrev}>‹</button>
+          {Array.from({ length: Math.min(5, maxPage) }, (_, i) => {
+            const p = Math.max(1, Math.min(curPage - 2, maxPage - 4)) + i;
+            return p <= maxPage ? (
+              <button key={p} className={`pg-btn ${p === curPage ? "active" : ""}`} onClick={() => setPage(p)}>{p}</button>
+            ) : null;
+          })}
+          <button className="pg-btn" onClick={goNext} disabled={!canNext}>›</button>
+          <button className="pg-btn" onClick={goLast} disabled={!canNext}>»</button>
+        </div>
+      </div>
 
       {/* Modal de edición */}
       <OrdenModal
         isOpen={isModalOpen}
-        onClose={handleCloseModal}
+        onClose={async () => {
+          setIsModalOpen(false);
+          setOrdenEditando(null);
+          // Refrescar datos automáticamente
+          try {
+            await onEditar(null, true);
+          } catch (e) {
+            console.error("Error refrescando tabla:", e);
+          }
+        }}
         onSave={handleGuardar}
         orden={ordenEditando}
+      />
+
+      {/* Modal de impresión */}
+      <OrdenImprimirModal
+        isOpen={isImprimirModalOpen}
+        orden={ordenImprimir}
+        onClose={() => {
+          setIsImprimirModalOpen(false);
+          setOrdenImprimir(null);
+        }}
       />
     </div>
   );

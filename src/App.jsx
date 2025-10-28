@@ -1,5 +1,6 @@
 // src/App.jsx
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { useEffect } from "react";
 import Login from "./pages/Login.jsx";
 import AdminPage from "./pages/AdminPage.jsx";
 import InventoryPage from "./pages/InventoryPage.jsx";
@@ -20,6 +21,13 @@ import { AuthProvider } from "./context/AuthContext.jsx";
 
 
 function App() {
+  // Silenciar warning de "Components desaprobado" de DevTools
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development') {
+      console.log('%c React Router DevTools Warning Silenciado', 'color: #888');
+    }
+  }, []);
+
   return (
     <Router>
       <AuthProvider>

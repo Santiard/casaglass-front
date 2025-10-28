@@ -10,6 +10,10 @@
   max-height: calc(100vh - 12rem); /* Limitar la altura máxima */
 }
 
+.items-count {
+  color: var(--color-white);
+}
+
 /* Toolbar arriba */
 .toolbar {
   display: flex;
@@ -548,4 +552,708 @@ input[type="number"] {
   .pagination-controls {
     order: 1;
   }
+}
+
+/* ===== ESTILOS DE MOVIMIENTOS (iguales a Proveedores) ===== */
+.mov.table-container {
+  border-radius: 0.75rem;
+  border: 0.0625rem solid var(--color-light-gray);
+  background: var(--color-white);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.mov .toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  padding: 0.75rem 1rem;
+  background: color-mix(in oklab, var(--color-light-gray) 45%, white);
+  border-bottom: 0.0625rem solid var(--color-light-gray);
+  border-radius: 0.75rem 0.75rem 0 0;
+}
+
+.mov .clientes-input,
+.mov .clientes-select {
+  height: 2.25rem;
+  padding: 0 0.875rem;
+  border: 0.0625rem solid var(--color-gray);
+  border-radius: 999rem;
+  background: var(--color-white);
+  color: var(--color-black);
+  font-size: 0.875rem;
+  outline: none;
+  transition: box-shadow .2s ease, border-color .2s ease, background-color .2s ease;
+}
+
+.mov .clientes-input {
+  min-width: 14rem;
+  flex: 1 1 18rem;
+}
+
+.mov .clientes-select { min-width: 10rem; }
+
+.mov .clientes-input::placeholder { color: color-mix(in oklab, var(--color-dark-gray) 55%, white); }
+
+.mov .clientes-input:focus,
+.mov .clientes-select:focus {
+  border-color: var(--color-light-blue);
+  box-shadow: 0 0 0 0.1875rem color-mix(in oklab, var(--color-light-blue) 25%, transparent);
+  background: color-mix(in oklab, var(--color-white) 85%, var(--color-light-gray));
+}
+
+.mov .rows-per-page {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: auto;
+}
+
+.mov .rows-per-page > span {
+  font-size: 0.875rem;
+  color: var(--color-dark-gray);
+}
+
+.mov .table-wrapper {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.mov .table thead {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--color-light-blue);
+  color: var(--color-white);
+}
+
+.mov .table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+  color: var(--color-black);
+}
+
+.mov .table th,
+.mov .table td {
+  padding: 0.625rem 0.75rem;
+  border-bottom: 0.0625rem solid var(--color-light-gray);
+  text-align: left;
+  vertical-align: middle;
+}
+
+.mov .table tbody tr:nth-child(even) { background-color: color-mix(in oklab, var(--color-white) 92%, var(--color-light-gray)); }
+.mov .table tbody tr:hover { background-color: color-mix(in oklab, var(--color-white) 80%, var(--color-light-gray)); }
+
+.mov .table td[colspan] {
+  text-align: center;
+  font-style: italic;
+  color: var(--color-dark-gray);
+}
+
+.mov .pagination-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border-top: 0.0625rem solid var(--color-light-gray);
+  background: var(--color-white);
+  border-radius: 0 0 0.75rem 0.75rem;
+}
+
+.mov .pagination-info {
+  font-size: 0.875rem;
+  color: var(--color-dark-gray);
+}
+
+.mov .pagination-controls {
+  display: inline-flex;
+  gap: 0.25rem;
+}
+
+.mov .pg-btn {
+  min-width: 2rem;
+  height: 2rem;
+  padding: 0 0.5rem;
+  border-radius: 0.5rem;
+  border: 0.0625rem solid var(--color-gray);
+  background: var(--color-white);
+  color: var(--color-black);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background .15s ease, border-color .15s ease, color .15s ease, transform .06s ease;
+}
+
+.mov .pg-btn:hover { background: color-mix(in oklab, var(--color-white) 92%, var(--color-light-gray)); }
+.mov .pg-btn.active {
+  border-color: var(--color-light-blue);
+  color: var(--color-light-blue);
+  background: color-mix(in oklab, var(--color-light-blue) 10%, var(--color-white));
+}
+.mov .pg-btn:disabled {
+  opacity: .5;
+  cursor: not-allowed;
+}
+.mov .pg-btn:active { transform: translateY(0.0625rem); }
+
+/* ===== ESTILOS DE CLIENTES (iguales a Proveedores y Movimientos) ===== */
+.clientes.table-container {
+  border-radius: 0.75rem;
+  border: 0.0625rem solid var(--color-light-gray);
+  background: var(--color-white);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.clientes .toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  padding: 0.75rem 1rem;
+  background: color-mix(in oklab, var(--color-light-gray) 45%, white);
+  border-bottom: 0.0625rem solid var(--color-light-gray);
+  border-radius: 0.75rem 0.75rem 0 0;
+}
+
+.clientes .clientes-input,
+.clientes .clientes-select {
+  height: 2.25rem;
+  padding: 0 0.875rem;
+  border: 0.0625rem solid var(--color-gray);
+  border-radius: 999rem;
+  background: var(--color-white);
+  color: var(--color-black);
+  font-size: 0.875rem;
+  outline: none;
+  transition: box-shadow .2s ease, border-color .2s ease, background-color .2s ease;
+}
+
+.clientes .clientes-input {
+  min-width: 14rem;
+  flex: 1 1 18rem;
+}
+
+.clientes .clientes-select { min-width: 10rem; }
+
+.clientes .clientes-input::placeholder { color: color-mix(in oklab, var(--color-dark-gray) 55%, white); }
+
+.clientes .clientes-input:focus,
+.clientes .clientes-select:focus {
+  border-color: var(--color-light-blue);
+  box-shadow: 0 0 0 0.1875rem color-mix(in oklab, var(--color-light-blue) 25%, transparent);
+  background: color-mix(in oklab, var(--color-white) 85%, var(--color-light-gray));
+}
+
+.clientes .rows-per-page {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.clientes .rows-per-page > span {
+  font-size: 0.875rem;
+  color: var(--color-dark-gray);
+}
+
+.clientes .addButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  height: 2.25rem;
+  padding: 0 1rem;
+  border: 0;
+  border-radius: 999rem;
+  background: var(--color-dark-blue);
+  color: var(--color-white);
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform .06s ease, filter .2s ease, background-color .2s ease;
+}
+
+.clientes .addButton:hover { filter: brightness(1.05); }
+.clientes .addButton:active { transform: translateY(0.0625rem); }
+.clientes .addButton .iconButton { width: 1rem; filter: brightness(0) invert(1); }
+
+.clientes .table-wrapper {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.clientes .table thead {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--color-light-blue);
+  color: var(--color-white);
+}
+
+.clientes .table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+  color: var(--color-black);
+}
+
+.clientes .table th,
+.clientes .table td {
+  padding: 0.625rem 0.75rem;
+  border-bottom: 0.0625rem solid var(--color-light-gray);
+  text-align: left;
+  vertical-align: middle;
+}
+
+.clientes .table tbody tr:nth-child(even) { background-color: color-mix(in oklab, var(--color-white) 92%, var(--color-light-gray)); }
+.clientes .table tbody tr:hover { background-color: color-mix(in oklab, var(--color-white) 80%, var(--color-light-gray)); }
+
+.clientes .table td[colspan] {
+  text-align: center;
+  font-style: italic;
+  color: var(--color-dark-gray);
+}
+
+.clientes .pagination-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border-top: 0.0625rem solid var(--color-light-gray);
+  background: var(--color-white);
+  border-radius: 0 0 0.75rem 0.75rem;
+}
+
+.clientes .pagination-info {
+  font-size: 0.875rem;
+  color: var(--color-dark-gray);
+}
+
+.clientes .pagination-controls {
+  display: inline-flex;
+  gap: 0.25rem;
+}
+
+.clientes .pg-btn {
+  min-width: 2rem;
+  height: 2rem;
+  padding: 0 0.5rem;
+  border-radius: 0.5rem;
+  border: 0.0625rem solid var(--color-gray);
+  background: var(--color-white);
+  color: var(--color-black);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background .15s ease, border-color .15s ease, color .15s ease, transform .06s ease;
+}
+
+.clientes .pg-btn:hover { background: color-mix(in oklab, var(--color-white) 92%, var(--color-light-gray)); }
+.clientes .pg-btn.active {
+  border-color: var(--color-light-blue);
+  color: var(--color-light-blue);
+  background: color-mix(in oklab, var(--color-light-blue) 10%, var(--color-white));
+}
+.clientes .pg-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.clientes .pg-btn:active { 
+  transform: translateY(0.0625rem); 
+}
+
+/* ===== ESTILOS DE INGRESOS (iguales a Clientes, Movimientos y Proveedores) ===== */
+.ingresos.table-container {
+  border-radius: 0.75rem;
+  border: 0.0625rem solid var(--color-light-gray);
+  background: var(--color-white);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.ingresos .toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  padding: 0.75rem 1rem;
+  background: color-mix(in oklab, var(--color-light-gray) 45%, white);
+  border-bottom: 0.0625rem solid var(--color-light-gray);
+  border-radius: 0.75rem 0.75rem 0 0;
+}
+
+.ingresos .clientes-input,
+.ingresos .clientes-select {
+  height: 2.25rem;
+  padding: 0 0.875rem;
+  border: 0.0625rem solid var(--color-gray);
+  border-radius: 999rem;
+  background: var(--color-white);
+  color: var(--color-black);
+  font-size: 0.875rem;
+  outline: none;
+  transition: box-shadow .2s ease, border-color .2s ease, background-color .2s ease;
+}
+
+.ingresos .clientes-input {
+  min-width: 14rem;
+  flex: 1 1 18rem;
+}
+
+.ingresos .clientes-select { min-width: 10rem; }
+
+.ingresos .clientes-input::placeholder { color: color-mix(in oklab, var(--color-dark-gray) 55%, white); }
+
+.ingresos .clientes-input:focus,
+.ingresos .clientes-select:focus {
+  border-color: var(--color-light-blue);
+  box-shadow: 0 0 0 0.1875rem color-mix(in oklab, var(--color-light-blue) 25%, transparent);
+  background: color-mix(in oklab, var(--color-white) 85%, var(--color-light-gray));
+}
+
+.ingresos .rows-per-page {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.ingresos .rows-per-page > span {
+  font-size: 0.875rem;
+  color: var(--color-dark-gray);
+}
+
+.ingresos .addButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  height: 2.25rem;
+  padding: 0 1rem;
+  border: 0;
+  border-radius: 999rem;
+  background: var(--color-dark-blue);
+  color: var(--color-white);
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform .06s ease, filter .2s ease, background-color .2s ease;
+}
+
+.ingresos .addButton:hover { filter: brightness(1.05); }
+.ingresos .addButton:active { transform: translateY(0.0625rem); }
+.ingresos .addButton .iconButton { width: 1rem; filter: brightness(0) invert(1); }
+
+.ingresos .table-wrapper {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.ingresos .table thead {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--color-light-blue);
+  color: var(--color-white);
+}
+
+.ingresos .table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.ingresos .table th {
+  padding: 0.75rem;
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+.ingresos .table td {
+  padding: 0.75rem;
+  border-bottom: 0.0625rem solid var(--color-light-gray);
+  font-size: 0.875rem;
+  color: var(--color-dark-gray);
+}
+
+.ingresos .table tbody tr:hover {
+  background-color: color-mix(in oklab, var(--color-light-gray) 30%, white);
+}
+
+.ingresos .empty {
+  text-align: center;
+  color: var(--color-gray);
+  padding: 2rem;
+  font-style: italic;
+}
+
+.ingresos .pagination-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background: color-mix(in oklab, var(--color-light-gray) 45%, white);
+  border-top: 0.0625rem solid var(--color-light-gray);
+  border-radius: 0 0 0.75rem 0.75rem;
+}
+
+.ingresos .pagination-info {
+  font-size: 0.875rem;
+  color: var(--color-dark-gray);
+}
+
+.ingresos .pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.ingresos .pg-info {
+  font-size: 0.875rem;
+  color: var(--color-dark-gray);
+  padding: 0 0.5rem;
+}
+
+.ingresos .pg-btn {
+  min-width: 2rem;
+  height: 2rem;
+  padding: 0 0.5rem;
+  border: 0.0625rem solid var(--color-gray);
+  border-radius: 0.375rem;
+  background: var(--color-white);
+  color: var(--color-dark-gray);
+  cursor: pointer;
+  transition: transform .06s ease, background-color .2s ease, border-color .2s ease;
+}
+
+.ingresos .pg-btn:hover:not(:disabled) {
+  background: var(--color-light-blue);
+  color: var(--color-white);
+  border-color: var(--color-light-blue);
+}
+
+.ingresos .pg-btn.active {
+  border-color: var(--color-light-blue);
+  color: var(--color-light-blue);
+}
+
+.ingresos .pg-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.ingresos .pg-btn:active { 
+  transform: translateY(0.0625rem); 
+}
+
+/* ===== ESTILOS DE ORDENES (iguales a Clientes, Movimientos, Ingresos y Proveedores) ===== */
+.ordenes.table-container {
+  border-radius: 0.75rem;
+  border: 0.0625rem solid var(--color-light-gray);
+  background: var(--color-white);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.ordenes .ordenes-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  padding: 0.75rem 1rem;
+  background: color-mix(in oklab, var(--color-light-gray) 45%, white);
+  border-bottom: 0.0625rem solid var(--color-light-gray);
+  border-radius: 0.75rem 0.75rem 0 0;
+}
+
+.ordenes .ordenes-filters {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex: 1 1 auto;
+}
+
+.ordenes .ordenes-search,
+.ordenes .ordenes-estado-filter {
+  height: 2.25rem;
+  padding: 0 0.875rem;
+  border: 0.0625rem solid var(--color-gray);
+  border-radius: 999rem;
+  background: var(--color-white);
+  color: var(--color-black);
+  font-size: 0.875rem;
+  outline: none;
+  transition: box-shadow .2s ease, border-color .2s ease, background-color .2s ease;
+}
+
+.ordenes .ordenes-search {
+  min-width: 14rem;
+  flex: 1 1 18rem;
+}
+
+.ordenes .ordenes-estado-filter { min-width: 12rem; }
+
+.ordenes .ordenes-search::placeholder { color: color-mix(in oklab, var(--color-dark-gray) 55%, white); }
+
+.ordenes .ordenes-search:focus,
+.ordenes .ordenes-estado-filter:focus {
+  border-color: var(--color-light-blue);
+  box-shadow: 0 0 0 0.1875rem color-mix(in oklab, var(--color-light-blue) 25%, transparent);
+  background: color-mix(in oklab, var(--color-white) 85%, var(--color-light-gray));
+}
+
+.ordenes .ordenes-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.ordenes .rows-per-page {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.ordenes .rows-per-page > span {
+  font-size: 0.875rem;
+  color: var(--color-dark-gray);
+}
+
+.ordenes .clientes-select {
+  height: 2.25rem;
+  padding: 0 0.875rem;
+  border: 0.0625rem solid var(--color-gray);
+  border-radius: 999rem;
+  background: var(--color-white);
+  color: var(--color-black);
+  font-size: 0.875rem;
+  outline: none;
+  transition: box-shadow .2s ease, border-color .2s ease, background-color .2s ease;
+}
+
+.ordenes .addButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  height: 2.25rem;
+  padding: 0 1rem;
+  border: 0;
+  border-radius: 999rem;
+  background: var(--color-dark-blue);
+  color: var(--color-white);
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform .06s ease, filter .2s ease, background-color .2s ease;
+}
+
+.ordenes .addButton:hover { filter: brightness(1.05); }
+.ordenes .addButton:active { transform: translateY(0.0625rem); }
+.ordenes .addButton .iconButton { width: 1rem; filter: brightness(0) invert(1); }
+
+.ordenes .table-wrapper {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.ordenes .table thead {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--color-light-blue);
+  color: var(--color-white);
+}
+
+.ordenes .table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.ordenes .table th {
+  padding: 0.75rem;
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+.ordenes .table td {
+  padding: 0.75rem;
+  border-bottom: 0.0625rem solid var(--color-light-gray);
+  font-size: 0.875rem;
+  color: var(--color-dark-gray);
+}
+
+.ordenes .table tbody tr:hover {
+  background-color: color-mix(in oklab, var(--color-light-gray) 30%, white);
+}
+
+.ordenes .empty {
+  text-align: center;
+  color: var(--color-gray);
+  padding: 2rem;
+  font-style: italic;
+}
+
+.ordenes .pagination-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background: color-mix(in oklab, var(--color-light-gray) 45%, white);
+  border-top: 0.0625rem solid var(--color-light-gray);
+  border-radius: 0 0 0.75rem 0.75rem;
+}
+
+.ordenes .pagination-info {
+  font-size: 0.875rem;
+  color: var(--color-dark-gray);
+}
+
+.ordenes .pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.ordenes .pg-info {
+  font-size: 0.875rem;
+  color: var(--color-dark-gray);
+  padding: 0 0.5rem;
+}
+
+.ordenes .pg-btn {
+  min-width: 2rem;
+  height: 2rem;
+  padding: 0 0.5rem;
+  border: 0.0625rem solid var(--color-gray);
+  border-radius: 0.375rem;
+  background: var(--color-white);
+  color: var(--color-dark-gray);
+  cursor: pointer;
+  transition: transform .06s ease, background-color .2s ease, border-color .2s ease;
+}
+
+.ordenes .pg-btn:hover:not(:disabled) {
+  background: var(--color-light-blue);
+  color: var(--color-white);
+  border-color: var(--color-light-blue);
+}
+
+.ordenes .pg-btn.active {
+  border-color: var(--color-light-blue);
+  color: var(--color-light-blue);
+}
+
+.ordenes .pg-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.ordenes .pg-btn:active { 
+  transform: translateY(0.0625rem); 
 }

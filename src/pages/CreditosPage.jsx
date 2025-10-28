@@ -201,7 +201,6 @@ const CreditosPage = () => {
 
   return (
     <div className="creditos-container">
-      <h1>Gestión de Créditos</h1>
 
       {error && (
         <div className="error-message">

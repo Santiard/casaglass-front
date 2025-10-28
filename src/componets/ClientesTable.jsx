@@ -103,7 +103,7 @@ export default function ClientesTable({
   }, [curPage, maxPage]);
 
   return (
-    <div className="table-container">
+    <div className="table-container clientes">
       <div className="toolbar">
         <input
           className="clientes-input"
@@ -126,7 +126,7 @@ export default function ClientesTable({
         </select>
 
         <div className="rows-per-page">
-          <span>Filas:</span>
+          <span className="items-count">Filas:</span>
           <select
             className="clientes-select"
             value={rowsPerPage}
@@ -197,22 +197,16 @@ export default function ClientesTable({
           </div>
 
           <div className="pagination-controls">
-            <button className="pg-btn" onClick={goFirst} disabled={!canPrev} aria-label="Primera">«</button>
-            <button className="pg-btn" onClick={goPrev}  disabled={!canPrev} aria-label="Anterior">‹</button>
-
-            {visiblePages.map((p) => (
-              <button
-                key={p}
-                className={`pg-btn ${p === curPage ? "active" : ""}`}
-                onClick={() => setPage(p)}
-                aria-current={p === curPage ? "page" : undefined}
-              >
-                {p}
-              </button>
-            ))}
-
-            <button className="pg-btn" onClick={goNext} disabled={!canNext} aria-label="Siguiente">›</button>
-            <button className="pg-btn" onClick={goLast} disabled={!canNext} aria-label="Última">»</button>
+            <button className="pg-btn" onClick={goFirst} disabled={!canPrev}>«</button>
+            <button className="pg-btn" onClick={goPrev}  disabled={!canPrev}>‹</button>
+            {Array.from({ length: Math.min(5, maxPage) }, (_, i) => {
+              const p = Math.max(1, Math.min(curPage - 2, maxPage - 4)) + i;
+              return p <= maxPage ? (
+                <button key={p} className={`pg-btn ${p === curPage ? "active" : ""}`} onClick={() => setPage(p)}>{p}</button>
+              ) : null;
+            })}
+            <button className="pg-btn" onClick={goNext} disabled={!canNext}>›</button>
+            <button className="pg-btn" onClick={goLast} disabled={!canNext}>»</button>
           </div>
         </div>
 
