@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import FacturarOrdenModal from "../modals/FacturarOrdenModal.jsx";
+import OrdenModal from "../modals/OrdenModal.jsx";
 import "../styles/ListadoOrden.css";
 
 export default function ListadoOrden({ productosCarrito, subtotal, total, limpiarCarrito, eliminarProducto, cortesPendientes }) {
@@ -87,7 +87,7 @@ export default function ListadoOrden({ productosCarrito, subtotal, total, limpia
             onClick={() => setIsFacturarOpen(true)}
             disabled={items.length === 0}
           >
-            Facturar Orden
+            Crear Orden
           </button>
           <button 
             className="btn-imprimir"
@@ -99,12 +99,16 @@ export default function ListadoOrden({ productosCarrito, subtotal, total, limpia
         </div>
       </div>
 
-      <FacturarOrdenModal
+      <OrdenModal
         isOpen={isFacturarOpen}
         onClose={() => setIsFacturarOpen(false)}
+        orden={null}
         productosCarrito={items}
-        cortesPendientes={cortesPendientes || []}
-        onFacturacionExitosa={limpiarCarrito}
+        onSave={(orden) => {
+          console.log("Orden creada:", orden);
+          limpiarCarrito();
+          setIsFacturarOpen(false);
+        }}
       />
 
     </div>

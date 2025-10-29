@@ -11,6 +11,16 @@ export async function listarFacturasTabla() {
   return Array.isArray(data) ? data : [];
 }
 
+export async function obtenerCantidadFacturas() {
+  const facturas = await listarFacturas();
+  return facturas.length;
+}
+
+export async function obtenerNumeroFacturaSiguiente() {
+  const cantidad = await obtenerCantidadFacturas();
+  return `F-${cantidad + 1}`;
+}
+
 export async function listarFacturasPorCliente(clienteId) {
   const { data } = await api.get(`facturas/cliente/${clienteId}`);
   return Array.isArray(data) ? data : [];

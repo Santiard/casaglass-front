@@ -6,12 +6,11 @@ export default function FacturarOrdenModal({ isOpen, onClose, onSave, orden }) {
     ordenId: "",
     fecha: new Date().toISOString().split('T')[0],
     subtotal: 0,
-    descuentos: 0,
+    descuentos: "",
     iva: 0,
     retencionFuente: 0,
     formaPago: "EFECTIVO",
     observaciones: "",
-    numeroFactura: "",
   });
 
   const [loading, setLoading] = useState(false);
@@ -25,12 +24,11 @@ export default function FacturarOrdenModal({ isOpen, onClose, onSave, orden }) {
         ordenId: orden.id,
         fecha: new Date().toISOString().split('T')[0],
         subtotal: subtotal,
-        descuentos: 0,
+        descuentos: "",
         iva: 0,
         retencionFuente: 0,
         formaPago: "EFECTIVO",
         observaciones: `Factura generada desde orden #${orden.numero}`,
-        numeroFactura: "",
       });
     }
   }, [isOpen, orden]);
@@ -39,7 +37,12 @@ export default function FacturarOrdenModal({ isOpen, onClose, onSave, orden }) {
     const { name, value, type } = e.target;
     
     if (type === "number") {
-      setForm(prev => ({ ...prev, [name]: parseFloat(value) || 0 }));
+      // Para descuentos, permitir vacío
+      if (name === "descuentos") {
+        setForm(prev => ({ ...prev, [name]: value === "" ? "" : parseFloat(value) || 0 }));
+      } else {
+        setForm(prev => ({ ...prev, [name]: parseFloat(value) || 0 }));
+      }
     } else if (type === "checkbox") {
       setForm(prev => ({ ...prev, [name]: e.target.checked }));
     } else {
@@ -57,7 +60,13 @@ export default function FacturarOrdenModal({ isOpen, onClose, onSave, orden }) {
 
     setLoading(true);
     try {
-      await onSave(form, false);
+      // Asegurar que descuentos sea 0 si está vacío
+      const payloadToSend = {
+        ...form,
+        descuentos: form.descuentos === "" ? 0 : form.descuentos
+      };
+      
+      await onSave(payloadToSend, false);
       onClose();
     } catch (error) {
       console.error("Error creando factura:", error);
@@ -91,17 +100,6 @@ export default function FacturarOrdenModal({ isOpen, onClose, onSave, orden }) {
             </div>
 
             <div className="form-group">
-              <label>Número de Factura (opcional):</label>
-              <input
-                type="text"
-                name="numeroFactura"
-                value={form.numeroFactura}
-                onChange={handleChange}
-                placeholder="Ej: FAC-2025-001"
-              />
-            </div>
-
-            <div className="form-group">
               <label>Subtotal:</label>
               <input
                 type="number"
@@ -123,7 +121,7 @@ export default function FacturarOrdenModal({ isOpen, onClose, onSave, orden }) {
                 onChange={handleChange}
                 step="0.01"
                 min="0"
-                required
+                placeholder="0.00"
               />
             </div>
 

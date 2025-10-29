@@ -1,141 +1,346 @@
-.modal-overlay.factura {
+.facturar-modal-overlay {
   position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.45);
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(30, 39, 83, 0.6);
   display: flex;
-  justify-content: center;
   align-items: center;
-  z-index: 2000;
+  justify-content: center;
+  z-index: 1000;
 }
 
-.modal-container.modal-wide {
-  background: white;
-  border-radius: 12px;
+.facturar-modal-container {
+  background: #fff;
+  padding: 2rem;
+  border-radius: 0.75rem;
   width: 90%;
-  max-width: 1100px;
+  max-width: 1200px;
   max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.25);
   display: flex;
   flex-direction: column;
-  overflow: hidden;
 }
 
-.factura-header {
+.facturar-modal-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: #4f67ff;
-  color: white;
-  padding: 1rem 1.5rem;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid #e9ecef;
 }
 
-.btn-cerrar {
+.facturar-modal-header h2 {
+  margin: 0;
+  color: #1e2753;
+  font-size: 1.5rem;
+}
+
+.facturar-modal-close-btn {
   background: transparent;
   border: none;
-  color: white;
-  font-size: 1.3rem;
+  font-size: 1.5rem;
   cursor: pointer;
+  color: #1e2753;
+  padding: 0;
+  width: 2rem;
+  height: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.factura-grid {
+.facturar-modal-close-btn:hover {
+  background: #f8f9fa;
+  border-radius: 50%;
+}
+
+/* Layout de dos columnas */
+.facturar-modal-two-columns {
   display: grid;
-  grid-template-columns: 1fr 1.5fr;
-  gap: 1rem;
-  padding: 1rem 1.5rem;
-  overflow-y: auto;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
 }
 
-.factura-form label {
+/* Columna Izquierda */
+.facturar-left-column {
   display: flex;
   flex-direction: column;
-  margin-bottom: 0.8rem;
-  font-weight: 500;
-  color: #333;
+  gap: 1.5rem;
 }
 
-.factura-form select,
-.factura-form input[type="text"] {
-  margin-top: 4px;
-  padding: 6px 8px;
-  border: 1px solid #ccc;
-  border-radius: 6px;
+/* Sección de información del cliente */
+.facturar-client-info {
+  background: #f8f9fa;
+  padding: 1.5rem;
+  border-radius: 0.5rem;
+  border: 1px solid #e9ecef;
 }
 
-.factura-checks {
-  display: flex;
-  gap: 1rem;
-  margin-top: 1rem;
-}
-
-.factura-total {
-  margin-top: 1.5rem;
+.facturar-client-info h3 {
+  margin: 0 0 1rem 0;
+  color: #1e2753;
   font-size: 1.2rem;
-  font-weight: bold;
 }
 
-.factura-items {
-  border-left: 1px solid #ddd;
-  padding-left: 1rem;
+.facturar-info-grid {
+  display: grid;
+  gap: 0.75rem;
 }
 
-.factura-items-scroll {
-  max-height: 400px;
-  overflow-y: auto;
-  border: 1px solid #eee;
-  border-radius: 8px;
-}
-
-.factura-items table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.9rem;
-}
-
-.factura-items th,
-.factura-items td {
-  padding: 6px 8px;
-  border-bottom: 1px solid #eee;
-  text-align: left;
-}
-
-.factura-footer {
-  padding: 1rem 1.5rem;
+.facturar-info-item {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
-  border-top: 1px solid #ddd;
+  gap: 0.25rem;
 }
 
-.factura-msg {
-  text-align: center;
-  font-weight: 500;
-}
-
-.factura-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 1rem;
-}
-
-.btn-cancelar,
-.btn-guardar {
-  border: none;
-  padding: 0.6rem 1.2rem;
-  border-radius: 8px;
-  cursor: pointer;
+.facturar-info-item strong {
+  color: #495057;
+  font-size: 0.85rem;
   font-weight: 600;
 }
 
-.btn-cancelar {
-  background: #ccc;
-  color: #333;
+.facturar-info-item span {
+  color: #212529;
+  font-size: 0.95rem;
 }
 
-.btn-guardar {
-  background: #4f67ff;
-  color: white;
+/* Tabla de productos */
+.facturar-products-table-container {
+  background: #fff;
+  border-radius: 0.5rem;
+  border: 1px solid #e9ecef;
+  overflow: hidden;
 }
 
-.btn-guardar:disabled {
-  background: #888;
+.facturar-products-table-container h3 {
+  margin: 0;
+  padding: 1rem 1.5rem;
+  background: #f8f9fa;
+  color: #1e2753;
+  font-size: 1.2rem;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.facturar-products-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.facturar-products-table thead {
+  background: #f8f9fa;
+}
+
+.facturar-products-table th {
+  padding: 0.75rem;
+  text-align: left;
+  font-weight: 600;
+  color: #495057;
+  font-size: 0.85rem;
+  border-bottom: 2px solid #dee2e6;
+}
+
+.facturar-products-table td {
+  padding: 0.75rem;
+  color: #212529;
+  font-size: 0.9rem;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.facturar-products-table tbody tr:hover {
+  background: #f8f9fa;
+}
+
+/* Columna Derecha */
+.facturar-right-column {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* Grid interno para dividir columna derecha en dos columnas */
+.facturar-right-column-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  align-items: flex-start;
+}
+
+/* Sección editable */
+.facturar-editable-section {
+  background: #f8f9fa;
+  padding: 1.5rem;
+  border-radius: 0.5rem;
+  border: 1px solid #e9ecef;
+}
+
+.facturar-editable-section h4 {
+  margin: 0 0 1rem 0;
+  color: #1e2753;
+  font-size: 1.1rem;
+}
+
+.facturar-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.facturar-form-group:last-child {
+  margin-bottom: 0;
+}
+
+.facturar-form-group label {
+  font-size: 0.9rem;
+  color: #3a393b;
+  font-weight: 500;
+}
+
+.facturar-form-group input,
+.facturar-form-group select,
+.facturar-form-group textarea {
+  padding: 0.5rem;
+  border: 0.0625rem solid #ccc;
+  border-radius: 0.375rem;
+  background-color: #fff;
+  font-size: inherit;
+  font-family: inherit;
+}
+
+.facturar-form-group input:focus,
+.facturar-form-group select:focus,
+.facturar-form-group textarea:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+.facturar-form-group input:disabled {
+  background-color: #f5f5f5;
   cursor: not-allowed;
+}
+
+.facturar-form-group textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+/* Campo de ancho completo para observaciones */
+.facturar-full-width-field {
+  grid-column: 1 / -1;
+}
+
+/* Sección de totales calculados */
+.facturar-calculated-section {
+  background: #fff;
+  padding: 1.5rem;
+  border-radius: 0.5rem;
+  border: 2px solid #1e2753;
+}
+
+.facturar-calculated-section h4 {
+  margin: 0 0 1rem 0;
+  color: #1e2753;
+  font-size: 1.1rem;
+}
+
+.facturar-totals {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.facturar-total-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.75rem;
+  border-bottom: 1px solid #e9ecef;
+  font-size: 0.95rem;
+}
+
+.facturar-total-item:last-child {
+  border-bottom: none;
+}
+
+.facturar-total-item.highlighted {
+  background: #f0f7ff;
+  border-radius: 0.25rem;
+  font-weight: 600;
+}
+
+.facturar-total-item.grand-total {
+  background: #1e2753;
+  color: #fff;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  font-size: 1.1rem;
+  font-weight: bold;
+  margin-top: 0.5rem;
+}
+
+.facturar-total-item span:last-child {
+  font-weight: inherit;
+}
+
+.facturar-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e9ecef;
+}
+
+.facturar-btn-cancelar,
+.facturar-btn-guardar {
+  background: #007bff;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background 0.2s;
+}
+
+.facturar-btn-cancelar:hover,
+.facturar-btn-guardar:hover {
+  background: #1e2753;
+}
+
+.facturar-btn-cancelar:disabled,
+.facturar-btn-guardar:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .facturar-modal-two-columns {
+    grid-template-columns: 1fr;
+  }
+  
+  .facturar-right-column-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .facturar-modal-container {
+    width: 95%;
+  }
+}
+
+@media (max-width: 53.125rem) {
+  .facturar-modal-container {
+    padding: 1.5rem;
+  }
+}
+
+@media (max-width: 48rem) {
+  .facturar-modal-header h2 {
+    font-size: 1.2rem;
+  }
 }

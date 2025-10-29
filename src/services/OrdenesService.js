@@ -22,6 +22,12 @@ export async function obtenerOrden(id) {
   return data;
 }
 
+// GET /api/ordenes/{id}/detalle
+export async function obtenerOrdenDetalle(id) {
+  const { data } = await api.get(`ordenes/${id}/detalle`);
+  return data;
+}
+
 // POST /api/ordenes
 export async function crearOrden(payload) {
   const { data } = await api.post("ordenes", payload);
@@ -220,4 +226,14 @@ export async function actualizarItem(ordenId, itemId, item) {
 export async function eliminarItem(ordenId, itemId) {
   await api.delete(`ordenes/${ordenId}/items/${itemId}`);
   return true;
+}
+
+/* ================================================
+   📄 ORDENES - FACTURACIÓN
+   ================================================ */
+
+// PUT /api/ordenes/{id}/facturar
+export async function marcarOrdenComoFacturada(ordenId, facturada = true) {
+  const { data } = await api.put(`ordenes/${ordenId}/facturar`, { facturada });
+  return data;
 }

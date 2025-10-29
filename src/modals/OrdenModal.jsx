@@ -6,7 +6,7 @@ import { listarSedes } from "../services/SedesService.js";
 import { listarTrabajadores } from "../services/TrabajadoresService.js";
 import { listarProductos } from "../services/ProductosService.js";
 import { listarCategorias } from "../services/CategoriasService.js";
-import { actualizarOrden, obtenerOrden, actualizarOrdenVenta } from "../services/OrdenesService.js";
+import { actualizarOrden, obtenerOrden, actualizarOrdenVenta, crearOrdenVenta } from "../services/OrdenesService.js";
 
 import { api } from "../lib/api";
 // Utilidad para formato de fecha
@@ -25,6 +25,7 @@ export default function OrdenEditarModal({
   isOpen,
   onClose,
   onSave, // función del padre (OrdenesPage -> fetchData)
+  productosCarrito = null, // Productos del carrito para crear orden nueva
 }) {
   const [form, setForm] = useState(null);
   const [clientes, setClientes] = useState([]);
@@ -41,7 +42,62 @@ export default function OrdenEditarModal({
   // Cargar datos iniciales
   // =============================
   useEffect(() => {
-    if (!isOpen || !orden?.id) return;
+    if (!isOpen) return;
+    
+    // Si no hay orden, es modo creación desde el carrito
+    if (!orden) {
+      if (productosCarrito && productosCarrito.length > 0) {
+        // Inicializar formulario con productos del carrito
+        console.log("📝 Modo creación de orden desde carrito", productosCarrito);
+        const base = {
+          id: null,
+          fecha: new Date().toISOString().split('T')[0],
+          obra: "",
+          venta: true,
+          credito: false,
+          clienteNombre: "",
+          trabajadorNombre: "",
+          sedeNombre: "",
+          clienteId: "",
+          trabajadorId: "",
+          sedeId: "",
+          items: productosCarrito.map((p) => ({
+            id: null,
+            productoId: p.id ?? null,
+            codigo: p.codigo ?? "",
+            nombre: p.nombre ?? "",
+            descripcion: p.nombre ?? "",
+            cantidad: Number(p.cantidadVender ?? 1),
+            precioUnitario: Number(p.precioUsado ?? 0),
+            totalLinea: Number((p.precioUsado ?? 0) * (p.cantidadVender ?? 1)),
+            eliminar: false,
+          })),
+        };
+        console.log("📋 Form inicializado desde carrito:", base);
+        setForm(base);
+      } else {
+        // Modo creación vacío (sin productos del carrito)
+        console.log("📝 Modo creación de orden vacío");
+        const base = {
+          id: null,
+          fecha: new Date().toISOString().split('T')[0],
+          obra: "",
+          venta: true,
+          credito: false,
+          clienteNombre: "",
+          trabajadorNombre: "",
+          sedeNombre: "",
+          clienteId: "",
+          trabajadorId: "",
+          sedeId: "",
+          items: [],
+        };
+        setForm(base);
+      }
+      return;
+    }
+    
+    if (!orden?.id) return;
 
     // Obtener datos frescos de la orden desde el backend
     const cargarOrdenCompleta = async () => {
@@ -277,14 +333,47 @@ export default function OrdenEditarModal({
 
   const handleSubmit = async () => {
   try {
-    // Verificar si la orden está anulada
+    // Verificar si la orden está anulada (solo para edición)
     if (orden?.estado?.toLowerCase() === 'anulada') {
       alert("No se puede editar una orden anulada. Las órdenes anuladas no pueden ser modificadas.");
       return;
     }
 
+    // Determinar si es creación o edición
+    const esCreacion = !form.id || form.id === null;
+    
+    if (esCreacion) {
+      // Crear nueva orden
+      const payload = {
+        fecha: toLocalDateOnly(form.fecha),
+        obra: form.obra,
+        venta: form.venta || true,
+        credito: form.credito,
+        clienteId: Number(form.clienteId),
+        trabajadorId: Number(form.trabajadorId),
+        sedeId: Number(form.sedeId),
+        items: form.items.map((i) => ({
+          productoId: Number(i.productoId ?? 0),
+          descripcion: i.descripcion ?? "",
+          cantidad: Number(i.cantidad ?? 1),
+          precioUnitario: Number(i.precioUnitario ?? 0),
+        })),
+      };
+      
+      console.log("Creando orden nueva con payload:", payload);
+      
+      const data = await crearOrdenVenta(payload);
+      console.log("Orden creada:", data);
+      alert(`Orden creada correctamente\nNúmero: ${data.numero}`);
+      
+      if (onSave) onSave(data);
+      onClose();
+      return;
+    }
+
+    // Editar orden existente
     const payload = {
-    id: orden.id,
+    id: form.id,
     fecha: toLocalDateOnly(form.fecha),
     obra: form.obra,
     venta: form.venta,
@@ -361,7 +450,7 @@ export default function OrdenEditarModal({
   return (
     <div className="modal-overlay">
       <div className="modal-container modal-wide">
-        <h2>Editar Orden #{form.numero ?? form.id}</h2>
+        <h2>{form.id ? `Editar Orden #${form.numero ?? form.id}` : 'Crear Nueva Orden'}</h2>
 
         {errorMsg && <div className="alert error">{errorMsg}</div>}
 
@@ -602,7 +691,7 @@ export default function OrdenEditarModal({
             onClick={handleSubmit}
             disabled={isSubmitting}
           >
-            {isSubmitting ? "Guardando..." : "Guardar cambios"}
+            {isSubmitting ? "Guardando..." : (form.id ? "Guardar cambios" : "Crear Orden")}
           </button>
         </div>
       </div>

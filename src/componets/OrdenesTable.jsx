@@ -311,10 +311,14 @@ export default function OrdenesTable({
                         <button
                           className="btnLink"
                           onClick={() => {
-                            setOrdenFacturar(o);
-                            setIsFacturarModalOpen(true);
+                            if (!o.facturada) {
+                              setOrdenFacturar(o);
+                              setIsFacturarModalOpen(true);
+                            }
                           }}
-                          title="Facturar orden"
+                          title={o.facturada ? "Orden ya facturada" : "Facturar orden"}
+                          disabled={o.facturada}
+                          style={{ opacity: o.facturada ? 0.5 : 1, cursor: o.facturada ? 'not-allowed' : 'pointer' }}
                         >
                           Facturar
                         </button>

@@ -1,19 +1,22 @@
 .modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(30, 39, 83, 0.6);
-  display: grid;
-  place-items: center;
-  z-index: 1000;
+  position: fixed !important;
+  inset: 0 !important;
+  background: rgba(30, 39, 83, 0.6) !important;
+  display: grid !important;
+  place-items: center !important;
+  z-index: 99999 !important; /* Aumentar z-index para que se superponga a la sidebar */
+  pointer-events: auto !important; /* Capturar todos los eventos del mouse */
 }
 
 .modal-container {
   background: #fff;
   padding: 1.25rem 1.25rem 1rem;
   border-radius: 12px;
-  width: 400px;
-  max-width: 95vw;
+  width: auto;
+  min-width: 400px;
+  max-width: 98vw;
   box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+  pointer-events: auto; /* Permitir interacción con el contenido del modal */
 }
 
 .modal-container h2 {
@@ -26,7 +29,11 @@
 .alert.error { background: #ffe8e8; color: #8b1a1a; border: 1px solid #f5bcbc; }
 .alert.warning { background: #fff6e5; color: #7a4b00; border: 1px solid #f3d39a; }
 
-.modal-wide { width: 1200px; max-width: 98vw; }
+.modal-wide { 
+  width: auto !important;
+  min-width: 1200px;
+  max-width: 98vw;
+}
 .modal-grid {
   display: grid;
   grid-template-columns: 1fr 200px 1fr;
@@ -38,6 +45,7 @@
   border-radius: 10px;
   padding: 12px;
   min-height: 420px;
+  overflow: visible;
 }
 
 .pane.pane-sidebar {

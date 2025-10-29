@@ -7,6 +7,7 @@ import {
   crearOrden,
   actualizarOrden,
   anularOrden,
+  marcarOrdenComoFacturada,
 } from "../services/OrdenesService";
 import { crearFactura } from "../services/FacturasService";
 
@@ -87,38 +88,29 @@ export default function OrdenesPage() {
   };
 
   // 🔹 Facturar orden
-  const handleFacturar = async (orden) => {
+  const handleFacturar = async (facturaPayload, isModal = false) => {
     try {
-      console.log(`📄 Facturando orden ID: ${orden.id}`);
+      console.log(`📄 Facturando desde modal:`, facturaPayload);
       
-      // Calcular totales de la orden
-      const subtotal = orden.total || 0;
-      const iva = 0; // El IVA se calcula en el backend
-      
-      // Preparar payload para crear la factura
-      const facturaPayload = {
-        ordenId: orden.id,
-        fecha: new Date().toISOString().split('T')[0],
-        subtotal: subtotal,
-        descuentos: 0,
-        iva: iva,
-        retencionFuente: 0,
-        formaPago: "EFECTIVO",
-        observaciones: `Factura generada desde orden #${orden.numero}`,
-      };
-
       console.log("📦 Payload de factura:", facturaPayload);
       
-      const response = await crearFactura(facturaPayload);
-      console.log("✅ Factura creada:", response);
+      // Crear factura
+      const facturaResponse = await crearFactura(facturaPayload);
+      console.log("✅ Factura creada:", facturaResponse);
       
-      alert(`Factura creada exitosamente\nNúmero: ${response.numeroFactura || response.numero}`);
+      // Marcar orden como facturada
+      console.log(`🔄 Marcando orden ${facturaPayload.ordenId} como facturada...`);
+      const ordenResponse = await marcarOrdenComoFacturada(facturaPayload.ordenId, true);
+      console.log("✅ Orden marcada como facturada:", ordenResponse);
+      
+      const numeroFactura = facturaResponse.numeroFactura || ordenResponse.numeroFactura || facturaResponse.numero || "N/A";
+      alert(`Factura creada exitosamente\nNúmero: ${numeroFactura}`);
       
       // Refrescar tabla de órdenes
       await fetchData();
     } catch (e) {
       console.error("Error facturando orden", e);
-      const msg = e?.response?.data?.message || "No se pudo crear la factura.";
+      const msg = e?.response?.data?.error || e?.response?.data?.message || "No se pudo crear la factura.";
       alert(msg);
     }
   };

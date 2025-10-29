@@ -8,7 +8,7 @@
   background: #e0e0e0;
   overflow-y: auto;
   transition: width 0.3s ease, transform 0.3s ease;
-  z-index: 1000;
+  z-index: 100;
 }
 
 /* Estado colapsado */
@@ -46,7 +46,7 @@
 @media (max-width: 43.75rem) {        /* 700px */
   .sidebar {
     transform: translateX(-100%);
-    z-index: 2000;
+    z-index: 200;
   }
 
   .sidebar.open {
@@ -132,7 +132,7 @@
   pointer-events: none;
   transition: opacity 0.2s ease;
   margin-left: 0.5rem;
-  z-index: 1001;
+  z-index: 101;
 }
 
 .sidebar.collapsed a:hover::after {
