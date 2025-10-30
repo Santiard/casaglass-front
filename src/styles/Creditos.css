@@ -24,11 +24,13 @@
 
 .filtros-creditos {
   display: flex;
-  align-items: flex-end;
-  gap: 1rem;
-  flex-wrap: wrap;
+  align-items: center;           /* alineación en un mismo renglón */
+  gap: 0.5rem;                   /* compacto */
+  flex-wrap: nowrap;             /* una sola fila */
+  overflow-x: auto;              /* scroll horizontal si no cabe */
+  white-space: nowrap;           /* evitar saltos */
   background: var(--color-light-blue);
-  padding: 0.75rem 1rem;
+  padding: 0.5rem 0.75rem;       /* compacto */
   border-radius: 0.75rem;
   margin-bottom: 1rem;
   border: 0.0625rem solid #e5e7eb;
@@ -42,7 +44,9 @@
   background-color: #fff;
   outline: none;
   transition: all 0.2s ease;
-  min-width: 150px;
+  min-width: 12rem;              /* ampliar un poco más */
+  width: 14rem;
+  flex: 0 0 auto;                /* no crecer/encoger */
 }
 
 .filtros-creditos select:focus {
@@ -51,8 +55,9 @@
 }
 
 .filtro-rango {
-  display: flex;
-  flex-direction: column;
+  display: inline-flex;
+  flex-direction: row;           /* en línea */
+  align-items: center;
   gap: 0.5rem;
 }
 
@@ -60,11 +65,11 @@
   font-size: 0.75rem;
   font-weight: 600;
   color: var(--color-white);
-  margin-bottom: 0.25rem;
+  margin: 0;                     /* evitar crecer en alto */
 }
 
 .filtro-rango .inputs-row {
-  display: flex;
+  display: inline-flex;
   gap: 0.5rem;
   align-items: center;
 }

@@ -17,6 +17,7 @@ export default function FacturarOrdenModal({ isOpen, onClose, onSave, orden }) {
   const [subtotalOrden, setSubtotalOrden] = useState(0);
   const [validationMsg, setValidationMsg] = useState("");
   const creditoPendiente = Boolean(orden?.credito) && Number(orden?.creditoDetalle?.saldoPendiente || 0) > 0;
+  const isAnulada = String(orden?.estado || "").toUpperCase() === "ANULADA";
 
   useEffect(() => {
     if (isOpen && orden) {
@@ -75,6 +76,11 @@ export default function FacturarOrdenModal({ isOpen, onClose, onSave, orden }) {
 
     if (creditoPendiente) {
       alert("Esta orden es a crédito y tiene saldo pendiente. No se puede facturar hasta completar el pago.");
+      return;
+    }
+
+    if (isAnulada) {
+      alert("Esta orden está anulada. No se puede facturar.");
       return;
     }
 
@@ -177,6 +183,14 @@ export default function FacturarOrdenModal({ isOpen, onClose, onSave, orden }) {
           {/* SECCIÓN CÁLCULOS */}
           <section className="section-card">
             <h3>Totales y Descuentos</h3>
+            {isAnulada && (
+              <div style={{
+                background: '#FEF2F2', border: '1px solid #FCA5A5', color: '#991B1B',
+                padding: '0.5rem', borderRadius: '0.5rem', marginBottom: '0.5rem'
+              }}>
+                Esta orden se encuentra ANULADA. No es posible facturar una orden anulada.
+              </div>
+            )}
             {creditoPendiente && (
               <div style={{
                 background: '#FEF2F2', border: '1px solid #FCA5A5', color: '#991B1B',
@@ -303,7 +317,8 @@ export default function FacturarOrdenModal({ isOpen, onClose, onSave, orden }) {
                 (parseFloat(form.descuentos) || 0) > subtotalOrden ||
                 (Number(form.iva) || 0) < 0 ||
                 (Number(form.retencionFuente) || 0) < 0 ||
-                creditoPendiente
+                creditoPendiente ||
+                isAnulada
               }
             >
               {loading ? "Guardando..." : "Guardar Factura"}

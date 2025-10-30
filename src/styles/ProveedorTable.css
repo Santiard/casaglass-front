@@ -139,29 +139,33 @@
   gap: 0.5rem;
 }
 
-.prov .btnEdit,
-.prov .btnDelete {
-  border: 0.0625rem solid transparent;
-  border-radius: 0.5rem;
-  height: 2rem;
-  width: 2rem;
-  display: inline-grid;
-  place-items: center;
-  background: var(--color-white);
+
+.iconButton {
+  width: 1rem;
+}
+
+.btnEdit,
+.btnDelete :hover {
   cursor: pointer;
-  transition: border-color .15s ease, background .15s ease, transform .06s ease, filter .15s ease;
+}
+.btnEdit {
+  margin: 0 1rem;
+}
+.btnDelete {
+  background: #cc0000;
+  border-color: #cc0000;
+}
+.btnDelete img {
+  filter: brightness(0) invert(1);
 }
 
 /* Editar: tono light-blue suave al hover */
 .prov .btnEdit:hover   { background: color-mix(in oklab, var(--color-light-blue) 12%, var(--color-white)); border-color: color-mix(in oklab, var(--color-light-blue) 25%, var(--color-white)); }
 
-.prov .btnDelete       { background: color-mix(in oklab, var(--color-black) 0%, var(--color-dark-gray)); border-color: color-mix(in oklab, var(--color-black) 0%, var(--color-dark-gray)); }
 .prov .btnDelete:hover { background: color-mix(in oklab, var(--color-black) 0%, var(--color-dark-gray) 90%); border-color: color-mix(in oklab, var(--color-black) 0%, var(--color-dark-gray) 90%); }
 .prov .btnEdit img     { width: 1rem; filter: none; }
-.prov .btnDelete img   { width: 1rem; filter: brightness(0) invert(1); }
 
-.prov .btnEdit:active,
-.prov .btnDelete:active { transform: translateY(0.0625rem); }
+
 
 /* ===== Paginación ===== */
 .prov .pagination-bar {
@@ -218,3 +222,4 @@
   .prov .addButton { height: 2.125rem; padding: 0 0.875rem; font-size: 0.875rem; }
   .prov .table th, .prov .table td { padding: 0.5rem 0.625rem; }
 }
+

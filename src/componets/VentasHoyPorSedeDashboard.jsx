@@ -1,80 +1,68 @@
-import VentasHoyDashboard from "./VentasHoyDashboard.jsx"
+import { useEffect, useMemo, useState } from "react";
 import VentasPorSedeChart from "./VentasPorSedeChart.jsx";
-import VentasPorProductoChart from "./VentasPorProductoChart";
-
-
 import "../styles/VentasHoyPorSedeDashboard.css";
+import { DashboardService } from "../services/DashboardService.js";
+
+function fmt(n){ return `$${Number(n||0).toLocaleString('es-CO')}`; }
+function today(){ return new Date().toISOString().slice(0,10); }
 
 export default function VentasHoyPorSedeDashboard(){
-   
+  const [sedesStats, setSedesStats] = useState([]); // [{sede, ordenes, monto}]
+  const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
+  const desde = useMemo(() => today(), []);
+  const hasta = useMemo(() => today(), []);
 
-   const data = {
-  insula: { 
-    nombre: "Insula", 
-    totalventas: 150000, 
-    numeroVentas: 23,
-    productos: {
-      vidrio: 70000,
-      aluminio: 50000,
-      accesorios: 30000
-    }
-  },
-  centro: { 
-    nombre: "Centro", 
-    totalventas: 98000, 
-    numeroVentas: 14,
-    productos: {
-      vidrio: 40000,
-      aluminio: 35000,
-      accesorios: 23000
-    }
-  },
-  patios: { 
-    nombre: "Patios", 
-    totalventas: 123000, 
-    numeroVentas: 18,
-    productos: {
-      vidrio: 60000,
-      aluminio: 40000,
-      accesorios: 23000
-    }
-  }
-};
-   
-  const chartData = [
-    { sede: "Insula", totalventas: data.insula.totalventas },
-    { sede: "Centro", totalventas: data.centro.totalventas },
-    { sede: "Patios", totalventas: data.patios.totalventas },
-  ];
-  const globalProductos = {
-  vidrio: data.insula.productos.vidrio + data.centro.productos.vidrio + data.patios.productos.vidrio,
-  aluminio: data.insula.productos.aluminio + data.centro.productos.aluminio + data.patios.productos.aluminio,
-  accesorios: data.insula.productos.accesorios + data.centro.productos.accesorios + data.patios.productos.accesorios,
-};
-   
-    return(
-        <div>
-        <h3>Analisis de Ventas Hoy</h3> 
-        <div className="ventasHoySedes">
-      <div className="sedeCInsula">
-        <VentasHoyDashboard sede={data.insula} />
+  useEffect(() => {
+    (async () => {
+      setLoading(true);
+      try {
+        const data = await DashboardService.getVentasPorSede(desde, hasta);
+        setSedesStats(Array.isArray(data?.sedes) ? data.sedes : []);
+        setErrorMsg("");
+      } catch (e) {
+        console.error("Error cargando ventas por sede", e);
+        const backendMsg = e?.response?.data?.message || e?.message || "Error cargando ventas";
+        setErrorMsg(String(backendMsg));
+        setSedesStats([]);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [desde, hasta]);
+
+  const chartData = useMemo(() => (sedesStats || []).map(s => ({ sede: s.sede, totalventas: s.monto })), [sedesStats]);
+
+  return (
+    <div>
+      <h3>Analisis de Ventas (Hoy)</h3>
+      {errorMsg && (
+        <div style={{
+          background:'#FEF2F2', border:'1px solid #FCA5A5', color:'#991B1B',
+          padding:'0.5rem', borderRadius:'0.5rem', marginBottom:'0.75rem'
+        }}>
+          {errorMsg}
+        </div>
+      )}
+      <div className="ventasHoySedes">
+        {(sedesStats || []).map((s) => (
+          <div key={s.sedeId} className="sedeCard">
+            <h4>{s.sede}</h4>
+            <p>Ventas: {fmt(s.monto)}</p>
+            <p>Órdenes: {s.ordenes}</p>
+          </div>
+        ))}
+        {!loading && (!sedesStats || sedesStats.length === 0) && (
+          <div className="sedeCard"><p>Sin datos para hoy</p></div>
+        )}
       </div>
 
-      <div className="sedeCentro">
-        <VentasHoyDashboard sede={data.centro} />
+      <div className="Contenedor">
+        <h3>Comparativa de ventas entre sedes (Hoy)</h3>
+        <div className="comparativas">
+          <VentasPorSedeChart chartData={chartData} />
+        </div>
       </div>
-
-      <div className="sedePatios">
-        <VentasHoyDashboard sede={data.patios} />
-      </div>
     </div>
-    <div className="Contenedor">
-    <h3>Comparativa de ventas entre sedes hoy</h3>
-    <div className="comparativas">
-    <VentasPorSedeChart chartData={chartData} />
-     <VentasPorProductoChart productos={globalProductos} />
-    </div>
-    </div>
-    </div>
-    );
+  );
 }

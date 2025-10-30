@@ -1,10 +1,12 @@
 .filters-toolbar {
   display: flex;
   align-items: center;
-  gap: 1rem;
-  flex-wrap: wrap;
+  gap: 0.75rem;
+  flex-wrap: nowrap;                  /* forzar un solo renglón */
+  overflow-x: auto;                   /* permitir scroll horizontal si no cabe */
+  white-space: nowrap;                /* evitar saltos de línea */
   background: #f9fafb;
-  padding: 0.75rem 1rem;
+  padding: 0.5rem 0.75rem;
   border-radius: 0.75rem;             /* 12px */
   border: 0.0625rem solid #e5e7eb;    /* 1px */
 }
@@ -17,7 +19,12 @@
   font-size: 0.95rem;
   outline: none;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  flex: 0 0 auto;                     /* no crecer/encoger, mantener en línea */
 }
+
+/* tamaños compactos para mantener todo en una línea */
+.filter-input { width: 240px; max-width: 40vw; }
+.filter-select { width: 180px; }
 
 .filter-input:focus,
 .filter-select:focus {
@@ -29,7 +36,7 @@
   background: #2563eb;
   color: white;
   font-weight: 500;
-  padding: 0.5rem 1rem;
+  padding: 0.5rem 0.875rem;           /* compacto */
   border-radius: 0.5rem;              /* 8px */
   border: none;
   cursor: pointer;
@@ -46,7 +53,7 @@
   display: flex;
   align-items: center;
   gap: 0.375rem;                      /* 6px */
-  padding: 0.625rem 1rem;             /* 10px 16px */
+  padding: 0.5rem 0.875rem;           /* compacto */
   background:  var(--color-dark-blue);  /* azul */
   color: white;
   font-weight: 500;
@@ -56,6 +63,7 @@
   transition: background-color 0.2s ease;
   border: 0.0625rem;                  /* 1px */
   border-color: #fff;
+  flex: 0 0 auto;
 }
 .filter-select.category-select {
   display: none;
@@ -132,8 +140,9 @@
 }
 
 .filters-toolbar .pill-switch {
-  margin-right: 0.75rem;
+  margin-right: 0.5rem;
   min-width: 13.75rem;         /* ≈220px */
+  flex: 0 0 auto;
 }
 
 .pill-icon {

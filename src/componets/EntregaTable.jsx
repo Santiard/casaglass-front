@@ -11,6 +11,7 @@ export default function EntregasTable({
   onVerDetalles, // (entrega) => void
   onConfirmar, // (entrega) => void
   onCancelar, // (entrega, motivo) => void
+  onEliminar, // (entrega) => Promise<void>
 }) {
   const [entregas, setEntregas] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -60,10 +61,8 @@ export default function EntregasTable({
     setEntregaEditando(null);
   };
 
-  const handleEliminar = (ent) => {
-    if (ent.estado === "ENTREGADA") return; // Regla: no eliminar confirmadas
-    if (!confirm(`¿Eliminar entrega #${ent.id}?`)) return;
-    setEntregas(prev => prev.filter(e => String(e.id) !== String(ent.id)));
+  const handleEliminar = async (ent) => {
+    await onEliminar?.(ent);
   };
 
   // Paginación simple sin filtros (los filtros están en la página padre)  
@@ -142,7 +141,7 @@ export default function EntregasTable({
                     </button>
                   </td>
                   <td className="clientes-actions" style={{ display: "flex", gap: 6 }}>
-                    <button className="btnEdit" onClick={() => openEditar(ent)} title="Editar (Temporalmente deshabilitado)" disabled={true}>
+                    <button className="btnEdit" onClick={() => openEditar(ent)} title="Editar">
                       <img src={editar} className="iconButton" alt="Editar" />
                     </button>
                     <button className="btn" onClick={() => openConfirmar(ent)} disabled={ent.estado !== "PENDIENTE"}>Confirmar</button>

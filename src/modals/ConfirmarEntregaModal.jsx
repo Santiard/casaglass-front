@@ -30,7 +30,14 @@ const ConfirmarEntregaModal = ({ isOpen, entrega, onClose, onSuccess }) => {
 
   const calcularDiferencia = () => {
     if (!entrega || !formData.montoEntregado) return 0;
-    return parseFloat(formData.montoEntregado) - entrega.montoEntregado;
+    return parseFloat(formData.montoEntregado) - (entrega.montoEntregado || 0);
+  };
+
+  const sumaDesglose = () => {
+    const e = entrega || {};
+    return [e.montoEfectivo, e.montoTransferencia, e.montoCheque, e.montoDeposito]
+      .map(v => parseFloat(v) || 0)
+      .reduce((a,b)=>a+b,0);
   };
 
   const handleSubmit = async (e) => {
@@ -107,8 +114,8 @@ const ConfirmarEntregaModal = ({ isOpen, entrega, onClose, onSuccess }) => {
               <span>${entrega.montoGastos?.toLocaleString()}</span>
             </div>
             <div className="info-item highlight">
-              <label>Monto Calculado:</label>
-              <span>${entrega.montoEntregado?.toLocaleString()}</span>
+              <label>Suma Desglose (efec+transf+cheque+dep):</label>
+              <span>${sumaDesglose().toLocaleString()}</span>
             </div>
             <div className="info-item">
               <label>Estado Actual:</label>

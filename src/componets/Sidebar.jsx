@@ -41,22 +41,8 @@ export default function Sidebar({isOpen, isCollapsed}){
             <span className="text">Inicio</span>
           </Link>
         </li>
-        {/* Inventario - Disponible para todos */}
-        <li>
-          <Link to="/inventorypage" title="Inventario">
-            <img src={inventario } alt="INVENTARIO " className="logos"/>
-            <span className="text">Inventario</span>
-          </Link>
-        </li>
-        
-        <li>
-          <Link to="/clientes" title="Clientes">
-            <img src={clientes } alt="CLIENTES " className="logos"/>
-            <span className="text">Clientes</span>
-          </Link>
-        </li>
-        
-        {/* Analíticas - Solo ADMIN */}
+
+        {/* Analíticas - Solo ADMIN */}{/* Analíticas - Solo ADMIN */}
         {isAdmin && (
           <li>
             <Link to ="/analiticas" title="Analíticas">
@@ -65,24 +51,15 @@ export default function Sidebar({isOpen, isCollapsed}){
             </Link>
           </li>
         )}
-        
-        {/* Movimientos - Solo ADMIN */}
-
-          <li>
-            <Link to="/movimientos" title="Movimientos">
-              <img src={movimientos } alt="MOVIMIENTOS " className="logos"/>
-              <span className="text">Movimientos</span>
-            </Link>
-          </li>
-
+        {/* Inventario - Disponible para todos */}
         <li>
-          <Link to="/venderpage" title="Vender">
-            <img src={ventas } alt="Vender " className="logos"/>
-            <span className="text">Vender</span>
+          <Link to="/inventorypage" title="Inventario">
+            <img src={inventario } alt="INVENTARIO " className="logos"/>
+            <span className="text">Inventario</span>
           </Link>
         </li>
-        {/* Ingresos - Solo ADMIN */}
-        {isAdmin && (
+                {/* Ingresos - Solo ADMIN */}
+                {isAdmin && (
           <li>
             <Link to="/ingresos" title="Ingresos Producto">
               <img src={producto } alt="Ingresos " className="logos"/>
@@ -90,9 +67,8 @@ export default function Sidebar({isOpen, isCollapsed}){
             </Link>
           </li>
         )}
-        
-        {/* Entregas - Solo ADMIN */}
-        {isAdmin && (
+                {/* Entregas - Solo ADMIN */}
+                {isAdmin && (
           <li>
             <Link to="/entregas" title="Entregas Dinero">
               <img src={entrega } alt="Entregas " className="logos"/>
@@ -100,28 +76,23 @@ export default function Sidebar({isOpen, isCollapsed}){
             </Link>
           </li>
         )}
-        
-        {/* Proveedores - Solo ADMIN */}
-        {isAdmin && (
-          <li>
-            <Link to ="/proveedores" title="Proveedores">
-              <img src={proveedor} alt="Proveedores " className="logos"/>
-              <span className="text">Proveedores</span>
-            </Link>
-          </li>
-        )}
         <li>
-          <Link to ="/ordenes" title="Órdenes de Compra">
-          <img src={orden} alt="Órdenes de Compra " className="logos"/>
-          <span className="text">Órdenes de Compra</span>
+          <Link to="/venderpage" title="Vender">
+            <img src={ventas } alt="Vender " className="logos"/>
+            <span className="text">Vender</span>
           </Link>
         </li>
-
         <li>
           <Link to ="/creditos" title="Créditos">
           <img src={credito} alt="Créditos " className="logos"/>
           <span className="text">Créditos</span>
         </Link>
+        </li>
+        <li>
+          <Link to ="/ordenes" title="Órdenes de Compra">
+          <img src={orden} alt="Órdenes de Compra " className="logos"/>
+          <span className="text">Órdenes de Compra</span>
+          </Link>
         </li>
         {/* Configuración - Solo ADMIN */}
         {isAdmin && (
@@ -129,6 +100,29 @@ export default function Sidebar({isOpen, isCollapsed}){
             <Link to ="/facturas" title="facturas">
               <img src={facturas } alt="FACTURAS " className="logos"/>
               <span className="text">Facturas</span>
+            </Link>
+          </li>
+        )}
+        <li>
+            <Link to="/movimientos" title="Movimientos">
+              <img src={movimientos } alt="TRASLADOS " className="logos"/>
+              <span className="text">Traslados</span>
+            </Link>
+        </li>
+        
+        <li>
+          <Link to="/clientes" title="Clientes">
+            <img src={clientes } alt="CLIENTES " className="logos"/>
+            <span className="text">Clientes</span>
+          </Link>
+        </li>       
+        
+        {/* Proveedores - Solo ADMIN */}
+        {isAdmin && (
+          <li>
+            <Link to ="/proveedores" title="Proveedores">
+              <img src={proveedor} alt="Proveedores " className="logos"/>
+              <span className="text">Proveedores</span>
             </Link>
           </li>
         )}

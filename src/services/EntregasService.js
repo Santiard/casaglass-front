@@ -104,6 +104,17 @@ const EntregasService = {
     }
   },
 
+  // Actualizar entrega (para guardar desgloses antes de confirmar)
+  actualizarEntrega: async (id, entregaData) => {
+    try {
+      const response = await api.put(`entregas-dinero/${id}`, entregaData);
+      return response.data;
+    } catch (error) {
+      console.error('Error actualizando entrega:', error);
+      throw error;
+    }
+  },
+
   // Confirmar entrega
   confirmarEntrega: async (id, montoEntregado, observaciones = '') => {
     try {

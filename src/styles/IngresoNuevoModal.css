@@ -47,6 +47,7 @@
   border-radius: 0.625rem;                 /* 10px */
   padding: 0.75rem;                        /* 12px */
   min-height: 26.25rem;                    /* 420px */
+  min-width: 0;                            /* permite que el contenido se encoja dentro del grid */
 }
 
 .pane.pane-sidebar {
@@ -92,7 +93,10 @@
 
 /* Tabla de inventario (derecha) */
 .inv-header { display: flex; align-items: center; justify-content: space-between; gap: 0.625rem; margin-bottom: 0.5rem; } /* 10px 8px */
-.inv-search { padding: 0.5rem; border: 0.0625rem solid #c2c2c3; border-radius: 0.5rem; min-width: 13.75rem; } /* 8px 1px 8px 220px */
+.inv-search { padding: 0.5rem; border: 0.0625rem solid #c2c2c3; border-radius: 0.5rem; min-width: 0; flex: 1 1 auto; } /* permite que el input se adapte */
+
+/* Asegura que el panel derecho aproveche el ancho y no desborde */
+.pane.pane-right { display: flex; flex-direction: column; min-width: 0; }
 
 .inventory-scroll {
   max-height: 22.5rem;                     /* 360px */

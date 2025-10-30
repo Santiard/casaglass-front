@@ -34,7 +34,7 @@
 }
 
 .btn-crear-entrega {
-  background: var(--color-success, #27ae60);
+  background: var(--color-dark-blue);
   color: white;
   border: none;
   padding: 0.6rem 1.2rem; /* Reducido de 0.8rem 1.5rem */
@@ -49,7 +49,7 @@
 }
 
 .btn-crear-entrega:hover {
-  background: var(--color-success-dark, #229954);
+  background: color-mix(in oklab, var(--color-dark-blue) 90%, black);
   transform: translateY(-1px);
 }
 
@@ -139,7 +139,7 @@
 }
 
 .btn-limpiar-filtros {
-  background: var(--color-warning, #f39c12);
+  background: var(--color-dark-blue);
   color: white;
   border: none;
   padding: 0.5rem 0.8rem; /* Reducido de 0.6rem 1rem */
@@ -151,7 +151,7 @@
 }
 
 .btn-limpiar-filtros:hover {
-  background: var(--color-warning-dark, #e67e22);
+  background: color-mix(in oklab, var(--color-dark-blue) 90%, black);
 }
 
 /* ================================================

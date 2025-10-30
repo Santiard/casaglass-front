@@ -13,7 +13,11 @@ const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores }) 
     observaciones: '',
     numeroComprobante: '',
     ordenesIds: [],
-    gastos: []
+    gastos: [],
+    montoEfectivo: '',
+    montoTransferencia: '',
+    montoCheque: '',
+    montoDeposito: ''
   });
 
   const [ordenesDisponibles, setOrdenesDisponibles] = useState([]);
@@ -33,7 +37,11 @@ const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores }) 
       observaciones: '',
       numeroComprobante: '',
       ordenesIds: [],
-      gastos: []
+      gastos: [],
+      montoEfectivo: '',
+      montoTransferencia: '',
+      montoCheque: '',
+      montoDeposito: ''
     });
     setOrdenesDisponibles([]);
     setError('');
@@ -184,10 +192,18 @@ const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores }) 
       ? formData.gastos.reduce((sum, gasto) => sum + (parseFloat(gasto.monto) || 0), 0)
       : 0;
     
+    const desglose = {
+      montoEfectivo: parseFloat(formData.montoEfectivo) || 0,
+      montoTransferencia: parseFloat(formData.montoTransferencia) || 0,
+      montoCheque: parseFloat(formData.montoCheque) || 0,
+      montoDeposito: parseFloat(formData.montoDeposito) || 0,
+    };
+    const montoEntregado = Object.values(desglose).reduce((a,b)=>a+b,0);
     return {
       montoEsperado: montoOrdenes,
       montoGastos: montoGastos,
-      montoEntregado: montoOrdenes - montoGastos
+      montoEntregado,
+      ...desglose
     };
   };
 
@@ -212,31 +228,87 @@ const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores }) 
       return;
     }
 
+    // Validar rango de fechas
+    if (formData.fechaDesde > formData.fechaHasta) {
+      setError('El rango de fechas es inválido: "Desde" debe ser menor o igual que "Hasta"');
+      return;
+    }
+
     try {
       setLoading(true);
       
       const totales = calcularTotales();
       
+      // Inferir modalidadEntrega a partir del desglose
+      const metodos = [
+        { key: 'EFECTIVO', val: parseFloat(formData.montoEfectivo) || 0 },
+        { key: 'TRANSFERENCIA', val: parseFloat(formData.montoTransferencia) || 0 },
+        { key: 'CHEQUE', val: parseFloat(formData.montoCheque) || 0 },
+        { key: 'DEPOSITO', val: parseFloat(formData.montoDeposito) || 0 },
+      ];
+      const metodosUsados = metodos.filter(m => m.val > 0).map(m => m.key);
+      const modalidadEntrega = metodosUsados.length === 1 ? metodosUsados[0] : 'MIXTO';
+
+      // Revalidar órdenes disponibles para concurrencia/eligibilidad
+      try {
+        const elegibles = await EntregasService.obtenerOrdenesDisponibles(
+          formData.sedeId,
+          formData.fechaDesde,
+          formData.fechaHasta
+        );
+        const elegiblesIds = new Set([
+          ...((elegibles?.ordenesContado || []).map(o => o.id)),
+          ...((elegibles?.ordenesConAbonos || []).map(o => o.id)),
+        ]);
+        const invalidas = (formData.ordenesIds || []).filter(id => !elegiblesIds.has(id));
+        if (invalidas.length > 0) {
+          setError(`Algunas órdenes ya no son elegibles para entrega: ${invalidas.join(', ')}. Actualiza la selección.`);
+          setLoading(false);
+          return;
+        }
+      } catch (revalErr) {
+        console.warn('No se pudo revalidar órdenes disponibles antes de crear.', revalErr);
+        // Continuar, backend validará también
+      }
+
       const entregaData = {
         ...formData,
         ...totales,
+        modalidadEntrega,
         sedeId: parseInt(formData.sedeId),
         empleadoId: parseInt(formData.empleadoId),
         gastos: formData.gastos.map(gasto => ({
           ...gasto,
-          monto: parseFloat(gasto.monto) || 0,
+          monto: Math.max(0, parseFloat(gasto.monto) || 0),
           empleadoId: parseInt(formData.empleadoId)
         }))
       };
+
+      // Validación: suma de desgloses debe igualar montoEntregado
+      const sumaDesglose = (parseFloat(entregaData.montoEfectivo)||0)
+        + (parseFloat(entregaData.montoTransferencia)||0)
+        + (parseFloat(entregaData.montoCheque)||0)
+        + (parseFloat(entregaData.montoDeposito)||0);
+      if (Math.abs(sumaDesglose - entregaData.montoEntregado) > 0.01) {
+        setError('La suma de Efectivo+Transferencia+Cheque+Depósito debe igualar el Monto a Entregar');
+        setLoading(false);
+        return;
+      }
 
       console.log('Enviando entrega:', entregaData);
       
       const respuesta = await EntregasService.crearEntrega(entregaData);
       console.log('Respuesta del backend:', respuesta);
-      
-      console.log('Llamando onSuccess con datos de entrega...');
+
+      // Aviso de diferencia si aplica
+      const ent = respuesta?.entrega || respuesta;
+      const neto = (Number(ent?.montoEsperado)||0) - (Number(ent?.montoGastos)||0);
+      const diff = neto - (Number(ent?.montoEntregado)||0);
+      if (Math.abs(diff) > 0.01) {
+        alert(`Aviso: La diferencia de la entrega es ${diff.toLocaleString('es-CO', {style:'currency', currency:'COP'})}.\nRevisa y ajusta los montos por método (PUT /entregas-dinero/{id}) antes de confirmar.`);
+      }
+
       if (onSuccess) onSuccess(respuesta);
-      console.log('Cerrando modal...');
       onClose();
       
     } catch (err) {
@@ -327,20 +399,7 @@ const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores }) 
                   />
                 </div>
 
-                <div className="form-group">
-                  <label>Modalidad de Entrega</label>
-                  <select
-                    name="modalidadEntrega"
-                    value={formData.modalidadEntrega}
-                    onChange={handleChange}
-                  >
-                    <option value="EFECTIVO">Efectivo</option>
-                    <option value="TRANSFERENCIA">Transferencia</option>
-                    <option value="DEPOSITO">Depósito</option>
-                    <option value="CHEQUE">Cheque</option>
-                    <option value="MIXTO">Mixto</option>
-                  </select>
-                </div>
+                {/* Modalidad se infiere del desglose; si hay más de un método > 0, será MIXTO */}
 
                 <div className="form-group span-2">
                   <label>Período de Órdenes *</label>
@@ -498,6 +557,28 @@ const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores }) 
               {/* Resumen final */}
               <div className="resumen-entrega">
                 <h4>Resumen de Entrega</h4>
+                <div className="desglose-entrega">
+                  <div className="desglose-row">
+                    <label>Efectivo</label>
+                    <input type="number" inputMode="decimal" placeholder="0" value={formData.montoEfectivo} min="0" step="0.01"
+                      onChange={(e)=>setFormData(prev=>({...prev, montoEfectivo: e.target.value.replace(/[^0-9.,-]/g,'')}))} />
+                  </div>
+                  <div className="desglose-row">
+                    <label>Transferencia</label>
+                    <input type="number" inputMode="decimal" placeholder="0" value={formData.montoTransferencia} min="0" step="0.01"
+                      onChange={(e)=>setFormData(prev=>({...prev, montoTransferencia: e.target.value.replace(/[^0-9.,-]/g,'')}))} />
+                  </div>
+                  <div className="desglose-row">
+                    <label>Cheque</label>
+                    <input type="number" inputMode="decimal" placeholder="0" value={formData.montoCheque} min="0" step="0.01"
+                      onChange={(e)=>setFormData(prev=>({...prev, montoCheque: e.target.value.replace(/[^0-9.,-]/g,'')}))} />
+                  </div>
+                  <div className="desglose-row">
+                    <label>Depósito</label>
+                    <input type="number" inputMode="decimal" placeholder="0" value={formData.montoDeposito} min="0" step="0.01"
+                      onChange={(e)=>setFormData(prev=>({...prev, montoDeposito: e.target.value.replace(/[^0-9.,-]/g,'')}))} />
+                  </div>
+                </div>
                 <div className="resumen-item">
                   <span>Total Órdenes:</span>
                   <span>${totales.montoEsperado.toLocaleString()}</span>

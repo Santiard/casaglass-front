@@ -115,7 +115,7 @@
 .modal-container.modal-tall .ingreso-detalle-scroll .subtable thead,
 .modal-container.modal-tall .ingreso-detalle-scroll .subtable thead tr,
 .modal-container.modal-tall .ingreso-detalle-scroll .subtable thead th {
-  background-color: var(--color-light-blue) !important;
+  background-color: var(--color-dark-blue) !important;
   color: var(--color-white) !important;
 }
 

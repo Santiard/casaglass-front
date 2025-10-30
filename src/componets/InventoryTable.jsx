@@ -1,5 +1,7 @@
 // src/componets/InventoryTable.jsx
 import "../styles/Table.css"
+import eliminar from "../assets/eliminar.png";
+import editar from "../assets/editar.png";
 
 export default function InventoryTable({ data = [], filters, loading, onEditar, onEliminar, isAdmin = true, userSede = "" }) {
   const isVidrio =
@@ -107,9 +109,14 @@ export default function InventoryTable({ data = [], filters, loading, onEditar, 
                 {/* Solo administradores pueden editar/eliminar */}
                 {isAdmin && (
                   <td className="acciones">
-                    <button className="btnLink" onClick={() => onEditar?.(p)}>Editar</button>
-                    <button className="btnLink" onClick={() => onEliminar?.(p.id)}>Eliminar</button>
+                    <button className="btnEdit" onClick={() => onEditar?.(p)}>
+                    <img src={editar} className="iconButton" />
+                    </button>
+                    <button className="btnDelete" onClick={() => onEliminar?.(p.id)}>
+                    <img src={eliminar} className="iconButton" />
+                    </button>
                   </td>
+
                 )}
               </tr>
             );

@@ -3,6 +3,7 @@ import "../styles/Table.css";
 import { useEffect, useMemo, useState } from "react";
 import editar from "../assets/editar.png";
 import add from "../assets/add.png";
+import deleteIcon from "../assets/eliminar.png";
 import IngresoModal from "../modals/IngresoModal.jsx";
 
 export default function IngresosTable({
@@ -281,12 +282,13 @@ export default function IngresosTable({
                       )}
                       
                       <button
-                      className="btn"
+                      className="btnDelete"
                       onClick={() => eliminar(ing)}
                       title="Eliminar ingreso"
                     >
-                      Eliminar
+                     <img src={deleteIcon} className="iconButton" />
                     </button>
+                   
                     </td>
                   </tr>
                 );

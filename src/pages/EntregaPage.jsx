@@ -156,6 +156,22 @@ export default function EntregasPage() {
     }
   };
 
+  const handleEliminarEntrega = async (entrega) => {
+    try {
+      if (entrega.estado === "ENTREGADA") {
+        alert("No se puede eliminar una entrega ENTREGADA");
+        return;
+      }
+      if (!window.confirm(`¿Eliminar entrega #${entrega.id}?`)) return;
+      await EntregasService.eliminarEntrega(entrega.id);
+      await cargarEntregas();
+    } catch (err) {
+      console.error("Error eliminando entrega:", err);
+      const msg = err?.response?.data?.message || err?.response?.data?.error || err.message || "No se pudo eliminar";
+      setError(`Error eliminando entrega: ${msg}`);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="entregas-loading">
@@ -259,6 +275,7 @@ export default function EntregasPage() {
           onVerDetalles={(entrega) => setSeleccionado(entrega)}
           onConfirmar={handleConfirmarEntrega}
           onCancelar={handleCancelarEntrega}
+          onEliminar={handleEliminarEntrega}
         />
       </div>
 
