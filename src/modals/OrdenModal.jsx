@@ -26,6 +26,10 @@ export default function OrdenEditarModal({
   onClose,
   onSave, // función del padre (OrdenesPage -> fetchData)
   productosCarrito = null, // Productos del carrito para crear orden nueva
+  defaultTrabajadorId = null,
+  defaultTrabajadorNombre = "",
+  defaultSedeId = null,
+  defaultSedeNombre = "",
 }) {
   const [form, setForm] = useState(null);
   const [clientes, setClientes] = useState([]);
@@ -56,11 +60,11 @@ export default function OrdenEditarModal({
           venta: true,
           credito: false,
           clienteNombre: "",
-          trabajadorNombre: "",
-          sedeNombre: "",
+          trabajadorNombre: defaultTrabajadorNombre || "",
+          sedeNombre: defaultSedeNombre || "",
           clienteId: "",
-          trabajadorId: "",
-          sedeId: "",
+          trabajadorId: defaultTrabajadorId ?? "",
+          sedeId: defaultSedeId ?? "",
           items: productosCarrito.map((p) => ({
             id: null,
             productoId: p.id ?? null,
@@ -85,11 +89,11 @@ export default function OrdenEditarModal({
           venta: true,
           credito: false,
           clienteNombre: "",
-          trabajadorNombre: "",
-          sedeNombre: "",
+          trabajadorNombre: defaultTrabajadorNombre || "",
+          sedeNombre: defaultSedeNombre || "",
           clienteId: "",
-          trabajadorId: "",
-          sedeId: "",
+          trabajadorId: defaultTrabajadorId ?? "",
+          sedeId: defaultSedeId ?? "",
           items: [],
         };
         setForm(base);

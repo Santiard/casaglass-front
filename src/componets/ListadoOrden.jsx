@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react";
 import OrdenModal from "../modals/OrdenModal.jsx";
 import "../styles/ListadoOrden.css";
+import { useAuth } from "../context/AuthContext.jsx";
 
 export default function ListadoOrden({ productosCarrito, subtotal, total, limpiarCarrito, eliminarProducto, cortesPendientes }) {
   const [items, setItems] = useState([]);
   const [isFacturarOpen, setIsFacturarOpen] = useState(false);
+  const { user, sedeId, sede } = useAuth();
   // Cargar productos desde props
   useEffect(() => {
     setItems(productosCarrito || []);
@@ -104,6 +106,10 @@ export default function ListadoOrden({ productosCarrito, subtotal, total, limpia
         onClose={() => setIsFacturarOpen(false)}
         orden={null}
         productosCarrito={items}
+        defaultTrabajadorId={user?.id}
+        defaultTrabajadorNombre={user?.nombre}
+        defaultSedeId={sedeId}
+        defaultSedeNombre={user?.sedeNombre || sede}
         onSave={(orden) => {
           console.log("Orden creada:", orden);
           limpiarCarrito();

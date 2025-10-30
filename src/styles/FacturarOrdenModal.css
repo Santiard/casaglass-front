@@ -1,346 +1,168 @@
-.facturar-modal-overlay {
+/* === Overlay === */
+.modal-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(30, 39, 83, 0.6);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
+  inset: 0;
+  background: rgba(24, 32, 63, 0.65);
+  display: grid;
+  place-items: center;
+  z-index: 2000;
 }
 
-.facturar-modal-container {
+/* === Contenedor === */
+.modal-container {
   background: #fff;
-  padding: 2rem;
-  border-radius: 0.75rem;
-  width: 90%;
-  max-width: 1200px;
+  border-radius: 10px;
+  width: 60rem;
+  max-width: 95vw;
   max-height: 90vh;
   overflow-y: auto;
-  box-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.25);
-  display: flex;
-  flex-direction: column;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+  animation: popIn 0.25s ease;
 }
 
-.facturar-modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1.5rem;
-  padding-bottom: 1rem;
-  border-bottom: 2px solid #e9ecef;
-}
-
-.facturar-modal-header h2 {
-  margin: 0;
-  color: #1e2753;
-  font-size: 1.5rem;
-}
-
-.facturar-modal-close-btn {
-  background: transparent;
-  border: none;
-  font-size: 1.5rem;
-  cursor: pointer;
-  color: #1e2753;
-  padding: 0;
-  width: 2rem;
-  height: 2rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.facturar-modal-close-btn:hover {
-  background: #f8f9fa;
-  border-radius: 50%;
-}
-
-/* Layout de dos columnas */
-.facturar-modal-two-columns {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 2rem;
-}
-
-/* Columna Izquierda */
-.facturar-left-column {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-}
-
-/* Sección de información del cliente */
-.facturar-client-info {
-  background: #f8f9fa;
-  padding: 1.5rem;
-  border-radius: 0.5rem;
-  border: 1px solid #e9ecef;
-}
-
-.facturar-client-info h3 {
-  margin: 0 0 1rem 0;
-  color: #1e2753;
-  font-size: 1.2rem;
-}
-
-.facturar-info-grid {
-  display: grid;
-  gap: 0.75rem;
-}
-
-.facturar-info-item {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.facturar-info-item strong {
-  color: #495057;
-  font-size: 0.85rem;
-  font-weight: 600;
-}
-
-.facturar-info-item span {
-  color: #212529;
-  font-size: 0.95rem;
-}
-
-/* Tabla de productos */
-.facturar-products-table-container {
-  background: #fff;
-  border-radius: 0.5rem;
-  border: 1px solid #e9ecef;
-  overflow: hidden;
-}
-
-.facturar-products-table-container h3 {
-  margin: 0;
-  padding: 1rem 1.5rem;
-  background: #f8f9fa;
-  color: #1e2753;
-  font-size: 1.2rem;
-  border-bottom: 1px solid #e9ecef;
-}
-
-.facturar-products-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.facturar-products-table thead {
-  background: #f8f9fa;
-}
-
-.facturar-products-table th {
-  padding: 0.75rem;
-  text-align: left;
-  font-weight: 600;
-  color: #495057;
-  font-size: 0.85rem;
-  border-bottom: 2px solid #dee2e6;
-}
-
-.facturar-products-table td {
-  padding: 0.75rem;
-  color: #212529;
-  font-size: 0.9rem;
-  border-bottom: 1px solid #e9ecef;
-}
-
-.facturar-products-table tbody tr:hover {
-  background: #f8f9fa;
-}
-
-/* Columna Derecha */
-.facturar-right-column {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-}
-
-/* Grid interno para dividir columna derecha en dos columnas */
-.facturar-right-column-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1.5rem;
-  align-items: flex-start;
-}
-
-/* Sección editable */
-.facturar-editable-section {
-  background: #f8f9fa;
-  padding: 1.5rem;
-  border-radius: 0.5rem;
-  border: 1px solid #e9ecef;
-}
-
-.facturar-editable-section h4 {
-  margin: 0 0 1rem 0;
-  color: #1e2753;
-  font-size: 1.1rem;
-}
-
-.facturar-form-group {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  margin-bottom: 1rem;
-}
-
-.facturar-form-group:last-child {
-  margin-bottom: 0;
-}
-
-.facturar-form-group label {
-  font-size: 0.9rem;
-  color: #3a393b;
-  font-weight: 500;
-}
-
-.facturar-form-group input,
-.facturar-form-group select,
-.facturar-form-group textarea {
-  padding: 0.5rem;
-  border: 0.0625rem solid #ccc;
-  border-radius: 0.375rem;
-  background-color: #fff;
-  font-size: inherit;
-  font-family: inherit;
-}
-
-.facturar-form-group input:focus,
-.facturar-form-group select:focus,
-.facturar-form-group textarea:focus {
-  outline: none;
-  border-color: #007bff;
-  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
-}
-
-.facturar-form-group input:disabled {
-  background-color: #f5f5f5;
-  cursor: not-allowed;
-}
-
-.facturar-form-group textarea {
-  resize: vertical;
-  min-height: 80px;
-}
-
-/* Campo de ancho completo para observaciones */
-.facturar-full-width-field {
-  grid-column: 1 / -1;
-}
-
-/* Sección de totales calculados */
-.facturar-calculated-section {
-  background: #fff;
-  padding: 1.5rem;
-  border-radius: 0.5rem;
-  border: 2px solid #1e2753;
-}
-
-.facturar-calculated-section h4 {
-  margin: 0 0 1rem 0;
-  color: #1e2753;
-  font-size: 1.1rem;
-}
-
-.facturar-totals {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.facturar-total-item {
-  display: flex;
-  justify-content: space-between;
-  padding: 0.75rem;
-  border-bottom: 1px solid #e9ecef;
-  font-size: 0.95rem;
-}
-
-.facturar-total-item:last-child {
-  border-bottom: none;
-}
-
-.facturar-total-item.highlighted {
-  background: #f0f7ff;
-  border-radius: 0.25rem;
-  font-weight: 600;
-}
-
-.facturar-total-item.grand-total {
-  background: #1e2753;
+/* === Header === */
+.modal-header {
+  background: #1f2a5c;
   color: #fff;
-  border-radius: 0.5rem;
-  padding: 1rem;
+  padding: 0.9rem 1.2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-radius: 10px 10px 0 0;
+}
+
+.modal-header h2 {
   font-size: 1.1rem;
-  font-weight: bold;
-  margin-top: 0.5rem;
+  margin: 0;
 }
 
-.facturar-total-item span:last-child {
-  font-weight: inherit;
+.close-btn {
+  background: none;
+  border: none;
+  color: #fff;
+  font-size: 1.4rem;
+  cursor: pointer;
 }
 
-.facturar-modal-footer {
+/* === Body === */
+.modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1.2rem;
+  background: #f8f9ff;
+}
+
+/* === Tarjetas === */
+.section-card {
+  background: #fff;
+  border: 1px solid #e6e8f0;
+  border-radius: 8px;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.section-card h3 {
+  margin: 0;
+  font-size: 0.95rem;
+  color: #1f2a5c;
+}
+
+/* === Inputs === */
+input,
+select,
+textarea {
+  width: 100%;
+  border: 1px solid #d2d5e2;
+  border-radius: 5px;
+  padding: 0.45rem 0.6rem;
+  font-size: 0.9rem;
+  background: #f9faff;
+}
+
+textarea {
+  resize: none;
+}
+
+label {
+  font-size: 0.85rem;
+  color: #333;
+}
+
+/* === Grillas === */
+.info-grid,
+.calculo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.75rem;
+}
+
+.total-final {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 0.8rem;
+  font-size: 1rem;
+  color: #1f2a5c;
+}
+
+/* === Footer === */
+.modal-footer {
   display: flex;
   justify-content: flex-end;
-  gap: 1rem;
-  margin-top: 1.5rem;
-  padding-top: 1rem;
-  border-top: 1px solid #e9ecef;
+  gap: 0.6rem;
+  margin-top: 1rem;
 }
 
-.facturar-btn-cancelar,
-.facturar-btn-guardar {
-  background: #007bff;
-  color: white;
+.btn-cancel,
+.btn-save {
   border: none;
+  border-radius: 5px;
   padding: 0.5rem 1rem;
-  border-radius: 0.5rem;
-  cursor: pointer;
   font-size: 0.9rem;
-  transition: background 0.2s;
+  cursor: pointer;
+  transition: 0.2s;
 }
 
-.facturar-btn-cancelar:hover,
-.facturar-btn-guardar:hover {
-  background: #1e2753;
+.btn-cancel {
+  background: #ddd;
+  color: #333;
 }
 
-.facturar-btn-cancelar:disabled,
-.facturar-btn-guardar:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
+.btn-cancel:hover {
+  background: #ccc;
 }
 
-/* Responsive */
-@media (max-width: 1024px) {
-  .facturar-modal-two-columns {
-    grid-template-columns: 1fr;
+.btn-save {
+  background: #1f2a5c;
+  color: #fff;
+}
+
+.btn-save:hover {
+  background: #293780;
+}
+
+/* === Animaciones === */
+@keyframes popIn {
+  from {
+    transform: scale(0.92);
+    opacity: 0;
   }
-  
-  .facturar-right-column-grid {
-    grid-template-columns: 1fr;
-  }
-  
-  .facturar-modal-container {
-    width: 95%;
+  to {
+    transform: scale(1);
+    opacity: 1;
   }
 }
 
-@media (max-width: 53.125rem) {
-  .facturar-modal-container {
-    padding: 1.5rem;
+/* === Responsive === */
+@media (max-width: 768px) {
+  .modal-container {
+    width: 95vw;
   }
-}
 
-@media (max-width: 48rem) {
-  .facturar-modal-header h2 {
-    font-size: 1.2rem;
+  .modal-body {
+    padding: 0.8rem;
   }
 }

@@ -20,6 +20,143 @@
   box-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.25); /* 4px 12px */
 }
 
+/* Modal ancho con altura máxima controlada */
+.modal-wide {
+  width: 72rem;                       /* ancho un poco mayor */
+  max-width: 95vw;
+  height: 90vh;                        /* fuerza a usar scroll interno */
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.modal-body {
+  overflow: hidden; /* contenedor controla scroll internos */
+  flex: 1;
+  min-height: 0;
+}
+
+/* Grid principal de Facturar */
+.factura-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.1fr 1.1fr; /* ensancha middle y resumen */
+  gap: 1rem;
+  min-height: 0; /* permite que hijos con overflow funcionen */
+  align-items: stretch;
+}
+.factura-grid > * { min-width: 0; }
+
+.factura-left {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 1rem;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.cliente-card {
+  padding: 0.75rem;
+  /* Evita que empuje hacia abajo la tabla y se desborde */
+  max-height: 32vh;
+  overflow: auto;
+}
+
+.cliente-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr; /* más ancho, menos alto */
+  gap: 0.5rem;
+}
+
+.items-card {
+  padding: 0.75rem;
+  overflow: auto;
+  min-height: 0;
+}
+/* Asegurar que la tabla no rompa el layout */
+.items-card .mini-table {
+  table-layout: fixed;
+  width: 100%;
+}
+.items-card .mini-table th,
+.items-card .mini-table td {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.factura-middle,
+.factura-autocalc {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  overflow: auto;
+  min-height: 0;
+}
+.factura-middle, .factura-autocalc { min-width: 0; }
+
+/* Inputs compactos y consistentes */
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+.form-group label {
+  font-size: 0.85rem;
+  color: #3a393b;
+}
+.form-group input,
+.form-group select,
+.form-group textarea {
+  padding: 0.45rem 0.55rem;
+  border: 1px solid #cfd3d7;
+  border-radius: 0.5rem;
+  font-size: 0.95rem;
+}
+.form-group textarea { resize: vertical; }
+
+/* Resumen tipo factura */
+.factura-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+.factura-summary .sum-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+.factura-summary .sum-row .label { color: #555; }
+.factura-summary .sum-row .value { font-variant-numeric: tabular-nums; }
+.factura-summary .sum-row.total .label {
+  font-weight: 700;
+  color: #1e2753;
+}
+.factura-summary .sum-row.total .value {
+  font-weight: 800;
+  font-size: 1.15rem;
+  color: #1e2753;
+}
+.factura-summary .sum-sep {
+  border: none;
+  border-top: 1px solid #e5e7eb;
+  margin: 0.25rem 0;
+}
+
+.modal-footer {
+  margin-top: 1rem;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
 .modal-container-corte{
   background: #fff;
   padding: 2rem;
@@ -197,6 +334,18 @@
   .form-two-columns {
     grid-template-columns: 1fr; /* Una columna en móvil */
     gap: 0.8rem;
+  }
+  .factura-grid {
+    grid-template-columns: 1fr;
+  }
+  .cliente-grid {
+    grid-template-columns: 1fr; /* en móvil apila campos */
+  }
+}
+
+@media (max-width: 62rem) {          /* 992px */
+  .cliente-grid {
+    grid-template-columns: 1fr 1fr; /* tablet en 2 columnas */
   }
 }
 

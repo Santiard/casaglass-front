@@ -280,6 +280,7 @@ export default function OrdenesTable({
                 const totalOrden = o.total !== undefined ? o.total : calcularTotal(detalles);
                 const id = o.id;
 
+                const yaFacturada = Boolean(o.facturada || o.numeroFactura || (o.factura && (o.factura.id || o.factura.numero)));
                 return (
                   <Fragment key={`orden-${id}`}>
                     <tr>
@@ -311,14 +312,13 @@ export default function OrdenesTable({
                         <button
                           className="btnLink"
                           onClick={() => {
-                            if (!o.facturada) {
-                              setOrdenFacturar(o);
-                              setIsFacturarModalOpen(true);
-                            }
+                            if (yaFacturada) return;
+                            setOrdenFacturar(o);
+                            setIsFacturarModalOpen(true);
                           }}
-                          title={o.facturada ? "Orden ya facturada" : "Facturar orden"}
-                          disabled={o.facturada}
-                          style={{ opacity: o.facturada ? 0.5 : 1, cursor: o.facturada ? 'not-allowed' : 'pointer' }}
+                          title={yaFacturada ? "Orden ya facturada" : "Facturar orden"}
+                          disabled={yaFacturada}
+                          style={{ opacity: yaFacturada ? 0.5 : 1, cursor: yaFacturada ? 'not-allowed' : 'pointer' }}
                         >
                           Facturar
                         </button>
