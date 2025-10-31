@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
+import TrabajadoresSection from "../componets/TrabajadoresSection.jsx";
+import { listarTrabajadoresTabla, cambiarPasswordTrabajador, crearTrabajador } from "../services/TrabajadoresService.js";
 import { getBusinessSettings, updateBusinessSettings } from "../services/businessSettingsService.js";
 import "../styles/TaxSettingsPage.css";
 
@@ -54,15 +56,12 @@ return { ivaVal, reteVal, aplicaRete, total, subtotal };
 
 const fmtCOP = (n)=> new Intl.NumberFormat('es-CO', { style:'currency', currency:'COP', maximumFractionDigits:0 }).format(n||0);
 
-
 return (
-<div className="settings-page">
+<div className="settings-page" style={{ height: '100vh', overflowY: 'auto', overflowX: 'hidden' }}>
 <header className="settings-header">
-<h2>Parámetros de impuestos</h2>
-<p>Configura IVA, retención en la fuente y el umbral de aplicación.</p>
+  <h2>Parámetros de impuestos</h2>
+  <p>Configura IVA, retención en la fuente y el umbral de aplicación.</p>
 </header>
-
-
 <section className="settings-card">
 <form className="settings-form tax-grid" onSubmit={onSubmit}>
 <fieldset className="tax-fieldset">
@@ -126,6 +125,13 @@ onChange={(e)=>setPreSub(Number(e.target.value))} />
 </div>
 </form>
 </section>
+
+<TrabajadoresSection
+  fetchTabla={listarTrabajadoresTabla}
+  onCambiarPassword={cambiarPasswordTrabajador}
+  onCrear={crearTrabajador}
+/>
+
 </div>
 );
 }

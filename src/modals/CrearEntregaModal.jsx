@@ -135,9 +135,11 @@ const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores }) 
           : prev.ordenesIds.filter(id => id !== ordenId)
       }));
     } else {
+      // Campos de texto se convierten a mayúsculas (excepto checkboxes)
+      const processedValue = type === 'checkbox' ? checked : (type === 'text' ? value.toUpperCase() : value);
       setFormData(prev => ({
         ...prev,
-        [name]: type === 'checkbox' ? checked : value
+        [name]: processedValue
       }));
     }
   };

@@ -1,0 +1,61 @@
+.stock-critico-table {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.stock-critico-table table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.stock-critico-table th {
+  background: #f9fafb;
+  padding: 0.75rem;
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: #374151;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.stock-critico-table td {
+  padding: 0.75rem;
+  border-bottom: 1px solid #e5e7eb;
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+.stock-critico-table tr:hover {
+  background: #f9fafb;
+}
+
+.stock-badge {
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.stock-badge.critico {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.stock-badge.bajo {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.stock-badge.normal {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.stock-critico-empty {
+  padding: 2rem;
+  text-align: center;
+  color: #6b7280;
+}
+

@@ -55,22 +55,61 @@ export async function crearOrdenVenta(payload) {
         precioUnitario: parseFloat(item.precioUnitario)
       })),
       // 🆕 NUEVO: Incluir cortes pendientes
-      cortes: payload.cortes ? payload.cortes.map(corte => ({
-        productoId: parseInt(corte.productoId),
-        medidaSolicitada: parseInt(corte.medidaSolicitada),
-        precioUnitarioSolicitado: parseFloat(corte.precioUnitarioSolicitado),
-        precioUnitarioSobrante: parseFloat(corte.precioUnitarioSobrante),
-        cantidadInsula: parseInt(corte.cantidadInsula || 0),
-        cantidadCentro: parseInt(corte.cantidadCentro || 0),
-        cantidadPatios: parseInt(corte.cantidadPatios || 0)
-      })) : []
+      cortes: payload.cortes ? payload.cortes.map(corte => {
+        // Nueva estructura: cantidadesPorSede (array de {sedeId, cantidad})
+        // Si viene la nueva estructura, usarla; si no, migrar de la antigua
+        let cantidadesPorSede = corte.cantidadesPorSede;
+        if (!cantidadesPorSede && (corte.cantidadInsula !== undefined || corte.cantidadCentro !== undefined || corte.cantidadPatios !== undefined)) {
+          // Migración: convertir de formato antiguo a nuevo
+          cantidadesPorSede = [
+            { sedeId: 1, cantidad: parseInt(corte.cantidadInsula || 0) },
+            { sedeId: 2, cantidad: parseInt(corte.cantidadCentro || 0) },
+            { sedeId: 3, cantidad: parseInt(corte.cantidadPatios || 0) }
+          ];
+        } else if (!cantidadesPorSede) {
+          // Si no viene ninguna estructura, usar cantidad general en la sede de la orden
+          const sedeId = parseInt(payload.sedeId || 1);
+          cantidadesPorSede = [
+            { sedeId: 1, cantidad: sedeId === 1 ? parseInt(corte.cantidad || 1) : 0 },
+            { sedeId: 2, cantidad: sedeId === 2 ? parseInt(corte.cantidad || 1) : 0 },
+            { sedeId: 3, cantidad: sedeId === 3 ? parseInt(corte.cantidad || 1) : 0 }
+          ];
+        }
+        
+        return {
+          productoId: parseInt(corte.productoId),
+          medidaSolicitada: parseInt(corte.medidaSolicitada),
+          cantidad: parseInt(corte.cantidad || 1),
+          precioUnitarioSolicitado: parseFloat(corte.precioUnitarioSolicitado),
+          precioUnitarioSobrante: parseFloat(corte.precioUnitarioSobrante),
+          cantidadesPorSede: cantidadesPorSede,
+          // Campo opcional para evitar duplicados de cortes
+          reutilizarCorteId: corte.reutilizarCorteId ? parseInt(corte.reutilizarCorteId) : undefined,
+          medidaSobrante: corte.medidaSobrante ? parseInt(corte.medidaSobrante) : undefined,
+          // Indicar que solo el SOBRANTE debe incrementar stock (el solicitado se vende inmediatamente)
+          esSobrante: corte.esSobrante !== undefined ? Boolean(corte.esSobrante) : true, // Por defecto true para compatibilidad
+        };
+      }) : []
     };
     
     console.log("📦 Payload formateado para backend:", ordenData);
     console.log("🔪 Cortes en payload formateado:", ordenData.cortes);
     console.log("🔍 Total de cortes enviados:", ordenData.cortes.length);
     
+    // Log detallado de cada corte para debugging
+    ordenData.cortes.forEach((corte, index) => {
+      console.log(`📋 Corte ${index + 1} - Detalles completos:`, JSON.stringify(corte, null, 2));
+      console.log(`   - productoId: ${corte.productoId}`);
+      console.log(`   - medidaSolicitada: ${corte.medidaSolicitada}cm (corte solicitado)`);
+      console.log(`   - medidaSobrante: ${corte.medidaSobrante || 'NO ENVIADO'}cm (corte sobrante)`);
+      console.log(`   - cantidad: ${corte.cantidad}`);
+      console.log(`   - esSobrante: ${corte.esSobrante ? 'true ✅ (cantidadesPorSede se aplicarán SOLO al sobrante)' : 'false (no se aplicará incremento de stock)'}`);
+      console.log(`   - cantidadesPorSede:`, JSON.stringify(corte.cantidadesPorSede || []));
+      console.log(`   - reutilizarCorteId: ${corte.reutilizarCorteId || 'NO ENVIADO (se creará nuevo corte sobrante)'}`);
+    });
+    
     const { data } = await api.post("ordenes/venta", ordenData);
+    console.log("✅ Respuesta del backend:", JSON.stringify(data, null, 2));
     return data;
   } catch (error) {
     console.warn("⚠️ Endpoint ordenes/venta falló:", error.response?.status, error.response?.data?.message);

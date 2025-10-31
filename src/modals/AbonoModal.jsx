@@ -30,8 +30,10 @@ const AbonoModal = ({ isOpen, onClose, credito, onSuccess }) => {
   if (!isOpen) return null;
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    const { name, value, type } = e.target;
+    // Campos de texto se convierten a mayúsculas (excepto números y fechas)
+    const processedValue = (type === 'text' && name !== 'fecha') ? value.toUpperCase() : value;
+    setFormData(prev => ({ ...prev, [name]: processedValue }));
   };
 
   const handleSubmit = async (e) => {

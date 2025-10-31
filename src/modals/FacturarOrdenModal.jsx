@@ -62,7 +62,9 @@ export default function FacturarOrdenModal({ isOpen, onClose, onSave, orden }) {
         }));
       }
     } else {
-      setForm((prev) => ({ ...prev, [name]: value }));
+      // Campos de texto se convierten a mayúsculas
+      const processedValue = value.toUpperCase();
+      setForm((prev) => ({ ...prev, [name]: processedValue }));
     }
   };
 
@@ -89,6 +91,7 @@ export default function FacturarOrdenModal({ isOpen, onClose, onSave, orden }) {
       const payloadToSend = {
         ...form,
         descuentos: form.descuentos === "" ? 0 : form.descuentos,
+        // No enviar estado: el backend lo ignora y crea PENDIENTE
       };
       await onSave(payloadToSend, false);
       onClose();

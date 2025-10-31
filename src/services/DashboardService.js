@@ -63,6 +63,22 @@ export const DashboardService = {
     ];
     return trasladosFormateados.sort((a, b) => new Date(a.fechaEntrega) - new Date(b.fechaEntrega));
   },
+
+  async getDashboardCompleto(desde = null, hasta = null) {
+    const params = {};
+    if (desde) params.desde = desde;
+    if (hasta) params.hasta = hasta;
+    const { data } = await api.get('dashboard/completo', { params });
+    return data;
+  },
+
+  async getDashboardTrabajador(trabajadorId, desde = null, hasta = null) {
+    const params = {};
+    if (desde) params.desde = desde;
+    if (hasta) params.hasta = hasta;
+    const { data } = await api.get(`trabajadores/${trabajadorId}/dashboard`, { params });
+    return data;
+  },
 };
 
 

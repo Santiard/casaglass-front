@@ -21,10 +21,12 @@ const ConfirmarEntregaModal = ({ isOpen, entrega, onClose, onSuccess }) => {
   }, [entrega, isOpen]);
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
+    const { name, value, type } = e.target;
+    // Campos de texto se convierten a mayúsculas
+    const processedValue = (type === 'text') ? value.toUpperCase() : value;
     setFormData(prev => ({
       ...prev,
-      [name]: value
+      [name]: processedValue
     }));
   };
 

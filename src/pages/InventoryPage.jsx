@@ -35,7 +35,8 @@ import {
   eliminarProductoVidrio,
 } from "../services/ProductosVidrioService";
 
-import { listarCategorias } from "../services/CategoriasService"; // 👈 nuevo import
+import { listarCategorias, crearCategoria } from "../services/CategoriasService"; // 👈 nuevo import
+import NuevaCategoriaModal from "../modals/NuevaCategoriaModal.jsx";
 
 const CORTES_MOCK = [
   { id: 1, codigo: "C-0001", nombre: "Corte ventana 60x80", categoria: "Vidrio", color: "Claro", cantidad: 5, largoCm: 80, precio: 95000, observacion: "Bisel 1cm", sede: "Centro" },
@@ -61,20 +62,22 @@ export default function InventoryPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
   const [categories, setCategories] = useState([]); // 👈 categorías dinámicas
+  const [categoriaModalOpen, setCategoriaModalOpen] = useState(false);
 
   // === Cargar categorías al montar ===
-  useEffect(() => {
-    const fetchCategorias = async () => {
-      try {
-        const cats = await listarCategorias();
-        setCategories(cats || []);
-      } catch (e) {
-        console.error("Error cargando categorías:", e);
-        alert("No se pudieron cargar las categorías desde el servidor.");
-      }
-    };
-    fetchCategorias();
+  const fetchCategorias = useCallback(async () => {
+    try {
+      const cats = await listarCategorias();
+      setCategories(cats || []);
+    } catch (e) {
+      console.error("Error cargando categorías:", e);
+      alert("No se pudieron cargar las categorías desde el servidor.");
+    }
   }, []);
+
+  useEffect(() => {
+    fetchCategorias();
+  }, [fetchCategorias]);
 
   // === Cargar TODOS los productos con inventario completo ===
   const fetchData = useCallback(async () => {
@@ -114,6 +117,18 @@ export default function InventoryPage() {
 
   const handleAddProduct = () => { setEditingProduct(null); setModalOpen(true); };
   const handleEditProduct = (product) => { setEditingProduct(product); setModalOpen(true); };
+  const handleAddCategory = () => { setCategoriaModalOpen(true); };
+
+  const handleCreateCategory = async (nombre) => {
+    try {
+      await crearCategoria(nombre);
+      await fetchCategorias(); // Refrescar lista de categorías
+      alert("Categoría creada exitosamente");
+    } catch (e) {
+      console.error("Error creando categoría", e);
+      throw e; // El modal maneja el error
+    }
+  };
 
   const handleSaveProduct = async (product) => {
     try {
@@ -343,6 +358,7 @@ export default function InventoryPage() {
               categories={categories}
               selectedId={filters.categoryId}
               onSelect={handleSelectCategory}
+              onAddCategory={isAdmin ? handleAddCategory : null}
             />
           ) : (
             <CategorySidebar
@@ -413,6 +429,12 @@ export default function InventoryPage() {
           onSave={handleSaveCorte}
         />
       )}
+
+      <NuevaCategoriaModal
+        isOpen={categoriaModalOpen}
+        onClose={() => setCategoriaModalOpen(false)}
+        onCreate={handleCreateCategory}
+      />
     </>
   );
 }

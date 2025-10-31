@@ -5,6 +5,8 @@ import "../styles/ClientesPage.css";
 import {
   listarFacturas,
   listarFacturasTabla,
+  eliminarFactura,
+  marcarFacturaComoPagada,
 } from "../services/FacturasService";
 import { listarClientes } from "../services/ClientesService";
 
@@ -46,21 +48,33 @@ export default function FacturasPage() {
     fetchClientes();
   }, [fetchData, fetchClientes]);
 
-  // Manejar edición de factura
-  const handleEditar = async (factura, isEdit) => {
+  // Manejar verificación (marcar como pagada)
+  const handleVerificar = async (factura) => {
     try {
-      if (!factura) {
-        // Refrescar tabla
-        await fetchData();
-        return;
-      }
-
-      console.log("Editando factura:", factura);
-      // Aquí puedes agregar lógica para actualizar la factura si lo necesitas
+      const fechaPago = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+      await marcarFacturaComoPagada(factura.id, fechaPago);
+      alert("Factura marcada como pagada.");
       await fetchData();
     } catch (e) {
-      console.error("Error editando factura", e);
-      alert("No se pudo editar la factura. Revisa consola.");
+      console.error("Error marcando factura como pagada", e);
+      const msg = e?.response?.data?.message || "No se pudo marcar como pagada.";
+      alert(msg);
+    }
+  };
+
+  // Manejar eliminación de factura
+  const handleEliminar = async (factura) => {
+    try {
+      if (!confirm(`¿Eliminar la factura #${factura.numeroFactura || factura.numero || factura.id}? Esta acción no se puede deshacer.`)) {
+        return;
+      }
+      await eliminarFactura(factura.id);
+      alert("Factura eliminada exitosamente.");
+      await fetchData();
+    } catch (e) {
+      console.error("Error eliminando factura", e);
+      const msg = e?.response?.data?.message || e?.response?.data?.error || "No se pudo eliminar la factura.";
+      alert(msg);
     }
   };
 
@@ -71,7 +85,8 @@ export default function FacturasPage() {
           data={data}
           loading={loading}
           clientes={clientes}
-          onEditar={handleEditar}
+          onVerificar={handleVerificar}
+          onEliminar={handleEliminar}
         />
       </div>
     </div>

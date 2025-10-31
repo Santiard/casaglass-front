@@ -6,7 +6,6 @@ import AdminPage from "./pages/AdminPage.jsx";
 import InventoryPage from "./pages/InventoryPage.jsx";
 import DashboardLayout from "./layouts/DashboardLayout.jsx";
 import VenderPage from "./pages/VenderPage.jsx";
-import VentasRealizadasPage from "./pages/VentasRealizadasPage.jsx";
 import ClientesPage from "./pages/ClientesPage.jsx";
 import MovimientosPage from "./pages/MovimientosPage.jsx";
 import IngresosPage from "./pages/IngresoPage.jsx";
@@ -41,7 +40,6 @@ function App() {
           <Route path="/adminpage" element={<AdminPage />} />
           <Route path="/inventorypage" element={<InventoryPage />} />
           <Route path="/venderpage" element={<VenderPage/>}/>
-          <Route path="/analiticas" element={<VentasRealizadasPage/>}/>
           <Route path="/clientes" element={<ClientesPage />} />
           <Route path="/movimientos" element={<MovimientosPage />} />
           <Route path="/ingresos" element={<IngresosPage />} />

@@ -45,7 +45,7 @@ export default function Sidebar({isOpen, isCollapsed}){
         {/* Analíticas - Solo ADMIN */}{/* Analíticas - Solo ADMIN */}
         {isAdmin && (
           <li>
-            <Link to ="/analiticas" title="Analíticas">
+            <Link to ="/adminpage" title="Analíticas">
               <img src={analiticas} alt="Analiticas" className="logos"/>
               <span className="text">Analiticas</span>
             </Link>

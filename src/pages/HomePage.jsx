@@ -1,11 +1,13 @@
 
 import { useEffect, useState } from "react";
-import StatCard from "../componets/StatCard.jsx";
+import KPICard from "../componets/KPICard.jsx";
+import DashboardSection from "../componets/DashboardSection.jsx";
 import LowStockPanel from "../componets/LowStockPanel.jsx";
 import MovimientosPanel from "../componets/MovimientosPanel.jsx";
 import { DashboardService } from "../services/DashboardService.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import "../styles/HomeWidgets.css";
+import "../styles/DashboardPage.css";
 
 export default function HomePage(){
   const { sedeId, user } = useAuth();
@@ -78,75 +80,58 @@ export default function HomePage(){
   }
 
   return (
-    <div className="home-page">
-      <div className="rowSuperior home-grid">
-        <StatCard
+    <div className="dashboard-page">
+      {/* KPI Cards estilo AdminPage */}
+      <div className="kpi-grid">
+        <KPICard
           title="Sede"
           value={dashboardData.sede?.nombre || user?.sedeNombre || "-"}
           subtitle={user?.nombre ? `Usuario: ${user.nombre}` : "Sin usuario"}
-          icon="🏢"
-          loading={loading}
+          color="var(--color-light-blue)"
         />
-        <StatCard
-          title="Ventas de hoy"
-          value={dashboardData.ventasHoy?.cantidad ?? 0}
-          subtitle={new Intl.NumberFormat("es-CO", { 
-            style: "currency", 
-            currency: "COP", 
-            maximumFractionDigits: 0 
-          }).format(dashboardData.ventasHoy?.total ?? 0)}
-          icon="🧾"
-          loading={loading}
-          status="ok"
+        <KPICard
+          title="Ventas de Hoy"
+          value={String(dashboardData.ventasHoy?.cantidad ?? 0)}
+          subtitle={new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(dashboardData.ventasHoy?.total ?? 0)}
+          color="#10b981"
         />
-        <StatCard
+        <KPICard
           title="Faltante desde última entrega"
-          value={new Intl.NumberFormat("es-CO", { 
-            style: "currency", 
-            currency: "COP", 
-            maximumFractionDigits: 0 
-          }).format(Math.max(0, dashboardData.faltanteEntrega?.montoFaltante ?? 0))}
-          subtitle={
-            dashboardData.faltanteEntrega?.ultimaEntrega 
-              ? `Última entrega: ${new Date(dashboardData.faltanteEntrega.ultimaEntrega).toLocaleDateString("es-CO")}` 
-              : "Sin entregas previas"
-          }
-          icon="💸"
-          loading={loading}
-          status={
-            (dashboardData.faltanteEntrega?.montoFaltante ?? 0) > 0 
-              ? ((dashboardData.faltanteEntrega?.montoFaltante ?? 0) > 500000 ? "error" : "warning") 
-              : "ok"
-          }
+          value={new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(Math.max(0, dashboardData.faltanteEntrega?.montoFaltante ?? 0))}
+          subtitle={dashboardData.faltanteEntrega?.ultimaEntrega ? `Última entrega: ${new Date(dashboardData.faltanteEntrega.ultimaEntrega).toLocaleDateString("es-CO")}` : "Sin entregas previas"}
+          color="#f59e0b"
         />
-        <StatCard
-          title="Traslados pendientes"
-          value={dashboardData.trasladosPendientes?.totalPendientes ?? 0}
+        <KPICard
+          title="Traslados Pendientes"
+          value={String(dashboardData.trasladosPendientes?.totalPendientes ?? 0)}
           subtitle={`${dashboardData.trasladosPendientes?.trasladosRecibir?.length ?? 0} a recibir, ${dashboardData.trasladosPendientes?.trasladosEnviar?.length ?? 0} a enviar`}
-          icon="📦"
-          loading={loading}
-          status={(dashboardData.trasladosPendientes?.totalPendientes ?? 0) > 0 ? "warning" : "ok"}
+          color="var(--color-light-blue)"
         />
-        <StatCard
-          title="Alertas de stock"
-          value={dashboardData.alertasStock?.total ?? 0}
+        <KPICard
+          title="Alertas de Stock"
+          value={String(dashboardData.alertasStock?.total ?? 0)}
           subtitle="Productos bajos en inventario"
-          icon="⚠️"
-          loading={loading}
-          status={(dashboardData.alertasStock?.total ?? 0) > 0 ? "warning" : "ok"}
+          color="#ef4444"
         />
       </div>
 
-      <div className="rowInferior home-grid-2cols">
-        <LowStockPanel items={dashboardData.alertasStock?.productosBajos || []} />
-        <MovimientosPanel entregasPendientes={trasladosFormateados} />
-      </div>
-      <div className="button-group">
-        <button className="button">Vender</button>
-        <button className="button">Ver Inventario</button>
-        <button className="button">Ver Clientes</button>
-        <button className="button">Ver Traslados</button>
-      </div>
+      {/* Paneles estilo AdminPage */}
+      <DashboardSection title="Operación" description="Alertas y movimientos pendientes">
+        <div className="chart-grid">
+          <div className="chart-card">
+            <h3>Alertas de Stock</h3>
+            <div>
+              <LowStockPanel items={dashboardData.alertasStock?.productosBajos || []} />
+            </div>
+          </div>
+          <div className="chart-card">
+            <h3>Traslados Pendientes</h3>
+            <div>
+              <MovimientosPanel entregasPendientes={trasladosFormateados} />
+            </div>
+          </div>
+        </div>
+      </DashboardSection>
     </div>
   );
 }

@@ -101,12 +101,35 @@ export default function OrdenesPage() {
       try {
         facturaResponse = await crearFactura(facturaPayload);
         console.log("✅ Factura creada:", facturaResponse);
+        // Intentar marcarla como pagada inmediatamente
+        try {
+          if (facturaResponse?.id) {
+            console.log(`💳 Marcando factura ${facturaResponse.id} como PAGADA...`);
+            const hoy = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+            await marcarFacturaComoPagada(facturaResponse.id, hoy);
+            console.log("✅ Factura marcada como PAGADA");
+          }
+        } catch (pagoErr) {
+          console.warn("⚠️ No se pudo marcar como pagada inmediatamente:", pagoErr?.response?.data || pagoErr?.message);
+        }
       } catch (err) {
         const status = err?.response?.status;
         const errMsg = err?.response?.data?.error || err?.response?.data?.message || "";
         if (status === 400 && /ya tiene una factura/i.test(String(errMsg))) {
           console.log("ℹ️ La orden ya tenía una factura. Continuando sin alertas...");
           yaTeniaFactura = true;
+          // Intentar obtener la factura por orden y marcarla como pagada
+          try {
+            const facturaExistente = await obtenerFacturaPorOrden(facturaPayload.ordenId);
+            if (facturaExistente?.id) {
+              console.log(`💳 Marcando factura existente ${facturaExistente.id} como PAGADA...`);
+              const hoy = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+              await marcarFacturaComoPagada(facturaExistente.id, hoy);
+              console.log("✅ Factura existente marcada como PAGADA");
+            }
+          } catch (lookupErr) {
+            console.warn("⚠️ No se pudo marcar como pagada la factura existente:", lookupErr?.response?.data || lookupErr?.message);
+          }
         } else {
           throw err;
         }

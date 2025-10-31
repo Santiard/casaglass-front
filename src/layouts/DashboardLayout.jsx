@@ -20,9 +20,9 @@ export default function DashboardLayout() {
     return localStorage.getItem("sidebarCollapsed") === "true";
   });
 
-  // Auto-colapsar cuando navegamos a VenderPage
+  // Auto-colapsar cuando navegamos a VenderPage o AdminPage
   useEffect(() => {
-    if (location.pathname === '/venderpage') {
+    if (location.pathname === '/venderpage' || location.pathname === '/adminpage') {
       setSidebarCollapsed(true);
       localStorage.setItem("sidebarCollapsed", "true");
     }
@@ -36,6 +36,14 @@ export default function DashboardLayout() {
   };
 
   const toggleSidebarCollapse = () => {
+    // Bloquear expansión manual en AdminPage
+    if (location.pathname === '/adminpage') {
+      if (!isSidebarCollapsed) {
+        setSidebarCollapsed(true);
+        localStorage.setItem("sidebarCollapsed", "true");
+      }
+      return; // no permitir toggle en adminpage
+    }
     setSidebarCollapsed(prev => {
       const newState = !prev;
       localStorage.setItem("sidebarCollapsed", newState);

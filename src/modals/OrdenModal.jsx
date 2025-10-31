@@ -30,6 +30,7 @@ export default function OrdenEditarModal({
   defaultTrabajadorNombre = "",
   defaultSedeId = null,
   defaultSedeNombre = "",
+  cortesPendientes = [],
 }) {
   const [form, setForm] = useState(null);
   const [clientes, setClientes] = useState([]);
@@ -65,17 +66,25 @@ export default function OrdenEditarModal({
           clienteId: "",
           trabajadorId: defaultTrabajadorId ?? "",
           sedeId: defaultSedeId ?? "",
-          items: productosCarrito.map((p) => ({
-            id: null,
-            productoId: p.id ?? null,
-            codigo: p.codigo ?? "",
-            nombre: p.nombre ?? "",
-            descripcion: p.nombre ?? "",
-            cantidad: Number(p.cantidadVender ?? 1),
-            precioUnitario: Number(p.precioUsado ?? 0),
-            totalLinea: Number((p.precioUsado ?? 0) * (p.cantidadVender ?? 1)),
-            eliminar: false,
-          })),
+          items: productosCarrito.map((p) => {
+            const item = {
+              id: null,
+              // Cuando es un corte, p.id es string (corte_...) y el id real del producto viene en p.productoOriginal
+              productoId: Number((p.productoOriginal ?? p.id) ?? 0) || null,
+              codigo: p.codigo ?? "",
+              nombre: p.nombre ?? "",
+              descripcion: p.nombre ?? "",
+              cantidad: Number(p.cantidadVender ?? 1),
+              precioUnitario: Number(p.precioUsado ?? 0),
+              totalLinea: Number((p.precioUsado ?? 0) * (p.cantidadVender ?? 1)),
+              eliminar: false,
+            };
+            // Si es un corte que debe reutilizar un existente, agregar el ID
+            if (p.reutilizarCorteSolicitadoId) {
+              item.reutilizarCorteSolicitadoId = Number(p.reutilizarCorteSolicitadoId);
+            }
+            return item;
+          }),
         };
         console.log("📋 Form inicializado desde carrito:", base);
         setForm(base);
@@ -356,17 +365,50 @@ export default function OrdenEditarModal({
         clienteId: Number(form.clienteId),
         trabajadorId: Number(form.trabajadorId),
         sedeId: Number(form.sedeId),
-        items: form.items.map((i) => ({
-          productoId: Number(i.productoId ?? 0),
-          descripcion: i.descripcion ?? "",
-          cantidad: Number(i.cantidad ?? 1),
-          precioUnitario: Number(i.precioUnitario ?? 0),
-        })),
+        items: form.items.map((i) => {
+          const item = {
+            productoId: Number(i.productoId ?? 0),
+            descripcion: i.descripcion ?? "",
+            cantidad: Number(i.cantidad ?? 1),
+            precioUnitario: Number(i.precioUnitario ?? 0),
+          };
+          // Si es un corte que debe reutilizar un existente, agregar el ID
+          if (i.reutilizarCorteSolicitadoId) {
+            item.reutilizarCorteSolicitadoId = Number(i.reutilizarCorteSolicitadoId);
+          }
+          return item;
+        }),
       };
       
       console.log("Creando orden nueva con payload:", payload);
       
-      const data = await crearOrdenVenta(payload);
+      // Incluir cortes pendientes (si existen)
+      // IMPORTANTE: Solo el corte SOBRANTE debe incrementar stock (queda en inventario)
+      // El corte SOLICITADO se vende inmediatamente, así que NO debe incrementar stock
+      const cortesEnriquecidos = (Array.isArray(cortesPendientes) ? cortesPendientes : []).map((c) => {
+        const sedeId = Number(payload.sedeId);
+        // Solo el sobrante debe tener cantidadesPorSede > 0
+        // El solicitado se crea pero NO incrementa stock porque se vende de inmediato
+        const cantidadesPorSede = [
+          { sedeId: 1, cantidad: sedeId === 1 ? Number(c.cantidad || 1) : 0 }, // Insula - SOLO PARA SOBRANTE
+          { sedeId: 2, cantidad: sedeId === 2 ? Number(c.cantidad || 1) : 0 }, // Centro - SOLO PARA SOBRANTE
+          { sedeId: 3, cantidad: sedeId === 3 ? Number(c.cantidad || 1) : 0 }  // Patios - SOLO PARA SOBRANTE
+        ];
+        return {
+          ...c,
+          cantidad: Number(c.cantidad || 1),
+          cantidadesPorSede: cantidadesPorSede,
+          // Indicar que este es el SOBRANTE que debe incrementar stock
+          esSobrante: true,
+        };
+      });
+
+      const payloadConCortes = {
+        ...payload,
+        cortes: cortesEnriquecidos,
+      };
+
+      const data = await crearOrdenVenta(payloadConCortes);
       console.log("Orden creada:", data);
       alert(`Orden creada correctamente\nNúmero: ${data.numero}`);
       
@@ -478,7 +520,7 @@ export default function OrdenEditarModal({
                   type="text"
                   value={form.obra}
                   onChange={(e) =>
-                    handleChange("obra", e.target.value)
+                    handleChange("obra", e.target.value.toUpperCase())
                   }
                 />
               </label>

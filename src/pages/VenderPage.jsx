@@ -85,16 +85,34 @@ export default function VenderPage() {
 
   // ======= Cargar Cortes =======
   const fetchCortesData = useCallback(async () => {
-    if (view !== "corte") return;
-    setLoading(true);
+    // Permitir refrescar cortes incluso si no estamos en la vista de cortes (para refrescar después de venta)
+    // Solo no actualizar el estado si no es necesario
+    const actualizarEstado = view === "corte";
+    if (actualizarEstado) {
+      setLoading(true);
+    }
     try {
+      console.log("🔄 Cargando cortes desde /api/cortes-inventario-completo...");
       const cortes = await listarCortesInventarioCompleto({}, isAdmin, sedeId);
+      console.log(`📊 Cortes recibidos del endpoint: ${cortes?.length || 0}`);
+      if (cortes?.length > 0) {
+        console.log("📋 Primeros 3 cortes:", cortes.slice(0, 3).map(c => ({
+          id: c.id,
+          codigo: c.codigo,
+          largoCm: c.largoCm,
+          cantidadInsula: c.cantidadInsula,
+          cantidadCentro: c.cantidadCentro,
+          cantidadPatios: c.cantidadPatios
+        })));
+      }
       setCortesData(cortes || []);
     } catch (e) {
-      console.error("Error cargando inventario de cortes", e);
+      console.error("❌ Error cargando inventario de cortes", e);
       alert(e?.response?.data?.message || "No se pudo cargar el inventario de cortes.");
     } finally {
-      setLoading(false);
+      if (actualizarEstado) {
+        setLoading(false);
+      }
     }
   }, [view, isAdmin, sedeId]);
 
@@ -138,13 +156,10 @@ export default function VenderPage() {
     setCortesPendientes([]); // Limpiar cortes pendientes también
     localStorage.removeItem("shopItems");
     
-    // Refrescar automáticamente la tabla después de una venta exitosa
-    console.log("🔄 Refrescando tabla después de venta exitosa...");
-    if (view === "producto") {
-      fetchData();
-    } else {
-      fetchCortesData();
-    }
+    // Refrescar automáticamente ambos listados después de una venta exitosa
+    console.log("🔄 Refrescando tablas de productos y cortes después de venta exitosa...");
+    fetchData();
+    fetchCortesData();
   };
 
   // ======= Función para Manejar Cortes =======

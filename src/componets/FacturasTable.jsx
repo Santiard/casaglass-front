@@ -1,9 +1,12 @@
 import "../styles/Table.css";
 import { useMemo, useState } from "react";
+import eliminar from "../assets/eliminar.png";
+import check from "../assets/check.png";
 
 export default function FacturasTable({
   data = [],
-  onEditar,
+  onVerificar,
+  onEliminar,
   clientes = [],
   rowsPerPage = 10,
   loading = false,
@@ -210,13 +213,14 @@ export default function FacturasTable({
               <th>Forma de Pago</th>
               <th>Estado</th>
               <th>Observaciones</th>
+              <th>Acciones</th>
             </tr>
           </thead>
 
           <tbody>
             {loading && (
               <tr>
-                <td colSpan={11} className="empty">
+                <td colSpan={12} className="empty">
                   Cargando...
                 </td>
               </tr>
@@ -224,7 +228,7 @@ export default function FacturasTable({
 
             {!loading && pageData.length === 0 && (
               <tr>
-                <td colSpan={11} className="empty">
+                <td colSpan={12} className="empty">
                   No hay facturas registradas
                 </td>
               </tr>
@@ -237,6 +241,9 @@ export default function FacturasTable({
                 const iva = f.iva || 0;
                 const descuentos = f.descuentos || 0;
                 const total = f.total || (subtotal + iva - descuentos);
+                const estado = f.estado?.toLowerCase() || 'pendiente';
+                const puedeVerificar = estado === 'pendiente' || estado === 'en_proceso';
+                const puedeEliminar = estado !== 'pagada'; // Backend no permite eliminar pagadas
 
                 return (
                   <tr key={f.id}>
@@ -251,6 +258,34 @@ export default function FacturasTable({
                     <td>{f.formaPago ?? "-"}</td>
                     <td>{formatearEstado(f.estado)}</td>
                     <td className="cut">{f.observaciones ?? "-"}</td>
+                    <td className="clientes-actions">
+                      {puedeVerificar && (
+                        <button 
+                          className="btnConfirm" 
+                          onClick={() => onVerificar?.(f)} 
+                          title="Verificar / Marcar como pagada"
+                          style={{
+                            backgroundColor: '#28a745',
+                            border: 'none',
+                            borderRadius: '4px',
+                            padding: '2px 4px',
+                            cursor: 'pointer',
+                            marginRight: '4px'
+                          }}
+                        >
+                          <img src={check} className="iconButton" alt="Verificar" />
+                        </button>
+                      )}
+                      {puedeEliminar && (
+                        <button 
+                          className="btnDelete" 
+                          onClick={() => onEliminar?.(f)} 
+                          title="Eliminar factura"
+                        >
+                          <img src={eliminar} className="iconButton" alt="Eliminar" />
+                        </button>
+                      )}
+                    </td>
                   </tr>
                 );
               })}

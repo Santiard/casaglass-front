@@ -1,7 +1,7 @@
 import add from "../assets/add.png";
 import "../styles/InventaryFilters.css";
 import ViewSwitcher from "./ViewSwitcher";
-export default function InventoryFilters({ filters = {}, setFilters, onAddProduct,view,        // 👈 importante
+export default function InventoryFilters({ filters = {}, setFilters, onAddProduct, view,        // 👈 importante
   setView, }) {
   
   return (
