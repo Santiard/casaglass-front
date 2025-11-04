@@ -10,7 +10,7 @@
 .inventory-table {
   width: 100%;
   border-collapse: collapse;
-  font-family: Arial, sans-serif;
+  font-family: 'Roboto', sans-serif;
   font-size: 14px;
 }
 
@@ -46,12 +46,13 @@
 /* Botones */
 .btn-edit,
 .btn-delete {
-  padding: 5px 10px;
+  padding: 0.25rem 0.375rem; /* Reducido para mantener en línea */
   border: none;
   border-radius: 4px;
   cursor: pointer;
   font-size: 12px;
-  margin-right: 5px;
+  margin-right: 0; /* Sin margen derecho, se usa gap en flex */
+  flex-shrink: 0; /* No permitir compresión */
 }
 
 .btn-edit {

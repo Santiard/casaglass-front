@@ -67,7 +67,7 @@ export default function OrdenImprimirModal({ orden, isOpen, onClose }) {
         <head>
           <title>Orden #${form.numero}</title>
           <style>
-            body { font-family: Arial, sans-serif; padding: 20px; }
+            body { font-family: 'Roboto', sans-serif; padding: 20px; }
             .header { text-align: center; margin-bottom: 30px; }
             .header h1 { margin: 0; color: #333; }
             .info { display: flex; justify-content: space-between; margin-bottom: 20px; }
