@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import CreditosTable from "../componets/CreditosTable";
 import AbonoModal from "../modals/AbonoModal";
+import { api } from "../lib/api.js";
+import { ClientesService } from "../services/ClientesService.js";
 import "../styles/Creditos.css";
 
 const CreditosPage = () => {
@@ -20,88 +22,26 @@ const CreditosPage = () => {
   const [isAbonoOpen, setAbonoOpen] = useState(false);
   const [creditoSeleccionado, setCreditoSeleccionado] = useState(null);
 
-  const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:8080/api";
-
   useEffect(() => {
     const loadData = async () => {
       setIsLoading(true);
       setError("");
       
       try {
-        // Cargar créditos con manejo mejorado de errores
-        const creditosPromise = fetch(`${baseUrl}/creditos`)
-          .then(async (res) => {
-            if (!res.ok) {
-              throw new Error(`Error HTTP ${res.status}: ${res.statusText}`);
-            }
-            
-            // Clonar la respuesta para poder usar tanto .json() como .text() si es necesario
-            const resClone = res.clone();
-            
-            try {
-              const data = await res.json();
-              console.log("Créditos cargados exitosamente:", data.length, "elementos");
-              return data;
-            } catch (jsonError) {
-              console.warn("Error con .json(), intentando parseo manual:", jsonError.message);
-              
-              try {
-                const text = await resClone.text();
-                console.log("Longitud de respuesta:", text.length);
-                
-                // Verificar si hay caracteres problemáticos cerca del error
-                if (text.length > 249900) {
-                  console.log("Texto alrededor del error (posición 249900-250000):");
-                  console.log(text.substring(249900, 250000));
-                }
-                
-                // Intentar limpiar caracteres problemáticos
-                const cleanedText = text.replace(/[\u0000-\u001F\u007F-\u009F]/g, '');
-                
-                if (cleanedText !== text) {
-                  console.log("Se encontraron y removieron caracteres de control");
-                }
-                
-                const parsedData = JSON.parse(cleanedText);
-                console.log("Parseo manual exitoso:", parsedData.length, "elementos");
-                return parsedData;
-                
-              } catch (parseError) {
-                console.error("Error en parseo manual:", parseError.message);
-                console.error("Devolviendo array vacío para evitar crash");
-                return [];
-              }
-            }
-          });
-
-        // Cargar clientes - try direct JSON parsing first  
-        const clientesPromise = fetch(`${baseUrl}/clientes`)
-          .then(async (res) => {
-            if (!res.ok) {
-              throw new Error(`HTTP ${res.status}: ${res.statusText}`);
-            }
-            
-            try {
-              // Try the native .json() method first
-              return await res.json();
-            } catch (jsonError) {
-              console.warn("Clientes native .json() failed, trying manual parse:", jsonError.message);
-              
-              // Fallback to manual text parsing
-              const text = await res.text();
-              try {
-                return JSON.parse(text);
-              } catch (parseError) {
-                console.error("Clientes manual JSON parse failed:", parseError.message);
-                return [];
-              }
-            }
-          });
-
-        const [creditosData, clientesData] = await Promise.all([creditosPromise, clientesPromise]);
+        // Cargar créditos y clientes usando la instancia api centralizada
+        const [creditosResponse, clientesResponse] = await Promise.all([
+          api.get("/creditos"),
+          ClientesService.listarClientes()
+        ]);
         
-        setCreditos(creditosData || []);
-        setClientes(clientesData || []);
+        const creditosData = creditosResponse.data || [];
+        const clientesData = clientesResponse || [];
+        
+        console.log("Créditos cargados exitosamente:", creditosData.length, "elementos");
+        console.log("Clientes cargados exitosamente:", clientesData.length, "elementos");
+        
+        setCreditos(creditosData);
+        setClientes(clientesData);
       } catch (err) {
         console.error("Error loading data:", err);
         setError(`Error cargando datos: ${err.message}`);
@@ -144,50 +84,11 @@ const CreditosPage = () => {
     setIsReloading(true);
     
     try {
-      const res = await fetch(`${baseUrl}/creditos`);
-      console.log("Status de respuesta:", res.status);
+      const response = await api.get("/creditos");
+      const data = response.data || [];
       
-      if (!res.ok) {
-        throw new Error(`Error HTTP ${res.status}: ${res.statusText}`);
-      }
-      
-      // Clonar respuesta para evitar "body already consumed"
-      const resClone = res.clone();
-      
-      let data;
-      try {
-        data = await res.json();
-        console.log("✅ Recarga exitosa con .json():", data?.length, "créditos");
-        
-        // Verificar que los datos son válidos
-        if (Array.isArray(data)) {
-          console.log("Primer crédito:", data[0]);
-        }
-        
-      } catch (jsonError) {
-        console.warn("⚠️ Error en recarga con .json(), intentando parseo manual:", jsonError.message);
-        
-        try {
-          const text = await resClone.text();
-          console.log("Longitud de texto recibido:", text.length);
-          console.log("Primeros 100 caracteres:", text.substring(0, 100));
-          
-          // Limpiar caracteres problemáticos
-          const cleanedText = text.replace(/[\u0000-\u001F\u007F-\u009F]/g, '');
-          
-          if (cleanedText !== text) {
-            console.log("🧹 Se limpiaron caracteres de control");
-          }
-          
-          data = JSON.parse(cleanedText);
-          console.log("✅ Recarga manual exitosa:", data?.length, "créditos");
-        } catch (parseError) {
-          console.error("❌ Error en parseo manual durante recarga:", parseError.message);
-          throw parseError;
-        }
-      }
-      
-      setCreditos(data || []);
+      console.log("✅ Recarga exitosa:", data.length, "créditos");
+      setCreditos(data);
       console.log("=== RECARGA COMPLETADA ===");
       
     } catch (err) {

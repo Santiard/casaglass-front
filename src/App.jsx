@@ -19,6 +19,15 @@ import CreditosPage from "./pages/CreditosPage.jsx";
 import FacturasPage from "./pages/FacturasPage.jsx";
 import { AuthProvider } from "./context/AuthContext.jsx";
 
+/**
+ * Configuración del basename para React Router
+ * 
+ * Si el frontend se despliega en una subruta (ej: https://midominio.com/app),
+ * define VITE_ROUTER_BASENAME=/app en .env.production
+ * 
+ * Si se despliega en la raíz del dominio, deja esta variable vacía o no la definas.
+ */
+const routerBasename = import.meta.env.VITE_ROUTER_BASENAME || undefined;
 
 function App() {
   // Silenciar warning de "Components desaprobado" de DevTools
@@ -29,7 +38,7 @@ function App() {
   }, []);
 
   return (
-    <Router>
+    <Router basename={routerBasename}>
       <AuthProvider>
         <Routes>
           {/* Ruta sin layout */}

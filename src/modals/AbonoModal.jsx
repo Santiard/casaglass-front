@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { api } from '../lib/api.js';
 import './AbonoModal.css';
 
 const AbonoModal = ({ isOpen, onClose, credito, onSuccess }) => {
@@ -62,7 +63,6 @@ const AbonoModal = ({ isOpen, onClose, credito, onSuccess }) => {
 
     try {
       setLoading(true);
-      const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:8080/api";
       
       const abonoData = {
         total: total,
@@ -73,22 +73,9 @@ const AbonoModal = ({ isOpen, onClose, credito, onSuccess }) => {
       
       console.log("Enviando abono:", abonoData, "para crédito:", credito?.id);
       
-      const response = await fetch(`${baseUrl}/creditos/${credito?.id}/abonos`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(abonoData)
-      });
-
-      console.log("Respuesta del servidor:", response.status, response.statusText);
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error("Error del servidor:", errorText);
-        throw new Error(`Error al registrar abono (${response.status}): ${errorText}`);
-      }
-
-      const result = await response.json();
-      console.log("Abono creado exitosamente:", result);
+      const response = await api.post(`/creditos/${credito?.id}/abonos`, abonoData);
+      
+      console.log("Abono creado exitosamente:", response.data);
       
       resetForm();
       if (onSuccess) {
@@ -97,7 +84,9 @@ const AbonoModal = ({ isOpen, onClose, credito, onSuccess }) => {
       }
       onClose();
     } catch (err) {
-      setError(err.message || 'Error al crear el abono');
+      const errorMessage = err.response?.data?.message || err.message || 'Error al crear el abono';
+      console.error("Error al registrar abono:", errorMessage);
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
