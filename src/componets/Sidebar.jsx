@@ -6,7 +6,7 @@ import inventario from "../assets/inventario.png";
 import clientes from "../assets/clientes.png";
 import ventas from "../assets/ventas.png";
 import movimientos from "../assets/movimientos.png";
-import Configuracion from "../assets/Configuracion.png";
+import Configuracion from "../assets/configuracion.png";
 import salir from "../assets/logout.png";
 import producto from "../assets/producto.png";
 import entrega from "../assets/entrega.png";

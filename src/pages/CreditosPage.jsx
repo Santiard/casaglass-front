@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import CreditosTable from "../componets/CreditosTable";
 import AbonoModal from "../modals/AbonoModal";
 import { api } from "../lib/api.js";
-import { ClientesService } from "../services/ClientesService.js";
+import { listarClientes } from "../services/ClientesService.js";
 import "../styles/Creditos.css";
 
 const CreditosPage = () => {
@@ -29,13 +29,12 @@ const CreditosPage = () => {
       
       try {
         // Cargar créditos y clientes usando la instancia api centralizada
-        const [creditosResponse, clientesResponse] = await Promise.all([
+        const [creditosResponse, clientesData] = await Promise.all([
           api.get("/creditos"),
-          ClientesService.listarClientes()
+          listarClientes()
         ]);
         
         const creditosData = creditosResponse.data || [];
-        const clientesData = clientesResponse || [];
         
         console.log("Créditos cargados exitosamente:", creditosData.length, "elementos");
         console.log("Clientes cargados exitosamente:", clientesData.length, "elementos");
