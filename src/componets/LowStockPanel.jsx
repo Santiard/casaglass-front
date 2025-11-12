@@ -5,10 +5,11 @@ return (
 <h3>Productos con stock bajo</h3>
 <span className="badge">{items.length}</span>
 </header>
-<div className="panel__body">
+<div className="panel__body low-stock-panel-body">
 {items.length === 0 ? (
 <div className="empty">Sin alertas 🎉</div>
 ) : (
+<div className="low-stock-table-wrapper">
 <table className="table">
 <thead>
 <tr>
@@ -42,6 +43,7 @@ return (
 ))}
 </tbody>
 </table>
+</div>
 )}
 </div>
 </section>

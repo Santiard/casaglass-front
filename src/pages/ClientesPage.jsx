@@ -8,6 +8,8 @@ import {
   actualizarCliente,
   eliminarCliente,
 } from "../services/ClientesService";
+import { useConfirm } from "../hooks/useConfirm.jsx";
+import { useToast } from "../context/ToastContext.jsx";
 
 export default function ClientesPage() {
   const { confirm, ConfirmDialog } = useConfirm();

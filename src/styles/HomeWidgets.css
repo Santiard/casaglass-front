@@ -123,6 +123,40 @@ html { font-size: 1rem; }
   padding: 0.625rem 0.875rem;   /* 10px 14px */
 }
 
+/* ===== Contenedor con scroll para tabla de bajo stock ===== */
+.low-stock-panel-body {
+  max-height: 400px; /* Altura máxima del panel */
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.low-stock-table-wrapper {
+  overflow-y: auto;
+  overflow-x: auto;
+  max-height: 100%;
+  /* Scrollbar personalizada */
+}
+
+.low-stock-table-wrapper::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.low-stock-table-wrapper::-webkit-scrollbar-track {
+  background: var(--color-ligth-gray);
+  border-radius: 4px;
+}
+
+.low-stock-table-wrapper::-webkit-scrollbar-thumb {
+  background: #4a5568;
+  border-radius: 4px;
+}
+
+.low-stock-table-wrapper::-webkit-scrollbar-thumb:hover {
+  background: #2d3748;
+}
+
 /* ===== Tabla ===== */
 .table { width: 100%; border-collapse: collapse; }
 .table th,
@@ -131,8 +165,15 @@ html { font-size: 1rem; }
   padding: 0.625rem 0.5rem;     /* 10px 8px */
   border-bottom: 1px solid #1f2937;
   font-size: 0.8125rem;         /* 13px */
+  white-space: nowrap;          /* Evita que el texto se corte en múltiples líneas */
 }
 .table tr.danger { background: rgba(239, 68, 68, 0.08); }
+
+/* Asegurar que la tabla no se salga del contenedor */
+.low-stock-table-wrapper .table {
+  min-width: 100%;
+  table-layout: auto;
+}
 
 /* ===== Lista simple ===== */
 .list ul {

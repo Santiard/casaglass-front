@@ -109,8 +109,14 @@ export default function HomePage(){
         />
         <KPICard
           title="Alertas de Stock"
-          value={String(dashboardData.alertasStock?.total ?? 0)}
-          subtitle="Productos bajos en inventario"
+          value={String(
+            (dashboardData.alertasStock?.productosBajos || [])
+              .filter(p => {
+                const stock = p.stockActual || p.stock || 0;
+                return stock <= 5;
+              }).length
+          )}
+          subtitle="Productos con stock ≤ 5 unidades"
           color="#ef4444"
         />
       </div>
@@ -121,7 +127,13 @@ export default function HomePage(){
           <div className="chart-card">
             <h3>Alertas de Stock</h3>
             <div>
-              <LowStockPanel items={dashboardData.alertasStock?.productosBajos || []} />
+              <LowStockPanel items={
+                (dashboardData.alertasStock?.productosBajos || [])
+                  .filter(p => {
+                    const stock = p.stockActual || p.stock || 0;
+                    return stock <= 5;
+                  })
+              } />
             </div>
           </div>
           <div className="chart-card">
