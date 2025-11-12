@@ -17,6 +17,10 @@ export default function Login() {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm((f) => ({ ...f, [name]: value }));
+    // Limpiar mensaje de error cuando el usuario empiece a escribir
+    if (msg) {
+      setMsg(null);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -37,11 +41,50 @@ export default function Login() {
       }
     } catch (err) {
       console.error("Error login", err);
-      const text =
-        err?.response?.data ||
-        err?.response?.data?.message ||
-        "Usuario o contraseña inválidos";
-      setMsg(String(text));
+      console.error("Error response data:", err?.response?.data);
+      
+      // Extraer mensaje de error del backend según el código de estado
+      let errorMessage = "Error al iniciar sesión";
+      
+      if (err?.response) {
+        const status = err.response.status;
+        const data = err.response.data;
+        
+        // Error 401: Credenciales inválidas
+        if (status === 401) {
+          errorMessage = "Usuario o contraseña incorrectos";
+        }
+        // Error 403: Acceso denegado
+        else if (status === 403) {
+          errorMessage = "Acceso denegado. Contacte al administrador";
+        }
+        // Error 500: Error del servidor
+        else if (status === 500) {
+          errorMessage = data?.message || "Error del servidor. Intente más tarde";
+        }
+        // Error 400: Solicitud inválida
+        else if (status === 400) {
+          errorMessage = data?.message || "Datos inválidos. Verifique su información";
+        }
+        // Otros errores con respuesta del servidor
+        else if (data) {
+          if (typeof data === 'object') {
+            errorMessage = data.message || data.error || "Error al iniciar sesión";
+          } else {
+            errorMessage = String(data);
+          }
+        }
+      } 
+      // Error de red o conexión
+      else if (err?.code === 'ECONNREFUSED' || err?.code === 'ERR_NETWORK') {
+        errorMessage = "No se pudo conectar al servidor. Verifique su conexión";
+      }
+      // Otro tipo de error
+      else if (err?.message) {
+        errorMessage = err.message;
+      }
+      
+      setMsg(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -76,6 +119,12 @@ export default function Login() {
           value={form.password}
           onChange={handleChange}
           required/>
+
+          {msg && (
+            <div className="error-message">
+              {msg}
+            </div>
+          )}
 
           <button type="submit" className="btn btn-black" disabled={loading}>
             {loading ? "Ingresando..." : "Iniciar Sesión"}

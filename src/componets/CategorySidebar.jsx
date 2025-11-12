@@ -2,6 +2,14 @@ import "../styles/CategorySidebar.css";
 import add from "../assets/add.png";
 
 export default function CategorySidebar({ categories = [], selectedId, onSelect, onAddCategory }) {
+  // Ordenar categorías por ID de menor a mayor
+  const categoriasOrdenadas = [...categories].sort((a, b) => {
+    // Manejar casos donde id puede ser null o undefined
+    const idA = a.id ?? 0;
+    const idB = b.id ?? 0;
+    return Number(idA) - Number(idB);
+  });
+
   return (
     <div>
       <h4 style={{ marginBottom: 8 }}>Categorías</h4>
@@ -35,7 +43,7 @@ export default function CategorySidebar({ categories = [], selectedId, onSelect,
         </button>
       )}
       <div className="category-list">
-        {categories.map((cat) => (
+        {categoriasOrdenadas.map((cat) => (
           <button
             key={cat.id}
             className={`category-item ${selectedId === cat.id ? "active" : ""}`}

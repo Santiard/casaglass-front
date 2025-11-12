@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import "../styles/CrudModal.css";
 import { useUppercaseForm, getInputStyles, VALIDATION_PATTERNS } from "../hooks/useUppercaseForm.js";
+import { useToast } from "../context/ToastContext.jsx";
 
 export default function ProveedorModal({ 
   isOpen, 
@@ -24,6 +25,7 @@ export default function ProveedorModal({
     telefono: { regex: VALIDATION_PATTERNS.PHONE_12_DIGITS }
   };
 
+  const { showError } = useToast();
   const { formData, handleChange: baseHandleChange, setFormData } = useUppercaseForm(
     initialState, 
     numericFields, 
@@ -69,12 +71,12 @@ export default function ProveedorModal({
     
     // Validación final antes de guardar
     if (formData.nit && formData.nit.length !== 9) {
-      alert('El NIT debe contener exactamente 9 dígitos');
+      showError('El NIT debe contener exactamente 9 dígitos');
       return;
     }
     
     if (formData.telefono && !/^\d{1,12}$/.test(formData.telefono)) {
-      alert('El teléfono debe contener solo números (máximo 12 dígitos)');
+      showError('El teléfono debe contener solo números (máximo 12 dígitos)');
       return;
     }
     
@@ -85,7 +87,7 @@ export default function ProveedorModal({
       );
       
       if (nitExiste) {
-        alert(`Ya existe un proveedor registrado con el NIT ${formData.nit}. Por favor, verifique el número ingresado.`);
+        showError(`Ya existe un proveedor registrado con el NIT ${formData.nit}. Por favor, verifique el número ingresado.`);
         return;
       }
     }

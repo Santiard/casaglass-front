@@ -7,12 +7,12 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        // En desarrollo, el proxy apunta a localhost:8080
-        // Si necesitas apuntar a otra IP, ajusta esta configuración
-        // O usa directamente VITE_API_URL en .env.development
+        // En desarrollo, el proxy apunta a localhost:8080 (backend local)
+        // El backend espera las rutas CON el prefijo /api
         target: 'http://localhost:8080',
         changeOrigin: true,
         secure: false,
+        // NO eliminamos el prefijo /api porque el backend lo espera
       }
     }
   },

@@ -10,6 +10,8 @@ import {
 } from "../services/ClientesService";
 
 export default function ClientesPage() {
+  const { confirm, ConfirmDialog } = useConfirm();
+  const { showError, showSuccess } = useToast();
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
 
@@ -37,7 +39,7 @@ export default function ClientesPage() {
         );
         
         if (nitExiste) {
-          alert(`Ya existe un cliente registrado con el NIT ${cliente.nit}. Por favor, verifique el número ingresado.`);
+          showError(`Ya existe un cliente registrado con el NIT ${cliente.nit}. Por favor, verifique el número ingresado.`);
           throw new Error(`NIT duplicado: ${cliente.nit}`);
         }
       }
@@ -60,7 +62,7 @@ export default function ClientesPage() {
       const msg = e?.response?.data?.message 
                || e?.response?.data?.error
                || "No se pudo guardar el cliente. Revisa consola.";
-      alert(msg);
+      showError(msg);
     }
   };
 
@@ -75,11 +77,11 @@ export default function ClientesPage() {
     const backendMsg = e?.response?.data?.message;
 
     if (backendMsg) {
-      alert(backendMsg); // mensaje enviado desde el backend
+      showError(backendMsg); // mensaje enviado desde el backend
     } else if (e?.response?.status === 409) {
-      alert("No se puede eliminar el cliente porque tiene registros asociados (por ejemplo, órdenes o créditos).");
+      showError("No se puede eliminar el cliente porque tiene registros asociados (por ejemplo, órdenes o créditos).");
     } else {
-      alert("No se pudo eliminar el cliente. Revisa consola.");
+      showError("No se pudo eliminar el cliente. Revisa consola.");
     }
   }
 };
@@ -94,6 +96,7 @@ export default function ClientesPage() {
           onCrear={(c) => handleGuardar(c, false)}
         />
       </div>
+      <ConfirmDialog />
     </div>
   );
 }

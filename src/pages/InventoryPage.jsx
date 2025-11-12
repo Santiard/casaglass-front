@@ -37,6 +37,8 @@ import {
 
 import { listarCategorias, crearCategoria } from "../services/CategoriasService"; // 👈 nuevo import
 import NuevaCategoriaModal from "../modals/NuevaCategoriaModal.jsx";
+import { useConfirm } from "../hooks/useConfirm.jsx";
+import { useToast } from "../context/ToastContext.jsx";
 
 const CORTES_MOCK = [
   { id: 1, codigo: "C-0001", nombre: "Corte ventana 60x80", categoria: "Vidrio", color: "Claro", cantidad: 5, largoCm: 80, precio: 95000, observacion: "Bisel 1cm", sede: "Centro" },
@@ -45,6 +47,8 @@ const CORTES_MOCK = [
 ];
 
 export default function InventoryPage() {
+  const { confirm, ConfirmDialog } = useConfirm();
+  const { showError, showSuccess } = useToast();
   const { isAdmin, sedeId } = useAuth(); // Obtener info del usuario logueado
   const [view, setView] = useState("producto"); // "producto" | "corte"
 
@@ -71,13 +75,52 @@ export default function InventoryPage() {
       setCategories(cats || []);
     } catch (e) {
       console.error("Error cargando categorías:", e);
-      alert("No se pudieron cargar las categorías desde el servidor.");
+      showError("No se pudieron cargar las categorías desde el servidor.");
     }
   }, []);
 
   useEffect(() => {
     fetchCategorias();
   }, [fetchCategorias]);
+
+  // === Establecer primera categoría para productos al cargar ===
+  useEffect(() => {
+    if (categories.length > 0) {
+      setFilters((prev) => {
+        // Solo establecer si no hay categoría seleccionada
+        if (!prev.categoryId) {
+          const primeraCategoria = categories[0];
+          if (primeraCategoria) {
+            return {
+              ...prev,
+              categoryId: primeraCategoria.id,
+            };
+          }
+        }
+        return prev;
+      });
+    }
+  }, [categories]);
+
+  useEffect(() => {
+    // Establecer el primer color (MATE) si no hay color seleccionado para productos
+    if (!filters.color) {
+      setFilters((prev) => ({
+        ...prev,
+        color: "MATE", // Primer color disponible
+      }));
+    }
+  }, []); // Solo al montar el componente
+
+  useEffect(() => {
+    // Establecer el primer color (MATE) si no hay color seleccionado para cortes
+    if (!corteFilters.color) {
+      setCorteFilters((prev) => ({
+        ...prev,
+        color: "MATE", // Primer color disponible
+      }));
+    }
+  }, []); // Solo al montar el componente
 
   // === Cargar TODOS los productos con inventario completo ===
   const fetchData = useCallback(async () => {
@@ -89,7 +132,7 @@ export default function InventoryPage() {
       setData(productos || []);
     } catch (e) {
       console.error("Error cargando inventario completo", e);
-      alert(e?.response?.data?.message || "No se pudo cargar el inventario.");
+      showError(e?.response?.data?.message || "No se pudo cargar el inventario.");
     } finally {
       setLoading(false);
     }
@@ -107,7 +150,7 @@ export default function InventoryPage() {
       setCortes(cortesData || []);
     } catch (e) {
       console.error("Error cargando inventario completo de cortes", e);
-      alert(e?.response?.data?.message || "No se pudo cargar el inventario de cortes.");
+      showError(e?.response?.data?.message || "No se pudo cargar el inventario de cortes.");
     } finally {
       setLoading(false);
     }
@@ -123,7 +166,7 @@ export default function InventoryPage() {
     try {
       await crearCategoria(nombre);
       await fetchCategorias(); // Refrescar lista de categorías
-      alert("Categoría creada exitosamente");
+      // alert("Categoría creada exitosamente"); // Reemplazado por toast
     } catch (e) {
       console.error("Error creando categoría", e);
       throw e; // El modal maneja el error
@@ -148,7 +191,7 @@ export default function InventoryPage() {
       setModalOpen(false);
     } catch (e) {
       console.error("Error guardando producto", e);
-      alert(e?.response?.data?.message || "No se pudo guardar el producto.");
+      // alert(e?.response?.data?.message || "No se pudo guardar el producto."); // Reemplazado por toast
     }
   };
 
@@ -156,7 +199,16 @@ export default function InventoryPage() {
     try {
       const prod = data.find((p) => p.id === id);
       if (!prod) return;
-      if (!confirm("¿Eliminar este producto?")) return;
+      
+      const confirmacion = await confirm({
+        title: "Eliminar Producto",
+        message: "¿Estás seguro de que deseas eliminar este producto?\n\nEsta acción no se puede deshacer.",
+        confirmText: "Eliminar",
+        cancelText: "Cancelar",
+        type: "danger"
+      });
+      
+      if (!confirmacion) return;
 
       const categoriaNombre = prod.categoria?.nombre?.toLowerCase() || "";
       const esVidrio = categoriaNombre === "vidrio";
@@ -166,7 +218,7 @@ export default function InventoryPage() {
       await fetchData();
     } catch (e) {
       console.error("Error eliminando producto", e);
-      alert(e?.response?.data?.message || "No se pudo eliminar el producto.");
+      showError(e?.response?.data?.message || "No se pudo eliminar el producto.");
     }
   };
 
@@ -305,16 +357,24 @@ export default function InventoryPage() {
   const handleAddCorte = () => { setEditingCorte(null); setCorteModalOpen(true); };
   const handleEditCorte = (c) => { setEditingCorte(c); setCorteModalOpen(true); };
   const handleDeleteCorte = async (id) => {
+    const confirmacion = await confirm({
+      title: "Eliminar Corte",
+      message: "¿Estás seguro de que deseas eliminar este corte?\n\nEsta acción no se puede deshacer.",
+      confirmText: "Eliminar",
+      cancelText: "Cancelar",
+      type: "danger"
+    });
+    
+    if (!confirmacion) return;
+    
     try {
-      if (!confirm("¿Eliminar este corte?")) return;
-      
       await eliminarCorte(id);
       
       // Refrescar página después de eliminar
       window.location.reload();
     } catch (e) {
       console.error("Error eliminando corte", e);
-      alert(e?.response?.data?.message || "No se pudo eliminar el corte.");
+      showError(e?.response?.data?.message || "No se pudo eliminar el corte.");
     }
   };
   const handleSaveCorte = async (corte) => {
@@ -332,7 +392,7 @@ export default function InventoryPage() {
       window.location.reload();
     } catch (e) {
       console.error("Error guardando corte", e);
-      alert(e?.response?.data?.message || "No se pudo guardar el corte.");
+      showError(e?.response?.data?.message || "No se pudo guardar el corte.");
     }
   };
 
@@ -342,6 +402,25 @@ export default function InventoryPage() {
     categoryId: prev.categoryId === catId ? null : catId,
   }));
   };
+
+  // === Establecer primera categoría para cortes al cargar ===
+  useEffect(() => {
+    if (categories.length > 0) {
+      setCorteFilters((prev) => {
+        // Solo establecer si no hay categoría seleccionada
+        if (!prev.categoryId) {
+          const primeraCategoria = categories[0];
+          if (primeraCategoria) {
+            return {
+              ...prev,
+              categoryId: primeraCategoria.id,
+            };
+          }
+        }
+        return prev;
+      });
+    }
+  }, [categories]);
 
 
   useEffect(() => {
@@ -435,6 +514,8 @@ export default function InventoryPage() {
         onClose={() => setCategoriaModalOpen(false)}
         onCreate={handleCreateCategory}
       />
+
+      <ConfirmDialog />
     </>
   );
 }

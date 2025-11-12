@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import CorteTable from "../componets/CorteTable.jsx";
 import CorteFilters from "../componets/CorteFilters.jsx";
 import CorteModal from "../modals/CorteModal.jsx";
+import { useConfirm } from "../hooks/useConfirm.jsx";
 import "../styles/InventoryPage.css";      // reutilizamos layout
 import "../styles/InventaryFilters.css";   // reutilizamos toolbar
 
@@ -46,6 +47,7 @@ const CORTES_MOCK = [
 ];
 
 export default function CortesPage() {
+  const { confirm, ConfirmDialog } = useConfirm();
   const [filters, setFilters] = useState({
     search: "",
     sede: "",
@@ -100,8 +102,15 @@ export default function CortesPage() {
     setModalOpen(true);
   };
 
-  const handleDelete = (id) => {
-    if (!confirm("¿Eliminar este corte?")) return;
+  const handleDelete = async (id) => {
+    const confirmacion = await confirm({
+      title: "Eliminar Corte",
+      message: "¿Estás seguro de que deseas eliminar este corte?\n\nEsta acción no se puede deshacer.",
+      confirmText: "Eliminar",
+      cancelText: "Cancelar",
+      type: "danger"
+    });
+    if (!confirmacion) return;
     setData((prev) => prev.filter((c) => c.id !== id));
   };
 
@@ -131,6 +140,7 @@ export default function CortesPage() {
           onSave={handleSave}
         />
       )}
+      <ConfirmDialog />
     </div>
   );
 }

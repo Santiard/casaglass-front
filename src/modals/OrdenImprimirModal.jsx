@@ -3,6 +3,7 @@ import "../styles/OrdenImprimirModal.css";
 
 export default function OrdenImprimirModal({ orden, isOpen, onClose }) {
   const [form, setForm] = useState(null);
+  const [formato, setFormato] = useState("orden"); // "orden" | "trabajadores" | "ambos"
 
   useEffect(() => {
     if (!isOpen || !orden?.id) return;
@@ -67,7 +68,17 @@ export default function OrdenImprimirModal({ orden, isOpen, onClose }) {
         <head>
           <title>Orden #${form.numero}</title>
           <style>
-            body { font-family: 'Roboto', sans-serif; padding: 20px; }
+            @page {
+              margin: 0;
+              size: auto;
+            }
+            
+            body { 
+              font-family: 'Roboto', sans-serif; 
+              padding: 20px; 
+              margin: 0;
+            }
+            
             .header { text-align: center; margin-bottom: 30px; }
             .header h1 { margin: 0; color: #333; }
             .info { display: flex; justify-content: space-between; margin-bottom: 20px; }
@@ -97,11 +108,30 @@ export default function OrdenImprimirModal({ orden, isOpen, onClose }) {
           <div className="modal-header">
             <h2>Imprimir Orden #{form.numero}</h2>
             <div className="modal-actions">
+              {/* Selector de formato */}
+              <select 
+                value={formato} 
+                onChange={(e) => setFormato(e.target.value)}
+                className="formato-select"
+                style={{
+                  padding: "8px 12px",
+                  borderRadius: "4px",
+                  border: "1px solid var(--color-light-gray)",
+                  backgroundColor: "var(--color-white)",
+                  color: "var(--color-dark-blue)",
+                  fontSize: "14px",
+                  marginRight: "10px"
+                }}
+              >
+                <option value="orden">Formato: Orden</option>
+                <option value="trabajadores">Formato: Para Trabajadores</option>
+                <option value="ambos">Imprimir Ambos Formatos</option>
+              </select>
               <button onClick={handleGuardarPDF} className="btn-guardar">
-                📄 Guardar como PDF
+                Guardar como PDF
               </button>
               <button onClick={handleImprimir} className="btn-guardar">
-                🖨️ Imprimir
+                Imprimir
               </button>
               <button onClick={onClose} className="btn-cancelar">
                 Cerrar
@@ -111,89 +141,126 @@ export default function OrdenImprimirModal({ orden, isOpen, onClose }) {
 
           {/* Contenido imprimible */}
           <div id="printable-content" className="printable-content">
-            {/* Encabezado */}
-            <div className="orden-header">
-              <h1>ALUMINIOS CASAGLASS S.A.S</h1>
-              <h2>Orden de {form.venta ? "Venta" : "Cotización"} #{form.numero}</h2>
-              <p>Fecha: {fmtFecha(form.fecha)}</p>
-            </div>
+            {(formato === "orden" || formato === "ambos") && (
+              /* ========== FORMATO 1: ORDEN ========== */
+              <>
+                {/* Encabezado */}
+                <div className="orden-header">
+                  <h1>ALUMINIOS CASAGLASS S.A.S</h1>
+                  <h2>Orden de {form.venta ? "Venta" : "Cotización"} #{form.numero}</h2>
+                  <p>Fecha: {fmtFecha(form.fecha)}</p>
+                </div>
 
-            {/* Información general */}
-            <div className="info">
-              <div className="info-section">
-                <h3>Cliente</h3>
-                <p>{form.cliente.nombre || "-"}</p>
-                {form.cliente.nit && <p>NIT: {form.cliente.nit}</p>}
-                {form.cliente.direccion && <p>Dirección: {form.cliente.direccion}</p>}
-              </div>
+                {/* Información general */}
+                <div className="info">
+                  <div className="info-section">
+                    <h3>Sede</h3>
+                    <p>{form.sede.nombre || "-"}</p>
+                  </div>
 
-              <div className="info-section">
-                <h3>Sede</h3>
-                <p>{form.sede.nombre || "-"}</p>
-              </div>
+                  <div className="info-section">
+                    <h3>Cliente</h3>
+                    <p>{form.cliente.nombre || "-"}</p>
+                  </div>
+                </div>
 
-              <div className="info-section">
-                <h3>Trabajador</h3>
-                <p>{form.trabajador.nombre || "-"}</p>
-              </div>
-            </div>
+                {/* Items con color y tipo */}
+                <table className="items-table">
+                  <thead>
+                    <tr>
+                      <th>Cantidad</th>
+                      <th>Color</th>
+                      <th>Tipo</th>
+                      <th>Producto</th>
+                      <th>Valor Unitario</th>
+                      <th>Valor Total</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {form.items.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="empty">Sin ítems</td>
+                      </tr>
+                    ) : (
+                      form.items.map((item, index) => (
+                        <tr key={item.id || index}>
+                          <td className="text-center">{item.cantidad || 0}</td>
+                          <td>{item.producto?.color || "-"}</td>
+                          <td>{item.producto?.tipo || "-"}</td>
+                          <td>{item.producto?.nombre || "-"}</td>
+                          <td>${item.precioUnitario?.toLocaleString("es-CO") || "0"}</td>
+                          <td>${item.totalLinea?.toLocaleString("es-CO") || "0"}</td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
 
-            {/* Obra */}
-            {form.obra && (
-              <div className="obra">
-                <h3>Obra</h3>
-                <p>{form.obra}</p>
+                {/* Total */}
+                <div className="total">
+                  <p><strong>Total: ${totalOrden.toLocaleString("es-CO")}</strong></p>
+                </div>
+              </>
+            )}
+
+            {formato === "ambos" && (
+              <div style={{ 
+                pageBreakBefore: "always", 
+                marginTop: "50px",
+                borderTop: "3px solid var(--color-dark-blue)",
+                paddingTop: "30px"
+              }}>
+                {/* Separador visual entre formatos */}
               </div>
             )}
 
-            {/* Items */}
-            <table className="items-table">
-              <thead>
-                <tr>
-                  <th>Código</th>
-                  <th>Producto</th>
-                  <th>Descripción</th>
-                  <th>Cantidad</th>
-                  <th>Precio Unit.</th>
-                  <th>Total</th>
-                </tr>
-              </thead>
-              <tbody>
-                {form.items.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="empty">Sin ítems</td>
-                  </tr>
-                ) : (
-                  form.items.map((item, index) => (
-                    <tr key={item.id || index}>
-                      <td>{item.producto?.codigo || "-"}</td>
-                      <td>{item.producto?.nombre || "-"}</td>
-                      <td>{item.descripcion || "-"}</td>
-                      <td className="text-center">{item.cantidad || 0}</td>
-                      <td>${item.precioUnitario?.toLocaleString("es-CO") || "0"}</td>
-                      <td>${item.totalLinea?.toLocaleString("es-CO") || "0"}</td>
+            {(formato === "trabajadores" || formato === "ambos") && (
+              /* ========== FORMATO 2: PARA TRABAJADORES ========== */
+              <>
+                {/* Encabezado */}
+                <div className="orden-header">
+                  <h1>ALUMINIOS CASAGLASS S.A.S</h1>
+                  <h2>Orden de Producción #{form.numero}</h2>
+                  <p>Fecha: {fmtFecha(form.fecha)}</p>
+                </div>
+
+                {/* Información general */}
+                <div className="info">
+                  <div className="info-section">
+                    <h3>Sede</h3>
+                    <p>{form.sede.nombre || "-"}</p>
+                  </div>
+                </div>
+
+                {/* Items sin valores monetarios */}
+                <table className="items-table">
+                  <thead>
+                    <tr>
+                      <th>Cantidad</th>
+                      <th>Color</th>
+                      <th>Tipo</th>
+                      <th>Producto</th>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-
-            {/* Totales */}
-            <div className="total">
-              <p>Total de productos: {totalProductos}</p>
-              <p>Total: ${totalOrden.toLocaleString("es-CO")}</p>
-              {form.credito && <p className="credito">💳 Esta orden es a crédito</p>}
-            </div>
-
-            {/* Estado */}
-            <div className="estado">
-              <p>Estado: {formatearEstado(form.estado)}</p>
-            </div>
-
-            {/* Pie de página */}
-            <div className="footer">
-              <p>Documento generado el {new Date().toLocaleString("es-CO")}</p>
-            </div>
+                  </thead>
+                  <tbody>
+                    {form.items.length === 0 ? (
+                      <tr>
+                        <td colSpan={4} className="empty">Sin ítems</td>
+                      </tr>
+                    ) : (
+                      form.items.map((item, index) => (
+                        <tr key={item.id || index}>
+                          <td className="text-center">{item.cantidad || 0}</td>
+                          <td>{item.producto?.color || "-"}</td>
+                          <td>{item.producto?.tipo || "-"}</td>
+                          <td>{item.producto?.nombre || "-"}</td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -201,21 +268,35 @@ export default function OrdenImprimirModal({ orden, isOpen, onClose }) {
       {/* Estilos para impresión */}
       <style>{`
         @media print {
+          @page {
+            margin: 0;
+            size: auto;
+          }
+          
+          body {
+            margin: 0;
+            padding: 0;
+          }
+          
           body * {
             visibility: hidden;
           }
+          
           #printable-content,
           #printable-content * {
             visibility: visible;
           }
+          
           #printable-content {
             position: absolute;
             left: 0;
             top: 0;
             width: 100%;
           }
+          
           .modal-actions,
-          .modal-header button {
+          .modal-header button,
+          .modal-header select {
             display: none;
           }
         }

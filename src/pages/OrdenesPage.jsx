@@ -9,9 +9,13 @@ import {
   anularOrden,
   marcarOrdenComoFacturada,
 } from "../services/OrdenesService";
-import { crearFactura } from "../services/FacturasService";
+import { crearFactura, marcarFacturaComoPagada, obtenerFacturaPorOrden } from "../services/FacturasService";
+import { useConfirm } from "../hooks/useConfirm.jsx";
+import { useToast } from "../context/ToastContext.jsx";
 
 export default function OrdenesPage() {
+  const { confirm, ConfirmDialog } = useConfirm();
+  const { showSuccess, showError } = useToast();
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
 
@@ -64,26 +68,35 @@ export default function OrdenesPage() {
       console.error("Error guardando orden", e);
       console.error("Response data:", e?.response?.data);
       console.error("Status:", e?.response?.status);
-      alert("No se pudo guardar la orden. Revisa consola.");
+      showError("No se pudo guardar la orden. Revisa consola.");
     }
   };
 
   // 🔹 Anular orden
   const handleAnular = async (orden) => {
-    if (!window.confirm(`¿Seguro que deseas anular la orden #${orden.numero}?`)) return;
+    const confirmacion = await confirm({
+      title: "Anular Orden",
+      message: `¿Estás seguro de que deseas anular la orden #${orden.numero}?\n\nEsta acción cambiará el estado de la orden a 'Anulada'.`,
+      confirmText: "Anular",
+      cancelText: "Cancelar",
+      type: "warning"
+    });
+    
+    if (!confirmacion) return;
+    
     try {
       console.log(`🔄 Anulando orden ID: ${orden.id}`);
       const response = await anularOrden(orden.id);
       console.log("✅ Respuesta de anulación:", response);
       
       // Mostrar mensaje de éxito
-      alert(`${response.message}\nOrden #${response.numero} - Estado: ${response.estado}`);
+      showSuccess(`Orden #${response.numero} anulada correctamente. Estado: ${response.estado}`);
       
       await fetchData(); // Refrescar tabla
     } catch (e) {
       console.error("Error anulando orden", e);
       const msg = e?.response?.data?.message || "No se pudo anular la orden.";
-      alert(msg);
+      showError(msg);
     }
   };
 
@@ -142,7 +155,7 @@ export default function OrdenesPage() {
         console.log("✅ Orden marcada como facturada:", ordenResponse);
         const numeroFactura = facturaResponse?.numeroFactura || ordenResponse?.numeroFactura || facturaResponse?.numero || "";
         if (!yaTeniaFactura) {
-          alert(`Factura creada exitosamente\nNúmero: ${numeroFactura || "N/A"}`);
+          showSuccess(`Factura creada exitosamente. Número: ${numeroFactura || "N/A"}`);
         }
       } catch (err) {
         // Si ya tenía factura, podemos ignorar este error; de lo contrario, reportar
@@ -157,7 +170,7 @@ export default function OrdenesPage() {
       console.error("Error facturando orden", e);
       const msg = e?.response?.data?.error || e?.response?.data?.message || "No se pudo crear la factura.";
       if (!/ya tiene una factura/i.test(String(msg))) {
-        alert(msg);
+        showError(msg);
       }
     }
   };
@@ -174,6 +187,7 @@ export default function OrdenesPage() {
           onFacturar={handleFacturar}
         />
       </div>
+      <ConfirmDialog />
     </div>
   );
 }

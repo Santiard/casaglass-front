@@ -6,6 +6,7 @@ import add from "../assets/add.png";
 import OrdenModal from "../modals/OrdenModal.jsx";
 import OrdenImprimirModal from "../modals/OrdenImprimirModal.jsx";
 import FacturarOrdenModal from "../modals/FacturarOrdenModal.jsx";
+import { useToast } from "../context/ToastContext.jsx";
 
 export default function OrdenesTable({
   data = [],
@@ -16,6 +17,7 @@ export default function OrdenesTable({
   rowsPerPage = 10,
   loading = false,
 }) {
+  const { showError } = useToast();
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
   const [rowsPerPageState, setRowsPerPageState] = useState(rowsPerPage);
@@ -181,7 +183,7 @@ export default function OrdenesTable({
       setOrdenEditando(null);
     } catch (e) {
       console.error("Error guardando orden", e);
-      alert("Error guardando orden. Revisa consola.");
+      showError("Error guardando orden. Revisa consola.");
     }
   };
 

@@ -5,8 +5,12 @@ import IngresoDetalleModal from "../modals/IngresoDetalleModal.jsx";
 import { listarIngresos, crearIngresoDesdeForm, actualizarIngresoDesdeForm, eliminarIngreso, procesarIngreso } from "../services/IngresosService.js";
 import { listarProveedores } from "../services/ProveedoresService.js";
 import { listarProductos } from "../services/ProductosService.js";
+import { useConfirm } from "../hooks/useConfirm.jsx";
+import { useToast } from "../context/ToastContext.jsx";
 
 export default function IngresosPage() {
+  const { confirm, ConfirmDialog } = useConfirm();
+  const { showSuccess, showError } = useToast();
   const [seleccionado, setSeleccionado] = useState(null);
   const [ingresos, setIngresos] = useState([]);
   const [proveedores, setProveedores] = useState([]);
@@ -25,7 +29,7 @@ export default function IngresosPage() {
         url: e?.config?.url,
         params: e?.config?.params,
       });
-      alert(e?.response?.data?.message || "No se pudieron cargar los ingresos.");
+      showError(e?.response?.data?.message || "No se pudieron cargar los ingresos.");
     } finally {
       setLoading(false);
     }
@@ -41,17 +45,22 @@ export default function IngresosPage() {
 
       
       setProveedores(prov || []);
+      // Filtrar cortes: excluir productos que tengan largoCm (son cortes)
+      // Solo incluir productos regulares (sin largoCm)
       setCatalogo(
-        (prods || []).map((p) => ({
-          id: p.id,
-          nombre: p.nombre,
-          codigo: p.codigo ?? "",
-          categoria: p.categoria?.nombre ?? p.categoria ?? "", // ✅ Extraemos el nombre si es objeto
-        }))
+        (prods || [])
+          .filter(p => p.largoCm === undefined || p.largoCm === null) // Excluir cortes
+          .map((p) => ({
+            id: p.id,
+            nombre: p.nombre,
+            codigo: p.codigo ?? "",
+            categoria: p.categoria?.nombre ?? p.categoria ?? "", // ✅ Extraemos el nombre si es objeto
+            largoCm: p.largoCm, // Incluir para que el filtro del modal funcione
+          }))
       );
     } catch (e) {
       console.error(e);
-      alert("No se pudieron cargar proveedores / catálogo.");
+      showError("No se pudieron cargar proveedores / catálogo.");
     }
   };
 
@@ -84,17 +93,20 @@ export default function IngresosPage() {
   };
 
   const onProcesar = async (id) => {
-    const confirmacion = window.confirm(
-      "¿Estás seguro de que deseas marcar este ingreso como procesado?\n\n" +
-      "Esta acción cambiará el estado del ingreso a 'Procesado' y no se podrá editar posteriormente."
-    );
+    const confirmacion = await confirm({
+      title: "Procesar Ingreso",
+      message: `¿Estás seguro de que deseas marcar el ingreso #${id} como procesado?\n\nEsta acción cambiará el estado del ingreso a 'Procesado' y no se podrá editar posteriormente.`,
+      confirmText: "Procesar",
+      cancelText: "Cancelar",
+      type: "warning"
+    });
     
     if (!confirmacion) return;
     
     try {
       const resultado = await procesarIngreso(id);
       await loadIngresos(); // Recargar la tabla
-      alert(`Ingreso #${id} marcado como procesado correctamente`);
+      showSuccess(`Ingreso #${id} marcado como procesado correctamente`);
       console.log("✅ Resultado del procesamiento:", resultado);
     } catch (e) {
       console.error("Error al procesar ingreso:", e);
@@ -113,7 +125,7 @@ export default function IngresosPage() {
         errorMsg = e.message;
       }
       
-      alert(`Error al procesar el ingreso: ${errorMsg}`);
+      showError(`Error al procesar el ingreso: ${errorMsg}`);
     }
   };
 
@@ -141,6 +153,9 @@ export default function IngresosPage() {
           onClose={() => setSeleccionado(null)}
         />
       )}
+
+      {/* Modal de confirmación */}
+      <ConfirmDialog />
     </div>
   );
 }

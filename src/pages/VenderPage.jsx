@@ -12,12 +12,14 @@ import ListadoOrden from "../componets/ListadoOrden.jsx";
 
 // === Servicios ===
 import { listarInventarioCompleto, listarCortesInventarioCompleto } from "../services/InventarioService";
+import { useToast } from "../context/ToastContext.jsx";
 import { listarCategorias } from "../services/CategoriasService";
 
 // === Estilos ===
 import "../styles/VenderPage.css";
 
 export default function VenderPage() {
+  const { showError } = useToast();
   const { isAdmin, sedeId } = useAuth(); // Obtener info del usuario logueado
   const [view, setView] = useState("producto"); // "producto" | "corte"
 
@@ -37,6 +39,7 @@ export default function VenderPage() {
     categoryId: null, // 👈 ahora guardamos el id de categoría
     status: "",
     sede: "",
+    color: "", // 👈 agregar campo color
     priceMin: "",
     priceMax: "",
   });
@@ -46,6 +49,7 @@ export default function VenderPage() {
     categoryId: null, // 👈 ahora guardamos el id de categoría
     status: "",
     sede: "",
+    color: "", // 👈 agregar campo color
     priceMin: "",
     priceMax: "",
   });
@@ -60,11 +64,58 @@ export default function VenderPage() {
         setCategories(cats || []);
       } catch (e) {
         console.error("Error cargando categorías:", e);
-        alert("No se pudieron cargar las categorías desde el servidor.");
+        showError("No se pudieron cargar las categorías desde el servidor.");
       }
     };
     fetchCategorias();
   }, []);
+
+  // === Establecer primera categoría y primer color al cargar ===
+  useEffect(() => {
+    if (categories.length > 0 && !filters.categoryId) {
+      // Establecer la primera categoría para productos
+      const primeraCategoria = categories[0];
+      if (primeraCategoria) {
+        setFilters((prev) => ({
+          ...prev,
+          categoryId: primeraCategoria.id,
+        }));
+      }
+    }
+  }, [categories]);
+
+  useEffect(() => {
+    if (categories.length > 0 && !cortesFilters.categoryId) {
+      // Establecer la primera categoría para cortes
+      const primeraCategoria = categories[0];
+      if (primeraCategoria) {
+        setCortesFilters((prev) => ({
+          ...prev,
+          categoryId: primeraCategoria.id,
+        }));
+      }
+    }
+  }, [categories]);
+
+  useEffect(() => {
+    // Establecer el primer color (MATE) si no hay color seleccionado para productos
+    if (!filters.color) {
+      setFilters((prev) => ({
+        ...prev,
+        color: "MATE", // Primer color disponible
+      }));
+    }
+  }, []); // Solo al montar el componente
+
+  useEffect(() => {
+    // Establecer el primer color (MATE) si no hay color seleccionado para cortes
+    if (!cortesFilters.color) {
+      setCortesFilters((prev) => ({
+        ...prev,
+        color: "MATE", // Primer color disponible
+      }));
+    }
+  }, []); // Solo al montar el componente
 
   // ======= Cargar Productos =======
   const fetchData = useCallback(async () => {
@@ -75,7 +126,7 @@ export default function VenderPage() {
       setData(productos || []);
     } catch (e) {
       console.error("Error cargando inventario completo", e);
-      alert(e?.response?.data?.message || "No se pudo cargar el inventario.");
+      showError(e?.response?.data?.message || "No se pudo cargar el inventario.");
     } finally {
       setLoading(false);
     }
@@ -108,7 +159,7 @@ export default function VenderPage() {
       setCortesData(cortes || []);
     } catch (e) {
       console.error("❌ Error cargando inventario de cortes", e);
-      alert(e?.response?.data?.message || "No se pudo cargar el inventario de cortes.");
+      showError(e?.response?.data?.message || "No se pudo cargar el inventario de cortes.");
     } finally {
       if (actualizarEstado) {
         setLoading(false);
@@ -177,7 +228,7 @@ export default function VenderPage() {
       
     } catch (error) {
       console.error("❌ Error al procesar corte:", error);
-      alert("Error al procesar el corte. Intente nuevamente.");
+      showError("Error al procesar el corte. Intente nuevamente.");
     }
   };
 
@@ -195,6 +246,7 @@ export default function VenderPage() {
     const selectedCat = categories.find((cat) => cat.id === currentFilters.categoryId);
     const categoryName = selectedCat?.nombre || "";
     const sede = currentFilters.sede || "";
+    const color = currentFilters.color || "";
 
     const min = currentFilters.priceMin !== "" ? Number(currentFilters.priceMin) : -Infinity;
     const max = currentFilters.priceMax !== "" ? Number(currentFilters.priceMax) : Infinity;
@@ -202,6 +254,10 @@ export default function VenderPage() {
     return currentData
       .filter((item) => !search || item.nombre.toLowerCase().includes(search))
       .filter((item) => !categoryName || item.categoria === categoryName)
+      .filter((item) => {
+        if (!color) return true;
+        return (item.color || "").toUpperCase() === color.toUpperCase();
+      })
       .filter((item) => {
         if (!sede) return true;
         const map = {

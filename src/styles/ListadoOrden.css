@@ -27,7 +27,7 @@
 }
 
 .item-count {
-  background: #007bff;
+  background: var(--color-light-blue);
   color: white;
   padding: 0.25rem 0.5rem;
   border-radius: 0.75rem;
@@ -80,8 +80,8 @@
 }
 
 .producto-item:hover {
-  border-color: #007bff;
-  box-shadow: 0 0.125rem 0.25rem rgba(0, 123, 255, 0.1);
+  border-color: var(--color-light-blue);
+  box-shadow: 0 0.125rem 0.25rem rgba(52, 68, 144, 0.1);
 }
 
 /* Información del producto */
@@ -205,12 +205,12 @@
 }
 
 .btn-imprimir {
-  background: #007bff;
+  background: var(--color-light-blue);
   color: white;
 }
 
 .btn-imprimir:hover:not(:disabled) {
-  background: #0056b3;
+  background: var(--color-dark-blue);
   transform: translateY(-0.0625rem);
 }
 

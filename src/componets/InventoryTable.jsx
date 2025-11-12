@@ -36,9 +36,9 @@ export default function InventoryTable({ data = [], filters, loading, onEditar, 
             {/* Precios según el rol */}
             {isAdmin ? (
               <>
-                <th>Precio 1</th>
-                <th>Precio 2</th>
-                <th>Precio 3</th>
+                <th>P. Insula</th>
+                <th>P. Centro</th>
+                <th>P. Patios</th>
               </>
             ) : (
               <th>Precio</th>

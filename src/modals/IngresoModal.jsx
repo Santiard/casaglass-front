@@ -6,6 +6,7 @@ import {
 } from "../services/IngresosService.js";
 import CategorySidebar from "../componets/CategorySidebar.jsx";
 import { listarCategorias } from "../services/CategoriasService.js";
+import { useToast } from "../context/ToastContext.jsx";
 
 export default function IngresoModal({
   isOpen,
@@ -15,6 +16,7 @@ export default function IngresoModal({
   catalogoProductos = [],   // [{id, nombre, codigo}]
   ingresoInicial = null,    // si viene => editar
 }) {
+  const { showError } = useToast();
   const empty = {
     fecha: new Date().toISOString().substring(0, 10), // input date
     proveedorId: "",
@@ -49,8 +51,8 @@ export default function IngresoModal({
               nombre: d.producto?.nombre ?? "",
               codigo: d.producto?.codigo ?? "",
             },
-            cantidad: Number(d.cantidad ?? 1),
-            costoUnitario: Number(d.costoUnitario ?? 0),
+            cantidad: d.cantidad && Number(d.cantidad) > 0 ? Number(d.cantidad) : "",
+            costoUnitario: d.costoUnitario && Number(d.costoUnitario) > 0 ? Number(d.costoUnitario) : "",
           }))
         : [],
     });
@@ -104,6 +106,14 @@ export default function IngresoModal({
   const catalogoFiltrado = useMemo(() => {
     let filtered = catalogoProductos;
     
+    // Filtrar cortes: excluir productos que tengan largoCm (son cortes)
+    // Los cortes tienen la propiedad largoCm (incluso si es 0), los productos regulares no tienen esta propiedad
+    filtered = filtered.filter(p => {
+      // Incluir solo productos donde largoCm NO esté definido (undefined o null)
+      // Si largoCm existe (incluso si es 0), es un corte y debe excluirse
+      return p.largoCm === undefined || p.largoCm === null;
+    });
+    
     // Filtrar por categoría si está seleccionada
     if (selectedCategoryId) {
       const selectedCategory = categorias.find(cat => cat.id === selectedCategoryId);
@@ -130,8 +140,11 @@ export default function IngresoModal({
   const totalCosto = useMemo(
     () =>
       form.detalles.reduce(
-        (acc, d) =>
-          acc + Number(d.cantidad ?? 0) * Number(d.costoUnitario ?? 0),
+        (acc, d) => {
+          const cantidad = Number(d.cantidad) || 0;
+          const costo = Number(d.costoUnitario) || 0;
+          return acc + cantidad * costo;
+        },
         0
       ),
     [form.detalles]
@@ -139,14 +152,16 @@ export default function IngresoModal({
 
   // Validaciones básicas
   const cantidadesInvalidas = form.detalles.some(
-    (d) =>
-      !Number.isFinite(Number(d.cantidad)) ||
-      Number(d.cantidad) < 1
+    (d) => {
+      const cantidad = Number(d.cantidad);
+      return !Number.isFinite(cantidad) || cantidad < 1 || cantidad === 0 || d.cantidad === "" || d.cantidad === null;
+    }
   );
   const costosInvalidos = form.detalles.some(
-    (d) =>
-      !Number.isFinite(Number(d.costoUnitario)) ||
-      Number(d.costoUnitario) < 0
+    (d) => {
+      const costo = Number(d.costoUnitario);
+      return d.costoUnitario === "" || d.costoUnitario === null || !Number.isFinite(costo) || costo < 0;
+    }
   );
 
   const proveedorIdNum = Number(form.proveedorId);
@@ -184,9 +199,10 @@ export default function IngresoModal({
       );
       if (idx >= 0) {
         const arr = [...prev.detalles];
+        const cantidadActual = Number(arr[idx].cantidad) || 0;
         arr[idx] = {
           ...arr[idx],
-          cantidad: Number(arr[idx].cantidad ?? 0) + 1,
+          cantidad: cantidadActual + 1,
         };
         return { ...prev, detalles: arr };
       }
@@ -200,8 +216,8 @@ export default function IngresoModal({
               nombre: prod.nombre ?? "",
               codigo: prod.codigo ?? "",
             },
-            cantidad: 1,
-            costoUnitario: 0,
+            cantidad: "",
+            costoUnitario: "",
           },
         ],
       };
@@ -213,8 +229,26 @@ export default function IngresoModal({
     setForm((prev) => {
       const arr = [...prev.detalles];
       const row = { ...arr[idx] };
-      if (field === "cantidad" || field === "costoUnitario") {
-        row[field] = Number(value);
+      if (field === "cantidad") {
+        // Filtrar solo números enteros (sin decimales)
+        const filtered = value.toString().replace(/[^0-9]/g, '');
+        row[field] = filtered === "" ? "" : Number(filtered);
+      } else if (field === "costoUnitario") {
+        // Filtrar números y un punto decimal
+        // Permitir formato: números, un punto, y máximo 2 decimales
+        let filtered = value.toString();
+        // Remover todo excepto números y punto
+        filtered = filtered.replace(/[^0-9.]/g, '');
+        // Asegurar solo un punto decimal
+        const parts = filtered.split('.');
+        if (parts.length > 2) {
+          filtered = parts[0] + '.' + parts.slice(1).join('');
+        }
+        // Limitar a 2 decimales
+        if (parts.length === 2 && parts[1].length > 2) {
+          filtered = parts[0] + '.' + parts[1].substring(0, 2);
+        }
+        row[field] = filtered === "" || filtered === "." ? "" : filtered;
       } else if (field === "nombre" || field === "codigo") {
         row.producto = { ...row.producto, [field]: value };
       }
@@ -256,7 +290,7 @@ export default function IngresoModal({
         data: e?.response?.data,
         message: e?.message,
       });
-      alert(
+      showError(
         e?.message || e?.response?.data?.message || "No se pudo guardar el ingreso."
       );
     }
@@ -403,26 +437,41 @@ export default function IngresoModal({
                         <td>
                           <input
                             className="qty-input"
-                            type="number"
-                            min={1}
-                            value={Number(d.cantidad ?? 1)}
+                            type="text"
+                            inputMode="numeric"
+                            value={d.cantidad && d.cantidad > 0 ? d.cantidad : ""}
                             onChange={(e) =>
                               setDetalle(idx, "cantidad", e.target.value)
                             }
+                            onKeyDown={(e) => {
+                              // Permitir: números, backspace, delete, tab, escape, enter, y teclas de navegación
+                              if (!/[0-9]/.test(e.key) && 
+                                  !['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) {
+                                e.preventDefault();
+                              }
+                            }}
                             disabled={!editable && isEdit}
+                            placeholder="Cantidad"
                           />
                         </td>
                         <td>
                           <input
                             className="qty-input"
-                            type="number"
-                            min={0}
-                            step="0.01"
-                            value={Number(d.costoUnitario ?? 0)}
+                            type="text"
+                            inputMode="decimal"
+                            value={d.costoUnitario && Number(d.costoUnitario) > 0 ? d.costoUnitario : ""}
                             onChange={(e) =>
                               setDetalle(idx, "costoUnitario", e.target.value)
                             }
+                            onKeyDown={(e) => {
+                              // Permitir: números, punto decimal, backspace, delete, tab, escape, enter, y teclas de navegación
+                              if (!/[0-9.]/.test(e.key) && 
+                                  !['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) {
+                                e.preventDefault();
+                              }
+                            }}
                             disabled={!editable && isEdit}
+                            placeholder="Costo"
                           />
                         </td>
                         <td>

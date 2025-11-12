@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import EntregasService from '../services/EntregasService';
 import './CrearEntregaModal.css';
+import { useToast } from '../context/ToastContext.jsx';
 
 const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores }) => {
+  const { showWarning } = useToast();
   const [formData, setFormData] = useState({
     sedeId: '',
     empleadoId: '',
@@ -307,7 +309,7 @@ const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores }) 
       const neto = (Number(ent?.montoEsperado)||0) - (Number(ent?.montoGastos)||0);
       const diff = neto - (Number(ent?.montoEntregado)||0);
       if (Math.abs(diff) > 0.01) {
-        alert(`Aviso: La diferencia de la entrega es ${diff.toLocaleString('es-CO', {style:'currency', currency:'COP'})}.\nRevisa y ajusta los montos por método (PUT /entregas-dinero/{id}) antes de confirmar.`);
+        showWarning(`Aviso: La diferencia de la entrega es ${diff.toLocaleString('es-CO', {style:'currency', currency:'COP'})}.\nRevisa y ajusta los montos por método (PUT /entregas-dinero/{id}) antes de confirmar.`);
       }
 
       if (onSuccess) onSuccess(respuesta);
@@ -562,22 +564,22 @@ const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores }) 
                 <div className="desglose-entrega">
                   <div className="desglose-row">
                     <label>Efectivo</label>
-                    <input type="number" inputMode="decimal" placeholder="0" value={formData.montoEfectivo} min="0" step="0.01"
+                    <input type="number" inputMode="decimal" placeholder="0" value={formData.montoEfectivo} min="0" step="any"
                       onChange={(e)=>setFormData(prev=>({...prev, montoEfectivo: e.target.value.replace(/[^0-9.,-]/g,'')}))} />
                   </div>
                   <div className="desglose-row">
                     <label>Transferencia</label>
-                    <input type="number" inputMode="decimal" placeholder="0" value={formData.montoTransferencia} min="0" step="0.01"
+                    <input type="number" inputMode="decimal" placeholder="0" value={formData.montoTransferencia} min="0" step="any"
                       onChange={(e)=>setFormData(prev=>({...prev, montoTransferencia: e.target.value.replace(/[^0-9.,-]/g,'')}))} />
                   </div>
                   <div className="desglose-row">
                     <label>Cheque</label>
-                    <input type="number" inputMode="decimal" placeholder="0" value={formData.montoCheque} min="0" step="0.01"
+                    <input type="number" inputMode="decimal" placeholder="0" value={formData.montoCheque} min="0" step="any"
                       onChange={(e)=>setFormData(prev=>({...prev, montoCheque: e.target.value.replace(/[^0-9.,-]/g,'')}))} />
                   </div>
                   <div className="desglose-row">
                     <label>Depósito</label>
-                    <input type="number" inputMode="decimal" placeholder="0" value={formData.montoDeposito} min="0" step="0.01"
+                    <input type="number" inputMode="decimal" placeholder="0" value={formData.montoDeposito} min="0" step="any"
                       onChange={(e)=>setFormData(prev=>({...prev, montoDeposito: e.target.value.replace(/[^0-9.,-]/g,'')}))} />
                   </div>
                 </div>

@@ -5,6 +5,8 @@ import editar from "../assets/editar.png";
 import add from "../assets/add.png";
 import deleteIcon from "../assets/eliminar.png";
 import IngresoModal from "../modals/IngresoModal.jsx";
+import { useConfirm } from "../hooks/useConfirm.jsx";
+import { useToast } from "../context/ToastContext.jsx";
 
 export default function IngresosTable({
   data = [],
@@ -18,6 +20,8 @@ export default function IngresosTable({
   onEliminar,
   onProcesar,
 }) {
+  const { confirm, ConfirmDialog } = useConfirm();
+  const { showError } = useToast();
   const [ingresos, setIngresos] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [ingresoEditando, setIngresoEditando] = useState(null);
@@ -59,15 +63,22 @@ export default function IngresosTable({
   };
 
   const eliminar = async (ing) => {
-  const d = parseLocalDate(ing.fecha);
-  const diff = diffDaysFromToday(d);
-  if (diff > 2) {
-    alert("❌ No se puede eliminar un ingreso con más de 2 días de antigüedad.");
-    return;
-  }
-  if (!confirm("¿Eliminar este ingreso?")) return;
-  await onEliminar?.(ing.id);
-};
+    const d = parseLocalDate(ing.fecha);
+    const diff = diffDaysFromToday(d);
+    if (diff > 2) {
+      showError("No se puede eliminar un ingreso con más de 2 días de antigüedad.");
+      return;
+    }
+    const confirmacion = await confirm({
+      title: "Eliminar Ingreso",
+      message: `¿Estás seguro de que deseas eliminar este ingreso?\n\nEsta acción no se puede deshacer.`,
+      confirmText: "Eliminar",
+      cancelText: "Cancelar",
+      type: "danger"
+    });
+    if (!confirmacion) return;
+    await onEliminar?.(ing.id);
+  };
 
   // === Helpers de fecha ===
   const parseLocalDate = (s) => {
@@ -254,6 +265,17 @@ export default function IngresosTable({
                       </button>
                     </td>
                     <td className="clientes-actions" style={{ gap: ".25rem" }}>
+                      {/* Botón Procesar - solo si no está procesado */}
+                      {!ing.procesado && (
+                        <button
+                          className="btn"
+                          onClick={() => onProcesar?.(ing.id)}
+                          title="Procesar ingreso"
+                        >
+                          Procesar
+                        </button>
+                      )}
+                      
                       <button
                           className="btnEdit"
                           onClick={() => openEditar(ing)}
@@ -269,17 +291,6 @@ export default function IngresosTable({
                           alt="Editar"
                         />
                       </button>
-                      
-                      {/* Botón Procesar - solo si no está procesado */}
-                      {!ing.procesado && (
-                        <button
-                          className="btn"
-                          onClick={() => onProcesar?.(ing.id)}
-                          title="Procesar ingreso"
-                        >
-                          Procesar
-                        </button>
-                      )}
                       
                       <button
                       className="btnDelete"
@@ -329,6 +340,9 @@ export default function IngresosTable({
         catalogoProductos={catalogoProductos}
         ingresoInicial={ingresoEditando}
       />
+
+      {/* Modal de confirmación */}
+      <ConfirmDialog />
     </div>
   );
 }

@@ -4,8 +4,10 @@ import add from "../assets/add.png";
 import check from "../assets/check.png";
 import CambiarPasswordTrabajadorModal from "./CambiarPasswordTrabajadorModal.jsx";
 import CrearTrabajadorModal from "./CrearTrabajadorModal.jsx";
+import { useToast } from "../context/ToastContext.jsx";
 
 export default function TrabajadoresModal({ isOpen, onClose, fetchTabla, onCambiarPassword, onCrear }) {
+  const { showError } = useToast();
   const [q, setQ] = useState("");
   const [rol, setRol] = useState("");
   const [sedeId, setSedeId] = useState("");
@@ -23,7 +25,7 @@ export default function TrabajadoresModal({ isOpen, onClose, fetchTabla, onCambi
       setRows(Array.isArray(data) ? data : []);
     } catch (e) {
       console.error("Error cargando trabajadores", e);
-      alert(e?.response?.data?.message || "No se pudieron cargar los trabajadores");
+      showError(e?.response?.data?.message || "No se pudieron cargar los trabajadores");
     } finally {
       setLoading(false);
     }

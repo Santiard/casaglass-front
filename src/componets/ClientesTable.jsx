@@ -5,6 +5,7 @@ import eliminar from "../assets/eliminar.png";
 import editar from "../assets/editar.png";
 import add from "../assets/add.png";
 import ClienteModal from "../modals/ClienteModal.jsx";
+import { useToast } from "../context/ToastContext.jsx";
 
 export default function ClientesTable({
   data = [],
@@ -14,6 +15,7 @@ export default function ClientesTable({
   rowsPerPage: rowsPerPageProp = 10,
   loading = false
 }) {
+  const { showError } = useToast();
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
   const [filtroCiudad, setFiltroCiudad] = useState("");
@@ -40,7 +42,7 @@ export default function ClientesTable({
       setIsModalOpen(false);
     } catch (e) {
       console.error("Error guardando cliente", e);
-      alert("No se pudo guardar el cliente.");
+      showError("No se pudo guardar el cliente.");
     }
   };
 

@@ -18,6 +18,7 @@ import OrdenesPage from "./pages/OrdenesPage.jsx";
 import CreditosPage from "./pages/CreditosPage.jsx";
 import FacturasPage from "./pages/FacturasPage.jsx";
 import { AuthProvider } from "./context/AuthContext.jsx";
+import { ToastProvider } from "./context/ToastContext.jsx";
 
 /**
  * Configuración del basename para React Router
@@ -40,7 +41,8 @@ function App() {
   return (
     <Router basename={routerBasename}>
       <AuthProvider>
-        <Routes>
+        <ToastProvider>
+          <Routes>
           {/* Ruta sin layout */}
           <Route path="/" element={<Login />} />
 
@@ -62,6 +64,7 @@ function App() {
           <Route path="/facturas" element={<FacturasPage/>}/>
         </Route>
       </Routes>
+        </ToastProvider>
       </AuthProvider>
     </Router>
   );

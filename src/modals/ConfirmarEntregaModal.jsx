@@ -139,7 +139,7 @@ const ConfirmarEntregaModal = ({ isOpen, entrega, onClose, onSuccess }) => {
                 value={formData.montoEntregado}
                 onChange={handleChange}
                 placeholder="0"
-                step="1000"
+                step="any"
                 min="0"
                 required
               />

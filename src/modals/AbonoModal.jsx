@@ -110,7 +110,7 @@ const AbonoModal = ({ isOpen, onClose, credito, onSuccess }) => {
             name="total"
             value={formData.total}
             onChange={handleChange}
-            step="100"
+            step="any"
             min="0"
             max={credito?.saldoPendiente || undefined}
             placeholder={`Máx: $${credito?.saldoPendiente?.toLocaleString() || '0'}`}

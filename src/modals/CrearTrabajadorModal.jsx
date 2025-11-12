@@ -1,7 +1,9 @@
 import React, { useState } from "react";
 import "../styles/CrudModal.css";
+import { useToast } from "../context/ToastContext.jsx";
 
 export default function CrearTrabajadorModal({ isOpen, onClose, onCreate }) {
+  const { showError } = useToast();
   const [form, setForm] = useState({
     nombre: "",
     correo: "",
@@ -30,11 +32,11 @@ export default function CrearTrabajadorModal({ isOpen, onClose, onCreate }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!form.nombre || !form.correo || !form.username || !form.password || !form.rol || !form.sedeId) {
-      alert("Todos los campos son obligatorios");
+      showError("Todos los campos son obligatorios");
       return;
     }
-    if (form.password.length < 4) { alert("La contraseña debe tener mínimo 4 caracteres"); return; }
-    if (form.username.length < 3) { alert("El username debe tener mínimo 3 caracteres"); return; }
+    if (form.password.length < 4) { showError("La contraseña debe tener mínimo 4 caracteres"); return; }
+    if (form.username.length < 3) { showError("El username debe tener mínimo 3 caracteres"); return; }
     setLoading(true);
     try {
       const payload = {
@@ -51,7 +53,7 @@ export default function CrearTrabajadorModal({ isOpen, onClose, onCreate }) {
     } catch (e) {
       console.error("Error creando trabajador", e);
       const msg = e?.response?.status === 409 ? "Username o correo ya existe" : (e?.response?.data?.message || "No se pudo crear el trabajador");
-      alert(msg);
+      showError(msg);
     } finally {
       setLoading(false);
     }

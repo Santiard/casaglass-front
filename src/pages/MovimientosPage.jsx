@@ -14,8 +14,12 @@ import {
   eliminarTraslado,
   confirmarTraslado,
 } from "../services/TrasladosService.js";
+import { useConfirm } from "../hooks/useConfirm.jsx";
+import { useToast } from "../context/ToastContext.jsx";
 
 export default function MovimientosPage() {
+  const { confirm, ConfirmDialog } = useConfirm();
+  const { showError } = useToast();
   const [traslados, setTraslados] = useState([]);
   const [sedes, setSedes] = useState([]);
   const [catalogoProductos, setCatalogoProductos] = useState([]);
@@ -42,7 +46,7 @@ export default function MovimientosPage() {
         setTraslados(Array.isArray(trasladosRes) ? trasladosRes : []);
       } catch (e) {
         console.error("Error cargando datos:", e);
-        alert("No se pudieron cargar traslados/sedes/productos.");
+        showError("No se pudieron cargar traslados/sedes/productos.");
       } finally {
         setLoading(false);
       }
@@ -56,7 +60,7 @@ export default function MovimientosPage() {
       setTraslados(Array.isArray(res) ? res : []);
     } catch (e) {
       console.error("Error recargando traslados:", e);
-      alert("No se pudieron recargar los traslados.");
+      showError("No se pudieron recargar los traslados.");
     } finally {
       setLoading(false);
     }
@@ -103,7 +107,7 @@ export default function MovimientosPage() {
       await reloadTraslados();
     } catch (e) {
       console.error("Error eliminando traslado:", e);
-      alert(e?.response?.data || "No se pudo eliminar el traslado.");
+      showError(e?.response?.data || "No se pudo eliminar el traslado.");
     }
   };
 
@@ -120,6 +124,7 @@ export default function MovimientosPage() {
         onEliminar={onEliminar}
         onConfirmar={onConfirmar}
       />
+      <ConfirmDialog />
     </div>
   );
 }

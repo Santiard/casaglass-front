@@ -7,6 +7,7 @@ import { listarTrabajadores } from "../services/TrabajadoresService.js";
 import { listarProductos } from "../services/ProductosService.js";
 import { listarCategorias } from "../services/CategoriasService.js";
 import { actualizarOrden, obtenerOrden, actualizarOrdenVenta, crearOrdenVenta } from "../services/OrdenesService.js";
+import { useToast } from "../context/ToastContext.jsx";
 
 import { api } from "../lib/api";
 // Utilidad para formato de fecha
@@ -42,6 +43,7 @@ export default function OrdenEditarModal({
   const [selectedCategoryId, setSelectedCategoryId] = useState(null);
   const [errorMsg, setErrorMsg] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { showSuccess, showError, showWarning } = useToast();
 
   // =============================
   // Cargar datos iniciales
@@ -309,7 +311,7 @@ export default function OrdenEditarModal({
       const yaExiste = prev.items.some((i) => i.codigo === item.codigo && !i.eliminar);
       if (yaExiste) {
         console.log("⚠️ Producto ya existe en la lista");
-        alert("Este producto ya está en la lista");
+        showWarning("Este producto ya está en la lista");
         return prev; // evitar duplicados
       }
       
@@ -348,7 +350,7 @@ export default function OrdenEditarModal({
   try {
     // Verificar si la orden está anulada (solo para edición)
     if (orden?.estado?.toLowerCase() === 'anulada') {
-      alert("No se puede editar una orden anulada. Las órdenes anuladas no pueden ser modificadas.");
+      showError("No se puede editar una orden anulada. Las órdenes anuladas no pueden ser modificadas.");
       return;
     }
 
@@ -410,7 +412,7 @@ export default function OrdenEditarModal({
 
       const data = await crearOrdenVenta(payloadConCortes);
       console.log("Orden creada:", data);
-      alert(`Orden creada correctamente\nNúmero: ${data.numero}`);
+      showSuccess(`Orden creada correctamente. Número: ${data.numero}`);
       
       if (onSave) onSave(data);
       onClose();
@@ -468,10 +470,10 @@ export default function OrdenEditarModal({
     if (data?.mensaje && data?.orden) {
       console.log("✅ Orden actualizada exitosamente:", data.orden);
       console.log("📋 Número de orden:", data.numero);
-      alert(`Orden actualizada correctamente\nNúmero: ${data.numero}\nTotal: $${data.orden.total?.toLocaleString('es-CO') || '0'}`);
+      showSuccess(`Orden actualizada correctamente. Número: ${data.numero}. Total: $${data.orden.total?.toLocaleString('es-CO') || '0'}`);
     } else {
       // Respuesta del endpoint fallback
-      alert("Orden actualizada correctamente");
+      showSuccess("Orden actualizada correctamente");
     }
 
     // Solo cerrar el modal, la tabla se refrescará desde onClose
@@ -485,7 +487,7 @@ export default function OrdenEditarModal({
       e?.response?.data?.message ||
       e?.message ||
       "Error al guardar la orden.";
-    alert(msg);
+    showError(msg);
   }
 };
 

@@ -29,6 +29,12 @@ const getBaseURL = () => {
 
 export const API_BASE = getBaseURL();
 
+// Log para debugging en desarrollo
+if (import.meta.env.DEV) {
+  console.log("🔧 API_BASE configurado:", API_BASE);
+  console.log("🔧 VITE_API_URL:", import.meta.env.VITE_API_URL);
+}
+
 export const api = axios.create({
   baseURL: API_BASE,
   withCredentials: true, // Habilita cookies para autenticación
@@ -57,6 +63,12 @@ api.interceptors.response.use(
       data: error.response?.data,
       headers: error.response?.headers
     });
+    
+    // Log detallado del error del backend
+    if (error.response?.data) {
+      console.error("📋 Detalles del error del backend:", JSON.stringify(error.response.data, null, 2));
+    }
+    
     return Promise.reject(error);
   }
 );

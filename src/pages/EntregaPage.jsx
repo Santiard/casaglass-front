@@ -3,12 +3,18 @@ import EntregasTable from "../componets/EntregaTable.jsx";
 import EntregaDetallePanel from "../componets/EntregaDetallePanel.jsx";
 import CrearEntregaModal from "../modals/CrearEntregaModal.jsx";
 import ConfirmarEntregaModal from "../modals/ConfirmarEntregaModal.jsx";
+import EntregasImprimirModal from "../modals/EntregasImprimirModal.jsx";
 import EntregasService from "../services/EntregasService.js";
 import * as SedesService from "../services/SedesService.js";
 import * as TrabajadoresService from "../services/TrabajadoresService.js";
+import { useConfirm } from "../hooks/useConfirm.jsx";
+import { useToast } from "../context/ToastContext.jsx";
 import "../styles/EntregaPage.css";
 
 export default function EntregasPage() {
+  const { confirm, ConfirmDialog } = useConfirm();
+  const { showError: showToastError } = useToast();
+  
   // Estados principales
   const [entregas, setEntregas] = useState([]);
   const [sedes, setSedes] = useState([]);
@@ -23,6 +29,8 @@ export default function EntregasPage() {
   const [mostrarCrearModal, setMostrarCrearModal] = useState(false);
   const [mostrarConfirmarModal, setMostrarConfirmarModal] = useState(false);
   const [entregaAConfirmar, setEntregaAConfirmar] = useState(null);
+  const [mostrarImprimirModal, setMostrarImprimirModal] = useState(false);
+  const [entregasParaImprimir, setEntregasParaImprimir] = useState([]);
   
   // Estados de filtros
   const [filtros, setFiltros] = useState({
@@ -159,10 +167,19 @@ export default function EntregasPage() {
   const handleEliminarEntrega = async (entrega) => {
     try {
       if (entrega.estado === "ENTREGADA") {
-        alert("No se puede eliminar una entrega ENTREGADA");
+        showToastError("No se puede eliminar una entrega ENTREGADA");
         return;
       }
-      if (!window.confirm(`¿Eliminar entrega #${entrega.id}?`)) return;
+      const confirmacion = await confirm({
+        title: "Eliminar Entrega",
+        message: `¿Estás seguro de que deseas eliminar la entrega #${entrega.id}?\n\nEsta acción no se puede deshacer.`,
+        confirmText: "Eliminar",
+        cancelText: "Cancelar",
+        type: "danger"
+      });
+      
+      if (!confirmacion) return;
+      
       await EntregasService.eliminarEntrega(entrega.id);
       await cargarEntregas();
     } catch (err) {
@@ -170,6 +187,24 @@ export default function EntregasPage() {
       const msg = err?.response?.data?.message || err?.response?.data?.error || err.message || "No se pudo eliminar";
       setError(`Error eliminando entrega: ${msg}`);
     }
+  };
+
+  const handleImprimirEntrega = async (entrega) => {
+    try {
+      // Obtener la entrega completa con todos sus detalles
+      const entregaCompleta = await EntregasService.obtenerEntregaPorId(entrega.id);
+      setEntregasParaImprimir([entregaCompleta]);
+      setMostrarImprimirModal(true);
+    } catch (err) {
+      console.error("Error obteniendo entrega para imprimir:", err);
+      setError(`Error cargando entrega: ${err.message}`);
+    }
+  };
+
+  const handleImprimirMultiples = () => {
+    // Abrir modal con todas las entregas filtradas
+    setEntregasParaImprimir(entregas);
+    setMostrarImprimirModal(true);
   };
 
   if (isLoading) {
@@ -184,12 +219,21 @@ export default function EntregasPage() {
     <div className="entregas-page">
       <div className="entregas-header">
         <h1>Gestión de Entregas de Dinero</h1>
-        <button 
-          className="btn-crear-entrega" 
-          onClick={handleCrearEntrega}
-        >
-          + Nueva Entrega
-        </button>
+        <div style={{ display: "flex", gap: "10px" }}>
+          <button 
+            className="btn-crear-entrega" 
+            onClick={handleImprimirMultiples}
+            disabled={entregas.length === 0}
+          >
+            Imprimir Entregas
+          </button>
+          <button 
+            className="btn-crear-entrega" 
+            onClick={handleCrearEntrega}
+          >
+            + Nueva Entrega
+          </button>
+        </div>
       </div>
 
       {error && (
@@ -276,6 +320,7 @@ export default function EntregasPage() {
           onConfirmar={handleConfirmarEntrega}
           onCancelar={handleCancelarEntrega}
           onEliminar={handleEliminarEntrega}
+          onImprimir={handleImprimirEntrega}
         />
       </div>
 
@@ -303,6 +348,17 @@ export default function EntregasPage() {
         onClose={() => setMostrarConfirmarModal(false)}
         onSuccess={handleEntregaConfirmada}
       />
+
+      <EntregasImprimirModal
+        isOpen={mostrarImprimirModal}
+        entregas={entregasParaImprimir}
+        onClose={() => {
+          setMostrarImprimirModal(false);
+          setEntregasParaImprimir([]);
+        }}
+      />
+
+      <ConfirmDialog />
     </div>
   );
 }

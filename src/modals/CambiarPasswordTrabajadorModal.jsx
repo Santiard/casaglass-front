@@ -1,7 +1,9 @@
 import React, { useState } from "react";
 import "../styles/CrudModal.css";
+import { useToast } from "../context/ToastContext.jsx";
 
 export default function CambiarPasswordTrabajadorModal({ isOpen, onClose, trabajador, onConfirm }) {
+  const { showError } = useToast();
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [loading, setLoading] = useState(false);
@@ -10,9 +12,9 @@ export default function CambiarPasswordTrabajadorModal({ isOpen, onClose, trabaj
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!password || password.length < 4) { alert("La contraseña debe tener al menos 4 caracteres"); return; }
-    if (password !== confirm) { alert("Las contraseñas no coinciden"); return; }
-    if (!trabajador?.id) { alert("Trabajador inválido"); return; }
+    if (!password || password.length < 4) { showError("La contraseña debe tener al menos 4 caracteres"); return; }
+    if (password !== confirm) { showError("Las contraseñas no coinciden"); return; }
+    if (!trabajador?.id) { showError("Trabajador inválido"); return; }
     setLoading(true);
     try {
       await onConfirm?.(trabajador.id, password);
@@ -20,7 +22,7 @@ export default function CambiarPasswordTrabajadorModal({ isOpen, onClose, trabaj
       onClose?.();
     } catch (e) {
       console.error("Error cambiando contraseña", e);
-      alert(e?.response?.data?.message || "No se pudo cambiar la contraseña");
+      showError(e?.response?.data?.message || "No se pudo cambiar la contraseña");
     } finally {
       setLoading(false);
     }

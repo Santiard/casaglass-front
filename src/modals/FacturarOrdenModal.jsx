@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from "react";
 import "../styles/FacturarOrdenModal.css";
+import { useToast } from "../context/ToastContext.jsx";
 
 export default function FacturarOrdenModal({ isOpen, onClose, onSave, orden }) {
+  const { showError } = useToast();
   const [form, setForm] = useState({
     ordenId: "",
     fecha: new Date().toISOString().split("T")[0],
@@ -72,17 +74,17 @@ export default function FacturarOrdenModal({ isOpen, onClose, onSave, orden }) {
     e.preventDefault();
 
     if (!form.ordenId) {
-      alert("Error: No se puede crear la factura sin una orden.");
+      showError("Error: No se puede crear la factura sin una orden.");
       return;
     }
 
     if (creditoPendiente) {
-      alert("Esta orden es a crédito y tiene saldo pendiente. No se puede facturar hasta completar el pago.");
+      showError("Esta orden es a crédito y tiene saldo pendiente. No se puede facturar hasta completar el pago.");
       return;
     }
 
     if (isAnulada) {
-      alert("Esta orden está anulada. No se puede facturar.");
+      showError("Esta orden está anulada. No se puede facturar.");
       return;
     }
 
@@ -97,7 +99,7 @@ export default function FacturarOrdenModal({ isOpen, onClose, onSave, orden }) {
       onClose();
     } catch (error) {
       console.error("Error creando factura:", error);
-      alert(error?.message || "No se pudo crear la factura.");
+      showError(error?.message || "No se pudo crear la factura.");
     } finally {
       setLoading(false);
     }

@@ -9,8 +9,12 @@ import {
   marcarFacturaComoPagada,
 } from "../services/FacturasService";
 import { listarClientes } from "../services/ClientesService";
+import { useConfirm } from "../hooks/useConfirm.jsx";
+import { useToast } from "../context/ToastContext.jsx";
 
 export default function FacturasPage() {
+  const { confirm, ConfirmDialog } = useConfirm();
+  const { showSuccess, showError } = useToast();
   const [data, setData] = useState([]);
   const [clientes, setClientes] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -53,28 +57,35 @@ export default function FacturasPage() {
     try {
       const fechaPago = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
       await marcarFacturaComoPagada(factura.id, fechaPago);
-      alert("Factura marcada como pagada.");
+      showSuccess("Factura marcada como pagada.");
       await fetchData();
     } catch (e) {
       console.error("Error marcando factura como pagada", e);
       const msg = e?.response?.data?.message || "No se pudo marcar como pagada.";
-      alert(msg);
+      showError(msg);
     }
   };
 
   // Manejar eliminación de factura
   const handleEliminar = async (factura) => {
+    const confirmacion = await confirm({
+      title: "Eliminar Factura",
+      message: `¿Estás seguro de que deseas eliminar la factura #${factura.numeroFactura || factura.numero || factura.id}?\n\nEsta acción no se puede deshacer.`,
+      confirmText: "Eliminar",
+      cancelText: "Cancelar",
+      type: "danger"
+    });
+    
+    if (!confirmacion) return;
+    
     try {
-      if (!confirm(`¿Eliminar la factura #${factura.numeroFactura || factura.numero || factura.id}? Esta acción no se puede deshacer.`)) {
-        return;
-      }
       await eliminarFactura(factura.id);
-      alert("Factura eliminada exitosamente.");
+      showSuccess("Factura eliminada exitosamente.");
       await fetchData();
     } catch (e) {
       console.error("Error eliminando factura", e);
       const msg = e?.response?.data?.message || e?.response?.data?.error || "No se pudo eliminar la factura.";
-      alert(msg);
+      showError(msg);
     }
   };
 
@@ -89,6 +100,7 @@ export default function FacturasPage() {
           onEliminar={handleEliminar}
         />
       </div>
+      <ConfirmDialog />
     </div>
   );
 }

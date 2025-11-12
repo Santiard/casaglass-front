@@ -1,26 +1,29 @@
 import React, { useState } from "react";
+import { useToast } from "../context/ToastContext.jsx";
 import "../styles/CrudModal.css";
 
 export default function NuevaCategoriaModal({ isOpen, onClose, onCreate }) {
   const [nombre, setNombre] = useState("");
   const [loading, setLoading] = useState(false);
+  const { showSuccess, showError } = useToast();
 
   const reset = () => { setNombre(""); };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!nombre || nombre.trim().length === 0) {
-      alert("El nombre de la categoría es obligatorio");
+      showError("El nombre de la categoría es obligatorio");
       return;
     }
     setLoading(true);
     try {
       await onCreate?.(nombre.trim().toUpperCase());
+      showSuccess("Categoría creada exitosamente");
       reset();
       onClose?.();
     } catch (e) {
       console.error("Error creando categoría", e);
-      alert(e?.response?.data?.message || "No se pudo crear la categoría");
+      showError(e?.response?.data?.message || "No se pudo crear la categoría");
     } finally {
       setLoading(false);
     }

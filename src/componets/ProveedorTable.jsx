@@ -4,6 +4,7 @@ import eliminar from "../assets/eliminar.png";
 import editar from "../assets/editar.png";
 import add from "../assets/add.png";
 import ProveedorModal from "../modals/ProveedorModal.jsx";
+import { useToast } from "../context/ToastContext.jsx";
 
 export default function ProveedorTable({
   data = [],
@@ -13,6 +14,7 @@ export default function ProveedorTable({
   rowsPerPage: rowsPerPageProp = 10,
   loading = false
 }) {
+  const { showError } = useToast();
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(rowsPerPageProp);
@@ -33,7 +35,7 @@ export default function ProveedorTable({
     } catch (e) {
       console.error("Error guardando proveedor", e);
       const msg = e?.response?.data?.message || "No se pudo guardar el proveedor.";
-      alert(msg);
+      showError(msg);
     }
   };
 

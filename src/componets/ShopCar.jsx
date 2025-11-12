@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react";
 import "../styles/ShopCar.css";
+import { useToast } from "../context/ToastContext.jsx";
 import flecha from "../assets/up.png";
 
 export default function ShopCar({ productosCarrito, subtotal, total, limpiarCarrito }) {
+  const { showSuccess } = useToast();
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState([]);
 
@@ -50,7 +52,7 @@ export default function ShopCar({ productosCarrito, subtotal, total, limpiarCarr
         <div className="numbers">
           <label>Subtotal: {subtotal}</label>
           <label>Total: {total.toFixed(2)}</label>
-          <button onClick={() => alert("Venta finalizada!")}>Finalizar Venta</button>
+          <button onClick={() => showSuccess("Venta finalizada!")}>Finalizar Venta</button>
           <button onClick={limpiarCarrito} style={{background: "#ff3333", marginTop: "0.5rem"}}>
             Vaciar Carrito
           </button>

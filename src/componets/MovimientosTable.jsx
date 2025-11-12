@@ -5,6 +5,8 @@ import { useAuth } from "../context/AuthContext.jsx";
 import editar from "../assets/editar.png";
 import add from "../assets/add.png";
 import MovimientoModal from "../modals/MovimientoModal.jsx";
+import { useConfirm } from "../hooks/useConfirm.jsx";
+import { useToast } from "../context/ToastContext.jsx";
 
 // Helper local para asegurar YYYY-MM-DD
 const toLocalDateOnly = (val) => {
@@ -29,6 +31,8 @@ export default function MovimientosTable({
   onEliminar,
   onConfirmar,
 }) {
+  const { confirm, ConfirmDialog } = useConfirm();
+  const { showSuccess, showError } = useToast();
   const { isAdmin, user } = useAuth(); // Obtener rol y datos del usuario
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
@@ -75,25 +79,33 @@ export default function MovimientosTable({
       setMovimientoEditando(null);
     } catch (e) {
       console.error(e);
-      alert(e?.response?.data || e?.message || "Error al guardar el traslado.");
+      showError(e?.response?.data || e?.message || "Error al guardar el traslado.");
     }
   };
 
   const handleConfirmarTraslado = async (trasladoId) => {
-    if (window.confirm("¿Confirmas que has recibido este traslado?")) {
-      try {
-        const response = await onConfirmar(trasladoId, user?.id);
-        // Mostrar mensaje de éxito si la respuesta incluye un mensaje
-        if (response?.message) {
-          alert(response.message);
-        } else {
-          alert("Traslado confirmado exitosamente");
-        }
-      } catch (e) {
-        console.error("Error confirmando traslado:", e);
-        const errorMsg = e?.response?.data?.message || e?.message || "Error al confirmar el traslado";
-        alert(errorMsg);
+    const confirmacion = await confirm({
+      title: "Confirmar Traslado",
+      message: "¿Confirmas que has recibido este traslado?",
+      confirmText: "Confirmar",
+      cancelText: "Cancelar",
+      type: "warning"
+    });
+    
+    if (!confirmacion) return;
+    
+    try {
+      const response = await onConfirmar(trasladoId, user?.id);
+      // Mostrar mensaje de éxito si la respuesta incluye un mensaje
+      if (response?.message) {
+        showSuccess(response.message);
+      } else {
+        showSuccess("Traslado confirmado exitosamente");
       }
+    } catch (e) {
+      console.error("Error confirmando traslado:", e);
+      const errorMsg = e?.response?.data?.message || e?.message || "Error al confirmar el traslado";
+      showError(errorMsg);
     }
   };
 
@@ -346,6 +358,8 @@ export default function MovimientosTable({
         sedes={sedes}
         catalogoProductos={catalogoProductos}
       />
+
+      <ConfirmDialog />
     </div>
   );
 }

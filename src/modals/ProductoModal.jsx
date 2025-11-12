@@ -1,9 +1,11 @@
 // src/modals/ProductoModal.jsx
 import { useState, useEffect } from "react";
+import { useToast } from "../context/ToastContext.jsx";
 import "../styles/CrudModal.css";
 import { listarCategorias } from "../services/CategoriasService";
 
 export default function ProductModal({ isOpen, onClose, onSave, product }) {
+  const { showError } = useToast();
   const initialState = {
     id: null,
     codigo: "",
@@ -72,7 +74,7 @@ export default function ProductModal({ isOpen, onClose, onSave, product }) {
       // VALIDACIÓN: Si estamos editando un producto existente que NO es de categoría "Vidrios",
       // no se puede marcar como esVidrio
       if (isEditing && shouldBeVidrio && !product?.categoria?.toLowerCase().includes('vidrio')) {
-        alert("No se puede marcar como vidrio un producto que no pertenece a una categoría de vidrios");
+        showError("No se puede marcar como vidrio un producto que no pertenece a una categoría de vidrios");
         return; // No actualizar el estado
       }
       
@@ -192,6 +194,11 @@ export default function ProductModal({ isOpen, onClose, onSave, product }) {
     if (isEditing && toSave.id) {
       backendPayload.id = toSave.id;
       backendPayload.version = toSave.version !== undefined ? toSave.version : 0;
+      
+      // Incluir cantidades por sede (siempre se envían en edición)
+      backendPayload.cantidadInsula = toSave.cantidadInsula || 0;
+      backendPayload.cantidadCentro = toSave.cantidadCentro || 0;
+      backendPayload.cantidadPatios = toSave.cantidadPatios || 0;
     } else {
       // Para creación, version siempre es 0
       backendPayload.version = 0;

@@ -6,8 +6,12 @@ import {
   actualizarProveedor,
   eliminarProveedor,
 } from "../services/ProveedoresService";
+import { useConfirm } from "../hooks/useConfirm.jsx";
+import { useToast } from "../context/ToastContext.jsx";
 
 export default function ProveedoresPage() {
+  const { confirm, ConfirmDialog } = useConfirm();
+  const { showError } = useToast();
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
 
@@ -18,7 +22,7 @@ export default function ProveedoresPage() {
       setData(arr);
     } catch (e) {
       console.error("Error listando proveedores", e);
-      alert("No se pudieron cargar los proveedores.");
+      showError("No se pudieron cargar los proveedores.");
     } finally {
       setLoading(false);
     }
@@ -34,7 +38,7 @@ export default function ProveedoresPage() {
     } catch (e) {
       console.error("Error guardando proveedor", e);
       const msg = e?.response?.data?.message || "No se pudo guardar el proveedor.";
-      alert(msg);
+      showError(msg);
     }
   };
 
@@ -45,11 +49,11 @@ export default function ProveedoresPage() {
     } catch (e) {
       console.error("Error eliminando proveedor", e);
       const backendMsg = e?.response?.data?.message;
-      if (backendMsg) alert(backendMsg);
+      if (backendMsg) showError(backendMsg);
       else if (e?.response?.status === 409)
-        alert("No se puede eliminar el proveedor porque tiene registros asociados.");
+        showError("No se puede eliminar el proveedor porque tiene registros asociados.");
       else
-        alert("No se pudo eliminar el proveedor. Revisa consola.");
+        showError("No se pudo eliminar el proveedor. Revisa consola.");
     }
   };
 
@@ -65,6 +69,7 @@ export default function ProveedoresPage() {
           onCrear={(p) => handleGuardar(p, false)} // POST
         />
       </div>
+      <ConfirmDialog />
     </div>
   );
 }

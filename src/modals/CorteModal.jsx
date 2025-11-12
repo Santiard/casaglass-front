@@ -2,8 +2,10 @@
 import { useState, useEffect } from "react";
 import { listarCategorias } from "../services/CategoriasService";
 import "../styles/CrudModal.css";
+import { useToast } from "../context/ToastContext.jsx";
 
 export default function CorteModal({ isOpen, onClose, onSave, corte }) {
+  const { showError } = useToast();
   const initialState = {
     id: null,
     codigo: "",
@@ -106,15 +108,15 @@ export default function CorteModal({ isOpen, onClose, onSave, corte }) {
 
     // Validaciones básicas
     if (!formData.codigo?.trim()) {
-      alert("El código es obligatorio");
+      showError("El código es obligatorio");
       return;
     }
     if (!formData.nombre?.trim()) {
-      alert("El nombre es obligatorio");
+      showError("El nombre es obligatorio");
       return;
     }
     if (!formData.largoCm || Number(formData.largoCm) <= 0) {
-      alert("El largo (cm) debe ser mayor a 0");
+      showError("El largo (cm) debe ser mayor a 0");
       return;
     }
 

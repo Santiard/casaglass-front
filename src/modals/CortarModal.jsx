@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from "react";
 import "../styles/CrudModal.css";
 import { listarCortesInventarioCompleto } from "../services/InventarioService";
+import { useToast } from "../context/ToastContext.jsx";
 
 export default function CortarModal({ 
   isOpen, 
@@ -8,6 +9,7 @@ export default function CortarModal({
   producto, 
   onCortar 
 }) {
+  const { showError } = useToast();
   const [medidaCorte, setMedidaCorte] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -56,12 +58,12 @@ export default function CortarModal({
     e.preventDefault();
     
     if (!cortesCalculados) {
-      alert("Por favor ingrese una medida válida");
+      showError("Por favor ingrese una medida válida");
       return;
     }
 
     if (cortesCalculados.medidaSobrante < 0) {
-      alert("La medida del corte no puede ser mayor a 600 cm");
+      showError("La medida del corte no puede ser mayor a 600 cm");
       return;
     }
 
@@ -182,7 +184,7 @@ export default function CortarModal({
       
     } catch (error) {
       console.error("Error al procesar corte:", error);
-      alert("Error al procesar el corte. Intente nuevamente.");
+      showError("Error al procesar el corte. Intente nuevamente.");
     } finally {
       setLoading(false);
     }

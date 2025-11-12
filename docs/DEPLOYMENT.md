@@ -379,3 +379,40 @@ Si encuentras problemas, verifica:
 3. Configuración del reverse proxy (si usas mismo dominio)
 4. Logs del navegador (F12) para errores de CORS o conexión
 
+### Error 500 en Login - Backend en Mismo Servidor
+
+**Síntoma:** Error 500 al intentar hacer login en producción, el frontend está en `http://148.230.87.167:3000` y el backend en `http://148.230.87.167:8080`.
+
+**Causa:** La aplicación no tiene configurada la URL del backend en producción, por lo que intenta usar `/api` que no está configurado correctamente.
+
+**Solución 1 (Recomendada):** Crear `.env.production` con la URL del backend:
+
+```bash
+# Crear archivo .env.production en la raíz del proyecto
+echo "VITE_API_URL=http://148.230.87.167:8080" > .env.production
+```
+
+Luego reconstruir y redesplegar:
+```bash
+npm run build
+# Reconstruir el contenedor Docker si es necesario
+docker build -t casaglass-front .
+docker run -d -p 3000:80 casaglass-front
+```
+
+**Solución 2:** Usar el proxy de Nginx (ya configurado en `nginx.conf`):
+- El `nginx.conf` ya tiene configurado el proxy de `/api` a `http://148.230.87.167:8080`
+- Si el contenedor Docker no puede acceder a la IP del host, cambiar en `nginx.conf`:
+  ```nginx
+  proxy_pass http://host.docker.internal:8080;
+  ```
+- O usar `network_mode: host` al ejecutar el contenedor:
+  ```bash
+  docker run -d --network host casaglass-front
+  ```
+
+**Verificación:**
+- Abrir DevTools (F12) → Network
+- Intentar login y verificar que la petición vaya a `http://148.230.87.167:8080/auth/login`
+- Si va a `http://148.230.87.167:3000/api/auth/login`, el proxy de Nginx debería redirigirla
+

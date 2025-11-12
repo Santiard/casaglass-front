@@ -124,7 +124,7 @@
 .vender-content .table-wrapper .table thead {
   flex-shrink: 0; /* Headers no se comprimen */
   display: block;
-  background: var(--color-light-blue, #4f67ff);
+  background: var(--color-light-blue);
   color: white;
 }
 

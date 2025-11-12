@@ -12,6 +12,7 @@ export default function EntregasTable({
   onConfirmar, // (entrega) => void
   onCancelar, // (entrega, motivo) => void
   onEliminar, // (entrega) => Promise<void>
+  onImprimir, // (entrega) => void - nuevo prop para imprimir
 }) {
   const [entregas, setEntregas] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -144,6 +145,7 @@ export default function EntregasTable({
                     <button className="btnEdit" onClick={() => openEditar(ent)} title="Editar">
                       <img src={editar} className="iconButton" alt="Editar" />
                     </button>
+                    <button className="btn" onClick={() => onImprimir?.(ent)} title="Imprimir">Imprimir</button>
                     <button className="btn" onClick={() => openConfirmar(ent)} disabled={ent.estado !== "PENDIENTE"}>Confirmar</button>
                     <button className="btn" onClick={() => openCancelar(ent)} disabled={ent.estado !== "PENDIENTE"}>Cancelar</button>
                     <button className="btn" onClick={() => handleEliminar(ent)} disabled={ent.estado === "ENTREGADA"}>Eliminar</button>

@@ -1,25 +1,56 @@
 import { useState, useEffect } from "react";
 import OrdenModal from "../modals/OrdenModal.jsx";
+import OrdenImprimirModal from "../modals/OrdenImprimirModal.jsx";
 import "../styles/ListadoOrden.css";
 import { useAuth } from "../context/AuthContext.jsx";
+import { useToast } from "../context/ToastContext.jsx";
 
 export default function ListadoOrden({ productosCarrito, subtotal, total, limpiarCarrito, eliminarProducto, cortesPendientes }) {
+  const { showError } = useToast();
   const [items, setItems] = useState([]);
   const [isFacturarOpen, setIsFacturarOpen] = useState(false);
+  const [isImprimirOpen, setIsImprimirOpen] = useState(false);
   const { user, sedeId, sede } = useAuth();
   // Cargar productos desde props
   useEffect(() => {
     setItems(productosCarrito || []);
   }, [productosCarrito]);
 
-  const handleImprimirOrden = () => {
+  const handleImprimirCotizacion = () => {
     if (items.length === 0) {
-      alert("No hay productos en la orden para imprimir");
+      showError("No hay productos en la cotización para imprimir");
       return;
     }
     
-    // Aquí iría la lógica para imprimir
-    window.print();
+    // Abrir modal de impresión con formato de cotización
+    setIsImprimirOpen(true);
+  };
+
+  // Crear objeto orden temporal para el modal de impresión
+  const ordenTemporal = {
+    id: null,
+    numero: "COT-" + Date.now(),
+    fecha: new Date().toISOString(),
+    obra: "",
+    venta: false,
+    credito: false,
+    estado: "ACTIVA",
+    cliente: { nombre: "Cliente" }, // Se puede mejorar después
+    sede: { nombre: sede || "Sede" },
+    trabajador: { nombre: user?.nombre || "Trabajador" },
+    items: items.map(item => ({
+      id: null,
+      cantidad: item.cantidadVender || 0,
+      precioUnitario: item.precioUsado || 0,
+      totalLinea: (item.precioUsado || 0) * (item.cantidadVender || 0),
+      descripcion: "",
+      producto: {
+        codigo: item.codigo || "",
+        nombre: item.nombre || "",
+        color: item.color || "",
+        tipo: item.tipo || ""
+      }
+    }))
   };
 
   const eliminarProductoLocal = (index) => {
@@ -93,10 +124,10 @@ export default function ListadoOrden({ productosCarrito, subtotal, total, limpia
           </button>
           <button 
             className="btn-imprimir"
-            onClick={handleImprimirOrden}
+            onClick={handleImprimirCotizacion}
             disabled={items.length === 0}
           >
-            Imprimir Orden
+            Imprimir Cotización
           </button>
         </div>
       </div>
@@ -116,6 +147,12 @@ export default function ListadoOrden({ productosCarrito, subtotal, total, limpia
           limpiarCarrito();
           setIsFacturarOpen(false);
         }}
+      />
+
+      <OrdenImprimirModal
+        isOpen={isImprimirOpen}
+        orden={ordenTemporal}
+        onClose={() => setIsImprimirOpen(false)}
       />
 
     </div>
