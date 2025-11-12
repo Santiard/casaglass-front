@@ -3,16 +3,20 @@ import axios from "axios";
 /**
  * Configuración de la URL base de la API
  * 
+ * IMPORTANTE: El backend NO usa el prefijo /api en ninguna de sus rutas.
+ * Todas las URLs deben ir directamente al backend sin prefijo.
+ * 
  * Lógica:
  * - En desarrollo (DEV): usa el proxy de Vite '/api' configurado en vite.config.js
- *   o directamente VITE_API_URL si está definida en .env.development
- * - En producción: usa VITE_API_URL si está definida, sino '/api' (mismo dominio)
+ *   que elimina el prefijo antes de enviarlo al backend, o directamente VITE_API_URL
+ * - En producción: SIEMPRE usar VITE_API_URL apuntando directamente al backend
  * 
  * Opciones de despliegue:
- * 1. Subdominio: VITE_API_URL=https://api.midominio.com
- * 2. Mismo dominio: VITE_API_URL vacío o no definido → usa '/api'
+ * 1. Mismo servidor: VITE_API_URL=http://148.230.87.167:8080 (recomendado)
+ * 2. Subdominio: VITE_API_URL=https://api.midominio.com
  * 
  * Desarrollo actual: http://148.230.87.167:8080 (configurado en .env.development)
+ * Producción: http://148.230.87.167:8080 (configurado en .env.production)
  */
 const getBaseURL = () => {
   // Priorizar VITE_API_URL si está definida (desarrollo o producción)
@@ -22,9 +26,13 @@ const getBaseURL = () => {
   }
   
   // Si no hay VITE_API_URL definida:
-  // - En desarrollo: usa el proxy de Vite '/api' configurado en vite.config.js
-  // - En producción: usa '/api' (mismo dominio con proxy reverso)
-  return "/api";
+  // - En desarrollo: usa el proxy de Vite '/api' que elimina el prefijo
+  // - En producción: ERROR - debe definirse VITE_API_URL
+  if (import.meta.env.PROD) {
+    console.error("❌ ERROR: VITE_API_URL no está definida en producción. El backend NO usa el prefijo /api.");
+    console.error("Por favor, crea .env.production con: VITE_API_URL=http://148.230.87.167:8080");
+  }
+  return "/api"; // Fallback solo para desarrollo
 };
 
 export const API_BASE = getBaseURL();

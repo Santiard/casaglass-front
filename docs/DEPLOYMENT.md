@@ -62,7 +62,9 @@ VITE_API_URL=https://api.midominio.com
 
 ---
 
-### Opción 2: Mismo Dominio con Rutas
+### Opción 2: Mismo Dominio con Rutas (NO RECOMENDADO)
+
+**NOTA:** Esta opción requiere configuración adicional del proxy. Se recomienda usar la Opción 1 (mismo servidor) que es más simple.
 
 **Estructura:**
 - Frontend: `https://midominio.com/app` (o `https://midominio.com`)
@@ -72,11 +74,14 @@ VITE_API_URL=https://api.midominio.com
 
 1. **`.env.production`:**
 ```env
-# Dejar VITE_API_URL vacío o no definirlo
-# VITE_API_URL=
+# Usar directamente la URL del backend (RECOMENDADO)
+VITE_API_URL=http://148.230.87.167:8080
+
+# O si el backend está en otro servidor:
+# VITE_API_URL=https://api.midominio.com
 
 # Si el frontend está en subruta /app
-VITE_ROUTER_BASENAME=/app
+# VITE_ROUTER_BASENAME=/app
 ```
 
 2. **Backend (Spring Boot):**
@@ -88,25 +93,20 @@ VITE_ROUTER_BASENAME=/app
 }, allowCredentials = true)
 ```
 
-3. **Reverse Proxy (Nginx/Traefik):**
+3. **Reverse Proxy (Nginx/Traefik) - Solo si es necesario:**
 ```nginx
-# Ejemplo Nginx
+# Solo usar si realmente necesitas el proxy
+# IMPORTANTE: El backend NO espera el prefijo /api, así que lo eliminamos con la barra al final
 location /api {
-    proxy_pass http://backend:8080;
+    proxy_pass http://backend:8080/;
+    proxy_http_version 1.1;
     proxy_set_header Host $host;
     proxy_set_header X-Real-IP $remote_addr;
     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     proxy_set_header X-Forwarded-Proto $scheme;
-}
-
-location /app {
-    alias /usr/share/nginx/html;
-    try_files $uri $uri/ /app/index.html;
-}
-
-location / {
-    root /usr/share/nginx/html;
-    try_files $uri $uri/ /index.html;
+    proxy_connect_timeout 60s;
+    proxy_send_timeout 60s;
+    proxy_read_timeout 60s;
 }
 ```
 
@@ -124,11 +124,12 @@ VITE_API_URL=http://148.230.87.167:8080
 
 #### `.env.production`
 ```env
-# Opción 1: Subdominio
-VITE_API_URL=https://api.midominio.com
+# IMPORTANTE: El backend NO usa el prefijo /api. Todas las URLs van directas.
+# Opción 1: Mismo servidor (RECOMENDADO)
+VITE_API_URL=http://148.230.87.167:8080
 
-# Opción 2: Mismo dominio (dejar vacío)
-# VITE_API_URL=
+# Opción 2: Subdominio
+# VITE_API_URL=https://api.midominio.com
 
 # Si el frontend está en subruta (ej: /app)
 # VITE_ROUTER_BASENAME=/app
@@ -137,9 +138,11 @@ VITE_API_URL=https://api.midominio.com
 ### Variables Disponibles
 
 - **`VITE_API_URL`**: URL base de la API
+  - **IMPORTANTE:** El backend NO usa el prefijo `/api`. Todas las URLs van directas.
   - Desarrollo: `http://148.230.87.167:8080`
+  - Producción (mismo servidor): `http://148.230.87.167:8080` (RECOMENDADO)
   - Producción (subdominio): `https://api.midominio.com`
-  - Producción (mismo dominio): vacío o no definido → usa `/api`
+  - **En producción SIEMPRE debe estar definida**, no usar el fallback `/api`
 
 - **`VITE_ROUTER_BASENAME`**: Basename para React Router
   - Solo necesario si el frontend está en subruta (ej: `/app`)
@@ -345,8 +348,10 @@ npm run preview
 | Entorno | VITE_API_URL | VITE_ROUTER_BASENAME | Backend URL |
 |---------|--------------|----------------------|-------------|
 | **Desarrollo** | `http://148.230.87.167:8080` | - | `http://148.230.87.167:8080` |
+| **Prod (Mismo servidor)** | `http://148.230.87.167:8080` | - | `http://148.230.87.167:8080` |
 | **Prod (Subdominio)** | `https://api.midominio.com` | - | `https://api.midominio.com` |
-| **Prod (Mismo dominio)** | (vacío) | `/app` (opcional) | `https://midominio.com/api` |
+
+**IMPORTANTE:** El backend NO usa el prefijo `/api`. Todas las URLs van directamente al backend sin prefijo.
 
 ---
 
@@ -385,12 +390,14 @@ Si encuentras problemas, verifica:
 
 **Causa:** La aplicación no tiene configurada la URL del backend en producción, por lo que intenta usar `/api` que no está configurado correctamente.
 
-**Solución 1 (Recomendada):** Crear `.env.production` con la URL del backend:
+**Solución (Recomendada):** Crear `.env.production` con la URL del backend directamente:
 
 ```bash
 # Crear archivo .env.production en la raíz del proyecto
 echo "VITE_API_URL=http://148.230.87.167:8080" > .env.production
 ```
+
+**IMPORTANTE:** El backend NO usa el prefijo `/api`. Todas las URLs van directamente al backend sin prefijo.
 
 Luego reconstruir y redesplegar:
 ```bash
@@ -400,11 +407,12 @@ docker build -t casaglass-front .
 docker run -d -p 3000:80 casaglass-front
 ```
 
-**Solución 2:** Usar el proxy de Nginx (ya configurado en `nginx.conf`):
-- El `nginx.conf` ya tiene configurado el proxy de `/api` a `http://148.230.87.167:8080`
+**Nota sobre el proxy de Nginx:**
+- El `nginx.conf` tiene configurado el proxy como respaldo, pero es mejor usar `VITE_API_URL` directamente
+- Si necesitas usar el proxy, asegúrate de que `proxy_pass` tenga la barra al final: `proxy_pass http://148.230.87.167:8080/;`
 - Si el contenedor Docker no puede acceder a la IP del host, cambiar en `nginx.conf`:
   ```nginx
-  proxy_pass http://host.docker.internal:8080;
+  proxy_pass http://host.docker.internal:8080/;
   ```
 - O usar `network_mode: host` al ejecutar el contenedor:
   ```bash
@@ -415,4 +423,29 @@ docker run -d -p 3000:80 casaglass-front
 - Abrir DevTools (F12) → Network
 - Intentar login y verificar que la petición vaya a `http://148.230.87.167:8080/auth/login`
 - Si va a `http://148.230.87.167:3000/api/auth/login`, el proxy de Nginx debería redirigirla
+
+### Error "No static resource auth/login" en Producción
+
+**Síntoma:** Error 500 con mensaje "No static resource auth/login" al intentar hacer login en producción.
+
+**Causa:** El proxy de Nginx está enviando la petición con el prefijo `/api` al backend, pero el backend NO espera este prefijo. El backend espera rutas como `/auth/login`, no `/api/auth/login`.
+
+**Solución:** Configurar el proxy de Nginx para eliminar el prefijo `/api` antes de enviarlo al backend:
+
+```nginx
+# En nginx.conf, cambiar:
+location /api {
+    proxy_pass http://148.230.87.167:8080/;  # ← Nota la barra al final
+    # ... resto de la configuración
+}
+```
+
+**Explicación:**
+- `proxy_pass http://148.230.87.167:8080;` (sin barra) → envía `/api/auth/login` al backend
+- `proxy_pass http://148.230.87.167:8080/;` (con barra) → envía `/auth/login` al backend (elimina `/api`)
+
+**Verificación:**
+- Reconstruir el contenedor Docker con el nuevo `nginx.conf`
+- Verificar en DevTools (F12) → Network que la petición llegue correctamente al backend
+- El backend debe recibir `/auth/login`, no `/api/auth/login`
 
