@@ -8,11 +8,11 @@ export default defineConfig({
     proxy: {
       '/api': {
         // En desarrollo, el proxy apunta a localhost:8080 (backend local)
-        // El backend NO espera el prefijo /api, así que lo eliminamos con rewrite
+        // El backend SÍ espera el prefijo /api, así que lo mantenemos
         target: 'http://localhost:8080',
         changeOrigin: true,
         secure: false,
-        rewrite: (path) => path.replace(/^\/api/, ''), // Elimina /api del path
+        // NO eliminamos el prefijo /api porque el backend lo espera
       }
     }
   },
