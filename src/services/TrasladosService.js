@@ -24,12 +24,8 @@ export async function obtenerTraslado(id) {
  * }
  */
 export async function crearTraslado(payload) {
-  console.log("🔄 Creando traslado con payload:", payload);
-  console.log("🔄 URL completa:", `${api.defaults.baseURL}/traslados`);
-  
   try {
     const { data } = await api.post("/traslados", payload);
-    console.log("✅ Traslado creado exitosamente:", data);
     return data;
   } catch (error) {
     console.error("❌ Error completo al crear traslado:", {

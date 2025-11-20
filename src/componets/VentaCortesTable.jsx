@@ -113,10 +113,14 @@ export default function VentaCortesTable({
             );
 
             // Determinar si la fila debe pintarse de rojo (sin stock)
+            // Solo considerar exactamente 0 como sin stock, los valores negativos son ventas anticipadas
             const sinStock = isAdmin ? total === 0 : cantidadDisponible === 0;
+            
+            // Determinar si hay stock negativo (venta anticipada)
+            const stockNegativo = isAdmin ? total < 0 : cantidadDisponible < 0;
 
             return (
-              <tr key={uniqueKey} className={sinStock ? "row-sin-stock" : ""}>
+              <tr key={uniqueKey} className={sinStock ? "row-sin-stock" : stockNegativo ? "row-stock-negativo" : ""}>
                 <td>{c.codigo}</td>
                 <td>{c.nombre}</td>
                 <td>{c.largoCm ?? "-"}</td>
@@ -124,17 +128,38 @@ export default function VentaCortesTable({
                 {/* Columnas de inventario según el rol */}
                 {isAdmin ? (
                   <>
-                    <td>{c.cantidadInsula ?? 0}</td>
-                    <td>{c.cantidadCentro ?? 0}</td>
-                    <td>{c.cantidadPatios ?? 0}</td>
-                    <td><strong>{total}</strong></td>
+                    <td className={Number(c.cantidadInsula || 0) < 0 ? "stock-negativo" : ""}>
+                      {c.cantidadInsula ?? 0}
+                      {Number(c.cantidadInsula || 0) < 0 && <span className="badge-negativo"> ⚠️</span>}
+                    </td>
+                    <td className={Number(c.cantidadCentro || 0) < 0 ? "stock-negativo" : ""}>
+                      {c.cantidadCentro ?? 0}
+                      {Number(c.cantidadCentro || 0) < 0 && <span className="badge-negativo"> ⚠️</span>}
+                    </td>
+                    <td className={Number(c.cantidadPatios || 0) < 0 ? "stock-negativo" : ""}>
+                      {c.cantidadPatios ?? 0}
+                      {Number(c.cantidadPatios || 0) < 0 && <span className="badge-negativo"> ⚠️</span>}
+                    </td>
+                    <td className={stockNegativo ? "stock-negativo" : ""}>
+                      <strong>{total}</strong>
+                      {stockNegativo && <span className="badge-negativo"> ⚠️ Faltan {Math.abs(total)}</span>}
+                    </td>
                   </>
                 ) : (
                   // Para VENDEDOR: mostrar cantidades de todas las sedes pero sin total
                   <>
-                    <td>{c.cantidadInsula ?? 0}</td>
-                    <td>{c.cantidadCentro ?? 0}</td>
-                    <td>{c.cantidadPatios ?? 0}</td>
+                    <td className={Number(c.cantidadInsula || 0) < 0 ? "stock-negativo" : ""}>
+                      {c.cantidadInsula ?? 0}
+                      {Number(c.cantidadInsula || 0) < 0 && <span className="badge-negativo"> ⚠️</span>}
+                    </td>
+                    <td className={Number(c.cantidadCentro || 0) < 0 ? "stock-negativo" : ""}>
+                      {c.cantidadCentro ?? 0}
+                      {Number(c.cantidadCentro || 0) < 0 && <span className="badge-negativo"> ⚠️</span>}
+                    </td>
+                    <td className={Number(c.cantidadPatios || 0) < 0 ? "stock-negativo" : ""}>
+                      {c.cantidadPatios ?? 0}
+                      {Number(c.cantidadPatios || 0) < 0 && <span className="badge-negativo"> ⚠️</span>}
+                    </td>
                   </>
                 )}
                 
@@ -156,14 +181,18 @@ export default function VentaCortesTable({
                   <input
                     type="number"
                     min="1"
-                    max={cantidadDisponible}
                     value={cantidadesVenta[uniqueKey] ?? ""}
                     placeholder="1"
                     onChange={(e) => handleCantidadChange(uniqueKey, e.target.value)}
                     className="cantidad-input"
-                    disabled={cantidadDisponible <= 0}
                     style={{ width: '60px', textAlign: 'center' }}
+                    title={stockNegativo ? `⚠️ Stock negativo: Faltan ${Math.abs(cantidadDisponible)} unidades. Puedes vender anticipadamente.` : ""}
                   />
+                  {stockNegativo && (
+                    <small style={{ display: 'block', color: '#ff9800', fontSize: '10px', marginTop: '2px' }}>
+                      ⚠️ Faltan {Math.abs(cantidadDisponible)}
+                    </small>
+                  )}
                 </td>
                 
                 {/* Botón agregar al carrito */}
@@ -171,16 +200,18 @@ export default function VentaCortesTable({
                   <button
                     onClick={() => handleAgregarCarrito(c, uniqueKey)}
                     className="agregar-btn"
-                    disabled={cantidadDisponible <= 0 || !cantidadesVenta[uniqueKey] || cantidadesVenta[uniqueKey] <= 0}
+                    disabled={!cantidadesVenta[uniqueKey] || cantidadesVenta[uniqueKey] <= 0}
                     style={{
-                      background: cantidadDisponible > 0 ? '#28a745' : '#6c757d',
+                      background: '#28a745',
                       color: 'white',
                       border: 'none',
                       padding: '6px 12px',
                       borderRadius: '4px',
-                      cursor: cantidadDisponible > 0 ? 'pointer' : 'not-allowed',
-                      fontSize: '12px'
+                      cursor: 'pointer',
+                      fontSize: '12px',
+                      opacity: (!cantidadesVenta[uniqueKey] || cantidadesVenta[uniqueKey] <= 0) ? 0.5 : 1
                     }}
+                    title={stockNegativo ? "⚠️ Venta anticipada permitida" : ""}
                   >
                     Agregar
                   </button>

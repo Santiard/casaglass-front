@@ -107,7 +107,6 @@ export default function IngresosPage() {
       const resultado = await procesarIngreso(id);
       await loadIngresos(); // Recargar la tabla
       showSuccess(`Ingreso #${id} marcado como procesado correctamente`);
-      console.log("✅ Resultado del procesamiento:", resultado);
     } catch (e) {
       console.error("Error al procesar ingreso:", e);
       console.error("📋 Detalle del error:", e?.response?.data);

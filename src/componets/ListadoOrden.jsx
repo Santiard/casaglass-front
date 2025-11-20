@@ -143,7 +143,6 @@ export default function ListadoOrden({ productosCarrito, subtotal, total, limpia
         defaultSedeNombre={user?.sedeNombre || sede}
         cortesPendientes={cortesPendientes}
         onSave={(orden) => {
-          console.log("Orden creada:", orden);
           limpiarCarrito();
           setIsFacturarOpen(false);
         }}

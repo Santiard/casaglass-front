@@ -18,8 +18,20 @@ export async function listarOrdenesTabla(params = {}) {
 
 // GET /api/ordenes/{id}
 export async function obtenerOrden(id) {
-  const { data } = await api.get(`ordenes/${id}`);
-  return data;
+  try {
+    const response = await api.get(`ordenes/${id}`);
+    // Asegurar que data sea un objeto, no un string
+    let data = response.data;
+    if (typeof data === 'string') {
+      console.warn("⚠️ Response.data es string, parseando...");
+      data = JSON.parse(data);
+    }
+    
+    return data;
+  } catch (error) {
+    console.error("❌ Error en obtenerOrden:", error);
+    throw error;
+  }
 }
 
 // GET /api/ordenes/{id}/detalle
@@ -37,22 +49,45 @@ export async function crearOrden(payload) {
 // POST /api/ordenes/venta - Crear orden de venta específica
 export async function crearOrdenVenta(payload) {
   try {
-    console.log("🔄 Intentando crear orden con endpoint ordenes/venta...");
-    
+    // Validar campos obligatorios según la documentación
+    if (!payload.clienteId || isNaN(Number(payload.clienteId))) {
+      throw new Error("clienteId es obligatorio y debe ser un número válido");
+    }
+    if (!payload.sedeId || isNaN(Number(payload.sedeId))) {
+      throw new Error("sedeId es obligatorio y debe ser un número válido");
+    }
+    if (!payload.items || !Array.isArray(payload.items) || payload.items.length === 0) {
+      throw new Error("La orden debe tener al menos 1 item");
+    }
+
+    // Validar que todos los items tengan datos válidos
+    const itemsInvalidos = payload.items.filter(item => 
+      !item.productoId || isNaN(Number(item.productoId)) || Number(item.productoId) === 0 ||
+      !item.cantidad || isNaN(Number(item.cantidad)) || Number(item.cantidad) <= 0 ||
+      !item.precioUnitario || isNaN(Number(item.precioUnitario)) || Number(item.precioUnitario) <= 0
+    );
+    if (itemsInvalidos.length > 0) {
+      throw new Error("Todos los items deben tener productoId, cantidad y precioUnitario válidos (mayor a 0)");
+    }
+
     // Formato correcto para el backend actualizado
     const ordenData = {
       obra: payload.obra || "",
-      venta: true, // Siempre true para órdenes de venta
+      descripcion: payload.descripcion || null,
+      venta: Boolean(payload.venta ?? false),
       credito: Boolean(payload.credito),
       incluidaEntrega: Boolean(payload.incluidaEntrega || false),
-      clienteId: parseInt(payload.clienteId),
-      trabajadorId: parseInt(payload.trabajadorId),
-      sedeId: parseInt(payload.sedeId),
+      clienteId: parseInt(payload.clienteId), // OBLIGATORIO
+      sedeId: parseInt(payload.sedeId), // OBLIGATORIO
+      // trabajadorId es opcional según la documentación
+      ...(payload.trabajadorId ? { trabajadorId: parseInt(payload.trabajadorId) } : {}),
       items: payload.items.map(item => ({
         productoId: parseInt(item.productoId),
         cantidad: parseInt(item.cantidad),
         descripcion: String(item.descripcion || ""),
-        precioUnitario: parseFloat(item.precioUnitario)
+        precioUnitario: parseFloat(item.precioUnitario),
+        // reutilizarCorteSolicitadoId es opcional
+        ...(item.reutilizarCorteSolicitadoId ? { reutilizarCorteSolicitadoId: parseInt(item.reutilizarCorteSolicitadoId) } : {})
       })),
       // 🆕 NUEVO: Incluir cortes pendientes
       cortes: payload.cortes ? payload.cortes.map(corte => {
@@ -92,31 +127,11 @@ export async function crearOrdenVenta(payload) {
       }) : []
     };
     
-    console.log("📦 Payload formateado para backend:", ordenData);
-    console.log("🔪 Cortes en payload formateado:", ordenData.cortes);
-    console.log("🔍 Total de cortes enviados:", ordenData.cortes.length);
-    
-    // Log detallado de cada corte para debugging
-    ordenData.cortes.forEach((corte, index) => {
-      console.log(`📋 Corte ${index + 1} - Detalles completos:`, JSON.stringify(corte, null, 2));
-      console.log(`   - productoId: ${corte.productoId}`);
-      console.log(`   - medidaSolicitada: ${corte.medidaSolicitada}cm (corte solicitado)`);
-      console.log(`   - medidaSobrante: ${corte.medidaSobrante || 'NO ENVIADO'}cm (corte sobrante)`);
-      console.log(`   - cantidad: ${corte.cantidad}`);
-      console.log(`   - esSobrante: ${corte.esSobrante ? 'true ✅ (cantidadesPorSede se aplicarán SOLO al sobrante)' : 'false (no se aplicará incremento de stock)'}`);
-      console.log(`   - cantidadesPorSede:`, JSON.stringify(corte.cantidadesPorSede || []));
-      console.log(`   - reutilizarCorteId: ${corte.reutilizarCorteId || 'NO ENVIADO (se creará nuevo corte sobrante)'}`);
-    });
-    
     const { data } = await api.post("ordenes/venta", ordenData);
-    console.log("✅ Respuesta del backend:", JSON.stringify(data, null, 2));
     return data;
   } catch (error) {
-    console.warn("⚠️ Endpoint ordenes/venta falló:", error.response?.status, error.response?.data?.message);
-    
     // Solo hacer fallback si es 404 (endpoint no existe), no en otros errores
     if (error.response?.status === 404) {
-      console.log("🔄 Usando endpoint fallback ordenes...");
       const { data } = await api.post("ordenes", payload);
       return data;
     }
@@ -128,7 +143,6 @@ export async function crearOrdenVenta(payload) {
 
 // Función alternativa para probar directamente con el endpoint original
 export async function crearOrdenOriginal(payload) {
-  console.log("🔄 Creando orden con endpoint original ordenes...");
   const { data } = await api.post("ordenes", payload);
   return data;
 }
@@ -140,35 +154,87 @@ export async function actualizarOrden(id, payload) {
   return data;
 }
 
+// ✅ Confirmar venta (cambiar venta de false a true)
+export async function confirmarVenta(id, ordenCompleta) {
+  if (!id) throw new Error("ID de la orden no proporcionado");
+  
+  // Construir payload con todos los campos necesarios, cambiando solo venta a true
+  const payload = {
+    fecha: ordenCompleta.fecha,
+    obra: ordenCompleta.obra || "",
+    descripcion: ordenCompleta.descripcion || null,
+    venta: true, // Cambiar a true
+    credito: Boolean(ordenCompleta.credito),
+    clienteId: ordenCompleta.clienteId || ordenCompleta.cliente?.id ? Number(ordenCompleta.clienteId || ordenCompleta.cliente?.id) : null,
+    sedeId: ordenCompleta.sedeId || ordenCompleta.sede?.id ? Number(ordenCompleta.sedeId || ordenCompleta.sede?.id) : null,
+    trabajadorId: ordenCompleta.trabajadorId || ordenCompleta.trabajador?.id ? Number(ordenCompleta.trabajadorId || ordenCompleta.trabajador?.id) : null,
+    items: (Array.isArray(ordenCompleta.items) ? ordenCompleta.items : []).map(item => ({
+      id: item.id ?? null,
+      productoId: Number(item.productoId || item.producto?.id),
+      descripcion: item.descripcion ?? "",
+      cantidad: Number(item.cantidad ?? 1),
+      precioUnitario: Number(item.precioUnitario ?? 0),
+      totalLinea: Number(item.totalLinea ?? 0),
+      ...(item.reutilizarCorteSolicitadoId ? { reutilizarCorteSolicitadoId: Number(item.reutilizarCorteSolicitadoId) } : {})
+    }))
+  };
+  
+  const { data } = await api.put(`ordenes/tabla/${id}`, payload);
+  return data;
+}
+
 // ✅ PUT /api/ordenes/venta/{id} - Actualizar orden de venta específica (maneja inventario)
 export async function actualizarOrdenVenta(id, payload) {
   if (!id) throw new Error("ID de la orden no proporcionado");
   
   try {
-    console.log("🔄 Intentando actualizar orden de venta con endpoint ordenes/venta...");
-    
     // Calcular el total de la orden
     const itemsValidos = payload.items.filter(item => !item.eliminar);
     const totalOrden = itemsValidos.reduce((sum, item) => sum + (item.totalLinea || 0), 0);
+    
+    // Validar campos obligatorios según la documentación
+    if (!payload.clienteId) {
+      throw new Error("clienteId es obligatorio para actualizar la orden");
+    }
+    if (!payload.sedeId) {
+      throw new Error("sedeId es obligatorio para actualizar la orden");
+    }
+    if (!itemsValidos || itemsValidos.length === 0) {
+      throw new Error("La orden debe tener al menos 1 item");
+    }
     
     // Formato exacto para el nuevo endpoint PUT /api/ordenes/venta/{id}
     const ordenData = {
       fecha: payload.fecha,
       obra: payload.obra || "",
-      venta: true, // Siempre true para órdenes de venta
+      descripcion: payload.descripcion || null,
+      venta: Boolean(payload.venta ?? false),
       credito: Boolean(payload.credito),
       incluidaEntrega: Boolean(payload.incluidaEntrega || false),
-      clienteId: parseInt(payload.clienteId),
-      trabajadorId: parseInt(payload.trabajadorId),
-      sedeId: parseInt(payload.sedeId),
-      total: parseFloat(totalOrden), // 🆕 NUEVO: Total calculado de la orden
-      items: itemsValidos.map(item => ({
-        productoId: parseInt(item.productoId),
-        descripcion: String(item.descripcion || ""),
-        cantidad: parseInt(item.cantidad),
-        precioUnitario: parseFloat(item.precioUnitario),
-        totalLinea: parseFloat(item.totalLinea)
-      })),
+      clienteId: parseInt(payload.clienteId), // OBLIGATORIO
+      sedeId: parseInt(payload.sedeId), // OBLIGATORIO
+      // trabajadorId es opcional según la documentación
+      ...(payload.trabajadorId ? { trabajadorId: parseInt(payload.trabajadorId) } : {}),
+      items: itemsValidos.map(item => {
+        const itemData = {
+          productoId: parseInt(item.productoId),
+          descripcion: String(item.descripcion || ""),
+          cantidad: parseInt(item.cantidad),
+          precioUnitario: parseFloat(item.precioUnitario),
+        };
+        
+        // Incluir ID del item si existe (para items existentes que se están modificando)
+        if (item.id) {
+          itemData.id = parseInt(item.id);
+        }
+        
+        // reutilizarCorteSolicitadoId es opcional
+        if (item.reutilizarCorteSolicitadoId) {
+          itemData.reutilizarCorteSolicitadoId = parseInt(item.reutilizarCorteSolicitadoId);
+        }
+        
+        return itemData;
+      }),
       // 🆕 NUEVO: Incluir cortes pendientes si existen
       cortes: payload.cortes ? payload.cortes.map(corte => ({
         productoId: parseInt(corte.productoId),
@@ -179,43 +245,27 @@ export async function actualizarOrdenVenta(id, payload) {
       })) : []
     };
     
-    console.log("📦 Payload formateado para actualización de venta:", ordenData);
-    console.log("🔍 Total de items enviados:", ordenData.items.length);
-    console.log("💰 Total calculado de la orden:", totalOrden);
-    console.log("📊 Desglose de totales por item:", itemsValidos.map(item => ({
-      producto: item.descripcion,
-      cantidad: item.cantidad,
-      precioUnitario: item.precioUnitario,
-      totalLinea: item.totalLinea
-    })));
-    
     const { data } = await api.put(`ordenes/venta/${id}`, ordenData);
     return data;
   } catch (error) {
-    console.warn("⚠️ Error en endpoint ordenes/venta/{id}:", error.response?.status, error.response?.data?.message);
-    
     // Manejo específico de errores del nuevo endpoint
     if (error.response?.status === 400) {
       const errorMsg = error.response?.data?.message || "Error de validación en la orden";
-      console.error("❌ Error 400 - Validación:", errorMsg);
       throw new Error(`Error de validación: ${errorMsg}`);
     }
     
     if (error.response?.status === 409) {
       const errorMsg = error.response?.data?.message || "Conflicto de stock";
-      console.error("❌ Error 409 - Concurrencia:", errorMsg);
       throw new Error(`Conflicto de stock: ${errorMsg}`);
     }
     
     if (error.response?.status === 500) {
       const errorMsg = error.response?.data?.message || "Error interno del servidor";
-      console.error("❌ Error 500 - Servidor:", errorMsg);
       throw new Error(`Error interno del servidor: ${errorMsg}`);
     }
     
     // Fallback al endpoint original solo si es 404 (endpoint no existe)
     if (error.response?.status === 404) {
-      console.log("🔄 Endpoint específico no existe, usando fallback ordenes/tabla/{id}...");
       const { data } = await api.put(`ordenes/tabla/${id}`, payload);
       return data;
     }

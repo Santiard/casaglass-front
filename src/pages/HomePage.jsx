@@ -34,12 +34,9 @@ export default function HomePage(){
       try {
         setLoading(true);
         setError(null);
-        console.log('🔄 Loading dashboard data for sedeId:', sedeId);
-        
         const data = await DashboardService.getDashboardData(sedeId);
         setDashboardData(data);
         
-        console.log('✅ Dashboard data loaded successfully:', data);
       } catch (err) {
         console.error('❌ Error loading dashboard data:', err);
         setError(err.message);

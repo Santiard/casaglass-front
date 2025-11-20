@@ -1,5 +1,5 @@
 import "../styles/Table.css";
-import { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useCallback } from "react";
 import editar from "../assets/editar.png";
 import EntregaModal from "../modals/EntregaModal.jsx";
 import EntregaConfirmarModal from "../modals/EntregaConfirmarModal.jsx";
@@ -13,8 +13,12 @@ export default function EntregasTable({
   onCancelar, // (entrega, motivo) => void
   onEliminar, // (entrega) => Promise<void>
   onImprimir, // (entrega) => void - nuevo prop para imprimir
+  onImprimirSeleccionadas, // (entregas[]) => void - nuevo prop para imprimir múltiples
+  entregasSeleccionadasCount = 0, // Contador de entregas seleccionadas para mostrar en el header
+  onImprimirSeleccionadasClick, // Handler para el botón de imprimir seleccionadas
 }) {
   const [entregas, setEntregas] = useState([]);
+  const [entregasSeleccionadas, setEntregasSeleccionadas] = useState([]); // IDs de entregas seleccionadas
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [isCancelOpen, setIsCancelOpen] = useState(false);
@@ -23,10 +27,6 @@ export default function EntregasTable({
   // Actualizar entregas cuando cambian los datos del padre
   useEffect(() => {
     setEntregas(Array.isArray(data) ? data : []);
-  }, [data]);
-
-  useEffect(() => {
-    if (Array.isArray(data) && data.length) setEntregas(data);
   }, [data]);
 
   const openNuevo = () => { setEntregaEditando(null); setIsModalOpen(true); };
@@ -90,6 +90,84 @@ export default function EntregasTable({
 
   const verDetalles = (ent) => onVerDetalles?.(ent);
 
+  // Manejar selección individual
+  const toggleSeleccion = (entregaId) => {
+    setEntregasSeleccionadas(prev => {
+      if (prev.includes(entregaId)) {
+        return prev.filter(id => id !== entregaId);
+      } else {
+        return [...prev, entregaId];
+      }
+    });
+  };
+
+  // Manejar seleccionar/deseleccionar todo en la página actual
+  const toggleSeleccionarTodo = () => {
+    const todosIds = pageData.map(ent => ent.id);
+    const todosSeleccionados = todosIds.every(id => entregasSeleccionadas.includes(id));
+    
+    if (todosSeleccionados) {
+      // Deseleccionar todos de la página actual
+      setEntregasSeleccionadas(prev => prev.filter(id => !todosIds.includes(id)));
+    } else {
+      // Seleccionar todos de la página actual
+      setEntregasSeleccionadas(prev => {
+        const nuevos = [...prev];
+        todosIds.forEach(id => {
+          if (!nuevos.includes(id)) {
+            nuevos.push(id);
+          }
+        });
+        return nuevos;
+      });
+    }
+  };
+
+  // Verificar si todos los de la página están seleccionados
+  const todosSeleccionadosEnPagina = pageData.length > 0 && 
+    pageData.every(ent => entregasSeleccionadas.includes(ent.id));
+
+  // Handler para imprimir seleccionadas - usar refs para evitar dependencias
+  const entregasRef = React.useRef(entregas);
+  const entregasSeleccionadasRef = React.useRef(entregasSeleccionadas);
+  const onImprimirSeleccionadasRef = React.useRef(onImprimirSeleccionadas);
+  
+  React.useEffect(() => {
+    entregasRef.current = entregas;
+    entregasSeleccionadasRef.current = entregasSeleccionadas;
+    onImprimirSeleccionadasRef.current = onImprimirSeleccionadas;
+  }, [entregas, entregasSeleccionadas, onImprimirSeleccionadas]);
+
+  const handleImprimirSeleccionadas = useCallback(() => {
+    if (!onImprimirSeleccionadasRef.current) return;
+    const seleccionadas = entregasRef.current.filter(ent => entregasSeleccionadasRef.current.includes(ent.id));
+    if (seleccionadas.length > 0) {
+      onImprimirSeleccionadasRef.current(seleccionadas);
+    }
+  }, []); // Sin dependencias - usa refs
+
+  // Actualizar el callback del padre SOLO cuando cambia el count de seleccionadas
+  // Usar useRef para rastrear el count anterior
+  const prevCountRef = React.useRef(0);
+  const onImprimirSeleccionadasClickRef = React.useRef(onImprimirSeleccionadasClick);
+  
+  React.useEffect(() => {
+    onImprimirSeleccionadasClickRef.current = onImprimirSeleccionadasClick;
+  }, [onImprimirSeleccionadasClick]);
+  
+  // Solo actualizar cuando el count cambia, usando refs para evitar loops
+  React.useEffect(() => {
+    const currentCount = entregasSeleccionadas.length;
+    if (prevCountRef.current !== currentCount && onImprimirSeleccionadasClickRef.current) {
+      prevCountRef.current = currentCount;
+      onImprimirSeleccionadasClickRef.current({
+        count: currentCount,
+        handler: handleImprimirSeleccionadas
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [entregasSeleccionadas.length]);
+
   return (
     <div className="table-container">
       {/* Tabla principal */}
@@ -97,6 +175,20 @@ export default function EntregasTable({
         <table className="table entregas-table">
           <thead>
             <tr>
+              <th style={{ width: "50px" }}>
+                <input
+                  type="checkbox"
+                  checked={todosSeleccionadosEnPagina}
+                  onChange={toggleSeleccionarTodo}
+                  title="Seleccionar/Deseleccionar todos en esta página"
+                  style={{ 
+                    width: "20px", 
+                    height: "20px", 
+                    cursor: "pointer",
+                    transform: "scale(1.2)"
+                  }}
+                />
+              </th>
               <th>Fecha</th>
               <th>Sede</th>
               <th>Empleado</th>
@@ -112,18 +204,35 @@ export default function EntregasTable({
 
           <tbody>
             {pageData.length === 0 ? (
-              <tr><td colSpan={10} className="empty">No hay entregas registradas</td></tr>
+              <tr><td colSpan={11} className="empty">No hay entregas registradas</td></tr>
             ) : pageData.map((ent) => {
-              const esperadoNeto = Number(ent.montoEsperado ?? 0) - Number(ent.montoGastos ?? 0);
+              // Diferencia = (Monto Esperado - Monto Gastos) - Monto Entregado
+              const montoNetoEsperado = Number(ent.montoEsperado ?? 0) - Number(ent.montoGastos ?? 0);
               const diferencia = ent.estado === "ENTREGADA"
-                ? Number(ent.montoEntregado ?? 0) - esperadoNeto
+                ? montoNetoEsperado - Number(ent.montoEntregado ?? 0)
                 : (ent.diferencia ?? 0);
+              const estaSeleccionada = entregasSeleccionadas.includes(ent.id);
+              
               return (
                 <tr
                   key={ent.id}
                   onDoubleClick={() => verDetalles(ent)}
-                  style={{ cursor:"pointer" }}
+                  style={{ cursor:"pointer", backgroundColor: estaSeleccionada ? "#e3f2fd" : "transparent" }}
                 >
+                  <td onClick={(e) => e.stopPropagation()}>
+                    <input
+                      type="checkbox"
+                      checked={estaSeleccionada}
+                      onChange={() => toggleSeleccion(ent.id)}
+                      onClick={(e) => e.stopPropagation()}
+                      style={{ 
+                        width: "20px", 
+                        height: "20px", 
+                        cursor: "pointer",
+                        transform: "scale(1.2)"
+                      }}
+                    />
+                  </td>
                   <td>{fmtFecha(ent.fechaEntrega)}</td>
                   <td>{ent.sede?.nombre ?? "-"}</td>
                   <td>{ent.empleado?.nombre ?? "-"}</td>

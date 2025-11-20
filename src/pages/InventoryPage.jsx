@@ -257,6 +257,7 @@ export default function InventoryPage() {
         return nombre.includes(search) || codigo.includes(search);
       })
       // Filtro por status (Disponible/Agotado)
+      // Los valores negativos se consideran "Disponible" porque permiten ventas anticipadas
       .filter((item) => {
         if (!status) return true;
         const total =
@@ -264,7 +265,9 @@ export default function InventoryPage() {
           Number(item.cantidadCentro || 0) +
           Number(item.cantidadPatios || 0) +
           Number(item.cantidad || 0);
-        const estado = total > 0 ? "Disponible" : "Agotado";
+        // Disponible: stock > 0 o stock < 0 (venta anticipada)
+        // Agotado: stock === 0 exactamente
+        const estado = total !== 0 ? "Disponible" : "Agotado";
         return estado === status;
       })
       // Filtro por color
@@ -338,11 +341,14 @@ export default function InventoryPage() {
         return (c.color || "").toUpperCase() === corteFilters.color.toUpperCase();
       })
       // Filtro por status (usando cantidadTotal del DTO)
+      // Los valores negativos se consideran "Disponible" porque permiten ventas anticipadas
       .filter((c) => {
         if (!corteFilters.status) return true;
         const total = Number(c.cantidadTotal || 0) || 
                      (Number(c.cantidadInsula || 0) + Number(c.cantidadCentro || 0) + Number(c.cantidadPatios || 0));
-        const estado = total > 0 ? "Disponible" : "Agotado";
+        // Disponible: stock > 0 o stock < 0 (venta anticipada)
+        // Agotado: stock === 0 exactamente
+        const estado = total !== 0 ? "Disponible" : "Agotado";
         return estado === corteFilters.status;
       })
       // Filtro por rango de largo

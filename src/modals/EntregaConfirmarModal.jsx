@@ -19,8 +19,10 @@ export default function EntregaConfirmarModal({ isOpen, onClose, entrega, onConf
   if (!isOpen || !entrega) return null;
   const esperado = Number(entrega.montoEsperado ?? 0);
   const gastos = Number(entrega.montoGastos ?? 0);
-  const neto = esperado - gastos;
-  const diferencia = useMemo(() => Number(montoEntregado ?? 0) - neto, [montoEntregado, neto]);
+  // Monto Neto Esperado = Monto Esperado - Monto Gastos
+  const montoNetoEsperado = useMemo(() => esperado - gastos, [esperado, gastos]);
+  // Diferencia = Monto Neto Esperado - Monto Entregado
+  const diferencia = useMemo(() => montoNetoEsperado - Number(montoEntregado ?? 0), [montoNetoEsperado, montoEntregado]);
   const fmtCOP = (n) => new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(Number(n||0));
 
   const submit = () => {
@@ -32,10 +34,11 @@ export default function EntregaConfirmarModal({ isOpen, onClose, entrega, onConf
       <div className="modal-container">
         <h2>Confirmar entrega</h2>
         <div className="modal-alerts">
-          <div className="alert info"><strong>Esperado:</strong> {fmtCOP(esperado)}</div>
+          <div className="alert info"><strong>Monto Esperado (Órdenes):</strong> {fmtCOP(esperado)}</div>
           <div className="alert info"><strong>Gastos:</strong> {fmtCOP(gastos)}</div>
-          <div className="alert info"><strong>Neto:</strong> {fmtCOP(neto)}</div>
-          <div className="alert {(diferencia===0)?'success':'warning'}"><strong>Diferencia:</strong> {fmtCOP(diferencia)}</div>
+          <div className="alert info"><strong>Monto Neto Esperado:</strong> {fmtCOP(montoNetoEsperado)}</div>
+          <div className="alert info"><strong>Monto Entregado:</strong> {fmtCOP(montoEntregado)}</div>
+          <div className={`alert ${diferencia === 0 ? 'success' : 'warning'}`}><strong>Diferencia:</strong> {fmtCOP(diferencia)}</div>
         </div>
 
         <div className="form grid-2">

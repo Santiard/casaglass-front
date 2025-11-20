@@ -205,6 +205,52 @@ const EntregasService = {
       console.error('Error obteniendo resumen por empleado:', error);
       throw error;
     }
+  },
+
+  // Obtener gastos disponibles (aprobados y sin entrega) para una sede
+  obtenerGastosDisponibles: async (sedeId) => {
+    try {
+      const response = await api.get(`gastos-sede/sede/${sedeId}/sin-entrega`);
+      return Array.isArray(response.data) ? response.data : [];
+    } catch (error) {
+      console.error(`Error obteniendo gastos disponibles para sede ${sedeId}:`, error);
+      throw error;
+    }
+  },
+
+  // Obtener el siguiente número de comprobante para una entrega
+  obtenerSiguienteNumeroComprobante: async () => {
+    try {
+      // Obtener todas las entregas para encontrar la última
+      const response = await api.get('entregas-dinero');
+      
+      // Manejar diferentes estructuras de respuesta
+      let entregas = [];
+      if (response.data && typeof response.data === 'object') {
+        if (Array.isArray(response.data.value)) {
+          entregas = response.data.value;
+        } else if (Array.isArray(response.data)) {
+          entregas = response.data;
+        }
+      }
+      
+      if (!Array.isArray(entregas) || entregas.length === 0) {
+        // Si no hay entregas, empezar con ENT-1
+        return 'ENT-1';
+      }
+      
+      // Encontrar el ID más alto
+      const maxId = Math.max(...entregas.map(e => Number(e.id) || 0));
+      
+      // Calcular el siguiente número
+      const siguienteNumero = maxId + 1;
+      
+      return `ENT-${siguienteNumero}`;
+    } catch (error) {
+      console.error('Error obteniendo siguiente número de comprobante:', error);
+      // En caso de error, retornar un número basado en timestamp como fallback
+      return `ENT-${Date.now()}`;
+    }
   }
 };
 

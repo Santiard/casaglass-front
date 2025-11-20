@@ -143,19 +143,7 @@ export default function VenderPage() {
       setLoading(true);
     }
     try {
-      console.log("🔄 Cargando cortes desde /api/cortes-inventario-completo...");
       const cortes = await listarCortesInventarioCompleto({}, isAdmin, sedeId);
-      console.log(`📊 Cortes recibidos del endpoint: ${cortes?.length || 0}`);
-      if (cortes?.length > 0) {
-        console.log("📋 Primeros 3 cortes:", cortes.slice(0, 3).map(c => ({
-          id: c.id,
-          codigo: c.codigo,
-          largoCm: c.largoCm,
-          cantidadInsula: c.cantidadInsula,
-          cantidadCentro: c.cantidadCentro,
-          cantidadPatios: c.cantidadPatios
-        })));
-      }
       setCortesData(cortes || []);
     } catch (e) {
       console.error("❌ Error cargando inventario de cortes", e);
@@ -208,14 +196,12 @@ export default function VenderPage() {
     localStorage.removeItem("shopItems");
     
     // Refrescar automáticamente ambos listados después de una venta exitosa
-    console.log("🔄 Refrescando tablas de productos y cortes después de venta exitosa...");
     fetchData();
     fetchCortesData();
   };
 
   // ======= Función para Manejar Cortes =======
   const manejarCorte = async (corteParaVender, corteSobrante) => {
-    console.log("🔪 Procesando corte:", { corteParaVender, corteSobrante });
     
     try {
       // 1. Agregar el corte al carrito
@@ -224,7 +210,6 @@ export default function VenderPage() {
       // 2. Guardar el corte sobrante en el estado para enviarlo después de facturar
       setCortesPendientes(prev => [...prev, corteSobrante]);
       
-      console.log("✅ Corte agregado al carrito y sobrante guardado para facturación");
       
     } catch (error) {
       console.error("❌ Error al procesar corte:", error);
@@ -339,6 +324,7 @@ export default function VenderPage() {
               userSede={sedeId === 1 ? "Insula" : sedeId === 2 ? "Centro" : sedeId === 3 ? "Patios" : ""}
               onAgregarProducto={agregarProducto}
               onCortarProducto={manejarCorte}
+              todosLosProductos={data}
             />
           </>
         ) : (

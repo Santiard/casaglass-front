@@ -85,7 +85,8 @@ export default function CortesPage() {
       })
       .filter((c) => {
         if (!filters.status) return true;
-        const estado = Number(c.cantidad || 0) > 0 ? "Disponible" : "Agotado";
+        // Los valores negativos se consideran "Disponible" porque permiten ventas anticipadas
+        const estado = Number(c.cantidad || 0) !== 0 ? "Disponible" : "Agotado";
         return estado === filters.status;
       })
       .filter((c) => Number(c.largoCm || 0) >= minLargo && Number(c.largoCm || 0) <= maxLargo)

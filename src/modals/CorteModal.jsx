@@ -45,6 +45,23 @@ export default function CorteModal({ isOpen, onClose, onSave, corte }) {
     fetchCategorias();
   }, []);
 
+  // Prevenir cierre/recarga de pestaña cuando el modal está abierto
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleBeforeUnload = (e) => {
+      e.preventDefault();
+      e.returnValue = "¿Estás seguro de que quieres salir? Los cambios no guardados se perderán.";
+      return e.returnValue;
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, [isOpen]);
+
   useEffect(() => {
     if (corte) {
       setFormData({
@@ -157,7 +174,6 @@ export default function CorteModal({ isOpen, onClose, onSave, corte }) {
       backendPayload.id = formData.id;
     }
 
-    console.log("Datos que se enviarán al backend (corte):", backendPayload);
     onSave(backendPayload);
     onClose();
   };
@@ -247,7 +263,6 @@ export default function CorteModal({ isOpen, onClose, onSave, corte }) {
                 <option value="BLANCO">BLANCO</option>
                 <option value="NEGRO">NEGRO</option>
                 <option value="BRONCE">BRONCE</option>
-                <option value="NATURAL">NATURAL</option>
                 <option value="NA">NA</option>
               </select>
             </label>

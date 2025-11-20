@@ -25,7 +25,6 @@ export default function InventoryFilters({ filters = {}, setFilters, onAddProduc
         <option value="BLANCO">BLANCO</option>
         <option value="NEGRO">NEGRO</option>
         <option value="BRONCE">BRONCE</option>
-        <option value="NATURAL">NATURAL</option>
         <option value="NA">NA</option>
       </select>
 

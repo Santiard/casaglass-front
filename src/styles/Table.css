@@ -30,7 +30,9 @@
 .table-wrapper {
   flex: 1;
   min-height: 0;
-  overflow-y: auto;
+  overflow-y: auto; /* Scroll vertical cuando el contenido excede */
+  overflow-x: auto; /* Scroll horizontal si es necesario */
+  max-height: 100%; /* Limitar altura al contenedor padre */
 }
 
 /* Paginación abajo */
@@ -62,6 +64,16 @@
   padding: 0.375rem 0.625rem; /* 6px 10px */
   text-align: left;
   border-bottom: 0.0625rem solid #ddd;
+}
+
+/* Estilo para columna Nombre en tablas de inventario */
+.table th:nth-child(2),
+.table td:nth-child(2) {
+  min-width: 8rem; /* Nombre - ancho reducido */
+  max-width: 8rem; /* Limitar ancho máximo */
+  white-space: nowrap; /* No hacer wrap */
+  overflow: hidden; /* Ocultar overflow */
+  text-overflow: ellipsis; /* Mostrar ... si es muy largo */
 }
 
 .table tbody tr:nth-child(even) {
@@ -185,6 +197,29 @@ input[type="number"] {
 
 .row-sin-stock:hover {
   background-color: #ffcdd2 !important; /* Rojo ligeramente más intenso en hover */
+}
+
+/* Estilo para filas con stock negativo (venta anticipada) */
+.row-stock-negativo {
+  background-color: #fff3e0 !important; /* Naranja muy suave */
+}
+
+.row-stock-negativo:hover {
+  background-color: #ffe0b2 !important; /* Naranja ligeramente más intenso en hover */
+}
+
+/* Estilo para celdas con valores negativos */
+.stock-negativo {
+  color: #ff9800 !important; /* Naranja para valores negativos */
+  font-weight: 600;
+}
+
+/* Badge para indicar stock negativo */
+.badge-negativo {
+  color: #ff9800;
+  font-size: 0.85em;
+  font-weight: 600;
+  margin-left: 4px;
 }
 
 /* ================================================

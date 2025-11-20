@@ -14,6 +14,7 @@ export default function OrdenesTable({
   onAnular,
   onCrear,
   onFacturar,
+  onConfirmarVenta,
   rowsPerPage = 10,
   loading = false,
 }) {
@@ -106,7 +107,6 @@ export default function OrdenesTable({
 
   // 🔹 Imprimir orden
   const handleImprimir = (orden) => {
-    console.log("🖨️ Imprimiendo orden:", orden);
     setOrdenImprimir(orden);
     setIsImprimirModalOpen(true);
   };
@@ -311,24 +311,37 @@ export default function OrdenesTable({
                           Imprimir
                         </button>
 
-                        <button
-                          className="btnLink"
-                          onClick={() => {
-                            if (yaFacturada) return;
-                            setOrdenFacturar(o);
-                            setIsFacturarModalOpen(true);
-                          }}
-                          title={yaFacturada ? "Orden ya facturada" : "Facturar orden"}
-                          disabled={yaFacturada}
-                          style={{ opacity: yaFacturada ? 0.5 : 1, cursor: yaFacturada ? 'not-allowed' : 'pointer' }}
-                        >
-                          Facturar
-                        </button>
+                        {/* Botón para confirmar venta (solo si venta es false y la orden no está anulada) */}
+                        {!o.venta && onConfirmarVenta && o.estado?.toLowerCase() !== 'anulada' && (
+                          <button
+                            className="btnLink"
+                            onClick={() => onConfirmarVenta?.(o)}
+                            title="Confirmar venta (marcar como pagada y lista para contabilidad)"
+                          >
+                            Confirmar
+                          </button>
+                        )}
+
+                        {/* Botón Facturar solo visible si la venta está confirmada */}
+                        {o.venta && (
+                          <button
+                            className="btnLink"
+                            onClick={() => {
+                              if (yaFacturada) return;
+                              setOrdenFacturar(o);
+                              setIsFacturarModalOpen(true);
+                            }}
+                            title={yaFacturada ? "Orden ya facturada" : "Facturar orden"}
+                            disabled={yaFacturada}
+                            style={{ opacity: yaFacturada ? 0.5 : 1, cursor: yaFacturada ? 'not-allowed' : 'pointer' }}
+                          >
+                            Facturar
+                          </button>
+                        )}
 
                         <button
                           className="btnEdit"
                           onClick={() => {
-                            console.log("✏️ Editando orden:", o);
                             setOrdenEditando(o);
                             setIsModalOpen(true);
                           }}

@@ -71,15 +71,10 @@ const AbonoModal = ({ isOpen, onClose, credito, onSuccess }) => {
         factura: formData.factura
       };
       
-      console.log("Enviando abono:", abonoData, "para crédito:", credito?.id);
-      
       const response = await api.post(`/creditos/${credito?.id}/abonos`, abonoData);
-      
-      console.log("Abono creado exitosamente:", response.data);
       
       resetForm();
       if (onSuccess) {
-        console.log("Ejecutando callback de éxito para recargar datos");
         onSuccess(); // 🔄 Refresca la vista padre
       }
       onClose();

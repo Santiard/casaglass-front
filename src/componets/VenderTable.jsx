@@ -34,7 +34,6 @@ export default function VenderTable({ data = [], onAgregarProducto, onActualizar
   };
 
   const handleCortar = async (corteParaVender, corteSobrante) => {
-    console.log("🔪 Procesando corte:", { corteParaVender, corteSobrante });
     
     if (onCortarProducto) {
       await onCortarProducto(corteParaVender, corteSobrante);

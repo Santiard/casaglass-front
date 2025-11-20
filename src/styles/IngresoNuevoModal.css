@@ -5,7 +5,7 @@
   background: rgba(30, 39, 83, 0.6);
   display: grid;
   place-items: center;
-  z-index: 1000;
+  z-index: 10000 !important; /* Por encima de Sidebar (100) y Header (10) - Safari compatible */
 }
 
 .modal-container {
@@ -29,6 +29,8 @@
 .alert { padding: 0.5rem 0.625rem; border-radius: 0.5rem; font-size: .9rem; } /* 8px 10px 8px */
 .alert.error { background: #ffe8e8; color: #8b1a1a; border: 0.0625rem solid #f5bcbc; } /* 1px */
 .alert.warning { background: #fff6e5; color: #7a4b00; border: 0.0625rem solid #f3d39a; } /* 1px */
+.alert.info { background: #e3f2fd; color: #1976d2; border: 0.0625rem solid #90caf9; } /* 1px */
+.alert.success { background: #e8f5e9; color: #2e7d32; border: 0.0625rem solid #a5d6a7; } /* 1px */
 
 /* === Layout tres paneles === */
 .modal-grid {

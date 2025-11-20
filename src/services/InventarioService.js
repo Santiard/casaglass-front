@@ -73,7 +73,6 @@ function transformarInventarioDTO(productos, isAdmin = true, userSedeId = null) 
  */
 export async function listarInventarioCompleto(params = {}, isAdmin = true, userSedeId = null) {
   const { data } = await api.get("/inventario-completo", { params });
-  console.log("Datos del endpoint /api/inventario-completo:", data);
   return transformarInventarioDTO(data || [], isAdmin, userSedeId);
 }
 
@@ -173,44 +172,7 @@ function transformarCortesDTO(cortes, isAdmin = true, userSedeId = null) {
  */
 export async function listarCortesInventarioCompleto(params = {}, isAdmin = true, userSedeId = null) {
   const { data } = await api.get("/cortes-inventario-completo", { params });
-  console.log("📥 Datos RAW del endpoint /api/cortes-inventario-completo:", data);
-  console.log("📊 Total de cortes RAW:", data?.length || 0);
-  
-  // Log detallado de los primeros 5 cortes para ver el stock que viene del backend
-  if (data && data.length > 0) {
-    console.log("🔍 Primeros 5 cortes RAW (stock del backend):");
-    data.slice(0, 5).forEach((c, idx) => {
-      console.log(`   Corte ${idx + 1} - ID: ${c.id}, Código: ${c.codigo}, Largo: ${c.largoCm}cm`);
-      console.log(`      Stock Insula: ${c.cantidadInsula || 0}, Centro: ${c.cantidadCentro || 0}, Patios: ${c.cantidadPatios || 0}`);
-    });
-    
-    // Buscar el corte más reciente (el que debería tener stock)
-    const cortesRecientes = data.slice(-3);
-    console.log("🆕 Últimos 3 cortes (más recientes):");
-    cortesRecientes.forEach((c, idx) => {
-      console.log(`   Corte ${data.length - 3 + idx + 1} - ID: ${c.id}, Código: ${c.codigo}, Largo: ${c.largoCm}cm`);
-      console.log(`      Stock Insula: ${c.cantidadInsula || 0}, Centro: ${c.cantidadCentro || 0}, Patios: ${c.cantidadPatios || 0}`);
-    });
-    
-    // Buscar cortes que empiecen con "ANG-NAT-8025" y tengan largo 340 (el sobrante recién creado)
-    const cortesSobranteEsperado = data.filter(c => {
-      const codigo = (c.codigo || "").toString();
-      const largo = Number(c.largoCm || 0);
-      return codigo.startsWith("ANG-NAT-8025") && largo === 340;
-    });
-    if (cortesSobranteEsperado.length > 0) {
-      console.log("🎯 Corte sobrante esperado (ANG-NAT-8025, 340cm):");
-      cortesSobranteEsperado.forEach(c => {
-        console.log(`   ID: ${c.id}, Código: ${c.codigo}`);
-        console.log(`   Stock Insula: ${c.cantidadInsula || 0}, Centro: ${c.cantidadCentro || 0}, Patios: ${c.cantidadPatios || 0}`);
-      });
-    } else {
-      console.log("⚠️ No se encontró el corte sobrante (ANG-NAT-8025, 340cm) - puede que no se haya creado");
-    }
-  }
-  
   const transformados = transformarCortesDTO(data || [], isAdmin, userSedeId);
-  console.log("📤 Datos transformados de cortes:", transformados?.length || 0, "cortes");
   return transformados;
 }
 

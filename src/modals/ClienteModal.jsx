@@ -20,9 +20,9 @@ export default function ClienteModal({
   };
 
   // Configuración del hook personalizado
-  const numericFields = ['nit', 'telefono'];
+  // NIT no está en numericFields porque permite guion "-"
+  const numericFields = ['telefono'];
   const validationRules = {
-    nit: { regex: VALIDATION_PATTERNS.NIT_10_DIGITS },
     telefono: { regex: VALIDATION_PATTERNS.PHONE_10_DIGITS }
   };
 
@@ -65,21 +65,32 @@ export default function ClienteModal({
       return;
     }
     
-    // Usar el handleChange base del hook para otros campos
-    baseHandleChange(e);
-    
-    // Validaciones específicas adicionales
+    // Manejo especial para NIT: permite números y guion "-"
     if (name === 'nit') {
+      // Permitir solo números y guion, máximo 11 caracteres
+      const filtered = value.replace(/[^0-9-]/g, '');
+      // Limitar a 11 caracteres
+      const limited = filtered.slice(0, 11);
+      
+      setFormData(prev => ({
+        ...prev,
+        [name]: limited
+      }));
+      
       // Verificar si el NIT ya existe (solo al crear, no al editar)
-      if (!clienteAEditar && value.length >= 1) {
+      if (!clienteAEditar && limited.length >= 1) {
         const existe = clientesExistentes.some(cliente => 
-          cliente.nit === value
+          cliente.nit === limited
         );
         setNitDuplicado(existe);
       } else {
         setNitDuplicado(false);
       }
+      return;
     }
+    
+    // Usar el handleChange base del hook para otros campos
+    baseHandleChange(e);
   };
 
   // Validación muy básica en el front
@@ -90,8 +101,10 @@ export default function ClienteModal({
     const telefono = (formData.telefono || "").trim();
     
     if (!nit) return "El NIT es obligatorio.";
-    if (nit.length > 10) return "El NIT debe contener máximo 10 dígitos.";
-    if (nit.length < 1) return "El NIT debe contener al menos 1 dígito.";
+    if (nit.length > 11) return "El NIT debe contener máximo 11 caracteres (incluyendo el guion -).";
+    if (nit.length < 1) return "El NIT debe contener al menos 1 carácter.";
+    // Validar formato: solo números y un guion opcional
+    if (!/^[\d-]+$/.test(nit)) return "El NIT solo puede contener números y el guion (-).";
     if (!nombre) return "El nombre es obligatorio.";
     if (!correo) return "El correo es obligatorio.";
     if (telefono && telefono.length > 10) return "El teléfono no puede tener más de 10 dígitos.";
@@ -175,12 +188,23 @@ export default function ClienteModal({
               name="nit" 
               value={formData.nit} 
               onChange={handleChange} 
-              placeholder="Máximo 10 dígitos"
-              maxLength="10"
-              pattern="\d{1,10}"
-              title="El NIT debe contener entre 1 y 10 dígitos"
+              placeholder="Máximo 11 caracteres (ej: 123456789-0)"
+              maxLength="11"
+              pattern="[\d-]{1,11}"
+              title="El NIT debe contener entre 1 y 11 caracteres (números y guion -)"
               required 
               disabled={!!clienteAEditar} // Si editas, no cambiar el NIT
+              onKeyDown={(e) => {
+                // Permitir: números, guion, backspace, delete, tab, escape, enter, y atajos de teclado
+                if (!/[0-9-]/.test(e.key) && 
+                    !['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', 'ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key) &&
+                    !(e.key === 'a' && e.ctrlKey) && // Ctrl+A
+                    !(e.key === 'c' && e.ctrlKey) && // Ctrl+C
+                    !(e.key === 'v' && e.ctrlKey) && // Ctrl+V
+                    !(e.key === 'x' && e.ctrlKey)) { // Ctrl+X
+                  e.preventDefault();
+                }
+              }}
               style={{
                 borderColor: nitDuplicado ? '#ef4444' : '',
                 backgroundColor: nitDuplicado ? '#fef2f2' : ''

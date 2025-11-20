@@ -8,6 +8,7 @@ import {
   actualizarOrden,
   anularOrden,
   marcarOrdenComoFacturada,
+  confirmarVenta,
 } from "../services/OrdenesService";
 import { crearFactura, marcarFacturaComoPagada, obtenerFacturaPorOrden } from "../services/FacturasService";
 import { useConfirm } from "../hooks/useConfirm.jsx";
@@ -47,20 +48,15 @@ export default function OrdenesPage() {
     try {
       // Si orden es null, solo refrescar (modal ya guardó)
       if (!orden) {
-        console.log("Refrescando tabla...");
         await fetchData();
         return;
       }
 
-      console.log("Guardando orden con payload:", orden);
-
       let updated;
       if (isEdit) {
         updated = await actualizarOrden(orden.id, orden);
-        console.log("✅ Orden actualizada:", updated);
       } else {
         updated = await crearOrden(orden);
-        console.log("✅ Orden creada:", updated);
       }
 
       await fetchData(); // refrescar tabla
@@ -69,6 +65,31 @@ export default function OrdenesPage() {
       console.error("Response data:", e?.response?.data);
       console.error("Status:", e?.response?.status);
       showError("No se pudo guardar la orden. Revisa consola.");
+    }
+  };
+
+  // 🔹 Confirmar venta (cambiar venta de false a true)
+  const handleConfirmarVenta = async (orden) => {
+    const confirmacion = await confirm({
+      title: "Confirmar Venta",
+      message: `¿Estás seguro de que deseas confirmar la venta de la orden #${orden.numero}?\n\nEsta acción marcará la orden como vendida y permitirá manejarla en contabilidad.`,
+      confirmText: "Confirmar",
+      cancelText: "Cancelar",
+      type: "info"
+    });
+    
+    if (!confirmacion) return;
+    
+    try {
+      const response = await confirmarVenta(orden.id, orden);
+      
+      showSuccess(`Orden #${response.numero || orden.numero} confirmada como venta exitosamente.`);
+      
+      await fetchData(); // Refrescar tabla
+    } catch (e) {
+      console.error("Error confirmando venta", e);
+      const msg = e?.response?.data?.message || e?.message || "No se pudo confirmar la venta.";
+      showError(msg);
     }
   };
 
@@ -85,9 +106,7 @@ export default function OrdenesPage() {
     if (!confirmacion) return;
     
     try {
-      console.log(`🔄 Anulando orden ID: ${orden.id}`);
       const response = await anularOrden(orden.id);
-      console.log("✅ Respuesta de anulación:", response);
       
       // Mostrar mensaje de éxito
       showSuccess(`Orden #${response.numero} anulada correctamente. Estado: ${response.estado}`);
@@ -103,9 +122,6 @@ export default function OrdenesPage() {
   // 🔹 Facturar orden
   const handleFacturar = async (facturaPayload, isModal = false) => {
     try {
-      console.log(`📄 Facturando desde modal:`, facturaPayload);
-      
-      console.log("📦 Payload de factura:", facturaPayload);
       
       let facturaResponse;
       let yaTeniaFactura = false;
@@ -113,14 +129,11 @@ export default function OrdenesPage() {
       // Crear factura (manejar caso 400: ya existe)
       try {
         facturaResponse = await crearFactura(facturaPayload);
-        console.log("✅ Factura creada:", facturaResponse);
         // Intentar marcarla como pagada inmediatamente
         try {
           if (facturaResponse?.id) {
-            console.log(`💳 Marcando factura ${facturaResponse.id} como PAGADA...`);
             const hoy = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
             await marcarFacturaComoPagada(facturaResponse.id, hoy);
-            console.log("✅ Factura marcada como PAGADA");
           }
         } catch (pagoErr) {
           console.warn("⚠️ No se pudo marcar como pagada inmediatamente:", pagoErr?.response?.data || pagoErr?.message);
@@ -129,16 +142,13 @@ export default function OrdenesPage() {
         const status = err?.response?.status;
         const errMsg = err?.response?.data?.error || err?.response?.data?.message || "";
         if (status === 400 && /ya tiene una factura/i.test(String(errMsg))) {
-          console.log("ℹ️ La orden ya tenía una factura. Continuando sin alertas...");
           yaTeniaFactura = true;
           // Intentar obtener la factura por orden y marcarla como pagada
           try {
             const facturaExistente = await obtenerFacturaPorOrden(facturaPayload.ordenId);
             if (facturaExistente?.id) {
-              console.log(`💳 Marcando factura existente ${facturaExistente.id} como PAGADA...`);
               const hoy = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
               await marcarFacturaComoPagada(facturaExistente.id, hoy);
-              console.log("✅ Factura existente marcada como PAGADA");
             }
           } catch (lookupErr) {
             console.warn("⚠️ No se pudo marcar como pagada la factura existente:", lookupErr?.response?.data || lookupErr?.message);
@@ -150,9 +160,7 @@ export default function OrdenesPage() {
 
       // Marcar como facturada solo si no falló el paso anterior por "ya tenía"
       try {
-        console.log(`🔄 Marcando orden ${facturaPayload.ordenId} como facturada...`);
         const ordenResponse = await marcarOrdenComoFacturada(facturaPayload.ordenId, true);
-        console.log("✅ Orden marcada como facturada:", ordenResponse);
         const numeroFactura = facturaResponse?.numeroFactura || ordenResponse?.numeroFactura || facturaResponse?.numero || "";
         if (!yaTeniaFactura) {
           showSuccess(`Factura creada exitosamente. Número: ${numeroFactura || "N/A"}`);
@@ -185,6 +193,7 @@ export default function OrdenesPage() {
           onAnular={handleAnular}
           onCrear={(o) => handleGuardar(o, false)}
           onFacturar={handleFacturar}
+          onConfirmarVenta={handleConfirmarVenta}
         />
       </div>
       <ConfirmDialog />

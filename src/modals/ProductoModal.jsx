@@ -12,10 +12,11 @@ export default function ProductModal({ isOpen, onClose, onSave, product }) {
     nombre: "",
     categoria: "",
     tipo: "UNID",
-    color: "",
-    cantidadInsula: 0,
-    cantidadCentro: 0,
-    cantidadPatios: 0,
+    color: "NA", // Por defecto NA para UNID
+    cantidadInsula: "", // Vacío por defecto, no 0
+    cantidadCentro: "", // Vacío por defecto, no 0
+    cantidadPatios: "", // Vacío por defecto, no 0
+    costo: "",
     precio1: "",
     precio2: "",
     precio3: "",
@@ -44,14 +45,42 @@ export default function ProductModal({ isOpen, onClose, onSave, product }) {
     fetchCategorias();
   }, []);
 
+  // Prevenir cierre/recarga de pestaña cuando el modal está abierto
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleBeforeUnload = (e) => {
+      e.preventDefault();
+      e.returnValue = "¿Estás seguro de que quieres salir? Los cambios no guardados se perderán.";
+      return e.returnValue;
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, [isOpen]);
+
   useEffect(() => {
     if (product) {
       // si product viene sin esVidrio, lo inferimos desde la categoría
       const esVid = product.esVidrio ?? (product.categoria === "Vidrios");
+      const tipoProducto = product.tipo || "UNID";
+      // PERFIL y MT usan MATE por defecto, otros usan NA
+      const colorPorDefecto = (tipoProducto === "PERFIL" || tipoProducto === "MT") ? "MATE" : "NA";
       setFormData({
         ...initialState,
         ...product,
         esVidrio: esVid,
+        // Asegurar que el costo se cargue correctamente (puede venir como número)
+        costo: product.costo !== undefined && product.costo !== null ? String(product.costo) : "",
+        // Establecer color por defecto según tipo si no tiene color
+        color: product.color || colorPorDefecto,
+        // Convertir cantidades: si es 0, mostrar vacío; si tiene valor, mostrar el valor
+        cantidadInsula: product.cantidadInsula && product.cantidadInsula !== 0 ? String(product.cantidadInsula) : "",
+        cantidadCentro: product.cantidadCentro && product.cantidadCentro !== 0 ? String(product.cantidadCentro) : "",
+        cantidadPatios: product.cantidadPatios && product.cantidadPatios !== 0 ? String(product.cantidadPatios) : "",
         // si el producto tiene m1m2 antiguo, tratar de separarlo (opcional)
         m1: product.m1 ?? product.m1m2?.split?.("x")?.[0] ?? "",
         m2: product.m2 ?? product.m1m2?.split?.("x")?.[1] ?? "",
@@ -90,7 +119,7 @@ export default function ProductModal({ isOpen, onClose, onSave, product }) {
     }
 
     // Campos de precios (pueden estar vacíos)
-    const priceFields = ['precio1', 'precio2', 'precio3', 'laminas'];
+    const priceFields = ['precio1', 'precio2', 'precio3', 'costo', 'laminas'];
     // Campos de cantidades (deben tener 0 por defecto)
     const quantityFields = ['cantidadInsula', 'cantidadCentro', 'cantidadPatios'];
     // Campos de texto que deben convertirse a mayúsculas
@@ -98,15 +127,42 @@ export default function ProductModal({ isOpen, onClose, onSave, product }) {
     // Campos de medidas que solo permiten números y puntos
     const measureFields = ['mm', 'm1', 'm2'];
 
+    // Si cambia el tipo, establecer color por defecto automáticamente
+    if (name === 'tipo') {
+      const nuevoTipo = value.toUpperCase();
+      // PERFIL y MT usan MATE por defecto, otros usan NA
+      const colorPorDefecto = (nuevoTipo === 'PERFIL' || nuevoTipo === 'MT') ? 'MATE' : 'NA';
+      setFormData((prev) => ({
+        ...prev,
+        tipo: nuevoTipo,
+        color: colorPorDefecto, // Siempre establecer el color por defecto según el tipo
+      }));
+      return;
+    }
+
     let processedValue = value;
 
     if (priceFields.includes(name)) {
       // Campos de precio: solo números, pueden estar vacíos
-      processedValue = value.replace(/[^0-9]/g, '');
+      // El costo permite decimales (punto)
+      if (name === 'costo') {
+        processedValue = value.replace(/[^0-9.]/g, '');
+        // Evitar múltiples puntos decimales
+        const parts = processedValue.split('.');
+        if (parts.length > 2) {
+          processedValue = parts[0] + '.' + parts.slice(1).join('');
+        }
+        // Limitar a 2 decimales
+        if (parts.length === 2 && parts[1].length > 2) {
+          processedValue = parts[0] + '.' + parts[1].substring(0, 2);
+        }
+      } else {
+        processedValue = value.replace(/[^0-9]/g, '');
+      }
     } else if (quantityFields.includes(name)) {
-      // Campos de cantidad: solo números, 0 por defecto
+      // Campos de cantidad: solo números, pueden estar vacíos
       processedValue = value.replace(/[^0-9]/g, '');
-      if (processedValue === '') processedValue = '0';
+      // Si está vacío, mantener vacío (no forzar 0)
     } else if (measureFields.includes(name)) {
       // Permitir números y punto decimal
       processedValue = value.replace(/[^0-9.]/g, '');
@@ -146,12 +202,13 @@ export default function ProductModal({ isOpen, onClose, onSave, product }) {
     toSave.precio1 = toSave.precio1 === "" ? 0 : parseFloat(toSave.precio1) || 0;
     toSave.precio2 = toSave.precio2 === "" ? 0 : parseFloat(toSave.precio2) || 0;
     toSave.precio3 = toSave.precio3 === "" ? 0 : parseFloat(toSave.precio3) || 0;
+    toSave.costo = toSave.costo === "" ? 0 : parseFloat(toSave.costo) || 0;
     toSave.laminas = toSave.laminas === "" ? 0 : parseInt(toSave.laminas) || 0;
 
-    // Convertir cantidades a números enteros
-    toSave.cantidadInsula = parseInt(toSave.cantidadInsula) || 0;
-    toSave.cantidadCentro = parseInt(toSave.cantidadCentro) || 0;
-    toSave.cantidadPatios = parseInt(toSave.cantidadPatios) || 0;
+    // Convertir cantidades a números enteros (si está vacío, parsear a 0)
+    toSave.cantidadInsula = toSave.cantidadInsula === "" || toSave.cantidadInsula === null ? 0 : parseInt(toSave.cantidadInsula) || 0;
+    toSave.cantidadCentro = toSave.cantidadCentro === "" || toSave.cantidadCentro === null ? 0 : parseInt(toSave.cantidadCentro) || 0;
+    toSave.cantidadPatios = toSave.cantidadPatios === "" || toSave.cantidadPatios === null ? 0 : parseInt(toSave.cantidadPatios) || 0;
 
     // Si es creación, remover el id null
     if (!isEditing) {
@@ -182,7 +239,7 @@ export default function ProductModal({ isOpen, onClose, onSave, product }) {
       tipo: toSave.tipo,
       color: toSave.color,
       cantidad: (toSave.cantidadInsula || 0) + (toSave.cantidadCentro || 0) + (toSave.cantidadPatios || 0),
-      costo: toSave.costo || 0,
+      costo: toSave.costo,
       precio1: toSave.precio1,
       precio2: toSave.precio2,
       precio3: toSave.precio3,
@@ -204,7 +261,6 @@ export default function ProductModal({ isOpen, onClose, onSave, product }) {
       backendPayload.version = 0;
     }
 
-    console.log("Datos que se enviarán al backend:", backendPayload);
     onSave(backendPayload);
     onClose();
   };
@@ -268,7 +324,8 @@ export default function ProductModal({ isOpen, onClose, onSave, product }) {
                   required
                 >
                   <option value="UNID">UNIDAD</option>
-                  <option value="PERF">PERFIL</option>
+                  <option value="PERFIL">PERFIL</option>
+                  <option value="MT">MT</option>
                 </select>
               </label>
 
@@ -285,7 +342,6 @@ export default function ProductModal({ isOpen, onClose, onSave, product }) {
                   <option value="BLANCO">BLANCO</option>
                   <option value="NEGRO">NEGRO</option>
                   <option value="BRONCE">BRONCE</option>
-                  <option value="NATURAL">NATURAL</option>
                   <option value="NA">NA</option>
                 </select>
               </label>
@@ -371,6 +427,19 @@ export default function ProductModal({ isOpen, onClose, onSave, product }) {
             {/* COLUMNA DERECHA */}
             <div className="form-column">
               <label>
+                Costo:
+                <input
+                  type="text"
+                  name="costo"
+                  placeholder="Costo"
+                  value={formData.costo}
+                  onChange={handleChange}
+                  inputMode="decimal"
+                  pattern="[0-9.]*"
+                />
+              </label>
+
+              <label>
                 Precio 1:
                 <input
                   type="text"
@@ -422,10 +491,11 @@ export default function ProductModal({ isOpen, onClose, onSave, product }) {
                     <input
                       type="text"
                       name="cantidadInsula"
-                      value={formData.cantidadInsula}
+                      value={formData.cantidadInsula && Number(formData.cantidadInsula) > 0 ? formData.cantidadInsula : ""}
                       onChange={handleChange}
                       inputMode="numeric"
                       pattern="[0-9]*"
+                      placeholder="Cantidad"
                     />
                   </label>
 
@@ -434,10 +504,11 @@ export default function ProductModal({ isOpen, onClose, onSave, product }) {
                     <input
                       type="text"
                       name="cantidadCentro"
-                      value={formData.cantidadCentro}
+                      value={formData.cantidadCentro && Number(formData.cantidadCentro) > 0 ? formData.cantidadCentro : ""}
                       onChange={handleChange}
                       inputMode="numeric"
                       pattern="[0-9]*"
+                      placeholder="Cantidad"
                     />
                   </label>
 
@@ -446,10 +517,11 @@ export default function ProductModal({ isOpen, onClose, onSave, product }) {
                     <input
                       type="text"
                       name="cantidadPatios"
-                      value={formData.cantidadPatios}
+                      value={formData.cantidadPatios && Number(formData.cantidadPatios) > 0 ? formData.cantidadPatios : ""}
                       onChange={handleChange}
                       inputMode="numeric"
                       pattern="[0-9]*"
+                      placeholder="Cantidad"
                     />
                   </label>
                 </>

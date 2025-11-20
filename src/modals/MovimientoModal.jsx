@@ -44,6 +44,23 @@ export default function MovimientoModal({
   const canEditHeader = !isEdit || editableWithin2d;
   const canEditProducts = !isEdit; // productos editables solo en creación
 
+  // Prevenir cierre/recarga de pestaña cuando el modal está abierto
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleBeforeUnload = (e) => {
+      e.preventDefault();
+      e.returnValue = "¿Estás seguro de que quieres salir? Los cambios no guardados se perderán.";
+      return e.returnValue;
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, [isOpen]);
+
   // Cargar datos iniciales
   useEffect(() => {
     setErrorMsg("");
@@ -59,7 +76,7 @@ export default function MovimientoModal({
               id: d.producto?.id ?? "",
               nombre: d.producto?.nombre ?? "",
               sku: d.producto?.codigo ?? "",
-              cantidad: Number(d.cantidad ?? 1),
+              cantidad: d.cantidad && Number(d.cantidad) > 0 ? Number(d.cantidad) : "",
             }))
           : [],
       };
@@ -103,6 +120,14 @@ export default function MovimientoModal({
   const catalogoFiltrado = useMemo(() => {
     let filtered = catalogoProductos;
     
+    // Filtrar cortes: excluir productos que tengan largoCm (son cortes)
+    // Los cortes nunca se compran o trasladan, solo se quedan en la sede donde son generados
+    filtered = filtered.filter(p => {
+      // Incluir solo productos donde largoCm NO esté definido (undefined o null)
+      // Si largoCm existe (incluso si es 0), es un corte y debe excluirse
+      return p.largoCm === undefined || p.largoCm === null;
+    });
+    
     // Filtrar por categoría si está seleccionada
     if (selectedCategoryId) {
       const selectedCategory = categorias.find(cat => cat.id === selectedCategoryId);
@@ -129,7 +154,10 @@ export default function MovimientoModal({
     form.sedeOrigenId && form.sedeDestinoId && form.sedeOrigenId === form.sedeDestinoId;
   const faltanCampos = !form.sedeOrigenId || !form.sedeDestinoId || !form.fecha;
   const cantidadesInvalidas = form.productos.some(
-    (p) => !p.cantidad || p.cantidad <= 0 || !Number.isFinite(Number(p.cantidad))
+    (p) => {
+      const cantidad = Number(p.cantidad);
+      return p.cantidad === "" || p.cantidad === null || !Number.isFinite(cantidad) || cantidad <= 0;
+    }
   );
 
   const disabledSubmitBase =
@@ -159,7 +187,7 @@ export default function MovimientoModal({
             id: item.id,
             nombre: item.nombre,
             sku: item.codigo ?? "",
-            cantidad: 1,
+            cantidad: "", // Inicia vacío, no 0
           },
         ],
       };
@@ -170,10 +198,19 @@ export default function MovimientoModal({
     if (!canEditProducts) return;
     setForm((prev) => {
       const arr = [...prev.productos];
-      arr[idx] = {
-        ...arr[idx],
-        [field]: field === "cantidad" ? Number(value) : value,
-      };
+      if (field === "cantidad") {
+        // Permitir string vacío o solo números
+        const filtered = value.toString().replace(/[^0-9]/g, '');
+        arr[idx] = {
+          ...arr[idx],
+          [field]: filtered === "" ? "" : filtered, // Mantener como string hasta el submit
+        };
+      } else {
+        arr[idx] = {
+          ...arr[idx],
+          [field]: value,
+        };
+      }
       return { ...prev, productos: arr };
     });
   };
@@ -202,11 +239,24 @@ export default function MovimientoModal({
         await onSave(payload, true);
       } else {
         // Crear: cabecera + detalles
+        // Filtrar productos con cantidad vacía o 0 antes de enviar
+        const productosValidos = form.productos.filter((p) => {
+          const cantidad = Number(p.cantidad);
+          return p.cantidad !== "" && p.cantidad !== null && Number.isFinite(cantidad) && cantidad > 0;
+        });
+        
+        // Validar que haya al menos un producto válido después de filtrar
+        if (productosValidos.length === 0) {
+          setErrorMsg("Debe haber al menos un producto con cantidad válida para crear el traslado.");
+          setIsSubmitting(false);
+          return;
+        }
+        
         const payload = {
           fecha: toLocalDateOnly(form.fecha),
           sedeOrigen: { id: Number(form.sedeOrigenId) },
           sedeDestino: { id: Number(form.sedeDestinoId) },
-          detalles: form.productos.map((p) => ({
+          detalles: productosValidos.map((p) => ({
             producto: { id: Number(p.id) },
             cantidad: Number(p.cantidad),
           })),
@@ -344,12 +394,24 @@ export default function MovimientoModal({
                       <td>{p.sku ?? "-"}</td>
                       <td>
                         <input
-                          type="number"
-                          min={1}
-                          value={Number(p.cantidad ?? 1)}
+                          type="text"
+                          inputMode="numeric"
+                          value={p.cantidad && Number(p.cantidad) > 0 ? p.cantidad : ""}
                           onChange={(e) =>
                             handleProductoChange(idx, "cantidad", e.target.value)
                           }
+                          onKeyDown={(e) => {
+                            // Permitir: números, backspace, delete, tab, escape, enter, y puntos decimales (aunque no los usaremos)
+                            if (!/[0-9]/.test(e.key) && 
+                                !['Backspace', 'Delete', 'Tab', 'Escape', 'Enter'].includes(e.key) &&
+                                !(e.key === 'a' && e.ctrlKey) && // Ctrl+A
+                                !(e.key === 'c' && e.ctrlKey) && // Ctrl+C
+                                !(e.key === 'v' && e.ctrlKey) && // Ctrl+V
+                                !(e.key === 'x' && e.ctrlKey)) { // Ctrl+X
+                              e.preventDefault();
+                            }
+                          }}
+                          placeholder="Cantidad"
                           disabled={!canEditProducts}
                         />
                       </td>

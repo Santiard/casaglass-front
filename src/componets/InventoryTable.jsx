@@ -16,7 +16,6 @@ export default function InventoryTable({ data = [], filters, loading, onEditar, 
           <tr>
             <th>Código</th>
             <th>Nombre</th>
-            <th>Categoría</th>
             <th>Color</th>
             {isVidrio && <th>mm</th>}
             {isVidrio && <th>m²</th>}
@@ -33,6 +32,8 @@ export default function InventoryTable({ data = [], filters, loading, onEditar, 
               // Para VENDEDOR: mostrar solo la cantidad de su sede
               <th>Cantidad ({userSede})</th>
             )}
+            {/* Columna de costo solo para administradores */}
+            {isAdmin && <th>Costo</th>}
             {/* Precios según el rol */}
             {isAdmin ? (
               <>
@@ -48,10 +49,10 @@ export default function InventoryTable({ data = [], filters, loading, onEditar, 
         </thead>
         <tbody>
           {loading && (
-            <tr><td colSpan={isAdmin ? (isVidrio ? 14 : 11) : (isVidrio ? 11 : 8)} className="empty">Cargando…</td></tr>
+            <tr><td colSpan={isAdmin ? (isVidrio ? 15 : 12) : (isVidrio ? 8 : 5)} className="empty">Cargando…</td></tr>
           )}
           {!loading && data.length === 0 && (
-            <tr><td colSpan={isAdmin ? (isVidrio ? 14 : 11) : (isVidrio ? 11 : 8)} className="empty">Sin resultados</td></tr>
+            <tr><td colSpan={isAdmin ? (isVidrio ? 15 : 12) : (isVidrio ? 8 : 5)} className="empty">Sin resultados</td></tr>
           )}
           {!loading && data.map((p) => {
             const total = Number(p.cantidadTotal || 0) || 
@@ -65,13 +66,16 @@ export default function InventoryTable({ data = [], filters, loading, onEditar, 
             );
 
             // Determinar si la fila debe pintarse de rojo (sin stock)
+            // Solo considerar exactamente 0 como sin stock, los valores negativos son ventas anticipadas
             const sinStock = isAdmin ? total === 0 : cantidadVendedor === 0;
+            
+            // Determinar si hay stock negativo (venta anticipada)
+            const stockNegativo = isAdmin ? total < 0 : cantidadVendedor < 0;
 
             return (
-              <tr key={p.id} className={sinStock ? "row-sin-stock" : ""}>
+              <tr key={p.id} className={sinStock ? "row-sin-stock" : stockNegativo ? "row-stock-negativo" : ""}>
                 <td>{p.codigo}</td>
                 <td>{p.nombre}</td>
-                <td>{p.categoria}</td>
                 <td>{p.color ?? "N/A"}</td>
                 {isVidrio && <td>{p.mm ?? "-"}</td>}
                 {isVidrio && <td>{p.m1m2 ?? "-"}</td>}
@@ -80,14 +84,34 @@ export default function InventoryTable({ data = [], filters, loading, onEditar, 
                 {/* Columnas de inventario según el rol */}
                 {isAdmin ? (
                   <>
-                    <td>{p.cantidadInsula ?? 0}</td>
-                    <td>{p.cantidadCentro ?? 0}</td>
-                    <td>{p.cantidadPatios ?? 0}</td>
-                    <td><strong>{total}</strong></td>
+                    <td className={Number(p.cantidadInsula || 0) < 0 ? "stock-negativo" : ""}>
+                      {p.cantidadInsula ?? 0}
+                      {Number(p.cantidadInsula || 0) < 0 && <span className="badge-negativo"> ⚠️</span>}
+                    </td>
+                    <td className={Number(p.cantidadCentro || 0) < 0 ? "stock-negativo" : ""}>
+                      {p.cantidadCentro ?? 0}
+                      {Number(p.cantidadCentro || 0) < 0 && <span className="badge-negativo"> ⚠️</span>}
+                    </td>
+                    <td className={Number(p.cantidadPatios || 0) < 0 ? "stock-negativo" : ""}>
+                      {p.cantidadPatios ?? 0}
+                      {Number(p.cantidadPatios || 0) < 0 && <span className="badge-negativo"> ⚠️</span>}
+                    </td>
+                    <td className={stockNegativo ? "stock-negativo" : ""}>
+                      <strong>{total}</strong>
+                      {stockNegativo && <span className="badge-negativo"> ⚠️ Faltan {Math.abs(total)}</span>}
+                    </td>
                   </>
                 ) : (
                   // Para VENDEDOR: mostrar solo la cantidad de su sede
-                  <td><strong>{cantidadVendedor}</strong></td>
+                  <td className={stockNegativo ? "stock-negativo" : ""}>
+                    <strong>{cantidadVendedor}</strong>
+                    {stockNegativo && <span className="badge-negativo"> ⚠️ Faltan {Math.abs(cantidadVendedor)}</span>}
+                  </td>
+                )}
+                
+                {/* Columna de costo solo para administradores */}
+                {isAdmin && (
+                  <td>{p.costo ? new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(p.costo) : "-"}</td>
                 )}
                 
                 {/* Precios según el rol */}

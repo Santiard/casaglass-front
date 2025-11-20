@@ -6,8 +6,12 @@ export default function EntregasImprimirModal({ entregas = [], isOpen, onClose }
 
   useEffect(() => {
     if (isOpen && entregas.length > 0) {
-      // Por defecto seleccionar todas las entregas
+      // Si hay entregas, seleccionar todas por defecto
+      // Esto permite que si se abren desde la tabla con selección previa, se muestren todas
       setEntregasSeleccionadas(entregas.map(e => e.id));
+    } else if (isOpen && entregas.length === 0) {
+      // Si no hay entregas, limpiar selección
+      setEntregasSeleccionadas([]);
     }
   }, [isOpen, entregas]);
 
@@ -45,9 +49,10 @@ export default function EntregasImprimirModal({ entregas = [], isOpen, onClose }
       totalTransferencia: acc.totalTransferencia + (Number(entrega.montoTransferencia) || 0),
       totalCheque: acc.totalCheque + (Number(entrega.montoCheque) || 0),
       totalDeposito: acc.totalDeposito + (Number(entrega.montoDeposito) || 0),
+      totalGastos: acc.totalGastos + (Number(entrega.montoGastos) || 0),
       totalEntregado: acc.totalEntregado + totalEntregado,
     };
-  }, { totalEfectivo: 0, totalTransferencia: 0, totalCheque: 0, totalDeposito: 0, totalEntregado: 0 });
+  }, { totalEfectivo: 0, totalTransferencia: 0, totalCheque: 0, totalDeposito: 0, totalGastos: 0, totalEntregado: 0 });
 
   // Función para imprimir
   const handleImprimir = () => {
@@ -180,15 +185,20 @@ export default function EntregasImprimirModal({ entregas = [], isOpen, onClose }
                         </tr>
                       ) : (
                         entrega.detalles?.map((detalle, idx) => {
-                          // Calcular saldo (si la orden está saldada = 0, sino = montoOrden - valorEntregado)
-                          // Asumimos que si no hay más entregas pendientes, el saldo es 0
-                          const saldo = detalle.saldoPendiente !== undefined 
-                            ? Number(detalle.saldoPendiente) 
-                            : (Number(detalle.montoOrden) || 0) - (Number(detalle.valorEntregado) || 0);
+                          // Calcular valor entregado según tipo de venta
+                          let valorEntregado = 0;
+                          if (!detalle.ventaCredito) {
+                            // Orden A CONTADO: se entrega el monto completo
+                            valorEntregado = Number(detalle.montoOrden) || 0;
+                          } else {
+                            // Orden A CRÉDITO: usar abonos del período (calculado por el backend)
+                            valorEntregado = Number(detalle.abonosDelPeriodo) || 0;
+                          }
                           
-                          // Valor entregado en esta entrega (puede venir en el detalle o calcularse)
-                          const valorEntregado = Number(detalle.valorEntregado) || 
-                                                 (Number(entrega.montoEfectivo) || 0) / (entrega.detalles?.length || 1);
+                          // Calcular saldo
+                          const saldo = detalle.ventaCredito 
+                            ? Math.max(0, (Number(detalle.montoOrden) || 0) - valorEntregado)
+                            : 0; // Contado siempre tiene saldo 0
                           
                           // Medio de pago
                           const medio = entrega.modalidadEntrega || 
@@ -201,7 +211,7 @@ export default function EntregasImprimirModal({ entregas = [], isOpen, onClose }
                               <td>{detalle.numeroOrden || "-"}</td>
                               <td>{detalle.clienteNombre || detalle.cliente?.nombre || "-"}</td>
                               <td>${(Number(detalle.montoOrden) || 0).toLocaleString("es-CO")}</td>
-                              <td>${Math.max(0, saldo).toLocaleString("es-CO")}</td>
+                              <td>${saldo.toLocaleString("es-CO")}</td>
                               <td>${valorEntregado.toLocaleString("es-CO")}</td>
                               <td>{medio}</td>
                             </tr>
@@ -211,6 +221,41 @@ export default function EntregasImprimirModal({ entregas = [], isOpen, onClose }
                     </tbody>
                   </table>
 
+                  {/* Tabla de gastos */}
+                  {entrega.gastos && Array.isArray(entrega.gastos) && entrega.gastos.length > 0 && (
+                    <div style={{ marginTop: "30px" }}>
+                      <h4 style={{ marginBottom: "10px", color: "var(--color-dark-blue)" }}>Gastos Asociados</h4>
+                      <table className="items-table">
+                        <thead>
+                          <tr>
+                            <th>ID</th>
+                            <th>Fecha</th>
+                            <th>Concepto</th>
+                            <th>Tipo</th>
+                            <th>Monto</th>
+                            <th>Empleado</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {entrega.gastos.map((gasto, idx) => (
+                            <tr key={gasto.id || idx}>
+                              <td>#{gasto.id || "-"}</td>
+                              <td>{fmtFecha(gasto.fechaGasto)}</td>
+                              <td>{gasto.concepto || gasto.descripcion || "-"}</td>
+                              <td>{gasto.tipo || "OPERATIVO"}</td>
+                              <td>${(Number(gasto.monto) || 0).toLocaleString("es-CO")}</td>
+                              <td>{gasto.empleadoNombre || gasto.empleado?.nombre || "-"}</td>
+                            </tr>
+                          ))}
+                          <tr style={{ fontWeight: "bold", backgroundColor: "#f5f5f5" }}>
+                            <td colSpan={4} style={{ textAlign: "right" }}>Total Gastos:</td>
+                            <td colSpan={2}>${(Number(entrega.montoGastos) || 0).toLocaleString("es-CO")}</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+
                   {/* Subtotal por entrega */}
                   <div className="total" style={{ marginTop: "15px" }}>
                     <p><strong>Subtotal Entrega #{entrega.id}:</strong></p>
@@ -218,6 +263,7 @@ export default function EntregasImprimirModal({ entregas = [], isOpen, onClose }
                     <p>Transferencia: ${(Number(entrega.montoTransferencia) || 0).toLocaleString("es-CO")}</p>
                     <p>Cheque: ${(Number(entrega.montoCheque) || 0).toLocaleString("es-CO")}</p>
                     <p>Depósito: ${(Number(entrega.montoDeposito) || 0).toLocaleString("es-CO")}</p>
+                    <p>Total Gastos: ${(Number(entrega.montoGastos) || 0).toLocaleString("es-CO")}</p>
                     <p><strong>Total Entregado: ${totalEntregado.toLocaleString("es-CO")}</strong></p>
                   </div>
                 </div>
@@ -232,6 +278,7 @@ export default function EntregasImprimirModal({ entregas = [], isOpen, onClose }
                 <p><strong>Total Transferencia: ${totalesGenerales.totalTransferencia.toLocaleString("es-CO")}</strong></p>
                 <p><strong>Total Cheque: ${totalesGenerales.totalCheque.toLocaleString("es-CO")}</strong></p>
                 <p><strong>Total Depósito: ${totalesGenerales.totalDeposito.toLocaleString("es-CO")}</strong></p>
+                <p><strong>Total Gastos: ${totalesGenerales.totalGastos.toLocaleString("es-CO")}</strong></p>
                 <p style={{ fontSize: "20px", marginTop: "10px" }}>
                   <strong>TOTAL A ENTREGAR: ${totalesGenerales.totalEntregado.toLocaleString("es-CO")}</strong>
                 </p>

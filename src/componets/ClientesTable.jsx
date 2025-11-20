@@ -53,7 +53,7 @@ export default function ClientesTable({
 
   const formatoBool = (b) => (b ? "Sí" : "No");
 
-  // Filtro/búsqueda local + paginación local
+  // Filtro/búsqueda local + ordenación alfabética + paginación local
   const filtrados = useMemo(() => {
     const q = query.trim().toLowerCase();
 
@@ -69,11 +69,18 @@ export default function ClientesTable({
       ? porTexto.filter((c) => (c.ciudad || "").toLowerCase() === filtroCiudad.toLowerCase())
       : porTexto;
 
-    const total = porCiudad.length;
+    // Ordenar alfabéticamente por nombre (ignorando mayúsculas/minúsculas)
+    const ordenados = [...porCiudad].sort((a, b) => {
+      const nombreA = (a.nombre || "").toLowerCase();
+      const nombreB = (b.nombre || "").toLowerCase();
+      return nombreA.localeCompare(nombreB, 'es', { sensitivity: 'base' });
+    });
+
+    const total = ordenados.length;
     const maxPage = Math.max(1, Math.ceil(total / rowsPerPage));
     const curPage = Math.min(page, maxPage);
     const start = (curPage - 1) * rowsPerPage;
-    const pageData = porCiudad.slice(start, start + rowsPerPage);
+    const pageData = ordenados.slice(start, start + rowsPerPage);
 
     return { pageData, total, maxPage, curPage, start };
   }, [data, query, filtroCiudad, page, rowsPerPage]);

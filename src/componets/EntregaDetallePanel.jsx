@@ -16,8 +16,11 @@ export default function EntregaDetallePanel({ entrega, onClose }){
 
   const esperado = Number(entrega.montoEsperado ?? 0);
   const totalGastos = Number(entrega.montoGastos ?? 0);
-  const neto = esperado - totalGastos;
-  const dif = entrega.estado === "ENTREGADA" ? Number(entrega.montoEntregado ?? 0) - neto : (entrega.diferencia ?? 0);
+  const montoEntregado = Number(entrega.montoEntregado ?? 0);
+  // Monto Neto Esperado = Monto Esperado - Monto Gastos
+  const montoNetoEsperado = esperado - totalGastos;
+  // Diferencia = Monto Neto Esperado - Monto Entregado
+  const dif = entrega.estado === "ENTREGADA" ? montoNetoEsperado - montoEntregado : (entrega.diferencia ?? 0);
 
   return (
     <section className="ingreso-panel">
@@ -83,9 +86,10 @@ export default function EntregaDetallePanel({ entrega, onClose }){
       </div>
 
       <div className="ingreso-panel__foot" style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit, minmax(120px, 1fr))", gap:"0.5rem" }}>
-        <div><strong>Esperado:</strong> {fmtCOP(esperado)}</div>
+        <div><strong>Monto Esperado (Órdenes):</strong> {fmtCOP(esperado)}</div>
         <div><strong>Gastos:</strong> {fmtCOP(totalGastos)}</div>
-        <div><strong>Neto esperado:</strong> {fmtCOP(neto)}</div>
+        <div><strong>Monto Neto Esperado:</strong> {fmtCOP(montoNetoEsperado)}</div>
+        <div><strong>Monto Entregado:</strong> {fmtCOP(montoEntregado)}</div>
         <div><strong>Diferencia:</strong> {fmtCOP(dif)}</div>
       </div>
     </section>

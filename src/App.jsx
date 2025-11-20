@@ -34,7 +34,6 @@ function App() {
   // Silenciar warning de "Components desaprobado" de DevTools
   useEffect(() => {
     if (process.env.NODE_ENV === 'development') {
-      console.log('%c React Router DevTools Warning Silenciado', 'color: #888');
     }
   }, []);
 

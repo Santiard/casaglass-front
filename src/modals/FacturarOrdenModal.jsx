@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import "../styles/FacturarOrdenModal.css";
 import { useToast } from "../context/ToastContext.jsx";
+import { getBusinessSettings } from "../services/businessSettingsService.js";
 
 export default function FacturarOrdenModal({ isOpen, onClose, onSave, orden }) {
   const { showError } = useToast();
@@ -18,8 +19,24 @@ export default function FacturarOrdenModal({ isOpen, onClose, onSave, orden }) {
   const [loading, setLoading] = useState(false);
   const [subtotalOrden, setSubtotalOrden] = useState(0);
   const [validationMsg, setValidationMsg] = useState("");
+  const [ivaRate, setIvaRate] = useState(19); // Porcentaje de IVA desde configuración
+  const [retefuenteRate, setRetefuenteRate] = useState(2.5); // Porcentaje de retención desde configuración
+  const [retefuenteThreshold, setRetefuenteThreshold] = useState(1000000); // Umbral de retención desde configuración
   const creditoPendiente = Boolean(orden?.credito) && Number(orden?.creditoDetalle?.saldoPendiente || 0) > 0;
   const isAnulada = String(orden?.estado || "").toUpperCase() === "ANULADA";
+
+  // Cargar configuración de impuestos al abrir el modal
+  useEffect(() => {
+    if (isOpen) {
+      getBusinessSettings().then((settings) => {
+        if (settings) {
+          setIvaRate(Number(settings.ivaRate) || 19);
+          setRetefuenteRate(Number(settings.retefuenteRate) || 2.5);
+          setRetefuenteThreshold(Number(settings.retefuenteThreshold) || 1000000);
+        }
+      });
+    }
+  }, [isOpen]);
 
   useEffect(() => {
     if (isOpen && orden) {
@@ -35,18 +52,31 @@ export default function FacturarOrdenModal({ isOpen, onClose, onSave, orden }) {
 
       setSubtotalOrden(subtotal);
 
+      // Calcular base (subtotal - descuentos, inicialmente sin descuentos)
+      const baseInicial = subtotal;
+      
+      // Calcular IVA: Si el precio incluye IVA, extraer el IVA del precio
+      // IVA = precio * (tasa / (100 + tasa))
+      const ivaCalculado = (ivaRate && ivaRate > 0) 
+        ? (baseInicial * ivaRate) / (100 + ivaRate) 
+        : 0;
+      
+      // Calcular retención: Solo si la base (sin IVA) supera el umbral
+      const subtotalSinIva = baseInicial - ivaCalculado;
+      const aplicaRetencion = subtotalSinIva >= (retefuenteThreshold || 0);
+
       setForm({
         ordenId: orden.id,
         fecha: new Date().toISOString().split("T")[0],
         subtotal,
         descuentos: "",
-        iva: 0,
-        retencionFuente: 0,
+        iva: ivaRate || 0, // Usar el porcentaje de IVA desde configuración
+        retencionFuente: aplicaRetencion ? (retefuenteRate || 0) : 0, // Usar el porcentaje de retención si aplica
         formaPago: "EFECTIVO",
         observaciones: `Factura generada desde orden #${orden.numero}`,
       });
     }
-  }, [isOpen, orden]);
+  }, [isOpen, orden, ivaRate, retefuenteRate, retefuenteThreshold]);
 
   const handleChange = (e) => {
     const { name, value, type } = e.target;
@@ -227,7 +257,14 @@ export default function FacturarOrdenModal({ isOpen, onClose, onSave, orden }) {
                   value={form.iva}
                   onChange={handleChange}
                   placeholder="0"
+                  step="0.1"
+                  min="0"
+                  max="100"
+                  disabled
                 />
+                <small style={{ display: 'block', color: '#666', fontSize: '0.75rem', marginTop: '0.25rem' }}>
+                  Valor desde configuración: {ivaRate}%
+                </small>
               </div>
               <div>
                 <label>Retención (%):</label>
@@ -237,18 +274,45 @@ export default function FacturarOrdenModal({ isOpen, onClose, onSave, orden }) {
                   value={form.retencionFuente}
                   onChange={handleChange}
                   placeholder="0"
+                  step="0.1"
+                  min="0"
+                  max="100"
+                  disabled
                 />
+                <small style={{ display: 'block', color: '#666', fontSize: '0.75rem', marginTop: '0.25rem' }}>
+                  Valor desde configuración: {retefuenteRate}% {form.retencionFuente > 0 ? `(umbral: ${retefuenteThreshold.toLocaleString('es-CO')})` : '(no aplica)'}
+                </small>
               </div>
             </div>
             {(() => {
               const base = Math.max(0, subtotalOrden - (parseFloat(form.descuentos) || 0));
-              const ivaVal = (base * (Number(form.iva) || 0)) / 100;
-              const reteVal = (base * (Number(form.retencionFuente) || 0)) / 100;
-              const total = base + ivaVal - reteVal;
+              
+              // Calcular IVA: Si el precio incluye IVA, extraer el IVA del precio
+              // IVA = precio * (tasa / (100 + tasa))
+              const ivaPorcentaje = Number(form.iva) || 0;
+              const ivaVal = (ivaPorcentaje && ivaPorcentaje > 0) 
+                ? (base * ivaPorcentaje) / (100 + ivaPorcentaje) 
+                : 0;
+              
+              // Calcular subtotal sin IVA
+              const subtotalSinIva = base - ivaVal;
+              
+              // Calcular retención: Solo si la base (sin IVA) supera el umbral
+              const aplicaRetencion = subtotalSinIva >= (retefuenteThreshold || 0);
+              const retencionPorcentaje = aplicaRetencion ? (Number(form.retencionFuente) || 0) : 0;
+              const reteVal = aplicaRetencion 
+                ? (subtotalSinIva * retencionPorcentaje) / 100 
+                : 0;
+              
+              // Total final: base (con IVA incluido) - retención
+              const total = base - reteVal;
+              
               const invalid = (parseFloat(form.descuentos) || 0) > subtotalOrden || base < 0;
               const money = (n) => `$${Number(n || 0).toLocaleString('es-CO')}`;
+              
               if (invalid && validationMsg !== "Descuento supera el subtotal") setValidationMsg("Descuento supera el subtotal");
               if (!invalid && validationMsg) setValidationMsg("");
+              
               return (
                 <>
                   <div className="calculo-grid">
@@ -261,8 +325,17 @@ export default function FacturarOrdenModal({ isOpen, onClose, onSave, orden }) {
                       <input type="text" value={money(ivaVal)} disabled />
                     </div>
                     <div>
+                      <label>Subtotal sin IVA:</label>
+                      <input type="text" value={money(subtotalSinIva)} disabled />
+                    </div>
+                    <div>
                       <label>Retención (valor):</label>
                       <input type="text" value={money(reteVal)} disabled />
+                      {!aplicaRetencion && (
+                        <small style={{ display: 'block', color: '#666', fontSize: '0.75rem', marginTop: '0.25rem' }}>
+                          No aplica (umbral: ${retefuenteThreshold.toLocaleString('es-CO')})
+                        </small>
+                      )}
                     </div>
                   </div>
                   <div className="total-final">

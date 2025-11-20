@@ -12,25 +12,18 @@ export function toLocalDateString(date) {
 
 // Convierte el form del modal al payload que espera el backend
 function mapFormAIngresoAPI(form = {}) {
-  console.log("🔍 mapFormAIngresoAPI - Formulario recibido:", form);
-  
   if (!form || typeof form !== "object") {
     throw new Error("Formulario vacío o inválido.");
   }
 
-  console.log("🔍 proveedorId del form:", form.proveedorId, "tipo:", typeof form.proveedorId);
-  console.log("🔍 proveedor completo del form:", form.proveedor);
-  
   // Intentar obtener el proveedor completo o solo el ID
   let proveedorData;
   if (form.proveedor && typeof form.proveedor === 'object' && form.proveedor.id) {
     // Si tenemos el objeto proveedor completo
     proveedorData = form.proveedor;
-    console.log("✅ Usando proveedor completo:", proveedorData);
   } else {
     // Si solo tenemos el ID
     const proveedorIdNum = Number(form.proveedorId);
-    console.log("🔍 proveedorIdNum convertido:", proveedorIdNum);
     
     if (!Number.isFinite(proveedorIdNum) || proveedorIdNum <= 0) {
       console.error("❌ Proveedor inválido:", { proveedorId: form.proveedorId, proveedorIdNum });
@@ -38,7 +31,6 @@ function mapFormAIngresoAPI(form = {}) {
     }
     
     proveedorData = { id: proveedorIdNum };
-    console.log("✅ Usando solo ID de proveedor:", proveedorData);
   }
 
   const fecha = form.fecha
@@ -49,9 +41,6 @@ function mapFormAIngresoAPI(form = {}) {
   if (detalles.length === 0) throw new Error("Debes agregar al menos un producto.");
 
   const mappedDetalles = detalles.map((d, idx) => {
-    console.log(`🔍 Procesando detalle #${idx + 1}:`, d);
-    console.log(`🔍 Producto del detalle:`, d?.producto);
-    
     const prodId = Number(d?.producto?.id);
     const cantidad = Number(d?.cantidad);
     const costoUnitario = Number(d?.costoUnitario);
@@ -76,7 +65,6 @@ function mapFormAIngresoAPI(form = {}) {
       totalLinea
     };
     
-    console.log(`✅ Detalle #${idx + 1} mapeado:`, detalleMapeado);
     return detalleMapeado;
   });
 
@@ -93,7 +81,6 @@ function mapFormAIngresoAPI(form = {}) {
     procesado: false // Las actualizaciones siempre son no procesadas para permitir edición
   };
 
-  console.log("✅ Payload final para enviar al backend:", payload);
   return payload;
 }
 
@@ -106,9 +93,7 @@ export async function listarIngresos() {
 // Función de prueba para verificar conectividad
 export async function probarConectividad() {
   try {
-    console.log("🧪 Probando conectividad con el backend...");
-    const response = await api.get("/ingresos");
-    console.log("✅ Conectividad OK:", response.status);
+    await api.get("/ingresos");
     return true;
   } catch (error) {
     console.error("❌ Error de conectividad:", error);
@@ -125,11 +110,8 @@ export async function crearIngresoDesdeForm(form) {
   const payload = mapFormAIngresoAPI(form);
   // Al crear un ingreso nuevo, siempre va procesado: false
   payload.procesado = false;
-  console.log("✅ Creando ingreso con procesado: false", payload);
-  
   try {
     const { data } = await api.post("/ingresos", payload);
-    console.log("✅ Ingreso creado exitosamente:", data);
     return data;
   } catch (error) {
     console.error("❌ Error completo al crear ingreso:", {
@@ -149,9 +131,6 @@ export async function crearIngresoDesdeForm(form) {
 }
 
 export async function actualizarIngresoDesdeForm(id, form) {
-  console.log("🔍 actualizarIngresoDesdeForm - ID recibido:", id, "tipo:", typeof id);
-  console.log("🔍 actualizarIngresoDesdeForm - Form recibido:", form);
-  
   // Validar que el ID sea válido
   const numericId = Number(id);
   if (!Number.isFinite(numericId) || numericId <= 0) {
@@ -162,13 +141,8 @@ export async function actualizarIngresoDesdeForm(id, form) {
   // Agregar el ID al payload como lo requiere el endpoint
   payload.id = numericId;
   
-  const fullUrl = `${api.defaults.baseURL}/ingresos/${id}`;
-  console.log("🔍 URL completa para PUT:", fullUrl);
-  console.log("✅ Payload con ID para actualización:", payload);
-  
   try {
     const { data } = await api.put(`/ingresos/${id}`, payload);
-    console.log("✅ Respuesta exitosa del PUT:", data);
     return data;
   } catch (error) {
     console.error("❌ Error en PUT /ingresos/{id}:", {
@@ -197,8 +171,6 @@ export async function eliminarIngreso(id) {
 }
 
 export async function procesarIngreso(id) {
-  console.log(`🔄 Procesando ingreso ID: ${id} (actualización completa de inventario)`);
-  
   // Validar ID
   const numericId = Number(id);
   if (!Number.isFinite(numericId) || numericId <= 0) {
@@ -207,7 +179,6 @@ export async function procesarIngreso(id) {
   
   try {
     const { data } = await api.put(`/ingresos/${numericId}/procesar`);
-    console.log(`✅ Ingreso ${numericId} procesado correctamente:`, data);
     return data;
   } catch (error) {
     console.error(`❌ Error al procesar ingreso ${numericId}:`, {
@@ -221,8 +192,6 @@ export async function procesarIngreso(id) {
 }
 
 export async function marcarProcesado(id) {
-  console.log(`🔄 Marcando como procesado ingreso ID: ${id} (sin actualizar inventario)`);
-  
   // Validar ID
   const numericId = Number(id);
   if (!Number.isFinite(numericId) || numericId <= 0) {
@@ -231,7 +200,6 @@ export async function marcarProcesado(id) {
   
   try {
     const { data } = await api.put(`/ingresos/${numericId}/marcar-procesado`);
-    console.log(`✅ Ingreso ${numericId} marcado como procesado:`, data);
     return data;
   } catch (error) {
     console.error(`❌ Error al marcar ingreso ${numericId} como procesado:`, {
@@ -245,8 +213,6 @@ export async function marcarProcesado(id) {
 }
 
 export async function reprocesarIngreso(id) {
-  console.log(`🔄 Reprocesando ingreso ID: ${id} (corrección de procesamiento previo)`);
-  
   // Validar ID
   const numericId = Number(id);
   if (!Number.isFinite(numericId) || numericId <= 0) {
@@ -255,7 +221,6 @@ export async function reprocesarIngreso(id) {
   
   try {
     const { data } = await api.put(`/ingresos/${numericId}/reprocesar`);
-    console.log(`✅ Ingreso ${numericId} reprocesado correctamente:`, data);
     return data;
   } catch (error) {
     console.error(`❌ Error al reprocesar ingreso ${numericId}:`, {

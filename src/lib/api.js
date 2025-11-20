@@ -45,10 +45,6 @@ export const API_BASE = getBaseURL();
 
 // Log para debugging solo en desarrollo
 if (import.meta.env.DEV) {
-  console.log("🔧 API_BASE configurado:", API_BASE);
-  console.log("🔧 VITE_API_URL:", import.meta.env.VITE_API_URL);
-  console.log("🔧 Entorno:", import.meta.env.MODE);
-  console.log("🔧 Es producción:", import.meta.env.PROD);
 }
 
 export const api = axios.create({

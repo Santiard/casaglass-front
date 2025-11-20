@@ -337,9 +337,8 @@ export default function EntregaModal({
         {/* Resumen */}
         <div className="modal-alerts" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
           <div className="alert info"><strong>Órdenes:</strong> {form.detalles.length}</div>
-          <div className="alert info"><strong>Esperado:</strong> {fmtCOP(esperado)}</div>
+          <div className="alert info"><strong>Esperado (Órdenes):</strong> {fmtCOP(esperado)}</div>
           <div className="alert info"><strong>Gastos:</strong> {fmtCOP(totalGastos)}</div>
-          <div className="alert info"><strong>Neto esperado:</strong> {fmtCOP(esperado - totalGastos)}</div>
         </div>
 
         {/* Botones */}

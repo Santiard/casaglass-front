@@ -1,12 +1,14 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import EntregasTable from "../componets/EntregaTable.jsx";
-import EntregaDetallePanel from "../componets/EntregaDetallePanel.jsx";
+import EntregaDetalleModal from "../modals/EntregaDetalleModal.jsx";
 import CrearEntregaModal from "../modals/CrearEntregaModal.jsx";
+import CrearGastoModal from "../modals/CrearGastoModal.jsx";
 import ConfirmarEntregaModal from "../modals/ConfirmarEntregaModal.jsx";
 import EntregasImprimirModal from "../modals/EntregasImprimirModal.jsx";
 import EntregasService from "../services/EntregasService.js";
 import * as SedesService from "../services/SedesService.js";
 import * as TrabajadoresService from "../services/TrabajadoresService.js";
+import * as ProveedoresService from "../services/ProveedoresService.js";
 import { useConfirm } from "../hooks/useConfirm.jsx";
 import { useToast } from "../context/ToastContext.jsx";
 import "../styles/EntregaPage.css";
@@ -19,18 +21,26 @@ export default function EntregasPage() {
   const [entregas, setEntregas] = useState([]);
   const [sedes, setSedes] = useState([]);
   const [trabajadores, setTrabajadores] = useState([]);
+  const [proveedores, setProveedores] = useState([]);
   
   // Estados de UI
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [seleccionado, setSeleccionado] = useState(null);
   
   // Estados de modales
   const [mostrarCrearModal, setMostrarCrearModal] = useState(false);
+  const [mostrarCrearGastoModal, setMostrarCrearGastoModal] = useState(false);
   const [mostrarConfirmarModal, setMostrarConfirmarModal] = useState(false);
   const [entregaAConfirmar, setEntregaAConfirmar] = useState(null);
   const [mostrarImprimirModal, setMostrarImprimirModal] = useState(false);
   const [entregasParaImprimir, setEntregasParaImprimir] = useState([]);
+  const [infoSeleccionadas, setInfoSeleccionadas] = useState({ count: 0, handler: null });
+  
+  // Memoizar la función setInfoSeleccionadas para evitar recreaciones
+  const handleSetInfoSeleccionadas = useCallback((info) => {
+    setInfoSeleccionadas(info);
+  }, []);
   
   // Estados de filtros
   const [filtros, setFiltros] = useState({
@@ -41,39 +51,32 @@ export default function EntregasPage() {
     hasta: ""
   });
 
-  // Cargar datos iniciales
-  useEffect(() => {
-    cargarDatos();
-  }, []);
-
-  // Cargar datos cuando cambian los filtros
-  useEffect(() => {
-    if (!isLoading) {
-      cargarEntregas();
-    }
-  }, [filtros]);
-
-  const cargarDatos = async () => {
+  // Función para cargar datos iniciales (memoizada)
+  const cargarDatos = useCallback(async () => {
+    setIsLoading(true);
+    setError("");
+    
     try {
-      setIsLoading(true);
-      setError("");
-      
       // Cargar datos en paralelo
-      const [entregasData, sedesData, trabajadoresData] = await Promise.all([
+      const [entregasData, sedesData, trabajadoresData, proveedoresData] = await Promise.all([
         EntregasService.obtenerEntregas(),
         SedesService.listarSedes(),
-        TrabajadoresService.listarTrabajadores()
+        TrabajadoresService.listarTrabajadores(),
+        ProveedoresService.listarProveedores()
       ]);
       
-      setEntregas(entregasData || []);
+      // Ordenar entregas de más recientes a más antiguas por fechaEntrega
+      const entregasOrdenadas = (entregasData || []).sort((a, b) => {
+        const fechaA = new Date(a.fechaEntrega || 0);
+        const fechaB = new Date(b.fechaEntrega || 0);
+        return fechaB - fechaA; // Más reciente primero
+      });
+      
+      setEntregas(entregasOrdenadas);
       setSedes(sedesData || []);
       setTrabajadores(trabajadoresData || []);
+      setProveedores(proveedoresData || []);
       
-      console.log("Datos cargados:", {
-        entregas: entregasData?.length,
-        sedes: sedesData?.length,
-        trabajadores: trabajadoresData?.length
-      });
       
     } catch (err) {
       console.error("Error cargando datos:", err);
@@ -85,25 +88,29 @@ export default function EntregasPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
-  const cargarEntregas = async () => {
+  // Cargar datos iniciales
+  useEffect(() => {
+    cargarDatos();
+  }, [cargarDatos]);
+
+
+
+  // Función para cargar entregas (mantener para compatibilidad con otros handlers)
+  // Esta función recarga los datos sin filtros (para usar después de crear/actualizar/eliminar)
+  const cargarEntregas = useCallback(async () => {
     try {
-      console.log('cargarEntregas: Iniciando carga...');
-      console.log('cargarEntregas: Filtros actuales:', filtros);
+      const data = await EntregasService.obtenerEntregas();
       
-      // Filtrar parámetros vacíos
-      const filtrosLimpios = Object.fromEntries(
-        Object.entries(filtros).filter(([_, value]) => value !== "")
-      );
+      // Ordenar entregas de más recientes a más antiguas por fechaEntrega
+      const entregasOrdenadas = (data || []).sort((a, b) => {
+        const fechaA = new Date(a.fechaEntrega || 0);
+        const fechaB = new Date(b.fechaEntrega || 0);
+        return fechaB - fechaA; // Más reciente primero
+      });
       
-      console.log('cargarEntregas: Filtros limpios:', filtrosLimpios);
-      
-      const data = await EntregasService.obtenerEntregas(filtrosLimpios);
-      console.log('cargarEntregas: Datos recibidos:', data);
-      console.log('cargarEntregas: Cantidad de entregas:', data?.length);
-      
-      setEntregas(data || []);
+      setEntregas(entregasOrdenadas);
       
     } catch (err) {
       console.error("Error cargando entregas:", err);
@@ -113,16 +120,51 @@ export default function EntregasPage() {
       const errorMessage = err.response?.data?.message || err.message || 'Error desconocido';
       setError(`Error cargando entregas: ${errorMessage}`);
     }
-  };
+  }, []); // Sin dependencias - siempre recarga sin filtros
 
-  const handleFiltroChange = (campo, valor) => {
-    setFiltros(prev => ({
-      ...prev,
+  const handleFiltroChange = async (campo, valor) => {
+    const nuevosFiltros = {
+      ...filtros,
       [campo]: valor
-    }));
+    };
+    setFiltros(nuevosFiltros);
+    
+    // Aplicar filtros inmediatamente
+    const tieneFiltros = nuevosFiltros.sedeId || nuevosFiltros.empleadoId || nuevosFiltros.estado || nuevosFiltros.desde || nuevosFiltros.hasta;
+    if (!tieneFiltros) {
+      // Si no hay filtros, recargar todos los datos
+      await cargarDatos();
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      // Filtrar parámetros vacíos
+      const filtrosLimpios = Object.fromEntries(
+        Object.entries(nuevosFiltros).filter(([_, value]) => value !== "")
+      );
+      
+      const data = await EntregasService.obtenerEntregas(filtrosLimpios);
+      
+      // Ordenar entregas de más recientes a más antiguas por fechaEntrega
+      const entregasOrdenadas = (data || []).sort((a, b) => {
+        const fechaA = new Date(a.fechaEntrega || 0);
+        const fechaB = new Date(b.fechaEntrega || 0);
+        return fechaB - fechaA; // Más reciente primero
+      });
+      
+      setEntregas(entregasOrdenadas);
+      
+    } catch (err) {
+      console.error("Error cargando entregas:", err);
+      const errorMessage = err.response?.data?.message || err.message || 'Error desconocido';
+      setError(`Error cargando entregas: ${errorMessage}`);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const limpiarFiltros = () => {
+  const limpiarFiltros = async () => {
     setFiltros({
       sedeId: "",
       empleadoId: "",
@@ -130,16 +172,25 @@ export default function EntregasPage() {
       desde: "",
       hasta: ""
     });
+    // Recargar todos los datos cuando se limpian los filtros
+    await cargarDatos();
   };
 
   const handleCrearEntrega = () => {
     setMostrarCrearModal(true);
   };
 
+  const handleCrearGasto = () => {
+    setMostrarCrearGastoModal(true);
+  };
+
+  const handleGastoCreado = () => {
+    setMostrarCrearGastoModal(false);
+    // Opcional: recargar entregas si es necesario
+  };
+
   const handleEntregaCreada = () => {
-    console.log('handleEntregaCreada: Entrega creada exitosamente');
     setMostrarCrearModal(false);
-    console.log('handleEntregaCreada: Recargando entregas...');
     cargarEntregas(); // Recargar lista
   };
 
@@ -207,19 +258,49 @@ export default function EntregasPage() {
     setMostrarImprimirModal(true);
   };
 
-  if (isLoading) {
-    return (
-      <div className="entregas-loading">
-        <div className="loading-spinner">Cargando entregas...</div>
-      </div>
-    );
-  }
+  const handleImprimirSeleccionadas = async (entregasSeleccionadas) => {
+    try {
+      // Obtener las entregas completas con todos sus detalles
+      const entregasCompletas = await Promise.all(
+        entregasSeleccionadas.map(ent => 
+          EntregasService.obtenerEntregaPorId(ent.id)
+        )
+      );
+      setEntregasParaImprimir(entregasCompletas);
+      setMostrarImprimirModal(true);
+    } catch (err) {
+      console.error("Error obteniendo entregas para imprimir:", err);
+      setError(`Error cargando entregas: ${err.message}`);
+    }
+  };
 
+  // Renderizar el contenido principal (siempre renderiza, incluso durante loading)
+  
   return (
     <div className="entregas-page">
       <div className="entregas-header">
         <h1>Gestión de Entregas de Dinero</h1>
-        <div style={{ display: "flex", gap: "10px" }}>
+        <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+          {infoSeleccionadas.count > 0 && (
+            <>
+              <span style={{ 
+                fontWeight: "bold", 
+                color: "#1976d2",
+                padding: "5px 10px",
+                backgroundColor: "#e3f2fd",
+                borderRadius: "4px"
+              }}>
+                {infoSeleccionadas.count} seleccionada(s)
+              </span>
+              <button 
+                className="btn-crear-entrega" 
+                onClick={infoSeleccionadas.handler}
+                style={{ backgroundColor: "#1976d2" }}
+              >
+                Imprimir Seleccionadas
+              </button>
+            </>
+          )}
           <button 
             className="btn-crear-entrega" 
             onClick={handleImprimirMultiples}
@@ -229,12 +310,25 @@ export default function EntregasPage() {
           </button>
           <button 
             className="btn-crear-entrega" 
+            onClick={handleCrearGasto}
+            style={{ backgroundColor: "#27ae60" }}
+          >
+            + Crear Gasto
+          </button>
+          <button 
+            className="btn-crear-entrega" 
             onClick={handleCrearEntrega}
           >
             + Nueva Entrega
           </button>
         </div>
       </div>
+
+      {isLoading && (
+        <div className="entregas-loading" style={{ padding: '2rem', textAlign: 'center' }}>
+          <div className="loading-spinner">Cargando entregas...</div>
+        </div>
+      )}
 
       {error && (
         <div className="error-message">
@@ -252,9 +346,9 @@ export default function EntregasPage() {
             onChange={(e) => handleFiltroChange('sedeId', e.target.value)}
           >
             <option value="">Todas las sedes</option>
-            {sedes.map(sede => (
-              <option key={sede.id} value={sede.id}>
-                {sede.nombre}
+            {Array.isArray(sedes) && sedes.map(sede => (
+              <option key={sede?.id} value={sede?.id}>
+                {sede?.nombre || ''}
               </option>
             ))}
           </select>
@@ -267,9 +361,9 @@ export default function EntregasPage() {
             onChange={(e) => handleFiltroChange('empleadoId', e.target.value)}
           >
             <option value="">Todos los empleados</option>
-            {trabajadores.map(trabajador => (
-              <option key={trabajador.id} value={trabajador.id}>
-                {trabajador.nombre}
+            {Array.isArray(trabajadores) && trabajadores.map(trabajador => (
+              <option key={trabajador?.id} value={trabajador?.id}>
+                {trabajador?.nombre || ''}
               </option>
             ))}
           </select>
@@ -321,25 +415,34 @@ export default function EntregasPage() {
           onCancelar={handleCancelarEntrega}
           onEliminar={handleEliminarEntrega}
           onImprimir={handleImprimirEntrega}
+          onImprimirSeleccionadas={handleImprimirSeleccionadas}
+          onImprimirSeleccionadasClick={handleSetInfoSeleccionadas}
         />
       </div>
 
-      {/* Panel de detalles */}
-      {seleccionado && (
-        <EntregaDetallePanel
-          entrega={seleccionado}
-          onClose={() => setSeleccionado(null)}
-          onActualizar={cargarEntregas}
-        />
-      )}
+      {/* Modal de detalles */}
+      <EntregaDetalleModal
+        entrega={seleccionado}
+        isOpen={!!seleccionado}
+        onClose={() => setSeleccionado(null)}
+      />
 
       {/* Modales */}
+      <CrearGastoModal
+        isOpen={mostrarCrearGastoModal}
+        onClose={() => setMostrarCrearGastoModal(false)}
+        onSuccess={handleGastoCreado}
+        sedes={Array.isArray(sedes) ? sedes : []}
+        trabajadores={Array.isArray(trabajadores) ? trabajadores : []}
+        proveedores={Array.isArray(proveedores) ? proveedores : []}
+      />
+
       <CrearEntregaModal
         isOpen={mostrarCrearModal}
         onClose={() => setMostrarCrearModal(false)}
         onSuccess={handleEntregaCreada}
-        sedes={sedes}
-        trabajadores={trabajadores}
+        sedes={Array.isArray(sedes) ? sedes : []}
+        trabajadores={Array.isArray(trabajadores) ? trabajadores : []}
       />
 
       <ConfirmarEntregaModal

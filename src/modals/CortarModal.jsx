@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import "../styles/CrudModal.css";
 import { listarCortesInventarioCompleto } from "../services/InventarioService";
 import { useToast } from "../context/ToastContext.jsx";
@@ -12,6 +12,23 @@ export default function CortarModal({
   const { showError } = useToast();
   const [medidaCorte, setMedidaCorte] = useState("");
   const [loading, setLoading] = useState(false);
+
+  // Prevenir cierre/recarga de pestaña cuando el modal está abierto
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleBeforeUnload = (e) => {
+      e.preventDefault();
+      e.returnValue = "¿Estás seguro de que quieres salir? Los cambios no guardados se perderán.";
+      return e.returnValue;
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, [isOpen]);
 
   // Constantes del sistema
   const LARGO_DEFAULT_PERFIL = 600; // 6 metros = 600 cm
@@ -36,7 +53,6 @@ export default function CortarModal({
 
     // Calcular precios proporcionales
     const precioOriginal = producto.precioUsado || producto.precio || 0;
-    console.log("💰 Precio original para cálculo:", precioOriginal, "Producto:", producto);
     
     const porcentajeCorte = medida / LARGO_DEFAULT_PERFIL;
     const porcentajeSobrante = medidaSobrante / LARGO_DEFAULT_PERFIL;
@@ -98,17 +114,8 @@ export default function CortarModal({
       // Verificar si ya existen cortes con el mismo prefijo de código, largo, categoría y color
       // Buscar tanto el SOLICITADO (el que se vende) como el SOBRANTE
       try {
-        console.log("🔍 Buscando cortes existentes para reutilizar (solicitado y sobrante)...");
         // Usar el mismo endpoint que la tabla para garantizar formato consistente
         const existentes = await listarCortesInventarioCompleto({}, true, null);
-        console.log(`📊 Total de cortes encontrados en sistema: ${existentes?.length || 0}`);
-        console.log("📋 Primeros 3 cortes encontrados (muestra):", existentes?.slice(0, 3).map(c => ({
-          id: c.id,
-          codigo: c.codigo,
-          largoCm: c.largoCm,
-          categoria: c.categoria?.nombre || c.categoria,
-          color: c.color
-        })));
         
         const productoCodigo = (producto.codigo || "").toString();
         // El producto puede tener categoria como objeto {nombre: "PERFIL"} o como string "PERFIL"
@@ -118,13 +125,6 @@ export default function CortarModal({
         const largoSolicitado = Number(cortesCalculados.medidaCorte);
         const largoSobrante = Number(cortesCalculados.medidaSobrante);
         
-        console.log("🎯 Criterios de búsqueda:");
-        console.log(`   - Prefijo código producto: "${productoCodigo}"`);
-        console.log(`   - Largo solicitado: ${largoSolicitado} cm (el que se vende)`);
-        console.log(`   - Largo sobrante: ${largoSobrante} cm (el que queda en inventario)`);
-        console.log(`   - Categoría: "${productoCategoria}"`);
-        console.log(`   - Color: "${productoColor}"`);
-
         // Función auxiliar para buscar coincidencias
         const buscarCoincidencia = (largoObjetivo, tipoCorte) => {
           return (existentes || []).find((c) => {
@@ -146,33 +146,22 @@ export default function CortarModal({
         // Buscar corte SOLICITADO (el que se vende)
         const coincidenteSolicitado = buscarCoincidencia(largoSolicitado, "solicitado");
         if (coincidenteSolicitado?.id) {
-          console.log("✅ Coincidencia SOLICITADO encontrada - Corte ID:", coincidenteSolicitado.id, "Código:", coincidenteSolicitado.codigo, "Largo:", coincidenteSolicitado.largoCm || coincidenteSolicitado.largo, "cm");
           // Guardar el ID para que el backend lo reutilice, incremente stock a 1 y luego lo descuente al vender
           corteParaVender.reutilizarCorteSolicitadoId = coincidenteSolicitado.id;
-          console.log("🔄 El corte solicitado será reutilizado - stock se incrementará a 1 y luego se descontará al vender");
-        } else {
-          console.log("❌ No se encontró corte SOLICITADO existente. Se creará uno nuevo con stock 0.");
         }
 
         // Buscar corte SOBRANTE (el que queda en inventario)
         const coincidenteSobrante = buscarCoincidencia(largoSobrante, "sobrante");
         if (coincidenteSobrante?.id) {
-          console.log("✅ Coincidencia SOBRANTE encontrada - Corte ID:", coincidenteSobrante.id, "Código:", coincidenteSobrante.codigo, "Largo:", coincidenteSobrante.largoCm || coincidenteSobrante.largo, "cm");
           // Marcar para reutilizar corte sobrante existente
           corteSobrante = {
             ...corteSobrante,
             reutilizarCorteId: coincidenteSobrante.id,
           };
-          console.log("♻️ El corte sobrante será reutilizado - stock se incrementará");
-        } else {
-          console.log("❌ No se encontró corte SOBRANTE existente. Se creará uno nuevo.");
         }
       } catch (lookupErr) {
         console.warn("⚠️ No se pudo verificar cortes existentes:", lookupErr);
       }
-
-      console.log("🔪 Corte para vender:", corteParaVender);
-      console.log("📦 Corte sobrante:", corteSobrante);
 
       // Llamar a la función de corte
       if (onCortar) {

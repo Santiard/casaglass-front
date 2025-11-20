@@ -36,8 +36,6 @@ const CreditosPage = () => {
         
         const creditosData = creditosResponse.data || [];
         
-        console.log("Créditos cargados exitosamente:", creditosData.length, "elementos");
-        console.log("Clientes cargados exitosamente:", clientesData.length, "elementos");
         
         setCreditos(creditosData);
         setClientes(clientesData);
@@ -55,20 +53,27 @@ const CreditosPage = () => {
   }, []);
 
   const filtrarCreditos = () => {
-    return creditos.filter((c) => {
-      const matchCliente = filtroCliente ? c.cliente?.id === Number(filtroCliente) : true;
-      const matchEstado = filtroEstado ? c.estado === filtroEstado : true;
+    return creditos
+      .filter((c) => {
+        const matchCliente = filtroCliente ? c.cliente?.id === Number(filtroCliente) : true;
+        const matchEstado = filtroEstado ? c.estado === filtroEstado : true;
 
-      const matchTotal =
-        (!filtroTotalMin || c.totalCredito >= filtroTotalMin) &&
-        (!filtroTotalMax || c.totalCredito <= filtroTotalMax);
+        const matchTotal =
+          (!filtroTotalMin || c.totalCredito >= filtroTotalMin) &&
+          (!filtroTotalMax || c.totalCredito <= filtroTotalMax);
 
-      const matchSaldo =
-        (!filtroSaldoMin || c.saldoPendiente >= filtroSaldoMin) &&
-        (!filtroSaldoMax || c.saldoPendiente <= filtroSaldoMax);
+        const matchSaldo =
+          (!filtroSaldoMin || c.saldoPendiente >= filtroSaldoMin) &&
+          (!filtroSaldoMax || c.saldoPendiente <= filtroSaldoMax);
 
-      return matchCliente && matchEstado && matchTotal && matchSaldo;
-    });
+        return matchCliente && matchEstado && matchTotal && matchSaldo;
+      })
+      .sort((a, b) => {
+        // Ordenar por fechaInicio descendente (más recientes primero)
+        const fechaA = new Date(a.fechaInicio || 0);
+        const fechaB = new Date(b.fechaInicio || 0);
+        return fechaB - fechaA; // Descendente: fechaB - fechaA
+      });
   };
 
   // Función para abrir el modal de abono
@@ -79,16 +84,13 @@ const CreditosPage = () => {
 
   // Función para recargar los créditos después de crear un abono
   const loadCreditoDetalles = async () => {
-    console.log("=== INICIANDO RECARGA DE CRÉDITOS ===");
     setIsReloading(true);
     
     try {
       const response = await api.get("/creditos");
       const data = response.data || [];
       
-      console.log("✅ Recarga exitosa:", data.length, "créditos");
       setCreditos(data);
-      console.log("=== RECARGA COMPLETADA ===");
       
     } catch (err) {
       console.error("❌ Error recargando créditos:", err.message);

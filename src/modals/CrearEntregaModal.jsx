@@ -14,8 +14,9 @@ const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores }) 
     modalidadEntrega: 'EFECTIVO',
     observaciones: '',
     numeroComprobante: '',
-    ordenesIds: [],
-    gastos: [],
+    ordenesIds: [], // IDs de órdenes a contado
+    abonosIds: [], // IDs de abonos individuales (NUEVO)
+    gastoIds: [], // IDs de gastos seleccionados
     montoEfectivo: '',
     montoTransferencia: '',
     montoCheque: '',
@@ -23,8 +24,11 @@ const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores }) 
   });
 
   const [ordenesDisponibles, setOrdenesDisponibles] = useState([]);
+  const [abonosDisponibles, setAbonosDisponibles] = useState([]); // Abonos disponibles (NUEVO)
+  const [gastosDisponibles, setGastosDisponibles] = useState([]);
   const [loading, setLoading] = useState(false);
   const [loadingOrdenes, setLoadingOrdenes] = useState(false);
+  const [loadingGastos, setLoadingGastos] = useState(false);
   const [error, setError] = useState('');
   const [step, setStep] = useState(1); // 1: Datos básicos, 2: Órdenes, 3: Gastos
 
@@ -39,13 +43,15 @@ const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores }) 
       observaciones: '',
       numeroComprobante: '',
       ordenesIds: [],
-      gastos: [],
+      gastoIds: [],
       montoEfectivo: '',
       montoTransferencia: '',
       montoCheque: '',
       montoDeposito: ''
     });
     setOrdenesDisponibles([]);
+    setAbonosDisponibles([]);
+    setGastosDisponibles([]);
     setError('');
     setStep(1);
   };
@@ -53,8 +59,28 @@ const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores }) 
   useEffect(() => {
     if (isOpen) {
       resetForm();
+      // Generar número de comprobante automáticamente
+      generarNumeroComprobante();
     }
   }, [isOpen]);
+
+  const generarNumeroComprobante = async () => {
+    try {
+      const numeroComprobante = await EntregasService.obtenerSiguienteNumeroComprobante();
+      setFormData(prev => ({
+        ...prev,
+        numeroComprobante: numeroComprobante
+      }));
+    } catch (error) {
+      console.error('Error generando número de comprobante:', error);
+      // En caso de error, usar un número basado en timestamp
+      const fallback = `ENT-${Date.now()}`;
+      setFormData(prev => ({
+        ...prev,
+        numeroComprobante: fallback
+      }));
+    }
+  };
 
   // Cargar órdenes disponibles cuando se seleccionan sede y fechas
   useEffect(() => {
@@ -66,60 +92,109 @@ const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores }) 
     }
   }, [formData.sedeId, formData.fechaDesde, formData.fechaHasta]);
 
+  // Cargar gastos disponibles cuando se selecciona la sede
+  useEffect(() => {
+    if (formData.sedeId) {
+      cargarGastosDisponibles();
+    } else {
+      setGastosDisponibles([]);
+    }
+  }, [formData.sedeId]);
+
+  const cargarGastosDisponibles = async () => {
+    try {
+      setLoadingGastos(true);
+      setError('');
+      const gastos = await EntregasService.obtenerGastosDisponibles(formData.sedeId);
+      setGastosDisponibles(Array.isArray(gastos) ? gastos : []);
+    } catch (err) {
+      console.error('Error cargando gastos disponibles:', err);
+      setError('Error cargando gastos disponibles');
+      setGastosDisponibles([]);
+    } finally {
+      setLoadingGastos(false);
+    }
+  };
+
   const cargarOrdenesDisponibles = async () => {
     try {
       setLoadingOrdenes(true);
-      console.log('Cargando órdenes para:', {
-        sedeId: formData.sedeId,
-        fechaDesde: formData.fechaDesde,
-        fechaHasta: formData.fechaHasta
-      });
-      
       const ordenes = await EntregasService.obtenerOrdenesDisponibles(
         formData.sedeId,
         formData.fechaDesde,
         formData.fechaHasta
       );
       
-      console.log('Órdenes recibidas:', ordenes);
-      
-      // Extraer órdenes de la estructura de respuesta del backend
+      // Extraer órdenes y abonos de la estructura de respuesta del backend
       let ordenesArray = [];
+      let abonosArray = [];
+      
       if (ordenes && typeof ordenes === 'object') {
-        // Combinar órdenes con abonos y órdenes de contado
-        const ordenesConAbonos = Array.isArray(ordenes.ordenesConAbonos) ? ordenes.ordenesConAbonos : [];
-        const ordenesContado = Array.isArray(ordenes.ordenesContado) ? ordenes.ordenesContado : [];
-        const todasLasOrdenes = [...ordenesConAbonos, ...ordenesContado];
-        
-        // Normalizar los nombres de propiedades
-        ordenesArray = todasLasOrdenes.map(orden => ({
+        // Órdenes a contado - FILTRAR solo las que tienen venta: true (confirmadas/pagadas)
+        const ordenesContado = Array.isArray(ordenes.ordenesContado) 
+          ? ordenes.ordenesContado.filter(orden => orden.venta === true) 
+          : [];
+        ordenesArray = ordenesContado.map(orden => ({
           id: orden.id,
           numero: orden.numero,
           fecha: orden.fecha,
           total: orden.total,
-          cliente: orden.clienteNombre || orden.cliente || 'Cliente no especificado',
-          obra: orden.obra || orden.descripcion || 'Obra no especificada'
+          clienteNombre: orden.clienteNombre || 'Cliente no especificado',
+          clienteNit: orden.clienteNit || null,
+          obra: orden.obra || 'Obra no especificada',
+          sedeNombre: orden.sedeNombre || null,
+          trabajadorNombre: orden.trabajadorNombre || null,
+          esContado: true,
+          estado: orden.estado || 'ACTIVA',
+          venta: orden.venta !== undefined ? orden.venta : true // Asegurar que venta esté presente
+        }));
+        
+        // Abonos disponibles (NUEVO - reemplaza ordenesConAbonos)
+        // FILTRAR solo abonos de órdenes con ventaOrden: true (confirmadas/pagadas)
+        const abonosDisponibles = Array.isArray(ordenes.abonosDisponibles) 
+          ? ordenes.abonosDisponibles.filter(abono => abono.ventaOrden === true) 
+          : [];
+        abonosArray = abonosDisponibles.map(abono => ({
+          id: abono.id, // ID del abono
+          ordenId: abono.ordenId,
+          numeroOrden: abono.numeroOrden,
+          fechaAbono: abono.fechaAbono,
+          montoAbono: abono.montoAbono || abono.monto || 0,
+          montoOrden: abono.montoOrden || 0, // Monto total de la orden
+          clienteNombre: abono.clienteNombre || 'Cliente no especificado',
+          clienteNit: abono.clienteNit || null,
+          metodoPago: abono.metodoPago || null,
+          yaEntregado: abono.yaEntregado || false
         }));
       } else if (Array.isArray(ordenes)) {
-        // Si por alguna razón viene como array directamente
-        ordenesArray = ordenes.map(orden => ({
-          id: orden.id,
-          numero: orden.numero,
-          fecha: orden.fecha,
-          total: orden.total,
-          cliente: orden.clienteNombre || orden.cliente || 'Cliente no especificado',
-          obra: orden.obra || orden.descripcion || 'Obra no especificada'
-        }));
+        // Si por alguna razón viene como array directamente (fallback)
+        // FILTRAR solo las que tienen venta: true
+        ordenesArray = ordenes
+          .filter(orden => orden.venta === true)
+          .map(orden => ({
+            id: orden.id,
+            numero: orden.numero,
+            fecha: orden.fecha,
+            total: orden.total,
+            clienteNombre: orden.clienteNombre || 'Cliente no especificado',
+            clienteNit: orden.clienteNit || null,
+            obra: orden.obra || 'Obra no especificada',
+            sedeNombre: orden.sedeNombre || null,
+            trabajadorNombre: orden.trabajadorNombre || null,
+            esContado: orden.esContado !== undefined ? orden.esContado : true,
+            estado: orden.estado || 'ACTIVA',
+            venta: orden.venta !== undefined ? orden.venta : true
+          }));
       }
       
-      console.log('Órdenes procesadas (formato final):', ordenesArray);
-      console.log('Cantidad de órdenes:', ordenesArray.length);
       setOrdenesDisponibles(ordenesArray);
+      setAbonosDisponibles(abonosArray);
       
     } catch (err) {
       console.error('Error cargando órdenes:', err);
       setError('Error cargando órdenes disponibles');
       setOrdenesDisponibles([]);
+      setAbonosDisponibles([]);
     } finally {
       setLoadingOrdenes(false);
     }
@@ -130,12 +205,37 @@ const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores }) 
     
     if (name === 'ordenesIds') {
       const ordenId = parseInt(value);
-      setFormData(prev => ({
-        ...prev,
-        ordenesIds: checked 
-          ? [...prev.ordenesIds, ordenId]
-          : prev.ordenesIds.filter(id => id !== ordenId)
-      }));
+      setFormData(prev => {
+        const ordenesIds = Array.isArray(prev.ordenesIds) ? prev.ordenesIds : [];
+        return {
+          ...prev,
+          ordenesIds: checked 
+            ? [...ordenesIds, ordenId]
+            : ordenesIds.filter(id => id !== ordenId)
+        };
+      });
+    } else if (name === 'abonosIds') {
+      const abonoId = parseInt(value);
+      setFormData(prev => {
+        const abonosIds = Array.isArray(prev.abonosIds) ? prev.abonosIds : [];
+        return {
+          ...prev,
+          abonosIds: checked 
+            ? [...abonosIds, abonoId]
+            : abonosIds.filter(id => id !== abonoId)
+        };
+      });
+    } else if (name === 'gastoIds') {
+      const gastoId = parseInt(value);
+      setFormData(prev => {
+        const gastoIds = Array.isArray(prev.gastoIds) ? prev.gastoIds : [];
+        return {
+          ...prev,
+          gastoIds: checked 
+            ? [...gastoIds, gastoId]
+            : gastoIds.filter(id => id !== gastoId)
+        };
+      });
     } else {
       // Campos de texto se convierten a mayúsculas (excepto checkboxes)
       const processedValue = type === 'checkbox' ? checked : (type === 'text' ? value.toUpperCase() : value);
@@ -146,55 +246,34 @@ const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores }) 
     }
   };
 
-  const agregarGasto = () => {
-    const nuevoGasto = {
-      id: Date.now(), // ID temporal
-      fechaGasto: new Date().toISOString().slice(0, 10),
-      monto: 0,
-      concepto: '',
-      descripcion: '',
-      comprobante: '',
-      tipo: 'OPERATIVO',
-      empleadoId: formData.empleadoId,
-      proveedorId: null,
-      aprobado: true,
-      observaciones: ''
-    };
-
-    setFormData(prev => ({
-      ...prev,
-      gastos: [...prev.gastos, nuevoGasto]
-    }));
-  };
-
-  const actualizarGasto = (index, campo, valor) => {
-    setFormData(prev => ({
-      ...prev,
-      gastos: prev.gastos.map((gasto, i) => 
-        i === index ? { ...gasto, [campo]: valor } : gasto
-      )
-    }));
-  };
-
-  const eliminarGasto = (index) => {
-    setFormData(prev => ({
-      ...prev,
-      gastos: prev.gastos.filter((_, i) => i !== index)
-    }));
-  };
 
   const calcularTotales = () => {
-    // Asegurar que ordenesDisponibles sea un array
+    // Asegurar que sean arrays
     const ordenes = Array.isArray(ordenesDisponibles) ? ordenesDisponibles : [];
+    const abonos = Array.isArray(abonosDisponibles) ? abonosDisponibles : [];
     
+    // Calcular monto de órdenes a contado seleccionadas
+    const ordenesIds = Array.isArray(formData.ordenesIds) ? formData.ordenesIds : [];
     const ordenesSeleccionadas = ordenes.filter(orden => 
-      formData.ordenesIds.includes(orden.id)
+      ordenesIds.includes(orden.id)
     );
-    
     const montoOrdenes = ordenesSeleccionadas.reduce((sum, orden) => sum + (orden.total || 0), 0);
-    const montoGastos = Array.isArray(formData.gastos) 
-      ? formData.gastos.reduce((sum, gasto) => sum + (parseFloat(gasto.monto) || 0), 0)
-      : 0;
+    
+    // Calcular monto de abonos seleccionados (NUEVO)
+    const abonosIds = Array.isArray(formData.abonosIds) ? formData.abonosIds : [];
+    const abonosSeleccionados = abonos.filter(abono => 
+      abonosIds.includes(abono.id)
+    );
+    const montoAbonos = abonosSeleccionados.reduce((sum, abono) => sum + (Number(abono.montoAbono) || 0), 0);
+    
+    // Monto esperado total = órdenes a contado + abonos
+    const montoEsperadoTotal = montoOrdenes + montoAbonos;
+    
+    // Calcular monto de gastos seleccionados
+    const gastosSeleccionados = gastosDisponibles.filter(gasto => 
+      formData.gastoIds.includes(gasto.id)
+    );
+    const montoGastos = gastosSeleccionados.reduce((sum, gasto) => sum + (parseFloat(gasto.monto) || 0), 0);
     
     const desglose = {
       montoEfectivo: parseFloat(formData.montoEfectivo) || 0,
@@ -203,9 +282,16 @@ const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores }) 
       montoDeposito: parseFloat(formData.montoDeposito) || 0,
     };
     const montoEntregado = Object.values(desglose).reduce((a,b)=>a+b,0);
+    
+    // Monto Neto Esperado = Monto Esperado - Monto Gastos
+    const montoNetoEsperado = montoEsperadoTotal - montoGastos;
+    
     return {
-      montoEsperado: montoOrdenes,
+      montoEsperado: montoEsperadoTotal,
+      montoOrdenes: montoOrdenes,
+      montoAbonos: montoAbonos,
       montoGastos: montoGastos,
+      montoNetoEsperado: montoNetoEsperado,
       montoEntregado,
       ...desglose
     };
@@ -216,7 +302,10 @@ const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores }) 
       case 1:
         return formData.sedeId && formData.empleadoId && formData.fechaDesde && formData.fechaHasta;
       case 2:
-        return formData.ordenesIds.length > 0;
+        // Debe haber al menos una orden a contado o un abono seleccionado
+        const ordenesIds = Array.isArray(formData.ordenesIds) ? formData.ordenesIds : [];
+        const abonosIds = Array.isArray(formData.abonosIds) ? formData.abonosIds : [];
+        return ordenesIds.length > 0 || abonosIds.length > 0;
       default:
         return true;
     }
@@ -224,7 +313,6 @@ const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores }) 
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log('handleSubmit llamado en step:', step);
     setError('');
 
     if (!validarStep(1) || !validarStep(2)) {
@@ -260,13 +348,24 @@ const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores }) 
           formData.fechaDesde,
           formData.fechaHasta
         );
-        const elegiblesIds = new Set([
-          ...((elegibles?.ordenesContado || []).map(o => o.id)),
-          ...((elegibles?.ordenesConAbonos || []).map(o => o.id)),
-        ]);
-        const invalidas = (formData.ordenesIds || []).filter(id => !elegiblesIds.has(id));
-        if (invalidas.length > 0) {
-          setError(`Algunas órdenes ya no son elegibles para entrega: ${invalidas.join(', ')}. Actualiza la selección.`);
+        // Validar órdenes a contado - FILTRAR solo las que tienen venta: true
+        const ordenesContadoValidas = (elegibles?.ordenesContado || []).filter(o => o.venta === true);
+        const ordenesContadoIds = new Set(ordenesContadoValidas.map(o => o.id));
+        const ordenesIds = Array.isArray(formData.ordenesIds) ? formData.ordenesIds : [];
+        const ordenesInvalidas = ordenesIds.filter(id => !ordenesContadoIds.has(id));
+        if (ordenesInvalidas.length > 0) {
+          setError(`Algunas órdenes ya no son elegibles para entrega: ${ordenesInvalidas.join(', ')}. Pueden estar en otra entrega, no pertenecer a esta sede, estar fuera del rango de fechas, o no estar confirmadas (venta: false). Actualiza la selección.`);
+          setLoading(false);
+          return;
+        }
+        
+        // Validar abonos disponibles (NUEVO) - FILTRAR solo abonos de órdenes con ventaOrden: true
+        const abonosDisponiblesValidos = (elegibles?.abonosDisponibles || []).filter(a => a.ventaOrden === true);
+        const abonosDisponiblesIds = new Set(abonosDisponiblesValidos.map(a => a.id));
+        const abonosIds = Array.isArray(formData.abonosIds) ? formData.abonosIds : [];
+        const abonosInvalidos = abonosIds.filter(id => !abonosDisponiblesIds.has(id));
+        if (abonosInvalidos.length > 0) {
+          setError(`Algunos abonos ya no están disponibles: ${abonosInvalidos.join(', ')}. Pueden estar incluidos en otra entrega o la orden no está confirmada (venta: false). Actualiza la selección.`);
           setLoading(false);
           return;
         }
@@ -275,39 +374,97 @@ const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores }) 
         // Continuar, backend validará también
       }
 
-      const entregaData = {
-        ...formData,
-        ...totales,
-        modalidadEntrega,
-        sedeId: parseInt(formData.sedeId),
-        empleadoId: parseInt(formData.empleadoId),
-        gastos: formData.gastos.map(gasto => ({
-          ...gasto,
-          monto: Math.max(0, parseFloat(gasto.monto) || 0),
-          empleadoId: parseInt(formData.empleadoId)
-        }))
-      };
+      // Validar gastos seleccionados
+      if (formData.gastoIds.length > 0) {
+        try {
+          // Recargar gastos disponibles para verificar que sigan disponibles
+          const gastosDisponiblesActuales = await EntregasService.obtenerGastosDisponibles(formData.sedeId);
+          const gastosDisponiblesIds = new Set(gastosDisponiblesActuales.map(g => g.id));
+          const gastosInvalidos = formData.gastoIds.filter(id => !gastosDisponiblesIds.has(id));
+          
+          if (gastosInvalidos.length > 0) {
+            setError(`Algunos gastos ya no están disponibles: ${gastosInvalidos.join(', ')}. Pueden estar asociados a otra entrega o no estar aprobados. Actualiza la selección.`);
+            setLoading(false);
+            return;
+          }
 
-      // Validación: suma de desgloses debe igualar montoEntregado
-      const sumaDesglose = (parseFloat(entregaData.montoEfectivo)||0)
-        + (parseFloat(entregaData.montoTransferencia)||0)
-        + (parseFloat(entregaData.montoCheque)||0)
-        + (parseFloat(entregaData.montoDeposito)||0);
-      if (Math.abs(sumaDesglose - entregaData.montoEntregado) > 0.01) {
-        setError('La suma de Efectivo+Transferencia+Cheque+Depósito debe igualar el Monto a Entregar');
-        setLoading(false);
-        return;
+          // Verificar que los gastos pertenezcan a la sede seleccionada
+          const gastosDeOtraSede = gastosDisponiblesActuales
+            .filter(g => formData.gastoIds.includes(g.id) && g.sede?.id !== parseInt(formData.sedeId))
+            .map(g => g.id);
+          
+          if (gastosDeOtraSede.length > 0) {
+            setError(`Algunos gastos no pertenecen a la sede seleccionada: ${gastosDeOtraSede.join(', ')}.`);
+            setLoading(false);
+            return;
+          }
+        } catch (gastosErr) {
+          console.warn('No se pudo revalidar gastos disponibles antes de crear.', gastosErr);
+          // Continuar, backend validará también
+        }
       }
 
-      console.log('Enviando entrega:', entregaData);
+      // Asegurar que el número de comprobante esté generado
+      let numeroComprobante = formData.numeroComprobante?.trim();
+      if (!numeroComprobante) {
+        numeroComprobante = await EntregasService.obtenerSiguienteNumeroComprobante();
+      }
+
+      const entregaData = {
+        sedeId: parseInt(formData.sedeId),
+        empleadoId: parseInt(formData.empleadoId),
+        fechaEntrega: formData.fechaEntrega || new Date().toISOString().slice(0, 10),
+        fechaDesde: formData.fechaDesde,
+        fechaHasta: formData.fechaHasta,
+        numeroComprobante: numeroComprobante
+      };
+
+      // Campos opcionales - solo agregar si tienen valor
+      const ordenesIds = Array.isArray(formData.ordenesIds) ? formData.ordenesIds : [];
+      const abonosIds = Array.isArray(formData.abonosIds) ? formData.abonosIds : [];
       
+      if (ordenesIds.length > 0) {
+        entregaData.ordenesIds = ordenesIds;
+      }
+      if (abonosIds.length > 0) {
+        entregaData.abonosIds = abonosIds; // NUEVO
+      }
+      if (formData.gastoIds.length > 0) {
+        entregaData.gastosIds = formData.gastoIds;
+      }
+      if (modalidadEntrega && modalidadEntrega !== 'EFECTIVO') {
+        entregaData.modalidadEntrega = modalidadEntrega;
+      }
+      if (formData.observaciones?.trim()) {
+        entregaData.observaciones = formData.observaciones.trim();
+      }
+
+      // Desgloses de métodos de pago (opcionales, normalmente 0 al crear)
+      const montoEfectivo = parseFloat(formData.montoEfectivo) || 0;
+      const montoTransferencia = parseFloat(formData.montoTransferencia) || 0;
+      const montoCheque = parseFloat(formData.montoCheque) || 0;
+      const montoDeposito = parseFloat(formData.montoDeposito) || 0;
+      const montoEntregado = montoEfectivo + montoTransferencia + montoCheque + montoDeposito;
+
+      // Solo incluir desgloses si hay algún valor mayor a 0
+      if (montoEntregado > 0) {
+        entregaData.montoEntregado = montoEntregado;
+        entregaData.montoEfectivo = montoEfectivo;
+        entregaData.montoTransferencia = montoTransferencia;
+        entregaData.montoCheque = montoCheque;
+        entregaData.montoDeposito = montoDeposito;
+      }
+      
+      // Nota: El montoEntregado se registra cuando se confirma la entrega, no al crearla
+      // Los desgloses (efectivo, transferencia, etc.) se pueden actualizar después con PUT /entregas-dinero/{id}
+
       const respuesta = await EntregasService.crearEntrega(entregaData);
-      console.log('Respuesta del backend:', respuesta);
 
       // Aviso de diferencia si aplica
+      // Diferencia = (Monto Esperado - Monto Gastos) - Monto Entregado
       const ent = respuesta?.entrega || respuesta;
-      const neto = (Number(ent?.montoEsperado)||0) - (Number(ent?.montoGastos)||0);
-      const diff = neto - (Number(ent?.montoEntregado)||0);
+      const montoNetoEsperado = (Number(ent?.montoEsperado)||0) - (Number(ent?.montoGastos)||0);
+      const diff = montoNetoEsperado - (Number(ent?.montoEntregado)||0);
       if (Math.abs(diff) > 0.01) {
         showWarning(`Aviso: La diferencia de la entrega es ${diff.toLocaleString('es-CO', {style:'currency', currency:'COP'})}.\nRevisa y ajusta los montos por método (PUT /entregas-dinero/{id}) antes de confirmar.`);
       }
@@ -320,8 +477,33 @@ const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores }) 
       console.error('Error response data:', err.response?.data);
       console.error('Error response status:', err.response?.status);
       
-      const errorMessage = err.response?.data?.message || err.message || 'Error desconocido';
-      setError(`Error creando entrega: ${errorMessage}`);
+      // Extraer mensaje de error del backend
+      let errorMessage = 'Error desconocido al crear la entrega';
+      
+      if (err.response?.data) {
+        const errorData = err.response.data;
+        
+        // Intentar diferentes estructuras de respuesta del backend
+        if (errorData.message) {
+          errorMessage = errorData.message;
+        } else if (errorData.error) {
+          errorMessage = errorData.error;
+        } else if (typeof errorData === 'string') {
+          errorMessage = errorData;
+        } else if (errorData.mensaje) {
+          errorMessage = errorData.mensaje;
+        }
+        
+        // Mensajes específicos del backend según la lógica de validación:
+        // - "La orden ya está incluida en otra entrega"
+        // - "No se puede agregar una orden a crédito completamente saldada..."
+        // - "La orden a crédito no tiene abonos en el período especificado..."
+        // - "Para órdenes a crédito, la entrega debe tener fechas definidas"
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+      
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -435,7 +617,10 @@ const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores }) 
                     name="numeroComprobante"
                     value={formData.numeroComprobante}
                     onChange={handleChange}
-                    placeholder="Opcional"
+                    placeholder="Se genera automáticamente"
+                    readOnly
+                    style={{ backgroundColor: '#f5f5f5', cursor: 'not-allowed' }}
+                    title="Número generado automáticamente"
                   />
                 </div>
 
@@ -453,49 +638,145 @@ const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores }) 
             </div>
           )}
 
-          {/* Step 2: Órdenes */}
+          {/* Step 2: Órdenes y Abonos */}
           {step === 2 && (
             <div className="form-step">
-              <h3>Seleccionar Órdenes</h3>
+              <h3>Seleccionar Órdenes y Abonos</h3>
               
               {loadingOrdenes ? (
-                <div className="loading-ordenes">Cargando órdenes disponibles...</div>
-              ) : !Array.isArray(ordenesDisponibles) || ordenesDisponibles.length === 0 ? (
-                <div className="no-ordenes">
-                  No hay órdenes disponibles para el período y sede seleccionados
-                </div>
+                <div className="loading-ordenes">Cargando órdenes y abonos disponibles...</div>
               ) : (
-                <div className="ordenes-list">
-                  {ordenesDisponibles.map(orden => (
-                    <div key={orden.id} className="orden-item">
-                      <label className="orden-checkbox">
-                        <input
-                          type="checkbox"
-                          name="ordenesIds"
-                          value={orden.id}
-                          checked={formData.ordenesIds.includes(orden.id)}
-                          onChange={handleChange}
-                        />
-                        <div className="orden-info">
-                          <div className="orden-header">
-                            <span className="orden-numero">#{orden.numero}</span>
-                            <span className="orden-fecha">{orden.fecha}</span>
-                            <span className="orden-total">${orden.total?.toLocaleString()}</span>
+                <>
+                  {/* Órdenes a Contado */}
+                  {Array.isArray(ordenesDisponibles) && ordenesDisponibles.length > 0 && (
+                    <div style={{ marginBottom: '30px' }}>
+                      <h4 style={{ marginBottom: '15px', color: 'var(--color-dark-blue)' }}>Órdenes a Contado</h4>
+                      <div style={{ 
+                        marginBottom: '10px', 
+                        padding: '8px 12px', 
+                        backgroundColor: '#e3f2fd', 
+                        borderRadius: '4px',
+                        fontSize: '0.9em',
+                        color: '#1976d2'
+                      }}>
+                        ℹ️ Solo se muestran órdenes confirmadas (venta: true). Las órdenes pendientes de pago no aparecen aquí.
+                      </div>
+                      <div className="ordenes-list">
+                        {ordenesDisponibles.map(orden => (
+                          <div key={orden.id} className="orden-item">
+                            <label className="orden-checkbox">
+                              <input
+                                type="checkbox"
+                                name="ordenesIds"
+                                value={orden.id}
+                                checked={(Array.isArray(formData.ordenesIds) ? formData.ordenesIds : []).includes(orden.id)}
+                                onChange={handleChange}
+                              />
+                              <div className="orden-info">
+                                <div className="orden-header">
+                                  <span className="orden-numero">#{orden.numero}</span>
+                                  <span className="orden-fecha">{orden.fecha}</span>
+                                  <span className="orden-total">${orden.total?.toLocaleString()}</span>
+                                </div>
+                                <div className="orden-cliente">
+                                  {orden.clienteNombre || 'Cliente no especificado'}
+                                  {orden.clienteNit && <span> - NIT: {orden.clienteNit}</span>}
+                                </div>
+                                <div className="orden-obra">{orden.obra || 'Obra no especificada'}</div>
+                              </div>
+                            </label>
                           </div>
-                          <div className="orden-cliente">{orden.cliente}</div>
-                          <div className="orden-obra">{orden.obra}</div>
-                        </div>
-                      </label>
+                        ))}
+                      </div>
                     </div>
-                  ))}
-                </div>
-              )}
-              
-              {formData.ordenesIds.length > 0 && (
-                <div className="ordenes-seleccionadas">
-                  <strong>Órdenes seleccionadas: {formData.ordenesIds.length}</strong>
-                  <div>Total: ${totales.montoEsperado.toLocaleString()}</div>
-                </div>
+                  )}
+                  
+                  {/* Abonos Disponibles (NUEVO) */}
+                  {Array.isArray(abonosDisponibles) && abonosDisponibles.length > 0 && (
+                    <div style={{ marginBottom: '30px' }}>
+                      <h4 style={{ marginBottom: '15px', color: 'var(--color-dark-blue)' }}>Abonos Disponibles (Órdenes a Crédito)</h4>
+                      <div style={{ 
+                        marginBottom: '10px', 
+                        padding: '8px 12px', 
+                        backgroundColor: '#e3f2fd', 
+                        borderRadius: '4px',
+                        fontSize: '0.9em',
+                        color: '#1976d2'
+                      }}>
+                        ℹ️ Solo se muestran abonos de órdenes confirmadas (venta: true). Los abonos de órdenes pendientes de pago no aparecen aquí.
+                      </div>
+                      <div className="ordenes-list">
+                        {abonosDisponibles.map(abono => (
+                          <div key={abono.id} className="orden-item">
+                            <label className="orden-checkbox">
+                              <input
+                                type="checkbox"
+                                name="abonosIds"
+                                value={abono.id}
+                                checked={(Array.isArray(formData.abonosIds) ? formData.abonosIds : []).includes(abono.id)}
+                                onChange={handleChange}
+                              />
+                              <div className="orden-info">
+                                <div className="orden-header">
+                                  <span className="orden-numero">Orden #{abono.numeroOrden}</span>
+                                  <span className="orden-fecha">{abono.fechaAbono}</span>
+                                  <span className="orden-total">${abono.montoAbono?.toLocaleString()}</span>
+                                </div>
+                                <div className="orden-cliente">
+                                  {abono.clienteNombre || 'Cliente no especificado'}
+                                  {abono.clienteNit && <span> - NIT: {abono.clienteNit}</span>}
+                                </div>
+                                <div className="orden-obra">
+                                  Abono de ${abono.montoAbono?.toLocaleString()} 
+                                  {abono.montoOrden > 0 && (
+                                    <span> (Orden total: ${abono.montoOrden?.toLocaleString()})</span>
+                                  )}
+                                  {abono.metodoPago && <span> - Método: {abono.metodoPago}</span>}
+                                </div>
+                              </div>
+                            </label>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Mensaje si no hay nada disponible */}
+                  {(!Array.isArray(ordenesDisponibles) || ordenesDisponibles.length === 0) &&
+                   (!Array.isArray(abonosDisponibles) || abonosDisponibles.length === 0) && (
+                    <div className="no-ordenes">
+                      No hay órdenes ni abonos disponibles para el período y sede seleccionados
+                    </div>
+                  )}
+                  
+                  {/* Resumen de selección */}
+                  {(() => {
+                    const ordenesIds = Array.isArray(formData.ordenesIds) ? formData.ordenesIds : [];
+                    const abonosIds = Array.isArray(formData.abonosIds) ? formData.abonosIds : [];
+                    return ordenesIds.length > 0 || abonosIds.length > 0;
+                  })() && (
+                    <div className="ordenes-seleccionadas">
+                      <strong>
+                        {(() => {
+                          const ordenesIds = Array.isArray(formData.ordenesIds) ? formData.ordenesIds : [];
+                          const abonosIds = Array.isArray(formData.abonosIds) ? formData.abonosIds : [];
+                          return (
+                            <>
+                              {ordenesIds.length > 0 && `Órdenes: ${ordenesIds.length}`}
+                              {ordenesIds.length > 0 && abonosIds.length > 0 && ' | '}
+                              {abonosIds.length > 0 && `Abonos: ${abonosIds.length}`}
+                            </>
+                          );
+                        })()}
+                      </strong>
+                      <div>
+                        {totales.montoOrdenes > 0 && <span>Órdenes: ${totales.montoOrdenes.toLocaleString()} | </span>}
+                        {totales.montoAbonos > 0 && <span>Abonos: ${totales.montoAbonos.toLocaleString()} | </span>}
+                        <strong>Total: ${totales.montoEsperado.toLocaleString()}</strong>
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           )}
@@ -504,57 +785,51 @@ const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores }) 
           {step === 3 && (
             <div className="form-step">
               <div className="gastos-header">
-                <h3>Gastos Asociados</h3>
-                <button type="button" className="btn-agregar-gasto" onClick={agregarGasto}>
-                  + Agregar Gasto
-                </button>
+                <h3>Seleccionar Gastos Aprobados</h3>
+                <small>Selecciona los gastos aprobados que deseas incluir en esta entrega</small>
               </div>
               
-              {formData.gastos.length === 0 ? (
-                <div className="no-gastos">No hay gastos registrados</div>
+              {loadingGastos ? (
+                <div className="loading-ordenes">Cargando gastos disponibles...</div>
+              ) : !Array.isArray(gastosDisponibles) || gastosDisponibles.length === 0 ? (
+                <div className="no-gastos">
+                  No hay gastos aprobados disponibles para esta sede. Los gastos deben ser creados y aprobados primero.
+                </div>
               ) : (
-                <div className="gastos-list">
-                  {formData.gastos.map((gasto, index) => (
-                    <div key={gasto.id} className="gasto-item">
-                      <div className="gasto-form">
+                <div className="ordenes-list">
+                  {gastosDisponibles.map(gasto => (
+                    <div key={gasto.id} className="orden-item">
+                      <label className="orden-checkbox">
                         <input
-                          type="date"
-                          value={gasto.fechaGasto}
-                          onChange={(e) => actualizarGasto(index, 'fechaGasto', e.target.value)}
+                          type="checkbox"
+                          name="gastoIds"
+                          value={gasto.id}
+                          checked={formData.gastoIds.includes(gasto.id)}
+                          onChange={handleChange}
                         />
-                        <input
-                          type="number"
-                          placeholder="Monto"
-                          value={gasto.monto}
-                          onChange={(e) => actualizarGasto(index, 'monto', e.target.value)}
-                        />
-                        <select
-                          value={gasto.tipo}
-                          onChange={(e) => actualizarGasto(index, 'tipo', e.target.value)}
-                        >
-                          <option value="OPERATIVO">Operativo</option>
-                          <option value="COMBUSTIBLE">Combustible</option>
-                          <option value="MANTENIMIENTO">Mantenimiento</option>
-                          <option value="ALIMENTACION">Alimentación</option>
-                          <option value="TRANSPORTE">Transporte</option>
-                          <option value="OTRO">Otro</option>
-                        </select>
-                        <input
-                          type="text"
-                          placeholder="Concepto"
-                          value={gasto.concepto}
-                          onChange={(e) => actualizarGasto(index, 'concepto', e.target.value)}
-                        />
-                        <button 
-                          type="button" 
-                          className="btn-eliminar-gasto"
-                          onClick={() => eliminarGasto(index)}
-                        >
-                          ×
-                        </button>
-                      </div>
+                        <div className="orden-info">
+                          <div className="orden-header">
+                            <span className="orden-numero">#{gasto.id}</span>
+                            <span className="orden-fecha">{gasto.fechaGasto || '-'}</span>
+                            <span className="orden-total">${(gasto.monto || 0).toLocaleString()}</span>
+                          </div>
+                          <div className="orden-cliente">{gasto.concepto || gasto.descripcion || 'Sin concepto'}</div>
+                          <div className="orden-obra">
+                            Tipo: {gasto.tipo || 'OPERATIVO'}
+                            {gasto.sede?.nombre && <span> | Sede: {gasto.sede.nombre}</span>}
+                            {gasto.empleado?.nombre && <span> | Empleado: {gasto.empleado.nombre}</span>}
+                          </div>
+                        </div>
+                      </label>
                     </div>
                   ))}
+                </div>
+              )}
+              
+              {formData.gastoIds.length > 0 && (
+                <div className="ordenes-seleccionadas">
+                  <strong>Gastos seleccionados: {formData.gastoIds.length}</strong>
+                  <div>Total: ${totales.montoGastos.toLocaleString()}</div>
                 </div>
               )}
               
@@ -584,16 +859,34 @@ const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores }) 
                   </div>
                 </div>
                 <div className="resumen-item">
-                  <span>Total Órdenes:</span>
+                  <span>Total Órdenes a Contado:</span>
+                  <span>${totales.montoOrdenes.toLocaleString()}</span>
+                </div>
+                {totales.montoAbonos > 0 && (
+                  <div className="resumen-item">
+                    <span>Total Abonos:</span>
+                    <span>${totales.montoAbonos.toLocaleString()}</span>
+                  </div>
+                )}
+                <div className="resumen-item">
+                  <span>Total Órdenes + Abonos (Monto Esperado):</span>
                   <span>${totales.montoEsperado.toLocaleString()}</span>
                 </div>
                 <div className="resumen-item">
                   <span>Total Gastos:</span>
                   <span>-${totales.montoGastos.toLocaleString()}</span>
                 </div>
+                <div className="resumen-item">
+                  <span>Monto Neto Esperado:</span>
+                  <span>${totales.montoNetoEsperado.toLocaleString()}</span>
+                </div>
+                <div className="resumen-item">
+                  <span>Monto Entregado:</span>
+                  <span>${totales.montoEntregado.toLocaleString()}</span>
+                </div>
                 <div className="resumen-item total">
-                  <span><strong>Monto a Entregar:</strong></span>
-                  <span><strong>${totales.montoEntregado.toLocaleString()}</strong></span>
+                  <span><strong>Diferencia:</strong></span>
+                  <span><strong>${(totales.montoNetoEsperado - totales.montoEntregado).toLocaleString()}</strong></span>
                 </div>
               </div>
             </div>
@@ -620,7 +913,6 @@ const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores }) 
                 className="btn-siguiente"
                 onClick={(e) => {
                   e.preventDefault();
-                  console.log('Navegando al paso:', step + 1);
                   setStep(step + 1);
                 }}
                 disabled={!validarStep(step)}

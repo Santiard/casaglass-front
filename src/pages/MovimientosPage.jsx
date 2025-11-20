@@ -35,13 +35,17 @@ export default function MovimientosPage() {
           listarTraslados(),   // GET /api/traslados
         ]);
         setSedes(Array.isArray(sedesRes) ? sedesRes : []);
+        // Filtrar cortes: excluir productos que tengan largoCm (son cortes)
+        // Los cortes nunca se compran o trasladan, solo se quedan en la sede donde son generados
         setCatalogoProductos(
-          (prodsRes || []).map((p) => ({
-            id: p.id,
-            nombre: p.nombre,
-            codigo: p.codigo ?? "",
-            categoria: p.categoria?.nombre ?? p.categoria ?? "", // ✅ Extraemos el nombre si es objeto
-          }))
+          (prodsRes || [])
+            .filter(p => p.largoCm === undefined || p.largoCm === null) // Excluir cortes
+            .map((p) => ({
+              id: p.id,
+              nombre: p.nombre,
+              codigo: p.codigo ?? "",
+              categoria: p.categoria?.nombre ?? p.categoria ?? "", // ✅ Extraemos el nombre si es objeto
+            }))
         );
         setTraslados(Array.isArray(trasladosRes) ? trasladosRes : []);
       } catch (e) {

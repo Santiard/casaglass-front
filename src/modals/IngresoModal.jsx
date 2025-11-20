@@ -34,6 +34,23 @@ export default function IngresoModal({
 
   const isEdit = Boolean(ingresoInicial?.id);
 
+  // Prevenir cierre/recarga de pestaña cuando el modal está abierto
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleBeforeUnload = (e) => {
+      e.preventDefault();
+      e.returnValue = "¿Estás seguro de que quieres salir? Los cambios no guardados se perderán.";
+      return e.returnValue;
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, [isOpen]);
+
   useEffect(() => {
   if (!isOpen) return;
 

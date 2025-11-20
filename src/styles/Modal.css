@@ -3,7 +3,8 @@
     inset: 0;
     display: grid;
     place-items: center;
-    z-index: 50; }
+    z-index: 10000 !important; /* Por encima de Sidebar (100) y Header (10) - Safari compatible */
+}
 
 .modal-backdrop {
     position: absolute;
