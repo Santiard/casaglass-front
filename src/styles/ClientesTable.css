@@ -3,20 +3,29 @@
   min-height: 0;   /* 👈 clave para que overflow del hijo funcione */
   display: flex;
   flex-direction: column;
+  max-width: 100%; /* No exceder el ancho del contenedor padre */
+  overflow: hidden; /* Prevenir overflow del contenedor */
+  box-sizing: border-box;
 }
 
 /* el scroll vertical vive aquí */
 .table-wrapper{
   flex: 1;         /* ocupa el espacio bajo la toolbar */
   min-height: 0;   /* 👈 clave */
-  overflow: auto;  /* 👈 hace que llegue “hasta abajo” y scrollee */
+  overflow-x: auto;  /* Scroll horizontal si es necesario */
+  overflow-y: auto;  /* 👈 hace que llegue "hasta abajo" y scrollee */
+  max-width: 100%;   /* No exceder el ancho del contenedor */
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .table{
   width: 100%;
+  min-width: 100%;
   border-collapse: collapse;
   font-family: 'Roboto', sans-serif;
   font-size: 0.875rem;               /* 14px */
+  table-layout: fixed; /* Controlar anchos y prevenir overflow */
 }
 
 /* Encabezado */
@@ -30,6 +39,10 @@
   padding: 0.625rem 0.75rem;         /* 10px 12px */
   text-align: left;
   border-bottom: 0.0625rem solid #ddd; /* 1px */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 0;
 }
 
 /* Filas */

@@ -2,16 +2,21 @@
 .inventory-table-container {
   max-height: 400px;      /* ajusta altura visible */
   overflow-y: auto;       /* scroll vertical si excede altura */
+  overflow-x: auto;       /* scroll horizontal si es necesario */
   border: 1px solid #ccc; /* opcional, borde contenedor */
   border-radius: 8px;
+  max-width: 100%;        /* No exceder el ancho del contenedor */
+  box-sizing: border-box;
 }
 
 /* Tabla */
 .inventory-table {
   width: 100%;
+  min-width: 100%;
   border-collapse: collapse;
   font-family: 'Roboto', sans-serif;
   font-size: 14px;
+  table-layout: fixed; /* Controlar anchos */
 }
 
 /* Encabezado */
@@ -25,6 +30,10 @@
   padding: 10px 12px;
   text-align: left;
   border-bottom: 1px solid #ddd;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 0;
 }
 
 /* Filas */

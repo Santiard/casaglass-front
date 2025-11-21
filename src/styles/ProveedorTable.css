@@ -5,6 +5,9 @@
   display: flex;
   flex-direction: column;
   min-height: 0;
+  max-width: 100%;
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
 /* ===== Toolbar (filtros) ===== */
@@ -86,7 +89,11 @@
 .prov .table-wrapper {
   flex: 1;
   min-height: 0;
-  overflow: auto;
+  overflow-x: auto;
+  overflow-y: auto;
+  max-width: 100%;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 /* Cabecera de tabla */
@@ -101,9 +108,11 @@
 /* Tabla y celdas */
 .prov .table {
   width: 100%;
+  min-width: 100%;
   border-collapse: collapse;
   font-size: 0.875rem;
   color: var(--color-black);
+  table-layout: fixed; /* Controlar anchos */
 }
 
 .prov .table th,
@@ -112,6 +121,10 @@
   border-bottom: 0.0625rem solid var(--color-light-gray);
   text-align: left;
   vertical-align: middle;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 0;
 }
 
 .prov .table tbody tr:nth-child(even) { background-color: color-mix(in oklab, var(--color-white) 92%, var(--color-light-gray)); }
@@ -137,6 +150,9 @@
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
+  white-space: nowrap;
+  overflow: visible;
+  max-width: none;
 }
 
 

@@ -1,2 +1,18 @@
-.clientes-page { display:flex; flex-direction:column; flex:1; min-height:0; }
-.rowInferior.fill { flex:1; min-height:0; display:flex; }
+.clientes-page { 
+  display: flex; 
+  flex-direction: column; 
+  flex: 1; 
+  min-height: 0; 
+  max-width: 100%; /* No exceder el ancho del viewport */
+  overflow: hidden; /* Prevenir overflow */
+  box-sizing: border-box;
+}
+
+.rowInferior.fill { 
+  flex: 1; 
+  min-height: 0; 
+  display: flex; 
+  max-width: 100%; /* No exceder el ancho */
+  overflow: hidden; /* Prevenir overflow */
+  box-sizing: border-box;
+}

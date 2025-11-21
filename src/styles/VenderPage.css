@@ -111,16 +111,20 @@
 .vender-content .table-wrapper {
   flex: 1;
   min-height: 0;
-  overflow: hidden; /* Cambiar para controlar scroll específicamente */
+  overflow-x: auto; /* Scroll horizontal si es necesario */
+  overflow-y: auto; /* Scroll vertical si es necesario */
   display: flex;
   flex-direction: column;
   width: 100%; /* Asegurar que ocupe todo el ancho */
+  max-width: 100%; /* No exceder el ancho del contenedor */
+  box-sizing: border-box;
 }
 
 /* Tabla de venta con headers fijos */
 .vender-content .table-wrapper .table {
   display: table; /* Comportamiento de tabla normal */
   width: 100%; /* Asegurar que ocupe todo el ancho */
+  min-width: 100%; /* Asegurar que ocupe al menos el 100% */
   table-layout: fixed; /* Anchos fijos para consistencia entre filas */
   border-collapse: collapse;
 }
@@ -154,6 +158,9 @@
   text-align: left;
   font-size: 0.875rem;
   overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 0;
   text-overflow: ellipsis;
   white-space: nowrap; /* Evita que el texto se corte en múltiples líneas */
   display: table-cell; /* Comportamiento de tabla normal para alineación */
@@ -206,7 +213,9 @@
 .vender-content .table-wrapper .table td:last-child {
   width: auto; /* Ocupa el espacio restante */
   text-align: center;
-  white-space: normal; /* Permite que los botones se vean bien */
+  white-space: nowrap; /* Mantener botones en una línea */
+  overflow: visible; /* Permitir que los botones se vean */
+  max-width: none; /* Permitir expansión si es necesario */
 }
 
 /* Asegurar que la tabla ocupe todo el ancho disponible */

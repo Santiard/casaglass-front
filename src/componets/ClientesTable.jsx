@@ -179,13 +179,19 @@ export default function ClientesTable({
 
             {!loading && pageData.map((cli) => (
               <tr key={cli.id ?? cli.nit ?? cli.correo}>
-                <td>{cli.nombre ?? "-"}</td>
-                <td>{cli.nit ?? "-"}</td>
-                <td>{cli.correo ?? "-"}</td>
+                <td title={cli.nombre ?? "-"}>{cli.nombre ?? "-"}</td>
+                <td title={cli.nit ?? "-"}>{cli.nit ?? "-"}</td>
+                <td title={cli.correo ?? "-"}>{cli.correo ?? "-"}</td>
                 <td>{formatoBool(!!cli.credito)}</td>
-                <td>{cli.telefono ?? "-"}</td>
-                <td>{cli.ciudad ?? "-"}</td>
-                <td className="clientes-dir">{cli.direccion ?? "-"}</td>
+                <td title={cli.telefono ?? "-"}>{cli.telefono ?? "-"}</td>
+                <td title={cli.ciudad ?? "-"}>{cli.ciudad ?? "-"}</td>
+                <td 
+                  className="clientes-dir" 
+                  title={cli.direccion ?? "-"}
+                  data-full-text={cli.direccion ?? "-"}
+                >
+                  {cli.direccion ?? "-"}
+                </td>
                 <td className="clientes-actions">
                   <button className="btnEdit" onClick={() => handleEditar(cli)} title="Editar">
                     <img src={editar} className="iconButton" />

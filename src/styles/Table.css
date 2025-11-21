@@ -7,6 +7,9 @@
   border: 0.0625rem solid #ccc; /* 1px */
   border-radius: 0.5rem; /* 8px */
   height: 100%; /* Tomar toda la altura disponible */
+  max-width: 100%; /* No exceder el ancho del contenedor padre */
+  overflow: hidden; /* Prevenir overflow del contenedor */
+  box-sizing: border-box; /* Incluir padding y border en el ancho */
 }
 
 .items-count {
@@ -33,6 +36,9 @@
   overflow-y: auto; /* Scroll vertical cuando el contenido excede */
   overflow-x: auto; /* Scroll horizontal si es necesario */
   max-height: 100%; /* Limitar altura al contenedor padre */
+  max-width: 100%; /* No exceder el ancho del contenedor */
+  width: 100%;
+  box-sizing: border-box;
 }
 
 /* Paginación abajo */
@@ -49,9 +55,11 @@
 /* Tabla */
 .table {
   width: 100%;
+  min-width: 100%; /* Asegurar que ocupe al menos el 100% del contenedor */
   border-collapse: collapse;
   font-family: 'Roboto', sans-serif;
   font-size: 0.875rem; /* 14px */
+  table-layout: fixed; /* Fijar layout para controlar anchos y prevenir overflow */
 }
 
 .table thead {
@@ -64,6 +72,16 @@
   padding: 0.375rem 0.625rem; /* 6px 10px */
   text-align: left;
   border-bottom: 0.0625rem solid #ddd;
+  overflow: hidden; /* Ocultar contenido que excede */
+  text-overflow: ellipsis; /* Mostrar "..." si el texto es muy largo */
+  white-space: nowrap; /* No hacer wrap por defecto */
+  max-width: 0; /* Necesario para que text-overflow funcione con table-layout: fixed */
+}
+
+/* Permitir tooltips nativos del navegador para ver texto completo */
+.table td {
+  position: relative;
+  cursor: default;
 }
 
 /* Estilo para columna Nombre en tablas de inventario */
@@ -484,11 +502,23 @@ input[type="number"] {
   justify-content: flex-start;
 }
 
-/* Columna de acciones en tabla de inventario */
-/* Header de la columna de acciones - asumiendo que es la última columna */
-.table thead th:last-child {
-  min-width: 5rem; /* Ancho mínimo para la columna */
-  width: auto;
+/* Columna de acciones - última columna en todas las tablas */
+.table thead th:last-child,
+.table tbody td:last-child {
+  white-space: nowrap; /* Mantener botones en una línea */
+  overflow: visible; /* Permitir que los botones se vean */
+  max-width: none; /* Permitir que la columna de acciones se expanda si es necesario */
+  text-align: center;
+}
+
+/* Celdas de acciones específicamente */
+.table td.acciones,
+.table td.clientes-actions {
+  white-space: nowrap;
+  overflow: visible;
+  max-width: none;
+  text-align: center;
+  padding: 0.5rem;
 }
 
 /* Mantener la celda como table-cell, solo ajustar el contenido interno */
@@ -687,6 +717,9 @@ input[type="number"] {
   flex: 1;
   min-height: 0;
   height: 100%;
+  max-width: 100%;
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
 .mov .toolbar {
@@ -744,7 +777,11 @@ input[type="number"] {
 .mov .table-wrapper {
   flex: 1;
   min-height: 0;
-  overflow: auto;
+  overflow-x: auto;
+  overflow-y: auto;
+  max-width: 100%;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .mov .table thead {
@@ -757,9 +794,11 @@ input[type="number"] {
 
 .mov .table {
   width: 100%;
+  min-width: 100%;
   border-collapse: collapse;
   font-size: 0.875rem;
   color: var(--color-black);
+  table-layout: fixed; /* Controlar anchos */
 }
 
 .mov .table th,
@@ -768,6 +807,10 @@ input[type="number"] {
   border-bottom: 0.0625rem solid var(--color-light-gray);
   text-align: left;
   vertical-align: middle;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 0;
 }
 
 .mov .table tbody tr:nth-child(even) { background-color: color-mix(in oklab, var(--color-white) 92%, var(--color-light-gray)); }
@@ -835,6 +878,9 @@ input[type="number"] {
   flex: 1;
   min-height: 0;
   height: 100%;
+  max-width: 100%; /* No exceder el ancho del contenedor padre */
+  overflow: hidden; /* Prevenir overflow del contenedor */
+  box-sizing: border-box; /* Incluir padding y border en el ancho */
 }
 
 .clientes .toolbar {
@@ -912,7 +958,11 @@ input[type="number"] {
 .clientes .table-wrapper {
   flex: 1;
   min-height: 0;
-  overflow: auto;
+  overflow-x: auto; /* Scroll horizontal si es necesario */
+  overflow-y: auto; /* Scroll vertical si es necesario */
+  max-width: 100%; /* No exceder el ancho del contenedor */
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .clientes .table thead {
@@ -925,9 +975,11 @@ input[type="number"] {
 
 .clientes .table {
   width: 100%;
+  min-width: 100%; /* Asegurar que ocupe al menos el 100% del contenedor */
   border-collapse: collapse;
   font-size: 0.875rem;
   color: var(--color-black);
+  table-layout: fixed; /* Fijar layout para controlar anchos */
 }
 
 .clientes .table th,
@@ -936,6 +988,107 @@ input[type="number"] {
   border-bottom: 0.0625rem solid var(--color-light-gray);
   text-align: left;
   vertical-align: middle;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Anchos específicos para columnas de clientes */
+.clientes .table th:nth-child(1),
+.clientes .table td:nth-child(1) {
+  /* Nombre - columna más ancha pero limitada */
+  width: 25%;
+  max-width: 25%;
+  min-width: 12rem;
+}
+
+.clientes .table th:nth-child(2),
+.clientes .table td:nth-child(2) {
+  /* NIT */
+  width: 10%;
+  max-width: 10%;
+  min-width: 6rem;
+}
+
+.clientes .table th:nth-child(3),
+.clientes .table td:nth-child(3) {
+  /* Correo */
+  width: 18%;
+  max-width: 18%;
+  min-width: 10rem;
+}
+
+.clientes .table th:nth-child(4),
+.clientes .table td:nth-child(4) {
+  /* Crédito */
+  width: 8%;
+  max-width: 8%;
+  min-width: 5rem;
+  text-align: center;
+}
+
+.clientes .table th:nth-child(5),
+.clientes .table td:nth-child(5) {
+  /* Teléfono */
+  width: 10%;
+  max-width: 10%;
+  min-width: 7rem;
+}
+
+.clientes .table th:nth-child(6),
+.clientes .table td:nth-child(6) {
+  /* Ciudad */
+  width: 10%;
+  max-width: 10%;
+  min-width: 7rem;
+}
+
+.clientes .table th:nth-child(7),
+.clientes .table td:nth-child(7) {
+  /* Dirección - puede ser larga pero limitada */
+  width: 15%;
+  max-width: 15%;
+  min-width: 10rem;
+}
+
+.clientes .table th:nth-child(8),
+.clientes .table td:nth-child(8) {
+  /* Acciones */
+  width: 8%;
+  max-width: 8%;
+  min-width: 6rem;
+  text-align: center;
+  white-space: nowrap; /* Mantener botones en una línea */
+  overflow: visible; /* Permitir que los botones se vean */
+}
+
+/* Estilos para la celda de acciones */
+.clientes .table td.clientes-actions {
+  white-space: nowrap;
+  overflow: visible;
+  padding: 0.5rem;
+}
+
+.clientes .table td.clientes-actions .btnEdit,
+.clientes .table td.clientes-actions .btnDelete {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.25rem;
+  margin: 0 0.25rem;
+  min-width: 2rem;
+  height: 2rem;
+  flex-shrink: 0;
+}
+
+/* Permitir que las celdas con texto largo muestren tooltip nativo del navegador */
+.clientes .table td {
+  position: relative;
+}
+
+/* Tooltip mejorado para dirección (solo si el texto está truncado) */
+.clientes .table td.clientes-dir {
+  cursor: help;
 }
 
 .clientes .table tbody tr:nth-child(even) { background-color: color-mix(in oklab, var(--color-white) 92%, var(--color-light-gray)); }
@@ -1006,6 +1159,9 @@ input[type="number"] {
   flex: 1;
   min-height: 0;
   height: 100%;
+  max-width: 100%;
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
 .ingresos .toolbar {
@@ -1081,7 +1237,11 @@ input[type="number"] {
 .ingresos .table-wrapper {
   flex: 1;
   min-height: 0;
-  overflow: auto;
+  overflow-x: auto;
+  overflow-y: auto;
+  max-width: 100%;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .ingresos .table thead {
@@ -1094,7 +1254,9 @@ input[type="number"] {
 
 .ingresos .table {
   width: 100%;
+  min-width: 100%;
   border-collapse: collapse;
+  table-layout: fixed; /* Controlar anchos */
 }
 
 .ingresos .table th {
@@ -1104,11 +1266,16 @@ input[type="number"] {
   font-size: 0.875rem;
 }
 
+.ingresos .table th,
 .ingresos .table td {
   padding: 0.75rem;
   border-bottom: 0.0625rem solid var(--color-light-gray);
   font-size: 0.875rem;
   color: var(--color-dark-gray);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 0;
 }
 
 .ingresos .table tbody tr:hover {
@@ -1191,6 +1358,9 @@ input[type="number"] {
   flex: 1;
   min-height: 0;
   height: 100%;
+  max-width: 100%;
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
 .ordenes .ordenes-toolbar {
@@ -1291,7 +1461,11 @@ input[type="number"] {
 .ordenes .table-wrapper {
   flex: 1;
   min-height: 0;
-  overflow: auto;
+  overflow-x: auto;
+  overflow-y: auto;
+  max-width: 100%;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .ordenes .table thead {
@@ -1304,7 +1478,9 @@ input[type="number"] {
 
 .ordenes .table {
   width: 100%;
+  min-width: 100%;
   border-collapse: collapse;
+  table-layout: fixed; /* Controlar anchos */
 }
 
 .ordenes .table th {
@@ -1314,11 +1490,16 @@ input[type="number"] {
   font-size: 0.875rem;
 }
 
+.ordenes .table th,
 .ordenes .table td {
   padding: 0.75rem;
   border-bottom: 0.0625rem solid var(--color-light-gray);
   font-size: 0.875rem;
   color: var(--color-dark-gray);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 0;
 }
 
 .ordenes .table tbody tr:hover {
@@ -1401,6 +1582,9 @@ input[type="number"] {
   flex: 1;
   min-height: 0;
   height: 100%;
+  max-width: 100%;
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
 .facturas .ordenes-toolbar {
@@ -1482,7 +1666,11 @@ input[type="number"] {
 .facturas .table-wrapper {
   flex: 1;
   min-height: 0;
-  overflow: auto;
+  overflow-x: auto;
+  overflow-y: auto;
+  max-width: 100%;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .facturas .table thead {
@@ -1495,7 +1683,9 @@ input[type="number"] {
 
 .facturas .table {
   width: 100%;
+  min-width: 100%;
   border-collapse: collapse;
+  table-layout: fixed; /* Controlar anchos */
 }
 
 .facturas .table th {
@@ -1505,11 +1695,16 @@ input[type="number"] {
   font-size: 0.875rem;
 }
 
+.facturas .table th,
 .facturas .table td {
   padding: 0.75rem;
   border-bottom: 0.0625rem solid var(--color-light-gray);
   font-size: 0.875rem;
   color: var(--color-dark-gray);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 0;
 }
 
 .facturas .table tbody tr:hover {
