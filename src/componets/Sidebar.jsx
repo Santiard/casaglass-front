@@ -15,6 +15,7 @@ import analiticas from "../assets/analiticas.png";
 import orden from "../assets/order.png";
 import credito from "../assets/credito.png";
 import facturas from "../assets/check.png";
+import devolucion from "../assets/devolucion.png";
 import { Link } from 'react-router-dom';
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
@@ -58,24 +59,23 @@ export default function Sidebar({isOpen, isCollapsed}){
             <span className="text">Inventario</span>
           </Link>
         </li>
-                {/* Ingresos - Solo ADMIN */}
-                {isAdmin && (
+                {/* Ingresos - disponible para todos */}
           <li>
             <Link to="/ingresos" title="Ingresos Producto">
               <img src={producto } alt="Ingresos " className="logos"/>
               <span className="text">Ingresos Producto</span>
             </Link>
           </li>
-        )}
-                {/* Entregas - Solo ADMIN */}
-                {isAdmin && (
+        
+                {/* Entregas -  DISPONIBLE PARA TODOS*/}
+ 
           <li>
             <Link to="/entregas" title="Entregas Dinero">
               <img src={entrega } alt="Entregas " className="logos"/>
               <span className="text">Entregas Dinero</span>
             </Link>
           </li>
-        )}
+
         <li>
           <Link to="/venderpage" title="Vender">
             <img src={ventas } alt="Vender " className="logos"/>
@@ -92,6 +92,13 @@ export default function Sidebar({isOpen, isCollapsed}){
           <Link to ="/ordenes" title="Órdenes de Compra">
           <img src={orden} alt="Órdenes de Compra " className="logos"/>
           <span className="text">Órdenes de Compra</span>
+          </Link>
+        </li>
+        {/* Reembolsos - Disponible para todos */}
+        <li>
+          <Link to="/reembolsos" title="Devoluciones">
+            <img src={devolucion} alt="Devoluciones" className="logos"/>
+            <span className="text">Devoluciones</span>
           </Link>
         </li>
         {/* Configuración - Solo ADMIN */}
@@ -118,14 +125,13 @@ export default function Sidebar({isOpen, isCollapsed}){
         </li>       
         
         {/* Proveedores - Solo ADMIN */}
-        {isAdmin && (
+
           <li>
             <Link to ="/proveedores" title="Proveedores">
               <img src={proveedor} alt="Proveedores " className="logos"/>
               <span className="text">Proveedores</span>
             </Link>
           </li>
-        )}
         <div className="SideBar-Space">
 
         </div>

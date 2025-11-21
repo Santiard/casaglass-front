@@ -283,6 +283,31 @@ input[type="number"] {
   border-color: #adb5bd;
 }
 
+/* Badges de estado para reembolsos */
+.badge {
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.badge-danger {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+
+.badge-success {
+  background-color: #d1fae5;
+  color: #065f46;
+}
+
+.badge-warning {
+  background-color: #fef3c7;
+  color: #92400e;
+}
+
 /* Estados de órdenes - badges */
 .estado-badge {
   padding: 0.25rem 0.5rem;
@@ -311,6 +336,11 @@ input[type="number"] {
 .estado-badge.completada {
   background-color: var(--color-info-bg);
   color: var(--color-info);
+}
+
+.estado-badge.procesado {
+  background-color: var(--color-success-bg);
+  color: var(--color-success);
 }
 
 /* Botón anular */
@@ -409,8 +439,23 @@ input[type="number"] {
 }
 
 .orden-detalles-table thead tr {
-  background-color: var(--color-light-blue, #4f67ff);
-  color: white;
+  background-color: var(--color-light-blue, #4f67ff) !important;
+  color: white !important;
+}
+
+.orden-detalles-table thead tr:hover {
+  background-color: var(--color-light-blue, #4f67ff) !important;
+  color: white !important;
+}
+
+.orden-detalles-table thead th {
+  background-color: var(--color-light-blue, #4f67ff) !important;
+  color: white !important;
+}
+
+.orden-detalles-table thead th:hover {
+  background-color: var(--color-light-blue, #4f67ff) !important;
+  color: white !important;
 }
 
 .orden-detalles-table th,
@@ -453,6 +498,16 @@ input[type="number"] {
   text-align: center;
   vertical-align: middle;
   display: table-cell; /* Mantener comportamiento de tabla normal */
+  width: auto;
+  min-width: fit-content;
+}
+
+.table td.acciones > div {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  flex-wrap: nowrap;
 }
 
 .table td.acciones .btnEdit,
@@ -462,13 +517,8 @@ input[type="number"] {
   justify-content: center;
   padding: 0.25rem 0.375rem; /* Padding reducido */
   margin: 0;
-  margin-right: 0.25rem; /* Espacio entre botones */
   vertical-align: middle;
   flex-shrink: 0;
-}
-
-.table td.acciones .btnDelete:last-child {
-  margin-right: 0;
 }
 
 .table td.acciones .iconButton {

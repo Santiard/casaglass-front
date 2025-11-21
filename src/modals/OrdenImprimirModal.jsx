@@ -16,6 +16,9 @@ export default function OrdenImprimirModal({ orden, isOpen, onClose }) {
       venta: orden.venta ?? false,
       credito: orden.credito ?? false,
       estado: orden.estado ?? "ACTIVA",
+      subtotal: typeof orden.subtotal === "number" ? orden.subtotal : null,
+      descuentos: typeof orden.descuentos === "number" ? orden.descuentos : 0,
+      total: typeof orden.total === "number" ? orden.total : null,
       cliente: orden.cliente || {},
       sede: orden.sede || {},
       trabajador: orden.trabajador || {},
@@ -28,7 +31,13 @@ export default function OrdenImprimirModal({ orden, isOpen, onClose }) {
   if (!isOpen || !form) return null;
 
   // Calcular totales
-  const totalOrden = form.items.reduce((sum, item) => sum + (item.totalLinea || 0), 0);
+  const subtotal = form.subtotal !== null 
+    ? form.subtotal 
+    : form.items.reduce((sum, item) => sum + (item.totalLinea || 0), 0);
+  const descuentos = form.descuentos || 0;
+  const totalOrden = form.total !== null 
+    ? form.total 
+    : subtotal - descuentos;
   const totalProductos = form.items.length;
 
   // Formatear fecha
@@ -196,8 +205,12 @@ export default function OrdenImprimirModal({ orden, isOpen, onClose }) {
                   </tbody>
                 </table>
 
-                {/* Total */}
+                {/* Totales */}
                 <div className="total">
+                  <p>Subtotal: ${subtotal.toLocaleString("es-CO")}</p>
+                  {descuentos > 0 && (
+                    <p>Descuentos: ${descuentos.toLocaleString("es-CO")}</p>
+                  )}
                   <p><strong>Total: ${totalOrden.toLocaleString("es-CO")}</strong></p>
                 </div>
               </>

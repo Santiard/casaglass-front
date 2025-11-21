@@ -72,6 +72,7 @@ export default function OrdenEditarModal({
           descripcion: "",
           venta: true,
           credito: false,
+          descuentos: 0,
           clienteNombre: "",
           trabajadorNombre: defaultTrabajadorNombre || "",
           sedeNombre: defaultSedeNombre || "",
@@ -108,6 +109,7 @@ export default function OrdenEditarModal({
           descripcion: "",
           venta: true,
           credito: false,
+          descuentos: 0,
           clienteNombre: "",
           trabajadorNombre: defaultTrabajadorNombre || "",
           sedeNombre: defaultSedeNombre || "",
@@ -131,6 +133,7 @@ export default function OrdenEditarModal({
         descripcion: orden?.descripcion ?? "",
         venta: orden?.venta ?? false,
         credito: orden?.credito ?? false,
+        descuentos: Number(orden?.descuentos ?? 0),
         clienteNombre: orden?.cliente?.nombre ?? "",
         trabajadorNombre: orden?.trabajador?.nombre ?? "",
         sedeNombre: orden?.sede?.nombre ?? "",
@@ -171,6 +174,7 @@ export default function OrdenEditarModal({
       descripcion: orden.descripcion ?? "",
       venta: Boolean(orden.venta ?? false),
       credito: Boolean(orden.credito),
+      descuentos: Number(orden.descuentos ?? 0),
       clienteNombre: orden.cliente?.nombre ?? "",
       trabajadorNombre: orden.trabajador?.nombre ?? "",
       sedeNombre: orden.sede?.nombre ?? "",
@@ -531,6 +535,7 @@ export default function OrdenEditarModal({
         descripcion: form.descripcion || null,
         venta: form.venta,
         credito: form.credito,
+        descuentos: Number(form.descuentos || 0),
         clienteId: Number(form.clienteId),
         sedeId: Number(form.sedeId),
         // trabajadorId es opcional según la documentación
@@ -607,6 +612,7 @@ export default function OrdenEditarModal({
     descripcion: form.descripcion || null,
     venta: form.venta,
     credito: form.credito,
+    descuentos: Number(form.descuentos || 0),
     clienteId: form.clienteId ? Number(form.clienteId) : null,
     trabajadorId: form.trabajadorId ? Number(form.trabajadorId) : null,
     sedeId: form.sedeId ? Number(form.sedeId) : null,
@@ -840,9 +846,41 @@ export default function OrdenEditarModal({
 
             <h3>Ítems de la orden</h3>
             
-            {/* Total de la venta */}
-            <div style={{ marginBottom: '1rem', padding: '0.5rem', backgroundColor: '#f8f9fa', borderRadius: '4px' }}>
-              <strong>Total de la venta: ${form.items.reduce((sum, item) => sum + (item.totalLinea || 0), 0).toFixed(2)}</strong>
+            {/* Totales de la venta */}
+            <div style={{ marginBottom: '1rem', padding: '1rem', backgroundColor: '#f8f9fa', borderRadius: '4px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span>Subtotal:</span>
+                  <strong>${form.items.reduce((sum, item) => sum + (item.totalLinea || 0), 0).toFixed(2)}</strong>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span>Descuentos:</span>
+                  <input
+                    type="number"
+                    value={form.descuentos || 0}
+                    onChange={(e) => {
+                      const valor = parseFloat(e.target.value) || 0;
+                      handleChange("descuentos", valor >= 0 ? valor : 0);
+                    }}
+                    step="0.01"
+                    min="0"
+                    style={{
+                      width: '120px',
+                      padding: '0.25rem',
+                      border: '1px solid #ddd',
+                      borderRadius: '4px',
+                      textAlign: 'right'
+                    }}
+                    placeholder="0.00"
+                  />
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid #ddd', paddingTop: '0.5rem', marginTop: '0.5rem' }}>
+                  <span><strong>Total:</strong></span>
+                  <strong style={{ fontSize: '1.1em', color: '#4f67ff' }}>
+                    ${(form.items.reduce((sum, item) => sum + (item.totalLinea || 0), 0) - (form.descuentos || 0)).toFixed(2)}
+                  </strong>
+                </div>
+              </div>
             </div>
             
             <table className="mini-table">

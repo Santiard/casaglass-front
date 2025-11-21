@@ -17,6 +17,7 @@ import CortesPage from "./pages/CortesPage.jsx";
 import OrdenesPage from "./pages/OrdenesPage.jsx";
 import CreditosPage from "./pages/CreditosPage.jsx";
 import FacturasPage from "./pages/FacturasPage.jsx";
+import ReembolsosPage from "./pages/ReembolsosPage.jsx";
 import { AuthProvider } from "./context/AuthContext.jsx";
 import { ToastProvider } from "./context/ToastContext.jsx";
 
@@ -61,6 +62,7 @@ function App() {
           <Route path="/ordenes" element={<OrdenesPage />} />
           <Route path="/creditos" element={<CreditosPage />} />
           <Route path="/facturas" element={<FacturasPage/>}/>
+          <Route path="/reembolsos" element={<ReembolsosPage />} />
         </Route>
       </Routes>
         </ToastProvider>

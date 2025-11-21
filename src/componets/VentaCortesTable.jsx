@@ -61,12 +61,8 @@ export default function VentaCortesTable({
                 <th>Total</th>
               </>
             ) : (
-              // Para VENDEDOR: mostrar cantidades de todas las sedes pero sin total
-              <>
-                <th>Insula</th>
-                <th>Centro</th>
-                <th>Patios</th>
-              </>
+              // Para VENDEDOR: mostrar solo la cantidad de su sede
+              <th>Cantidad ({userSede})</th>
             )}
             
             {/* Precios según el rol */}
@@ -86,14 +82,14 @@ export default function VentaCortesTable({
         <tbody>
           {loading && (
             <tr>
-              <td colSpan={isAdmin ? 11 : 10} className="empty">
+              <td colSpan={isAdmin ? 11 : 8} className="empty">
                 Cargando…
               </td>
             </tr>
           )}
           {!loading && data.length === 0 && (
             <tr>
-              <td colSpan={isAdmin ? 11 : 10} className="empty">
+              <td colSpan={isAdmin ? 11 : 8} className="empty">
                 Sin resultados
               </td>
             </tr>
@@ -146,21 +142,11 @@ export default function VentaCortesTable({
                     </td>
                   </>
                 ) : (
-                  // Para VENDEDOR: mostrar cantidades de todas las sedes pero sin total
-                  <>
-                    <td className={Number(c.cantidadInsula || 0) < 0 ? "stock-negativo" : ""}>
-                      {c.cantidadInsula ?? 0}
-                      {Number(c.cantidadInsula || 0) < 0 && <span className="badge-negativo"> ⚠️</span>}
-                    </td>
-                    <td className={Number(c.cantidadCentro || 0) < 0 ? "stock-negativo" : ""}>
-                      {c.cantidadCentro ?? 0}
-                      {Number(c.cantidadCentro || 0) < 0 && <span className="badge-negativo"> ⚠️</span>}
-                    </td>
-                    <td className={Number(c.cantidadPatios || 0) < 0 ? "stock-negativo" : ""}>
-                      {c.cantidadPatios ?? 0}
-                      {Number(c.cantidadPatios || 0) < 0 && <span className="badge-negativo"> ⚠️</span>}
-                    </td>
-                  </>
+                  // Para VENDEDOR: mostrar solo la cantidad de su sede
+                  <td className={stockNegativo ? "stock-negativo" : ""}>
+                    <strong>{cantidadDisponible}</strong>
+                    {stockNegativo && <span className="badge-negativo"> ⚠️ Faltan {Math.abs(cantidadDisponible)}</span>}
+                  </td>
                 )}
                 
                 {/* Precios según el rol */}

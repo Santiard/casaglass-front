@@ -40,9 +40,10 @@ export default function FacturarOrdenModal({ isOpen, onClose, onSave, orden }) {
 
   useEffect(() => {
     if (isOpen && orden) {
+      // Usar subtotal del backend si existe, sino calcular desde items
       const subtotal =
-        typeof orden.total === "number" && !isNaN(orden.total)
-          ? orden.total
+        typeof orden.subtotal === "number" && !isNaN(orden.subtotal)
+          ? orden.subtotal
           : Array.isArray(orden.items)
           ? orden.items.reduce(
               (acc, it) => acc + (Number(it.totalLinea) || 0),
@@ -50,10 +51,15 @@ export default function FacturarOrdenModal({ isOpen, onClose, onSave, orden }) {
             )
           : 0;
 
+      // Usar descuentos de la orden si existen
+      const descuentosOrden = typeof orden.descuentos === "number" && !isNaN(orden.descuentos)
+        ? orden.descuentos
+        : 0;
+
       setSubtotalOrden(subtotal);
 
-      // Calcular base (subtotal - descuentos, inicialmente sin descuentos)
-      const baseInicial = subtotal;
+      // Calcular base (subtotal - descuentos)
+      const baseInicial = subtotal - descuentosOrden;
       
       // Calcular IVA: Si el precio incluye IVA, extraer el IVA del precio
       // IVA = precio * (tasa / (100 + tasa))
@@ -69,7 +75,7 @@ export default function FacturarOrdenModal({ isOpen, onClose, onSave, orden }) {
         ordenId: orden.id,
         fecha: new Date().toISOString().split("T")[0],
         subtotal,
-        descuentos: "",
+        descuentos: descuentosOrden || "",
         iva: ivaRate || 0, // Usar el porcentaje de IVA desde configuración
         retencionFuente: aplicaRetencion ? (retefuenteRate || 0) : 0, // Usar el porcentaje de retención si aplica
         formaPago: "EFECTIVO",

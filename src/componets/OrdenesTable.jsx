@@ -46,10 +46,15 @@ export default function OrdenesTable({
         })
       : "-";
 
-  // 🔹 Calcular total de orden
-  const calcularTotal = (items) => {
-    if (!Array.isArray(items)) return 0;
-    return items.reduce((sum, item) => sum + (item.totalLinea || 0), 0);
+  // 🔹 Calcular total de orden (usar total del backend si existe, sino calcular desde items)
+  const calcularTotal = (orden) => {
+    // Si el backend ya calculó el total (incluye descuentos), usarlo
+    if (orden?.total !== undefined && orden?.total !== null) {
+      return orden.total;
+    }
+    // Si no, calcular desde items (solo subtotal, sin descuentos)
+    if (!Array.isArray(orden?.items)) return 0;
+    return orden.items.reduce((sum, item) => sum + (item.totalLinea || 0), 0);
   };
 
   // 🔹 Formatear estado de la orden
@@ -278,8 +283,8 @@ export default function OrdenesTable({
             {!loading &&
               pageData.map((o) => {
                 const detalles = Array.isArray(o.items) ? o.items : [];
-                // Usar total del backend si existe, sino calcular desde items
-                const totalOrden = o.total !== undefined ? o.total : calcularTotal(detalles);
+                // Usar función calcularTotal que prioriza total del backend
+                const totalOrden = calcularTotal(o);
                 const id = o.id;
 
                 const yaFacturada = Boolean(o.facturada || o.numeroFactura || (o.factura && (o.factura.id || o.factura.numero)));

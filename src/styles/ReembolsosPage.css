@@ -1,0 +1,95 @@
+/* src/styles/ReembolsosPage.css */
+.reembolsos-page {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 1.5rem;
+  background-color: #f5f5f5;
+}
+
+.reembolsos-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.reembolsos-header h1 {
+  margin: 0;
+  color: var(--color-dark-blue);
+  font-size: 2rem;
+  font-weight: 700;
+}
+
+.btn-crear-reembolso {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.25rem;
+  background-color: var(--color-light-blue);
+  color: var(--color-white);
+  border: none;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.1);
+}
+
+.btn-crear-reembolso:hover {
+  background-color: var(--color-dark-blue);
+  box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.15);
+  transform: translateY(-1px);
+}
+
+.btn-crear-reembolso:active {
+  transform: translateY(0);
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.1);
+}
+
+.btn-crear-reembolso img {
+  width: 20px;
+  height: 20px;
+  filter: brightness(0) invert(1);
+}
+
+/* Tabs */
+.reembolsos-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+  border-bottom: 0.125rem solid var(--color-light-gray);
+  background: var(--color-white);
+  padding: 0 0.5rem;
+  border-radius: 0.5rem 0.5rem 0 0;
+}
+
+.reembolsos-tabs .tab {
+  padding: 0.875rem 1.5rem;
+  background: none;
+  border: none;
+  border-bottom: 0.1875rem solid transparent;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--color-dark-gray);
+  transition: all 0.2s ease;
+  position: relative;
+  bottom: -0.125rem;
+  font-family: 'Roboto', sans-serif;
+}
+
+.reembolsos-tabs .tab:hover {
+  color: var(--color-light-blue);
+  background-color: color-mix(in oklab, var(--color-light-blue) 10%, var(--color-white));
+}
+
+.reembolsos-tabs .tab.active {
+  color: var(--color-light-blue);
+  border-bottom-color: var(--color-light-blue);
+  font-weight: 600;
+  background-color: color-mix(in oklab, var(--color-light-blue) 5%, var(--color-white));
+}
+

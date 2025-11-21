@@ -77,6 +77,7 @@ export async function crearOrdenVenta(payload) {
       venta: Boolean(payload.venta ?? false),
       credito: Boolean(payload.credito),
       incluidaEntrega: Boolean(payload.incluidaEntrega || false),
+      descuentos: parseFloat(payload.descuentos || 0),
       clienteId: parseInt(payload.clienteId), // OBLIGATORIO
       sedeId: parseInt(payload.sedeId), // OBLIGATORIO
       // trabajadorId es opcional según la documentación
@@ -165,6 +166,7 @@ export async function confirmarVenta(id, ordenCompleta) {
     descripcion: ordenCompleta.descripcion || null,
     venta: true, // Cambiar a true
     credito: Boolean(ordenCompleta.credito),
+    descuentos: Number(ordenCompleta.descuentos ?? 0),
     clienteId: ordenCompleta.clienteId || ordenCompleta.cliente?.id ? Number(ordenCompleta.clienteId || ordenCompleta.cliente?.id) : null,
     sedeId: ordenCompleta.sedeId || ordenCompleta.sede?.id ? Number(ordenCompleta.sedeId || ordenCompleta.sede?.id) : null,
     trabajadorId: ordenCompleta.trabajadorId || ordenCompleta.trabajador?.id ? Number(ordenCompleta.trabajadorId || ordenCompleta.trabajador?.id) : null,
@@ -211,6 +213,7 @@ export async function actualizarOrdenVenta(id, payload) {
       venta: Boolean(payload.venta ?? false),
       credito: Boolean(payload.credito),
       incluidaEntrega: Boolean(payload.incluidaEntrega || false),
+      descuentos: parseFloat(payload.descuentos || 0),
       clienteId: parseInt(payload.clienteId), // OBLIGATORIO
       sedeId: parseInt(payload.sedeId), // OBLIGATORIO
       // trabajadorId es opcional según la documentación

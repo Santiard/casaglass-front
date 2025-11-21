@@ -172,12 +172,8 @@ export default function VentaTable({
                 <th>Total</th>
               </>
             ) : (
-              // Para VENDEDOR: mostrar cantidades de todas las sedes pero sin total
-              <>
-                <th>Insula</th>
-                <th>Centro</th>
-                <th>Patios</th>
-              </>
+              // Para VENDEDOR: mostrar solo la cantidad de su sede
+              <th>Cantidad ({userSede})</th>
             )}
             
             {/* Precios según el rol */}
@@ -195,14 +191,14 @@ export default function VentaTable({
         <tbody>
           {loading && (
             <tr>
-              <td colSpan={isAdmin ? (isVidrio ? 12 : 9) : (isVidrio ? 11 : 8)} className="empty">
+              <td colSpan={isAdmin ? (isVidrio ? 12 : 9) : (isVidrio ? 8 : 5)} className="empty">
                 Cargando…
               </td>
             </tr>
           )}
           {!loading && data.length === 0 && (
             <tr>
-              <td colSpan={isAdmin ? (isVidrio ? 12 : 9) : (isVidrio ? 11 : 8)} className="empty">
+              <td colSpan={isAdmin ? (isVidrio ? 12 : 9) : (isVidrio ? 8 : 5)} className="empty">
                 Sin resultados
               </td>
             </tr>
@@ -257,21 +253,11 @@ export default function VentaTable({
                     </td>
                   </>
                 ) : (
-                  // Para VENDEDOR: mostrar cantidades de todas las sedes pero sin total
-                  <>
-                    <td className={Number(p.cantidadInsula || 0) < 0 ? "stock-negativo" : ""}>
-                      {p.cantidadInsula ?? 0}
-                      {Number(p.cantidadInsula || 0) < 0 && <span className="badge-negativo"> ⚠️</span>}
-                    </td>
-                    <td className={Number(p.cantidadCentro || 0) < 0 ? "stock-negativo" : ""}>
-                      {p.cantidadCentro ?? 0}
-                      {Number(p.cantidadCentro || 0) < 0 && <span className="badge-negativo"> ⚠️</span>}
-                    </td>
-                    <td className={Number(p.cantidadPatios || 0) < 0 ? "stock-negativo" : ""}>
-                      {p.cantidadPatios ?? 0}
-                      {Number(p.cantidadPatios || 0) < 0 && <span className="badge-negativo"> ⚠️</span>}
-                    </td>
-                  </>
+                  // Para VENDEDOR: mostrar solo la cantidad de su sede
+                  <td className={stockNegativo ? "stock-negativo" : ""}>
+                    <strong>{cantidadDisponible}</strong>
+                    {stockNegativo && <span className="badge-negativo"> ⚠️ Faltan {Math.abs(cantidadDisponible)}</span>}
+                  </td>
                 )}
                 
                 {/* Precios según el rol */}
