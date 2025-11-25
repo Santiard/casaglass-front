@@ -55,6 +55,7 @@ export default function IngresosPage() {
             nombre: p.nombre,
             codigo: p.codigo ?? "",
             categoria: p.categoria?.nombre ?? p.categoria ?? "", // ✅ Extraemos el nombre si es objeto
+            color: p.color, // ✅ Incluir el color del producto
             largoCm: p.largoCm, // Incluir para que el filtro del modal funcione
           }))
       );

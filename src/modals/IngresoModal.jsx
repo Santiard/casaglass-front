@@ -232,6 +232,7 @@ export default function IngresoModal({
               id: prod.id,
               nombre: prod.nombre ?? "",
               codigo: prod.codigo ?? "",
+              color: prod.color, // Incluir el color del producto
             },
             cantidad: "",
             costoUnitario: "",
@@ -571,15 +572,16 @@ export default function IngresoModal({
               <table className="inv-table">
                 <thead>
                   <tr>
-                    <th style={{ width: "55%" }}>Nombre</th>
-                    <th style={{ width: "30%" }}>Código</th>
+                    <th style={{ width: "40%" }}>Nombre</th>
+                    <th style={{ width: "25%" }}>Código</th>
+                    <th style={{ width: "20%" }}>Color</th>
                     <th style={{ width: "15%" }}>Agregar</th>
                   </tr>
                 </thead>
                 <tbody>
                   {catalogoFiltrado.length === 0 ? (
                     <tr>
-                      <td colSpan={3} className="empty">
+                      <td colSpan={4} className="empty">
                         Sin resultados
                       </td>
                     </tr>
@@ -601,6 +603,7 @@ export default function IngresoModal({
                       >
                         <td>{item.nombre}</td>
                         <td>{item.codigo ?? "-"}</td>
+                        <td>{item.color ?? "-"}</td>
                         <td>
                           <button
                             className="btn-ghost"

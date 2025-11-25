@@ -120,17 +120,17 @@
   box-sizing: border-box;
 }
 
-/* Tabla de venta con headers fijos */
-.vender-content .table-wrapper .table {
-  display: table; /* Comportamiento de tabla normal */
-  width: 100%; /* Asegurar que ocupe todo el ancho */
-  min-width: 100%; /* Asegurar que ocupe al menos el 100% */
-  table-layout: fixed; /* Anchos fijos para consistencia entre filas */
+/* Tabla de venta con headers fijos - Solo para tabla de venta */
+.venta-table.table-wrapper .table {
+  display: table !important; /* Comportamiento de tabla normal */
+  width: 100% !important; /* Asegurar que ocupe todo el ancho */
+  min-width: 100% !important; /* Asegurar que ocupe al menos el 100% */
+  table-layout: fixed !important; /* Anchos fijos para consistencia entre filas */
   border-collapse: collapse;
 }
 
-.vender-content .table-wrapper .table thead {
-  display: table-header-group; /* Comportamiento de tabla normal */
+.venta-table.table-wrapper .table thead {
+  display: table-header-group !important; /* Comportamiento de tabla normal */
   background: var(--color-light-blue);
   color: white;
   position: sticky; /* Mantener header fijo al hacer scroll */
@@ -138,92 +138,165 @@
   z-index: 10;
 }
 
-.vender-content .table-wrapper .table thead tr {
-  display: table-row; /* Comportamiento de tabla normal */
+.venta-table.table-wrapper .table thead tr {
+  display: table-row !important; /* Comportamiento de tabla normal */
 }
 
-.vender-content .table-wrapper .table tbody {
-  display: table-row-group; /* Comportamiento de tabla normal */
+.venta-table.table-wrapper .table tbody {
+  display: table-row-group !important; /* Comportamiento de tabla normal */
 }
 
-.vender-content .table-wrapper .table tbody tr {
-  display: table-row; /* Comportamiento de tabla normal */
+.venta-table.table-wrapper .table tbody tr {
+  display: table-row !important; /* Comportamiento de tabla normal */
 }
 
-/* Ajustar ancho de columnas para que ocupen todo el espacio disponible - Usando porcentajes para consistencia */
-.vender-content .table-wrapper .table th,
-.vender-content .table-wrapper .table td {
-  padding: 0.5rem;
+/* ============================================
+   ESTILOS ESPECÍFICOS PARA TABLA DE VENTA
+   ============================================ */
+
+/* Resetear estilos genéricos de Table.css para la tabla de venta */
+.venta-table.table-wrapper .table {
+  table-layout: fixed !important;
+  width: 100% !important;
+  min-width: 100% !important;
+}
+
+/* Celdas de la tabla de venta - Sobrescribir max-width: 0 de Table.css */
+.venta-table.table-wrapper .table th,
+.venta-table.table-wrapper .table td {
+  padding: 0.625rem 0.5rem !important;
   border-bottom: 0.0625rem solid #ddd;
   text-align: left;
   font-size: 0.875rem;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  max-width: 0;
-  text-overflow: ellipsis;
-  white-space: nowrap; /* Evita que el texto se corte en múltiples líneas */
-  display: table-cell; /* Comportamiento de tabla normal para alineación */
+  display: table-cell !important;
+  vertical-align: middle;
+  max-width: none !important; /* Sobrescribir max-width: 0 de Table.css */
 }
 
-/* Código - 6% */
-.vender-content .table-wrapper .table th:first-child,
-.vender-content .table-wrapper .table td:first-child {
-  width: 6%;
+/* Código - Ancho fijo (reducido) */
+.venta-table.table-wrapper .table th:first-child,
+.venta-table.table-wrapper .table td:first-child {
+  width: 75px !important;
+  min-width: 75px !important;
+  max-width: 75px !important;
   text-align: center;
 }
 
-/* Nombre - 18% (más espacio para nombres largos) */
-.vender-content .table-wrapper .table th:nth-child(2),
-.vender-content .table-wrapper .table td:nth-child(2) {
-  width: 18%;
+/* Nombre - Ancho flexible pero con mínimo (reducido) */
+.venta-table.table-wrapper .table th:nth-child(2),
+.venta-table.table-wrapper .table td:nth-child(2) {
+  width: 180px !important;
+  min-width: 150px !important;
+  max-width: 280px !important;
   text-align: left;
 }
 
-/* Columnas de cantidades - 7% cada una */
-.vender-content .table-wrapper .table th:nth-child(3),
-.vender-content .table-wrapper .table td:nth-child(3),
-.vender-content .table-wrapper .table th:nth-child(4),
-.vender-content .table-wrapper .table td:nth-child(4),
-.vender-content .table-wrapper .table th:nth-child(5),
-.vender-content .table-wrapper .table td:nth-child(5),
-.vender-content .table-wrapper .table th:nth-child(6),
-.vender-content .table-wrapper .table td:nth-child(6) {
-  width: 7%;
+/* mm (columna 3, solo si es vidrio) - Ancho fijo (reducido) */
+.venta-table.table-wrapper .table th:nth-child(3),
+.venta-table.table-wrapper .table td:nth-child(3) {
+  width: 55px !important;
+  min-width: 55px !important;
+  max-width: 55px !important;
   text-align: center;
-  font-size: 0.75rem;
+  font-size: 0.8rem;
 }
 
-/* Columna de precio - 8% */
-.vender-content .table-wrapper .table th:nth-child(7),
-.vender-content .table-wrapper .table td:nth-child(7) {
-  width: 8%;
+/* m² (columna 4, solo si es vidrio) - Ancho fijo (reducido) */
+.venta-table.table-wrapper .table th:nth-child(4),
+.venta-table.table-wrapper .table td:nth-child(4) {
+  width: 55px !important;
+  min-width: 55px !important;
+  max-width: 55px !important;
+  text-align: center;
+  font-size: 0.8rem;
+}
+
+/* Láminas (columna 5, solo si es vidrio) - Ancho fijo (reducido) */
+.venta-table.table-wrapper .table th:nth-child(5),
+.venta-table.table-wrapper .table td:nth-child(5) {
+  width: 65px !important;
+  min-width: 65px !important;
+  max-width: 65px !important;
+  text-align: center;
+  font-size: 0.8rem;
+}
+
+/* Columnas de inventario - Ancho fijo (reducido) para todas las posibles posiciones */
+.venta-table.table-wrapper .table th:nth-child(6),
+.venta-table.table-wrapper .table td:nth-child(6),
+.venta-table.table-wrapper .table th:nth-child(7),
+.venta-table.table-wrapper .table td:nth-child(7),
+.venta-table.table-wrapper .table th:nth-child(8),
+.venta-table.table-wrapper .table td:nth-child(8),
+.venta-table.table-wrapper .table th:nth-child(9),
+.venta-table.table-wrapper .table td:nth-child(9),
+.venta-table.table-wrapper .table th:nth-child(10),
+.venta-table.table-wrapper .table td:nth-child(10),
+.venta-table.table-wrapper .table th:nth-child(11),
+.venta-table.table-wrapper .table td:nth-child(11),
+.venta-table.table-wrapper .table th:nth-child(12),
+.venta-table.table-wrapper .table td:nth-child(12) {
+  width: 70px !important;
+  min-width: 70px !important;
+  max-width: 70px !important;
+  text-align: center;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+/* Columna de precio - Ancho fijo (reducido) */
+.venta-table.table-wrapper .table th:nth-child(10),
+.venta-table.table-wrapper .table td:nth-child(10),
+.venta-table.table-wrapper .table th:nth-child(13),
+.venta-table.table-wrapper .table td:nth-child(13) {
+  width: 95px !important;
+  min-width: 95px !important;
+  max-width: 95px !important;
+  text-align: center;
+  font-weight: 600;
+}
+
+/* Columna de cantidad a vender - Ancho fijo (reducido) */
+.venta-table.table-wrapper .table th:nth-child(11),
+.venta-table.table-wrapper .table td:nth-child(11),
+.venta-table.table-wrapper .table th:nth-child(14),
+.venta-table.table-wrapper .table td:nth-child(14) {
+  width: 75px !important;
+  min-width: 75px !important;
+  max-width: 75px !important;
   text-align: center;
 }
 
-/* Columna de cantidad a vender - 6% */
-.vender-content .table-wrapper .table th:nth-child(8),
-.vender-content .table-wrapper .table td:nth-child(8) {
-  width: 6%;
+/* Última columna - Acciones - Ancho flexible (aumentado para botones) */
+.venta-table.table-wrapper .table th:last-child,
+.venta-table.table-wrapper .table td:last-child {
+  width: auto !important;
+  min-width: 250px !important;
   text-align: center;
+  white-space: nowrap;
+  overflow: visible;
 }
 
-/* Última columna - acciones - ocupa el resto del espacio */
-.vender-content .table-wrapper .table th:last-child,
-.vender-content .table-wrapper .table td:last-child {
-  width: auto; /* Ocupa el espacio restante */
+/* Para vendedores (menos columnas) - ajustar precio y cantidad (reducido) */
+/* Si no es vidrio: precio en columna 4, cantidad en columna 5 */
+.venta-table.table-wrapper .table th:nth-child(4):not(:nth-child(4)),
+.venta-table.table-wrapper .table td:nth-child(4):not(:nth-child(4)) {
+  width: 95px !important;
+  min-width: 95px !important;
+  max-width: 95px !important;
   text-align: center;
-  white-space: nowrap; /* Mantener botones en una línea */
-  overflow: visible; /* Permitir que los botones se vean */
-  max-width: none; /* Permitir expansión si es necesario */
+  font-weight: 600;
 }
 
-/* Asegurar que la tabla ocupe todo el ancho disponible */
-.vender-content .table-wrapper .table thead tr,
-.vender-content .table-wrapper .table tbody tr {
-  width: 100%;
-  display: flex;
-  box-sizing: border-box;
+.venta-table.table-wrapper .table th:nth-child(5):not(:nth-child(5)),
+.venta-table.table-wrapper .table td:nth-child(5):not(:nth-child(5)) {
+  width: 75px !important;
+  min-width: 75px !important;
+  max-width: 75px !important;
+  text-align: center;
 }
 
 /* Sidebar de categorías en vender */
@@ -238,10 +311,12 @@
   overflow-y: auto;
 }
 
-/* Estilos específicos para las tablas de venta */
+/* Estilos específicos para las tablas de venta - Sobrescribir estilos genéricos */
+.venta-table.table-wrapper .table,
 .venta-table .table {
-  width: 100%;
+  width: 100% !important;
   border-collapse: collapse;
+  table-layout: fixed !important;
 }
 
 .venta-table .cantidad-input {
@@ -384,3 +459,4 @@
     margin-bottom: 0.25rem; /* 4px */
   }
 }
+

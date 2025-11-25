@@ -77,10 +77,10 @@ export default function ClienteModal({
         [name]: limited
       }));
       
-      // Verificar si el NIT ya existe (solo al crear, no al editar)
-      if (!clienteAEditar && limited.length >= 1) {
+      // Verificar si el NIT ya existe (excluyendo el cliente actual si estamos editando)
+      if (limited.length >= 1) {
         const existe = clientesExistentes.some(cliente => 
-          cliente.nit === limited
+          cliente.nit === limited && cliente.id !== clienteAEditar?.id
         );
         setNitDuplicado(existe);
       } else {
@@ -113,10 +113,10 @@ export default function ClienteModal({
     // email simple
     if (!/^\S+@\S+\.\S+$/.test(correo)) return "El correo no es válido.";
     
-    // Validar NIT duplicado solo cuando estamos creando (no editando)
-    if (!clienteAEditar && nit) {
+    // Validar NIT duplicado (excluyendo el cliente actual si estamos editando)
+    if (nit) {
       const nitExiste = clientesExistentes.some(cliente => 
-        cliente.nit === nit
+        cliente.nit === nit && cliente.id !== clienteAEditar?.id
       );
       if (nitExiste) {
         return `Ya existe un cliente registrado con el NIT ${nit}.`;
@@ -192,8 +192,7 @@ export default function ClienteModal({
               maxLength="11"
               pattern="[\d-]{1,11}"
               title="El NIT debe contener entre 1 y 11 caracteres (números y guion -)"
-              required 
-              disabled={!!clienteAEditar} // Si editas, no cambiar el NIT
+              required
               onKeyDown={(e) => {
                 // Permitir: números, guion, backspace, delete, tab, escape, enter, y atajos de teclado
                 if (!/[0-9-]/.test(e.key) && 
@@ -210,7 +209,7 @@ export default function ClienteModal({
                 backgroundColor: nitDuplicado ? '#fef2f2' : ''
               }}
             />
-            {nitDuplicado && !clienteAEditar && (
+            {nitDuplicado && (
               <div style={{ 
                 color: '#ef4444', 
                 fontSize: '0.875rem', 

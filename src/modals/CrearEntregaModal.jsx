@@ -3,20 +3,15 @@ import EntregasService from '../services/EntregasService';
 import './CrearEntregaModal.css';
 import { useToast } from '../context/ToastContext.jsx';
 
-const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores }) => {
+const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores, sedeIdUsuario, userId }) => {
   const { showWarning } = useToast();
   const [formData, setFormData] = useState({
     sedeId: '',
     empleadoId: '',
-    fechaEntrega: new Date().toISOString().slice(0, 10),
-    fechaDesde: '',
-    fechaHasta: '',
+    fechaEntrega: new Date().toISOString().slice(0, 10), // Fecha única para la entrega (solo un día)
     modalidadEntrega: 'EFECTIVO',
-    observaciones: '',
-    numeroComprobante: '',
-    ordenesIds: [], // IDs de órdenes a contado
-    abonosIds: [], // IDs de abonos individuales (NUEVO)
-    gastoIds: [], // IDs de gastos seleccionados
+    ordenesIds: [], // IDs de órdenes a contado (se seleccionan automáticamente)
+    abonosIds: [], // IDs de abonos individuales (se seleccionan automáticamente)
     montoEfectivo: '',
     montoTransferencia: '',
     montoCheque: '',
@@ -25,25 +20,29 @@ const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores }) 
 
   const [ordenesDisponibles, setOrdenesDisponibles] = useState([]);
   const [abonosDisponibles, setAbonosDisponibles] = useState([]); // Abonos disponibles (NUEVO)
-  const [gastosDisponibles, setGastosDisponibles] = useState([]);
   const [loading, setLoading] = useState(false);
   const [loadingOrdenes, setLoadingOrdenes] = useState(false);
-  const [loadingGastos, setLoadingGastos] = useState(false);
   const [error, setError] = useState('');
-  const [step, setStep] = useState(1); // 1: Datos básicos, 2: Órdenes, 3: Gastos
+  const [step, setStep] = useState(1); // 1: Datos básicos, 2: Órdenes (gastos eliminados)
 
   const resetForm = () => {
+    // Preseleccionar sede del usuario logueado si está disponible
+    const sedeInicial = sedeIdUsuario ? String(sedeIdUsuario) : '';
+    
+    // Preseleccionar empleado (trabajador) del usuario logueado si está disponible
+    // Buscar el trabajador que coincida con el ID del usuario
+    const trabajadorEncontrado = userId && Array.isArray(trabajadores) 
+      ? trabajadores.find(t => t.id === userId)
+      : null;
+    const empleadoInicial = trabajadorEncontrado ? String(trabajadorEncontrado.id) : '';
+    
     setFormData({
-      sedeId: '',
-      empleadoId: '',
+      sedeId: sedeInicial,
+      empleadoId: empleadoInicial,
       fechaEntrega: new Date().toISOString().slice(0, 10),
-      fechaDesde: '',
-      fechaHasta: '',
       modalidadEntrega: 'EFECTIVO',
-      observaciones: '',
-      numeroComprobante: '',
       ordenesIds: [],
-      gastoIds: [],
+      abonosIds: [],
       montoEfectivo: '',
       montoTransferencia: '',
       montoCheque: '',
@@ -51,7 +50,6 @@ const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores }) 
     });
     setOrdenesDisponibles([]);
     setAbonosDisponibles([]);
-    setGastosDisponibles([]);
     setError('');
     setStep(1);
   };
@@ -59,70 +57,30 @@ const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores }) 
   useEffect(() => {
     if (isOpen) {
       resetForm();
-      // Generar número de comprobante automáticamente
-      generarNumeroComprobante();
     }
-  }, [isOpen]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]); // Solo ejecutar cuando se abre el modal
 
-  const generarNumeroComprobante = async () => {
-    try {
-      const numeroComprobante = await EntregasService.obtenerSiguienteNumeroComprobante();
-      setFormData(prev => ({
-        ...prev,
-        numeroComprobante: numeroComprobante
-      }));
-    } catch (error) {
-      console.error('Error generando número de comprobante:', error);
-      // En caso de error, usar un número basado en timestamp
-      const fallback = `ENT-${Date.now()}`;
-      setFormData(prev => ({
-        ...prev,
-        numeroComprobante: fallback
-      }));
-    }
-  };
-
-  // Cargar órdenes disponibles cuando se seleccionan sede y fechas
+  // Cargar órdenes disponibles cuando se seleccionan sede y fecha (solo un día)
   useEffect(() => {
-    if (formData.sedeId && formData.fechaDesde && formData.fechaHasta) {
+    if (formData.sedeId && formData.fechaEntrega) {
       cargarOrdenesDisponibles();
     } else {
       // Limpiar órdenes si no hay datos completos
       setOrdenesDisponibles([]);
+      setAbonosDisponibles([]);
     }
-  }, [formData.sedeId, formData.fechaDesde, formData.fechaHasta]);
-
-  // Cargar gastos disponibles cuando se selecciona la sede
-  useEffect(() => {
-    if (formData.sedeId) {
-      cargarGastosDisponibles();
-    } else {
-      setGastosDisponibles([]);
-    }
-  }, [formData.sedeId]);
-
-  const cargarGastosDisponibles = async () => {
-    try {
-      setLoadingGastos(true);
-      setError('');
-      const gastos = await EntregasService.obtenerGastosDisponibles(formData.sedeId);
-      setGastosDisponibles(Array.isArray(gastos) ? gastos : []);
-    } catch (err) {
-      console.error('Error cargando gastos disponibles:', err);
-      setError('Error cargando gastos disponibles');
-      setGastosDisponibles([]);
-    } finally {
-      setLoadingGastos(false);
-    }
-  };
+  }, [formData.sedeId, formData.fechaEntrega]);
 
   const cargarOrdenesDisponibles = async () => {
     try {
       setLoadingOrdenes(true);
+      // Usar la misma fecha para desde y hasta (solo un día)
+      const fechaUnica = formData.fechaEntrega;
       const ordenes = await EntregasService.obtenerOrdenesDisponibles(
         formData.sedeId,
-        formData.fechaDesde,
-        formData.fechaHasta
+        fechaUnica,
+        fechaUnica
       );
       
       // Extraer órdenes y abonos de la estructura de respuesta del backend
@@ -146,7 +104,8 @@ const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores }) 
           trabajadorNombre: orden.trabajadorNombre || null,
           esContado: true,
           estado: orden.estado || 'ACTIVA',
-          venta: orden.venta !== undefined ? orden.venta : true // Asegurar que venta esté presente
+          venta: orden.venta !== undefined ? orden.venta : true, // Asegurar que venta esté presente
+          descripcion: orden.descripcion || '' // Incluir descripción para parsear método de pago
         }));
         
         // Abonos disponibles (NUEVO - reemplaza ordenesConAbonos)
@@ -190,6 +149,15 @@ const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores }) 
       setOrdenesDisponibles(ordenesArray);
       setAbonosDisponibles(abonosArray);
       
+      // Seleccionar automáticamente todas las órdenes y abonos disponibles
+      const todasLasOrdenesIds = ordenesArray.map(o => o.id);
+      const todosLosAbonosIds = abonosArray.map(a => a.id);
+      
+      setFormData(prev => ({
+        ...prev,
+        ordenesIds: todasLasOrdenesIds,
+        abonosIds: todosLosAbonosIds
+      }));
     } catch (err) {
       console.error('Error cargando órdenes:', err);
       setError('Error cargando órdenes disponibles');
@@ -198,6 +166,54 @@ const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores }) 
     } finally {
       setLoadingOrdenes(false);
     }
+  };
+
+  // Función para parsear el método de pago desde la descripción de la orden
+  const parsearMetodoPagoOrden = (descripcion, total) => {
+    if (!descripcion || !total) {
+      return { montoEfectivo: total || 0, montoTransferencia: 0, montoCheque: 0 };
+    }
+    
+    let montoEfectivo = 0;
+    let montoTransferencia = 0;
+    let montoCheque = 0;
+    
+    const descUpper = descripcion.toUpperCase();
+    
+    // Buscar TRANSFERENCIA con bancos
+    const transferenciaMatch = descUpper.match(/TRANSFERENCIA[:\s]+([\d.,]+)/);
+    if (transferenciaMatch) {
+      const montoTransf = parseFloat(transferenciaMatch[1].replace(/[,.]/g, '')) || 0;
+      montoTransferencia += montoTransf;
+    }
+    
+    // Buscar múltiples transferencias (TRANSFERENCIA: BANCO1: monto1, BANCO2: monto2)
+    const transferenciasMultiples = descUpper.matchAll(/TRANSFERENCIA[:\s]+([A-Z\s]+):\s*([\d.,]+)/g);
+    for (const match of transferenciasMultiples) {
+      const monto = parseFloat(match[2].replace(/[,.]/g, '')) || 0;
+      montoTransferencia += monto;
+    }
+    
+    // Buscar EFECTIVO
+    const efectivoMatch = descUpper.match(/EFECTIVO[:\s]+([\d.,]+)/);
+    if (efectivoMatch) {
+      const montoEfec = parseFloat(efectivoMatch[1].replace(/[,.]/g, '')) || 0;
+      montoEfectivo += montoEfec;
+    }
+    
+    // Buscar CHEQUE
+    const chequeMatch = descUpper.match(/CHEQUE[:\s]+([\d.,]+)/);
+    if (chequeMatch) {
+      const montoChq = parseFloat(chequeMatch[1].replace(/[,.]/g, '')) || 0;
+      montoCheque += montoChq;
+    }
+    
+    // Si no se encontró ningún método específico, asumir que todo es efectivo
+    if (montoEfectivo === 0 && montoTransferencia === 0 && montoCheque === 0) {
+      montoEfectivo = total || 0;
+    }
+    
+    return { montoEfectivo, montoTransferencia, montoCheque };
   };
 
   const handleChange = (e) => {
@@ -225,17 +241,12 @@ const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores }) 
             : abonosIds.filter(id => id !== abonoId)
         };
       });
-    } else if (name === 'gastoIds') {
-      const gastoId = parseInt(value);
-      setFormData(prev => {
-        const gastoIds = Array.isArray(prev.gastoIds) ? prev.gastoIds : [];
-        return {
-          ...prev,
-          gastoIds: checked 
-            ? [...gastoIds, gastoId]
-            : gastoIds.filter(id => id !== gastoId)
-        };
-      });
+    } else if (name === 'fechaEntrega') {
+      // Cuando cambia la fecha de entrega, actualizar el formData
+      setFormData(prev => ({
+        ...prev,
+        fechaEntrega: value
+      }));
     } else {
       // Campos de texto se convierten a mayúsculas (excepto checkboxes)
       const processedValue = type === 'checkbox' ? checked : (type === 'text' ? value.toUpperCase() : value);
@@ -266,33 +277,52 @@ const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores }) 
     );
     const montoAbonos = abonosSeleccionados.reduce((sum, abono) => sum + (Number(abono.montoAbono) || 0), 0);
     
-    // Monto esperado total = órdenes a contado + abonos
-    const montoEsperadoTotal = montoOrdenes + montoAbonos;
+    // Monto total = órdenes a contado + abonos
+    const montoTotal = montoOrdenes + montoAbonos;
     
-    // Calcular monto de gastos seleccionados
-    const gastosSeleccionados = gastosDisponibles.filter(gasto => 
-      formData.gastoIds.includes(gasto.id)
-    );
-    const montoGastos = gastosSeleccionados.reduce((sum, gasto) => sum + (parseFloat(gasto.monto) || 0), 0);
+    // Calcular desglose de montos según método de pago de las órdenes
+    let montoEfectivo = 0;
+    let montoTransferencia = 0;
+    let montoCheque = 0;
+    
+    // Procesar cada orden seleccionada
+    ordenesSeleccionadas.forEach(orden => {
+      const parseado = parsearMetodoPagoOrden(orden.descripcion || '', orden.total || 0);
+      montoEfectivo += parseado.montoEfectivo;
+      montoTransferencia += parseado.montoTransferencia;
+      montoCheque += parseado.montoCheque;
+    });
+    
+    // Los abonos pueden tener método de pago en el campo metodoPago
+    // Si no tienen método de pago específico, se asumen como efectivo por defecto
+    abonosSeleccionados.forEach(abono => {
+      const metodoPagoAbono = (abono.metodoPago || '').toUpperCase();
+      const montoAbono = Number(abono.montoAbono) || 0;
+      
+      if (metodoPagoAbono === 'EFECTIVO') {
+        montoEfectivo += montoAbono;
+      } else if (metodoPagoAbono === 'TRANSFERENCIA') {
+        montoTransferencia += montoAbono;
+      } else if (metodoPagoAbono === 'CHEQUE') {
+        montoCheque += montoAbono;
+      } else {
+        // Por defecto, si no tiene método de pago, se asume efectivo
+        montoEfectivo += montoAbono;
+      }
+    });
     
     const desglose = {
-      montoEfectivo: parseFloat(formData.montoEfectivo) || 0,
-      montoTransferencia: parseFloat(formData.montoTransferencia) || 0,
-      montoCheque: parseFloat(formData.montoCheque) || 0,
-      montoDeposito: parseFloat(formData.montoDeposito) || 0,
+      montoEfectivo,
+      montoTransferencia,
+      montoCheque,
+      montoDeposito: 0, // Depósito no se usa en órdenes
     };
-    const montoEntregado = Object.values(desglose).reduce((a,b)=>a+b,0);
-    
-    // Monto Neto Esperado = Monto Esperado - Monto Gastos
-    const montoNetoEsperado = montoEsperadoTotal - montoGastos;
+    const monto = Object.values(desglose).reduce((a,b)=>a+b,0);
     
     return {
-      montoEsperado: montoEsperadoTotal,
+      monto,
       montoOrdenes: montoOrdenes,
       montoAbonos: montoAbonos,
-      montoGastos: montoGastos,
-      montoNetoEsperado: montoNetoEsperado,
-      montoEntregado,
       ...desglose
     };
   };
@@ -300,7 +330,8 @@ const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores }) 
   const validarStep = (stepNumber) => {
     switch (stepNumber) {
       case 1:
-        return formData.sedeId && formData.empleadoId && formData.fechaDesde && formData.fechaHasta;
+        // Validar que tenga sede, empleado y fecha de entrega (solo un día)
+        return formData.sedeId && formData.empleadoId && formData.fechaEntrega;
       case 2:
         // Debe haber al menos una orden a contado o un abono seleccionado
         const ordenesIds = Array.isArray(formData.ordenesIds) ? formData.ordenesIds : [];
@@ -320,9 +351,9 @@ const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores }) 
       return;
     }
 
-    // Validar rango de fechas
-    if (formData.fechaDesde > formData.fechaHasta) {
-      setError('El rango de fechas es inválido: "Desde" debe ser menor o igual que "Hasta"');
+    // Validar que la fecha de entrega esté presente
+    if (!formData.fechaEntrega) {
+      setError('Debe seleccionar una fecha de entrega');
       return;
     }
 
@@ -342,11 +373,13 @@ const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores }) 
       const modalidadEntrega = metodosUsados.length === 1 ? metodosUsados[0] : 'MIXTO';
 
       // Revalidar órdenes disponibles para concurrencia/eligibilidad
+      // Usar la misma fecha para desde y hasta (solo un día)
+      const fechaUnica = formData.fechaEntrega;
       try {
         const elegibles = await EntregasService.obtenerOrdenesDisponibles(
           formData.sedeId,
-          formData.fechaDesde,
-          formData.fechaHasta
+          fechaUnica,
+          fechaUnica
         );
         // Validar órdenes a contado - FILTRAR solo las que tienen venta: true
         const ordenesContadoValidas = (elegibles?.ordenesContado || []).filter(o => o.venta === true);
@@ -374,49 +407,15 @@ const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores }) 
         // Continuar, backend validará también
       }
 
-      // Validar gastos seleccionados
-      if (formData.gastoIds.length > 0) {
-        try {
-          // Recargar gastos disponibles para verificar que sigan disponibles
-          const gastosDisponiblesActuales = await EntregasService.obtenerGastosDisponibles(formData.sedeId);
-          const gastosDisponiblesIds = new Set(gastosDisponiblesActuales.map(g => g.id));
-          const gastosInvalidos = formData.gastoIds.filter(id => !gastosDisponiblesIds.has(id));
-          
-          if (gastosInvalidos.length > 0) {
-            setError(`Algunos gastos ya no están disponibles: ${gastosInvalidos.join(', ')}. Pueden estar asociados a otra entrega o no estar aprobados. Actualiza la selección.`);
-            setLoading(false);
-            return;
-          }
+      // Gastos eliminados - ya no se validan ni se envían
 
-          // Verificar que los gastos pertenezcan a la sede seleccionada
-          const gastosDeOtraSede = gastosDisponiblesActuales
-            .filter(g => formData.gastoIds.includes(g.id) && g.sede?.id !== parseInt(formData.sedeId))
-            .map(g => g.id);
-          
-          if (gastosDeOtraSede.length > 0) {
-            setError(`Algunos gastos no pertenecen a la sede seleccionada: ${gastosDeOtraSede.join(', ')}.`);
-            setLoading(false);
-            return;
-          }
-        } catch (gastosErr) {
-          console.warn('No se pudo revalidar gastos disponibles antes de crear.', gastosErr);
-          // Continuar, backend validará también
-        }
-      }
-
-      // Asegurar que el número de comprobante esté generado
-      let numeroComprobante = formData.numeroComprobante?.trim();
-      if (!numeroComprobante) {
-        numeroComprobante = await EntregasService.obtenerSiguienteNumeroComprobante();
-      }
-
+      // fechaUnica ya está declarada arriba (línea 306), reutilizarla
       const entregaData = {
         sedeId: parseInt(formData.sedeId),
         empleadoId: parseInt(formData.empleadoId),
         fechaEntrega: formData.fechaEntrega || new Date().toISOString().slice(0, 10),
-        fechaDesde: formData.fechaDesde,
-        fechaHasta: formData.fechaHasta,
-        numeroComprobante: numeroComprobante
+        fechaDesde: fechaUnica, // Misma fecha (solo un día)
+        fechaHasta: fechaUnica // Misma fecha (solo un día)
       };
 
       // Campos opcionales - solo agregar si tienen valor
@@ -427,47 +426,34 @@ const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores }) 
         entregaData.ordenesIds = ordenesIds;
       }
       if (abonosIds.length > 0) {
-        entregaData.abonosIds = abonosIds; // NUEVO
+        entregaData.abonosIds = abonosIds;
       }
-      if (formData.gastoIds.length > 0) {
-        entregaData.gastosIds = formData.gastoIds;
-      }
+      // Gastos eliminados - ya no se envían
       if (modalidadEntrega && modalidadEntrega !== 'EFECTIVO') {
         entregaData.modalidadEntrega = modalidadEntrega;
       }
-      if (formData.observaciones?.trim()) {
-        entregaData.observaciones = formData.observaciones.trim();
-      }
 
-      // Desgloses de métodos de pago (opcionales, normalmente 0 al crear)
-      const montoEfectivo = parseFloat(formData.montoEfectivo) || 0;
-      const montoTransferencia = parseFloat(formData.montoTransferencia) || 0;
-      const montoCheque = parseFloat(formData.montoCheque) || 0;
-      const montoDeposito = parseFloat(formData.montoDeposito) || 0;
-      const montoEntregado = montoEfectivo + montoTransferencia + montoCheque + montoDeposito;
+      // Desgloses de métodos de pago
+      // Obtener montos calculados automáticamente de las órdenes
+      const totalesCalculados = calcularTotales();
+      const montoEfectivo = totalesCalculados.montoEfectivo || 0;
+      const montoTransferencia = totalesCalculados.montoTransferencia || 0;
+      const montoCheque = totalesCalculados.montoCheque || 0;
+      const montoDeposito = totalesCalculados.montoDeposito || 0;
+      
+      // Calcular monto total desde el desglose
+      const monto = montoEfectivo + montoTransferencia + montoCheque + montoDeposito;
 
-      // Solo incluir desgloses si hay algún valor mayor a 0
-      if (montoEntregado > 0) {
-        entregaData.montoEntregado = montoEntregado;
+      // Incluir desgloses y monto
+      if (monto > 0) {
+        entregaData.monto = monto;
         entregaData.montoEfectivo = montoEfectivo;
         entregaData.montoTransferencia = montoTransferencia;
         entregaData.montoCheque = montoCheque;
         entregaData.montoDeposito = montoDeposito;
       }
-      
-      // Nota: El montoEntregado se registra cuando se confirma la entrega, no al crearla
-      // Los desgloses (efectivo, transferencia, etc.) se pueden actualizar después con PUT /entregas-dinero/{id}
 
       const respuesta = await EntregasService.crearEntrega(entregaData);
-
-      // Aviso de diferencia si aplica
-      // Diferencia = (Monto Esperado - Monto Gastos) - Monto Entregado
-      const ent = respuesta?.entrega || respuesta;
-      const montoNetoEsperado = (Number(ent?.montoEsperado)||0) - (Number(ent?.montoGastos)||0);
-      const diff = montoNetoEsperado - (Number(ent?.montoEntregado)||0);
-      if (Math.abs(diff) > 0.01) {
-        showWarning(`Aviso: La diferencia de la entrega es ${diff.toLocaleString('es-CO', {style:'currency', currency:'COP'})}.\nRevisa y ajusta los montos por método (PUT /entregas-dinero/{id}) antes de confirmar.`);
-      }
 
       if (onSuccess) onSuccess(respuesta);
       onClose();
@@ -521,22 +507,12 @@ const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores }) 
           <button className="btn-close" onClick={onClose}>×</button>
         </div>
 
-        <div className="modal-steps">
-          <div className={`step ${step === 1 ? 'active' : ''} ${validarStep(1) ? 'completed' : ''}`}>
-            1. Datos Básicos
-          </div>
-          <div className={`step ${step === 2 ? 'active' : ''} ${validarStep(2) ? 'completed' : ''}`}>
-            2. Órdenes
-          </div>
-          <div className={`step ${step === 3 ? 'active' : ''}`}>
-            3. Gastos
-          </div>
-        </div>
+        {/* Steps ocultos - el proceso es automático */}
 
         <form onSubmit={handleSubmit} className="crear-entrega-form">
           
-          {/* Step 1: Datos Básicos */}
-          {step === 1 && (
+          {/* Datos Básicos */}
+          {(
             <div className="form-step">
               <h3>Información General</h3>
               
@@ -575,71 +551,29 @@ const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores }) 
                   </select>
                 </div>
 
-                <div className="form-group">
-                  <label>Fecha de Entrega</label>
-                  <input
-                    type="date"
-                    name="fechaEntrega"
-                    value={formData.fechaEntrega}
-                    onChange={handleChange}
-                  />
-                </div>
-
-                {/* Modalidad se infiere del desglose; si hay más de un método > 0, será MIXTO */}
-
                 <div className="form-group span-2">
-                  <label>Período de Órdenes *</label>
-                  <div className="date-range">
+                  <label>Fecha de Entrega *</label>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                     <input
                       type="date"
-                      name="fechaDesde"
-                      value={formData.fechaDesde}
+                      name="fechaEntrega"
+                      value={formData.fechaEntrega}
                       onChange={handleChange}
-                      placeholder="Desde"
                       required
+                      style={{ flex: 1 }}
                     />
-                    <span>hasta</span>
-                    <input
-                      type="date"
-                      name="fechaHasta"
-                      value={formData.fechaHasta}
-                      onChange={handleChange}
-                      placeholder="Hasta"
-                      required
-                    />
+                    <small style={{ color: '#666', fontSize: '0.85em' }}>
+                      Solo se pueden agregar ingresos de esta fecha
+                    </small>
                   </div>
                 </div>
 
-                <div className="form-group span-2">
-                  <label>Número de Comprobante</label>
-                  <input
-                    type="text"
-                    name="numeroComprobante"
-                    value={formData.numeroComprobante}
-                    onChange={handleChange}
-                    placeholder="Se genera automáticamente"
-                    readOnly
-                    style={{ backgroundColor: '#f5f5f5', cursor: 'not-allowed' }}
-                    title="Número generado automáticamente"
-                  />
-                </div>
-
-                <div className="form-group span-2">
-                  <label>Observaciones</label>
-                  <textarea
-                    name="observaciones"
-                    value={formData.observaciones}
-                    onChange={handleChange}
-                    rows="3"
-                    placeholder="Observaciones adicionales..."
-                  />
-                </div>
               </div>
             </div>
           )}
 
-          {/* Step 2: Órdenes y Abonos */}
-          {step === 2 && (
+          {/* Resumen de Ingresos (automático) */}
+          {validarStep(1) && (
             <div className="form-step">
               <h3>Seleccionar Órdenes y Abonos</h3>
               
@@ -772,7 +706,7 @@ const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores }) 
                       <div>
                         {totales.montoOrdenes > 0 && <span>Órdenes: ${totales.montoOrdenes.toLocaleString()} | </span>}
                         {totales.montoAbonos > 0 && <span>Abonos: ${totales.montoAbonos.toLocaleString()} | </span>}
-                        <strong>Total: ${totales.montoEsperado.toLocaleString()}</strong>
+                        <strong>Total: ${totales.monto.toLocaleString()}</strong>
                       </div>
                     </div>
                   )}
@@ -781,113 +715,49 @@ const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores }) 
             </div>
           )}
 
-          {/* Step 3: Gastos */}
-          {step === 3 && (
-            <div className="form-step">
-              <div className="gastos-header">
-                <h3>Seleccionar Gastos Aprobados</h3>
-                <small>Selecciona los gastos aprobados que deseas incluir en esta entrega</small>
+          {/* Resumen final */}
+          {validarStep(1) && (ordenesDisponibles.length > 0 || abonosDisponibles.length > 0) && (
+            <div className="resumen-entrega" style={{ marginTop: '30px', padding: '20px', backgroundColor: '#f9f9f9', borderRadius: '8px' }}>
+              <h4>Resumen de Entrega</h4>
+              <div className="desglose-entrega">
+                <div className="desglose-row">
+                  <label>Efectivo</label>
+                  <span style={{ fontWeight: 'bold', color: '#1976d2' }}>
+                    ${totales.montoEfectivo.toLocaleString()}
+                  </span>
+                </div>
+                <div className="desglose-row">
+                  <label>Transferencia</label>
+                  <span style={{ fontWeight: 'bold', color: '#1976d2' }}>
+                    ${totales.montoTransferencia.toLocaleString()}
+                  </span>
+                </div>
+                <div className="desglose-row">
+                  <label>Cheque</label>
+                  <span style={{ fontWeight: 'bold', color: '#1976d2' }}>
+                    ${totales.montoCheque.toLocaleString()}
+                  </span>
+                </div>
+                <div className="desglose-row">
+                  <label>Depósito</label>
+                  <span style={{ fontWeight: 'bold', color: '#1976d2' }}>
+                    ${totales.montoDeposito.toLocaleString()}
+                  </span>
+                </div>
               </div>
-              
-              {loadingGastos ? (
-                <div className="loading-ordenes">Cargando gastos disponibles...</div>
-              ) : !Array.isArray(gastosDisponibles) || gastosDisponibles.length === 0 ? (
-                <div className="no-gastos">
-                  No hay gastos aprobados disponibles para esta sede. Los gastos deben ser creados y aprobados primero.
-                </div>
-              ) : (
-                <div className="ordenes-list">
-                  {gastosDisponibles.map(gasto => (
-                    <div key={gasto.id} className="orden-item">
-                      <label className="orden-checkbox">
-                        <input
-                          type="checkbox"
-                          name="gastoIds"
-                          value={gasto.id}
-                          checked={formData.gastoIds.includes(gasto.id)}
-                          onChange={handleChange}
-                        />
-                        <div className="orden-info">
-                          <div className="orden-header">
-                            <span className="orden-numero">#{gasto.id}</span>
-                            <span className="orden-fecha">{gasto.fechaGasto || '-'}</span>
-                            <span className="orden-total">${(gasto.monto || 0).toLocaleString()}</span>
-                          </div>
-                          <div className="orden-cliente">{gasto.concepto || gasto.descripcion || 'Sin concepto'}</div>
-                          <div className="orden-obra">
-                            Tipo: {gasto.tipo || 'OPERATIVO'}
-                            {gasto.sede?.nombre && <span> | Sede: {gasto.sede.nombre}</span>}
-                            {gasto.empleado?.nombre && <span> | Empleado: {gasto.empleado.nombre}</span>}
-                          </div>
-                        </div>
-                      </label>
-                    </div>
-                  ))}
+              <div className="resumen-item">
+                <span>Total Órdenes a Contado:</span>
+                <span>${totales.montoOrdenes.toLocaleString()}</span>
+              </div>
+              {totales.montoAbonos > 0 && (
+                <div className="resumen-item">
+                  <span>Total Abonos:</span>
+                  <span>${totales.montoAbonos.toLocaleString()}</span>
                 </div>
               )}
-              
-              {formData.gastoIds.length > 0 && (
-                <div className="ordenes-seleccionadas">
-                  <strong>Gastos seleccionados: {formData.gastoIds.length}</strong>
-                  <div>Total: ${totales.montoGastos.toLocaleString()}</div>
-                </div>
-              )}
-              
-              {/* Resumen final */}
-              <div className="resumen-entrega">
-                <h4>Resumen de Entrega</h4>
-                <div className="desglose-entrega">
-                  <div className="desglose-row">
-                    <label>Efectivo</label>
-                    <input type="number" inputMode="decimal" placeholder="0" value={formData.montoEfectivo} min="0" step="any"
-                      onChange={(e)=>setFormData(prev=>({...prev, montoEfectivo: e.target.value.replace(/[^0-9.,-]/g,'')}))} />
-                  </div>
-                  <div className="desglose-row">
-                    <label>Transferencia</label>
-                    <input type="number" inputMode="decimal" placeholder="0" value={formData.montoTransferencia} min="0" step="any"
-                      onChange={(e)=>setFormData(prev=>({...prev, montoTransferencia: e.target.value.replace(/[^0-9.,-]/g,'')}))} />
-                  </div>
-                  <div className="desglose-row">
-                    <label>Cheque</label>
-                    <input type="number" inputMode="decimal" placeholder="0" value={formData.montoCheque} min="0" step="any"
-                      onChange={(e)=>setFormData(prev=>({...prev, montoCheque: e.target.value.replace(/[^0-9.,-]/g,'')}))} />
-                  </div>
-                  <div className="desglose-row">
-                    <label>Depósito</label>
-                    <input type="number" inputMode="decimal" placeholder="0" value={formData.montoDeposito} min="0" step="any"
-                      onChange={(e)=>setFormData(prev=>({...prev, montoDeposito: e.target.value.replace(/[^0-9.,-]/g,'')}))} />
-                  </div>
-                </div>
-                <div className="resumen-item">
-                  <span>Total Órdenes a Contado:</span>
-                  <span>${totales.montoOrdenes.toLocaleString()}</span>
-                </div>
-                {totales.montoAbonos > 0 && (
-                  <div className="resumen-item">
-                    <span>Total Abonos:</span>
-                    <span>${totales.montoAbonos.toLocaleString()}</span>
-                  </div>
-                )}
-                <div className="resumen-item">
-                  <span>Total Órdenes + Abonos (Monto Esperado):</span>
-                  <span>${totales.montoEsperado.toLocaleString()}</span>
-                </div>
-                <div className="resumen-item">
-                  <span>Total Gastos:</span>
-                  <span>-${totales.montoGastos.toLocaleString()}</span>
-                </div>
-                <div className="resumen-item">
-                  <span>Monto Neto Esperado:</span>
-                  <span>${totales.montoNetoEsperado.toLocaleString()}</span>
-                </div>
-                <div className="resumen-item">
-                  <span>Monto Entregado:</span>
-                  <span>${totales.montoEntregado.toLocaleString()}</span>
-                </div>
-                <div className="resumen-item total">
-                  <span><strong>Diferencia:</strong></span>
-                  <span><strong>${(totales.montoNetoEsperado - totales.montoEntregado).toLocaleString()}</strong></span>
-                </div>
+              <div className="resumen-item total">
+                <span><strong>Monto Total:</strong></span>
+                <span><strong>${totales.monto.toLocaleString()}</strong></span>
               </div>
             </div>
           )}
@@ -897,39 +767,18 @@ const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores }) 
           )}
 
           <div className="modal-actions">
-            {step > 1 && (
-              <button 
-                type="button" 
-                className="btn-anterior"
-                onClick={() => setStep(step - 1)}
-              >
-                Anterior
-              </button>
-            )}
-            
-            {step < 3 ? (
-              <button 
-                type="button" 
-                className="btn-siguiente"
-                onClick={(e) => {
-                  e.preventDefault();
-                  setStep(step + 1);
-                }}
-                disabled={!validarStep(step)}
-              >
-                Siguiente
-              </button>
-            ) : (
-              <button 
-                type="submit" 
-                className="btn-crear"
-                disabled={loading || !validarStep(1) || !validarStep(2)}
-              >
-                {loading ? 'Creando...' : 'Crear Entrega'}
-              </button>
-            )}
-            
-            <button type="button" className="btn-cancelar" onClick={onClose}>
+            <button 
+              type="submit" 
+              className="btn-guardar"
+              disabled={loading || !validarStep(1) || !validarStep(2)}
+            >
+              {loading ? 'Creando...' : 'Crear Entrega'}
+            </button>
+            <button 
+              type="button" 
+              className="btn-cancelar"
+              onClick={onClose}
+            >
               Cancelar
             </button>
           </div>

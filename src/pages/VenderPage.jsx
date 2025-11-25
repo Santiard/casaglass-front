@@ -161,24 +161,46 @@ export default function VenderPage() {
   const agregarProducto = (producto, cantidad, precioUsado) => {
     if (cantidad <= 0) return; // No agregar si la cantidad es 0 o negativa
 
-    const index = productosCarrito.findIndex(
-      (p) => p.id === producto.id && p.precioUsado === precioUsado
-    );
+    console.log(`🛒 agregarProducto llamado: ${producto.codigo} - ${producto.nombre}, Cantidad: ${cantidad}, Precio: ${precioUsado}`);
 
-    if (index !== -1) {
-      const newCarrito = [...productosCarrito];
-      newCarrito[index].cantidadVender += cantidad;
-      setProductosCarrito(newCarrito);
-    } else {
-      setProductosCarrito([
-        ...productosCarrito, 
-        { 
-          ...producto, 
-          cantidadVender: cantidad,
-          precioUsado: precioUsado 
-        }
-      ]);
-    }
+    // Usar función de actualización de estado para asegurar que siempre use el estado más reciente
+    setProductosCarrito((prevCarrito) => {
+      console.log(`  Estado anterior del carrito: ${prevCarrito.length} productos`);
+      console.log(`  Productos en carrito:`, prevCarrito.map(p => `${p.codigo} (${p.cantidadVender})`));
+      
+      const index = prevCarrito.findIndex(
+        (p) => p.id === producto.id && p.precioUsado === precioUsado
+      );
+
+      if (index !== -1) {
+        // Si el producto ya existe, actualizar la cantidad
+        // IMPORTANTE: Crear un nuevo objeto para evitar mutaciones
+        const newCarrito = prevCarrito.map((item, i) => {
+          if (i === index) {
+            const cantidadAnterior = item.cantidadVender;
+            const cantidadNueva = cantidadAnterior + cantidad;
+            console.log(`  ✅ Producto existente: ${producto.codigo} - Cantidad anterior: ${cantidadAnterior}, Cantidad a sumar: ${cantidad}, Cantidad nueva: ${cantidadNueva}`);
+            return {
+              ...item,
+              cantidadVender: cantidadNueva
+            };
+          }
+          return item;
+        });
+        return newCarrito;
+      } else {
+        // Si el producto no existe, agregarlo
+        console.log(`  ✅ Producto nuevo: ${producto.codigo} - Agregando con cantidad: ${cantidad}`);
+        return [
+          ...prevCarrito, 
+          { 
+            ...producto, 
+            cantidadVender: cantidad,
+            precioUsado: precioUsado 
+          }
+        ];
+      }
+    });
   };
 
   const actualizarPrecio = (id, precioUsado) => {
@@ -259,15 +281,15 @@ export default function VenderPage() {
   }, [data, cortesData, filters, cortesFilters, categories, view]);
 
   // ======= Cálculos del carrito =======
-  // El precio ya incluye IVA, así que calculamos el total y luego extraemos el IVA
+  // El precio ya incluye IVA, así que calculamos el total
   const total = productosCarrito.reduce(
     (acc, item) => acc + (item.precioUsado || item.precio1 || item.precio || 0) * item.cantidadVender,
     0
   );
   
-  // Extraer el IVA del total (si el IVA es 19%, entonces: IVA = total * 19 / 119)
-  const iva = total * 0.19 / 1.19; // 19% incluido en el precio
-  const subtotal = total - iva;
+  // Calcular IVA como 19% del total
+  const iva = total * 0.19; // 19% del total
+  const subtotal = total - iva; // Subtotal sin IVA
 
   // === Función para manejar selección de categoría en productos ===
   const handleSelectCategory = (catId) => {
@@ -324,7 +346,7 @@ export default function VenderPage() {
               userSede={sedeId === 1 ? "Insula" : sedeId === 2 ? "Centro" : sedeId === 3 ? "Patios" : ""}
               onAgregarProducto={agregarProducto}
               onCortarProducto={manejarCorte}
-              todosLosProductos={data}
+              todosLosProductos={data} // data contiene TODOS los productos sin filtrar
             />
           </>
         ) : (

@@ -42,7 +42,108 @@ export default function OrdenEditarModal({
   const [catalogoProductos, setCatalogoProductos] = useState([]);
   const [search, setSearch] = useState("");
   const [selectedCategoryId, setSelectedCategoryId] = useState(null);
+  const [clienteSearch, setClienteSearch] = useState("");
+  const [clienteSearchModal, setClienteSearchModal] = useState(""); // Búsqueda dentro del modal
+  const [showClienteModal, setShowClienteModal] = useState(false);
+  const [metodoPago, setMetodoPago] = useState(""); // Método de pago seleccionado
+  const [transferencias, setTransferencias] = useState([]); // Array de transferencias [{ banco: "", monto: 0 }]
+  const [observacionesAdicionales, setObservacionesAdicionales] = useState(""); // Observaciones sin método de pago
   const [errorMsg, setErrorMsg] = useState("");
+  
+  // Lista de bancos
+  const bancos = [
+    "BANCOLOMBIA",
+    "DAVIVIENDA",
+    "BANCO DE BOGOTA",
+    "NEQUI",
+    "DAVIPLATA"
+  ];
+  
+  // Función para parsear la descripción y extraer método de pago y transferencias
+  const parsearDescripcion = (descripcion) => {
+    if (!descripcion) return { metodoPago: "", transferencias: [], observaciones: "" };
+    
+    // Buscar patrón: "Método de pago: TRANSFERENCIA"
+    const metodoPagoMatch = descripcion.match(/Método de pago:\s*(\w+)/i);
+    const metodoPagoExtraido = metodoPagoMatch ? metodoPagoMatch[1].toUpperCase() : "";
+    
+    // Buscar todas las transferencias: "Transferencia: BANCO - Monto: $XXX"
+    const transferenciasExtraidas = [];
+    if (metodoPagoExtraido === "TRANSFERENCIA") {
+      const transferenciaRegex = /Transferencia:\s*([^-]+?)\s*-\s*Monto:\s*\$?([\d.,]+)/gi;
+      let match;
+      while ((match = transferenciaRegex.exec(descripcion)) !== null) {
+        const banco = match[1].trim();
+        const montoStr = match[2].replace(/[,.]/g, '');
+        const monto = parseFloat(montoStr) || 0;
+        if (banco && monto > 0) {
+          transferenciasExtraidas.push({ banco, monto });
+        }
+      }
+    }
+    
+    // Extraer observaciones (todo lo que no sea método de pago ni transferencias)
+    let observaciones = descripcion
+      .replace(/Método de pago:.*?(?:\n|$)/i, '')
+      .replace(/Transferencia:.*?(?:\n|$)/gi, '')
+      .trim();
+    
+    return {
+      metodoPago: metodoPagoExtraido,
+      transferencias: transferenciasExtraidas,
+      observaciones: observaciones
+    };
+  };
+  
+  // Función para construir la descripción completa
+  const construirDescripcion = (metodo, transferenciasArray, observaciones) => {
+    let descripcionCompleta = "";
+    
+    if (metodo) {
+      descripcionCompleta = `Método de pago: ${metodo}`;
+      
+      if (metodo === "TRANSFERENCIA" && transferenciasArray.length > 0) {
+        transferenciasArray.forEach((transf) => {
+          if (transf.banco && transf.monto > 0) {
+            const montoFormateado = transf.monto.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+            descripcionCompleta += `\nTransferencia: ${transf.banco} - Monto: $${montoFormateado}`;
+          }
+        });
+      }
+      
+      if (observaciones) {
+        descripcionCompleta += `\n${observaciones}`;
+      }
+    } else if (observaciones) {
+      descripcionCompleta = observaciones;
+    }
+    
+    return descripcionCompleta;
+  };
+  
+  // Función para agregar una nueva transferencia
+  const agregarTransferencia = () => {
+    setTransferencias([...transferencias, { banco: "", monto: 0 }]);
+  };
+  
+  // Función para eliminar una transferencia
+  const eliminarTransferencia = (index) => {
+    const nuevasTransferencias = transferencias.filter((_, i) => i !== index);
+    setTransferencias(nuevasTransferencias);
+    // Actualizar descripción
+    const nuevaDescripcion = construirDescripcion(metodoPago, nuevasTransferencias, observacionesAdicionales);
+    handleChange("descripcion", nuevaDescripcion);
+  };
+  
+  // Función para actualizar una transferencia
+  const actualizarTransferencia = (index, campo, valor) => {
+    const nuevasTransferencias = [...transferencias];
+    nuevasTransferencias[index] = { ...nuevasTransferencias[index], [campo]: valor };
+    setTransferencias(nuevasTransferencias);
+    // Actualizar descripción
+    const nuevaDescripcion = construirDescripcion(metodoPago, nuevasTransferencias, observacionesAdicionales);
+    handleChange("descripcion", nuevaDescripcion);
+  };
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { showSuccess, showError, showWarning } = useToast();
@@ -57,6 +158,12 @@ export default function OrdenEditarModal({
       setForm(null);
       setIsLoading(false);
       setErrorMsg("");
+      setMetodoPago("");
+      setTransferencias([]);
+      setObservacionesAdicionales("");
+      setClienteSearch("");
+      setClienteSearchModal("");
+      setShowClienteModal(false);
       matchHechoRef.current = { ordenId: null, hecho: false }; // Resetear el flag cuando se cierra el modal
       return;
     }
@@ -100,6 +207,11 @@ export default function OrdenEditarModal({
           }),
         };
         setForm(base);
+        setClienteSearch("");
+        // Resetear método de pago y transferencias al crear nueva orden
+        setMetodoPago("");
+        setTransferencias([]);
+        setObservacionesAdicionales("");
       } else {
         // Modo creación vacío (sin productos del carrito)
         const base = {
@@ -119,6 +231,11 @@ export default function OrdenEditarModal({
           items: [],
         };
         setForm(base);
+        setClienteSearch("");
+        // Resetear método de pago y transferencias al crear nueva orden
+        setMetodoPago("");
+        setTransferencias([]);
+        setObservacionesAdicionales("");
       }
       return;
     }
@@ -152,6 +269,12 @@ export default function OrdenEditarModal({
           eliminar: false,
         })) ?? [],
       });
+      setClienteSearch(orden?.cliente?.nombre ?? "");
+      // Parsear descripción para extraer método de pago y transferencias
+      const descripcionParseada = parsearDescripcion(orden?.descripcion ?? "");
+      setMetodoPago(descripcionParseada.metodoPago);
+      setTransferencias(descripcionParseada.transferencias.length > 0 ? descripcionParseada.transferencias : []);
+      setObservacionesAdicionales(descripcionParseada.observaciones);
       return;
     }
 
@@ -200,7 +323,25 @@ export default function OrdenEditarModal({
     };
     
     setForm(base);
-  }, [orden, isOpen]);
+    
+    // Actualizar el campo de búsqueda de cliente cuando se carga una orden
+    if (base.clienteId) {
+      const cliente = clientes.find(c => String(c.id) === base.clienteId);
+      if (cliente) {
+        setClienteSearch(cliente.nombre);
+      } else {
+        setClienteSearch("");
+      }
+    } else {
+      setClienteSearch("");
+    }
+    
+    // Parsear descripción para extraer método de pago y transferencias
+    const descripcionParseada = parsearDescripcion(base.descripcion);
+    setMetodoPago(descripcionParseada.metodoPago);
+    setTransferencias(descripcionParseada.transferencias.length > 0 ? descripcionParseada.transferencias : []);
+    setObservacionesAdicionales(descripcionParseada.observaciones);
+  }, [orden, isOpen, clientes]);
 
   // =============================
   // Cargar catálogos
@@ -368,10 +509,25 @@ export default function OrdenEditarModal({
     let filtered = catalogoProductos;
     if (selectedCategoryId) {
       const selected = categorias.find((c) => c.id === selectedCategoryId);
-      if (selected)
-        filtered = filtered.filter(
-          (p) => p.categoria === selected.nombre
-        );
+      if (selected) {
+        // Comparar por ID de categoría (más confiable)
+        // Los productos pueden tener categoria como objeto {id, nombre} o como string
+        filtered = filtered.filter((p) => {
+          // Si categoria es un objeto, comparar por ID
+          if (p.categoria && typeof p.categoria === 'object' && p.categoria.id) {
+            return p.categoria.id === selectedCategoryId;
+          }
+          // Si categoria es un string, comparar por nombre
+          if (typeof p.categoria === 'string') {
+            return p.categoria === selected.nombre;
+          }
+          // Si tiene categoriaId directo
+          if (p.categoriaId) {
+            return p.categoriaId === selectedCategoryId;
+          }
+          return false;
+        });
+      }
     }
     const q = search.trim().toLowerCase();
     if (q)
@@ -465,6 +621,7 @@ export default function OrdenEditarModal({
         precioUnitario: precioUnitario,
         totalLinea: precioUnitario, // 1 * precioUnitario
         eliminar: false,
+        color: item.color, // Incluir el color del producto
       };
       
       const nuevosItems = [...prev.items, nuevo];
@@ -528,10 +685,16 @@ export default function OrdenEditarModal({
         return;
       }
 
+      // Verificar si el cliente es JAIRO JAVIER VELANDIA
+      const clienteSeleccionado = form.clienteId 
+        ? clientes.find(c => String(c.id) === String(form.clienteId))
+        : null;
+      const isJairoVelandia = clienteSeleccionado?.nombre?.toUpperCase() === "JAIRO JAVIER VELANDIA";
+
       // Crear nueva orden
       const payload = {
         fecha: toLocalDateOnly(form.fecha),
-        obra: form.obra,
+        obra: isJairoVelandia ? (form.obra || null) : null, // Enviar obra solo si es Jairo Velandia
         descripcion: form.descripcion || null,
         venta: form.venta,
         credito: form.credito,
@@ -604,11 +767,17 @@ export default function OrdenEditarModal({
       return;
     }
 
+    // Verificar si el cliente es JAIRO JAVIER VELANDIA (para actualizar también)
+    const clienteSeleccionadoActualizar = form.clienteId 
+      ? clientes.find(c => String(c.id) === String(form.clienteId))
+      : null;
+    const isJairoVelandiaActualizar = clienteSeleccionadoActualizar?.nombre?.toUpperCase() === "JAIRO JAVIER VELANDIA";
+
     // Editar orden existente
     const payload = {
     id: form.id,
     fecha: toLocalDateOnly(form.fecha),
-    obra: form.obra,
+    obra: isJairoVelandiaActualizar ? (form.obra || null) : null, // Enviar obra solo si es Jairo Velandia
     descripcion: form.descripcion || null,
     venta: form.venta,
     credito: form.credito,
@@ -692,24 +861,196 @@ export default function OrdenEditarModal({
                   }
                 />
               </label>
+              {/* Campo Obra solo visible para JAIRO JAVIER VELANDIA */}
+              {(() => {
+                const clienteSeleccionado = form.clienteId 
+                  ? clientes.find(c => String(c.id) === String(form.clienteId))
+                  : null;
+                const isJairoVelandia = clienteSeleccionado?.nombre?.toUpperCase() === "JAIRO JAVIER VELANDIA";
+                return isJairoVelandia ? (
+                  <label>
+                    Obra
+                    <input
+                      type="text"
+                      value={form.obra}
+                      onChange={(e) =>
+                        handleChange("obra", e.target.value.toUpperCase())
+                      }
+                    />
+                  </label>
+                ) : null;
+              })()}
+
               <label>
-                Obra
-                <input
-                  type="text"
-                  value={form.obra}
-                  onChange={(e) =>
-                    handleChange("obra", e.target.value.toUpperCase())
-                  }
-                />
+                Método de Pago
+                <select
+                  value={metodoPago}
+                  onChange={(e) => {
+                    const nuevoMetodo = e.target.value;
+                    setMetodoPago(nuevoMetodo);
+                    let nuevasTransferencias = transferencias;
+                    if (nuevoMetodo !== "TRANSFERENCIA") {
+                      nuevasTransferencias = []; // Limpiar transferencias si no es transferencia
+                      setTransferencias([]);
+                    } else if (transferencias.length === 0) {
+                      // Si es transferencia y no hay ninguna, agregar una por defecto
+                      nuevasTransferencias = [{ banco: "", monto: 0 }];
+                      setTransferencias(nuevasTransferencias);
+                    }
+                    // Construir descripción completa
+                    const nuevaDescripcion = construirDescripcion(nuevoMetodo, nuevasTransferencias, observacionesAdicionales);
+                    handleChange("descripcion", nuevaDescripcion);
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: '0.5rem',
+                    border: '1px solid #c2c2c3',
+                    borderRadius: '8px',
+                    fontSize: '0.95rem'
+                  }}
+                >
+                  <option value="">Seleccione método de pago...</option>
+                  <option value="EFECTIVO">Efectivo</option>
+                  <option value="TRANSFERENCIA">Transferencia</option>
+                  <option value="CHEQUE">Cheque</option>
+                </select>
               </label>
+              
+              {metodoPago === "TRANSFERENCIA" && (
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <label style={{ marginBottom: '0.5rem', display: 'block', fontWeight: '500' }}>
+                    Transferencias
+                  </label>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                    {transferencias.map((transf, index) => (
+                      <div key={index} style={{ 
+                        display: 'grid', 
+                        gridTemplateColumns: '2fr 1.5fr auto', 
+                        gap: '0.5rem', 
+                        alignItems: 'end',
+                        padding: '0.75rem',
+                        border: '1px solid #e0e0e0',
+                        borderRadius: '8px',
+                        backgroundColor: '#f9f9f9'
+                      }}>
+                        <div>
+                          <label style={{ fontSize: '0.85rem', marginBottom: '0.25rem', display: 'block', color: '#666' }}>
+                            Banco
+                          </label>
+                          <select
+                            value={transf.banco}
+                            onChange={(e) => actualizarTransferencia(index, 'banco', e.target.value)}
+                            style={{
+                              width: '100%',
+                              padding: '0.5rem',
+                              border: '1px solid #c2c2c3',
+                              borderRadius: '8px',
+                              fontSize: '0.9rem'
+                            }}
+                          >
+                            <option value="">Seleccione banco...</option>
+                            {bancos.map((bancoItem) => (
+                              <option key={bancoItem} value={bancoItem}>
+                                {bancoItem}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <div>
+                          <label style={{ fontSize: '0.85rem', marginBottom: '0.25rem', display: 'block', color: '#666' }}>
+                            Monto
+                          </label>
+                          <input
+                            type="number"
+                            value={transf.monto || ""}
+                            onChange={(e) => {
+                              const valor = parseFloat(e.target.value) || 0;
+                              actualizarTransferencia(index, 'monto', valor);
+                            }}
+                            onKeyDown={(e) => {
+                              // Permitir números, punto decimal, backspace, delete, tab, etc.
+                              if (!/[0-9.]/.test(e.key) && !['Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+                                e.preventDefault();
+                              }
+                            }}
+                            placeholder="0"
+                            min="0"
+                            step="0.01"
+                            style={{
+                              width: '100%',
+                              padding: '0.5rem',
+                              border: '1px solid #c2c2c3',
+                              borderRadius: '8px',
+                              fontSize: '0.9rem'
+                            }}
+                          />
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => eliminarTransferencia(index)}
+                          disabled={transferencias.length === 1}
+                          style={{
+                            padding: '0.5rem 0.75rem',
+                            backgroundColor: transferencias.length === 1 ? '#ccc' : '#dc3545',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '8px',
+                            cursor: transferencias.length === 1 ? 'not-allowed' : 'pointer',
+                            fontSize: '0.85rem',
+                            height: 'fit-content'
+                          }}
+                          title={transferencias.length === 1 ? "Debe haber al menos una transferencia" : "Eliminar transferencia"}
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={agregarTransferencia}
+                      style={{
+                        padding: '0.5rem 1rem',
+                        backgroundColor: 'var(--color-light-blue)',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '8px',
+                        cursor: 'pointer',
+                        fontSize: '0.9rem',
+                        fontWeight: '500',
+                        alignSelf: 'flex-start'
+                      }}
+                    >
+                      + Agregar Transferencia
+                    </button>
+                    {transferencias.length > 0 && (
+                      <div style={{ 
+                        marginTop: '0.5rem', 
+                        padding: '0.75rem', 
+                        backgroundColor: '#e8f4f8', 
+                        borderRadius: '8px',
+                        fontSize: '0.9rem',
+                        fontWeight: '500',
+                        color: '#2c5f7c'
+                      }}>
+                        Total Transferencias: ${transferencias
+                          .reduce((sum, t) => sum + (parseFloat(t.monto) || 0), 0)
+                          .toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
 
               <label style={{ gridColumn: '1 / -1' }}>
-                Descripción/Observaciones
+                Observaciones Adicionales
                 <textarea
-                  value={form.descripcion || ""}
-                  onChange={(e) =>
-                    handleChange("descripcion", e.target.value)
-                  }
+                  value={observacionesAdicionales}
+                  onChange={(e) => {
+                    setObservacionesAdicionales(e.target.value);
+                    // Construir descripción completa con observaciones
+                    const nuevaDescripcion = construirDescripcion(metodoPago, transferencias, e.target.value);
+                    handleChange("descripcion", nuevaDescripcion);
+                  }}
                   placeholder="Escribe observaciones o detalles adicionales..."
                   rows={3}
                   style={{
@@ -726,19 +1067,37 @@ export default function OrdenEditarModal({
 
               <label>
                 Cliente
-                <select
-                  value={form.clienteId}
-                  onChange={(e) =>
-                    handleChange("clienteId", e.target.value)
-                  }
-                >
-                  <option value="">Selecciona...</option>
-                  {clientes.map((c) => (
-                    <option key={c.id} value={String(c.id)}>
-                      {c.nombre}
-                    </option>
-                  ))}
-                </select>
+                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                  <input
+                    type="text"
+                    value={clienteSearch}
+                    readOnly
+                    onClick={() => setShowClienteModal(true)}
+                    placeholder="Haz clic para seleccionar un cliente..."
+                    style={{
+                      width: '100%',
+                      padding: '0.5rem',
+                      border: '1px solid #c2c2c3',
+                      borderRadius: '8px',
+                      fontSize: '0.95rem',
+                      cursor: 'pointer',
+                      backgroundColor: '#fff'
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setClienteSearchModal(""); // Limpiar búsqueda al abrir el modal
+                      setShowClienteModal(true);
+                    }}
+                    className="btn-guardar"
+                    style={{
+                      whiteSpace: 'nowrap'
+                    }}
+                  >
+                    {form.clienteId ? 'Cambiar Cliente' : 'Seleccionar'}
+                  </button>
+                </div>
               </label>
 
               <label>
@@ -917,11 +1276,29 @@ export default function OrdenEditarModal({
                     <td>
                       <input
                         type="number"
-                        value={i.precioUnitario}
+                        value={i.precioUnitario || ""}
                         step={0.01}
-                        readOnly
-                        style={{ backgroundColor: '#f5f5f5', cursor: 'not-allowed' }}
-                        title="El precio no se puede modificar"
+                        min={0}
+                        placeholder="0.00"
+                        onChange={(e) =>
+                          handleItemChange(idx, "precioUnitario", e.target.value)
+                        }
+                        onKeyDown={(e) => {
+                          // Permitir: números, punto decimal, backspace, delete, tab, escape, enter, y teclas de navegación
+                          if (!/[0-9.]/.test(e.key) && 
+                              !['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'].includes(e.key) &&
+                              !(e.key === 'a' && e.ctrlKey) && // Ctrl+A
+                              !(e.key === 'c' && e.ctrlKey) && // Ctrl+C
+                              !(e.key === 'v' && e.ctrlKey) && // Ctrl+V
+                              !(e.key === 'x' && e.ctrlKey)) { // Ctrl+X
+                            e.preventDefault();
+                          }
+                        }}
+                        style={{ 
+                          width: '100%',
+                          textAlign: 'right'
+                        }}
+                        title="Precio unitario editable (puede aplicar descuentos)"
                       />
                     </td>
                     <td>
@@ -971,6 +1348,7 @@ export default function OrdenEditarModal({
                   <tr>
                     <th>Nombre</th>
                     <th>Código</th>
+                    <th>Color</th>
                     <th></th>
                   </tr>
                 </thead>
@@ -982,7 +1360,8 @@ export default function OrdenEditarModal({
                       style={{ cursor: "pointer" }}
                     >
                       <td>{p.nombre}</td>
-                      <td>{p.codigo}</td>
+                      <td>{p.codigo ?? "-"}</td>
+                      <td>{p.color ?? "-"}</td>
                       <td>
                         <button
                           className="btn-ghost"
@@ -995,7 +1374,7 @@ export default function OrdenEditarModal({
                   ))}
                   {catalogoFiltrado.length === 0 && (
                     <tr>
-                      <td colSpan={3} className="empty">
+                      <td colSpan={4} className="empty">
                         Sin resultados
                       </td>
                     </tr>
@@ -1019,6 +1398,163 @@ export default function OrdenEditarModal({
           </button>
         </div>
       </div>
+      
+      {/* Modal de selección de clientes */}
+      {showClienteModal && (
+        <div className="modal-overlay" style={{ zIndex: 100001 }}>
+          <div className="modal-container" style={{ 
+            maxWidth: '900px', 
+            width: '95vw', 
+            maxHeight: '85vh',
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden'
+          }}>
+            <h2>Seleccionar Cliente</h2>
+            
+            <div style={{ marginBottom: '1rem', flexShrink: 0 }}>
+              <input
+                type="text"
+                value={clienteSearchModal}
+                onChange={(e) => setClienteSearchModal(e.target.value)}
+                placeholder="Buscar cliente por nombre, NIT, correo, ciudad o dirección..."
+                className="clientes-input"
+                style={{
+                  width: '100%',
+                  fontSize: '1rem'
+                }}
+                autoFocus
+              />
+              {(() => {
+                const searchTerm = clienteSearchModal.trim().toLowerCase();
+                const filtered = searchTerm
+                  ? clientes.filter((c) =>
+                      [c.nombre, c.nit, c.correo, c.ciudad, c.direccion]
+                        .filter(Boolean)
+                        .some((v) => String(v).toLowerCase().includes(searchTerm))
+                    )
+                  : clientes;
+                return (
+                  <div style={{ 
+                    marginTop: '0.5rem', 
+                    fontSize: '0.85rem', 
+                    color: '#666',
+                    textAlign: 'right'
+                  }}>
+                    {filtered.length} cliente{filtered.length !== 1 ? 's' : ''} encontrado{filtered.length !== 1 ? 's' : ''}
+                  </div>
+                );
+              })()}
+            </div>
+            
+            <div style={{ 
+              flex: 1,
+              minHeight: 0,
+              overflowY: 'auto',
+              overflowX: 'hidden',
+              border: '1px solid #e6e8f0',
+              borderRadius: '8px'
+            }}>
+              {(() => {
+                const searchTerm = clienteSearchModal.trim().toLowerCase();
+                const filtered = searchTerm
+                  ? clientes.filter((c) =>
+                      [c.nombre, c.nit, c.correo, c.ciudad, c.direccion]
+                        .filter(Boolean)
+                        .some((v) => String(v).toLowerCase().includes(searchTerm))
+                    )
+                  : clientes;
+                
+                // Ordenar alfabéticamente
+                const sorted = [...filtered].sort((a, b) => {
+                  const nombreA = (a.nombre || "").toLowerCase();
+                  const nombreB = (b.nombre || "").toLowerCase();
+                  return nombreA.localeCompare(nombreB, 'es', { sensitivity: 'base' });
+                });
+                
+                if (sorted.length === 0) {
+                  return (
+                    <div style={{ padding: '2rem', color: '#666', textAlign: 'center' }}>
+                      No se encontraron clientes
+                    </div>
+                  );
+                }
+                
+                return (
+                  <div style={{ overflowX: 'auto', maxWidth: '100%' }}>
+                    <table className="table" style={{ tableLayout: 'fixed', width: '100%' }}>
+                      <thead>
+                        <tr>
+                          <th style={{ width: '25%' }}>Nombre</th>
+                          <th style={{ width: '15%' }}>NIT</th>
+                          <th style={{ width: '25%' }}>Correo</th>
+                          <th style={{ width: '15%' }}>Ciudad</th>
+                          <th style={{ width: '20%', textAlign: 'center' }}>Acción</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {sorted.map((c) => (
+                          <tr
+                            key={c.id}
+                            style={{
+                              transition: 'background-color 0.2s'
+                            }}
+                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f9fbff'}
+                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                          >
+                            <td title={c.nombre || '-'} style={{ fontWeight: '500', color: '#1e2753' }}>
+                              {c.nombre || '-'}
+                            </td>
+                            <td title={c.nit || '-'}>
+                              {c.nit || '-'}
+                            </td>
+                            <td title={c.correo || '-'}>
+                              {c.correo || '-'}
+                            </td>
+                            <td title={c.ciudad || '-'}>
+                              {c.ciudad || '-'}
+                            </td>
+                            <td style={{ textAlign: 'center', padding: '0.75rem' }}>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  handleChange("clienteId", String(c.id));
+                                  setClienteSearch(c.nombre);
+                                  setClienteSearchModal(""); // Limpiar búsqueda del modal
+                                  setShowClienteModal(false);
+                                }}
+                                className="btn-guardar"
+                                style={{
+                                  padding: '0.5rem 1rem',
+                                  fontSize: '0.9rem'
+                                }}
+                              >
+                                Seleccionar
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                );
+              })()}
+            </div>
+            
+            <div className="modal-buttons" style={{ marginTop: '1rem', flexShrink: 0 }}>
+              <button 
+                className="btn-cancelar" 
+                onClick={() => {
+                  setClienteSearchModal(""); // Limpiar búsqueda al cancelar
+                  setShowClienteModal(false);
+                }}
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

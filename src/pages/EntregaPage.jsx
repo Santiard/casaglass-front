@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import EntregasTable from "../componets/EntregaTable.jsx";
 import EntregaDetalleModal from "../modals/EntregaDetalleModal.jsx";
 import CrearEntregaModal from "../modals/CrearEntregaModal.jsx";
-import CrearGastoModal from "../modals/CrearGastoModal.jsx";
+// CrearGastoModal eliminado - ya no se usan gastos en entregas
 import ConfirmarEntregaModal from "../modals/ConfirmarEntregaModal.jsx";
 import EntregasImprimirModal from "../modals/EntregasImprimirModal.jsx";
 import EntregasService from "../services/EntregasService.js";
@@ -11,11 +11,14 @@ import * as TrabajadoresService from "../services/TrabajadoresService.js";
 import * as ProveedoresService from "../services/ProveedoresService.js";
 import { useConfirm } from "../hooks/useConfirm.jsx";
 import { useToast } from "../context/ToastContext.jsx";
+import { useAuth } from "../context/AuthContext.jsx";
 import "../styles/EntregaPage.css";
 
 export default function EntregasPage() {
   const { confirm, ConfirmDialog } = useConfirm();
   const { showError: showToastError } = useToast();
+  const { sedeId: sedeIdUsuario, user } = useAuth();
+  const userId = user?.id || null;
   
   // Estados principales
   const [entregas, setEntregas] = useState([]);
@@ -30,7 +33,7 @@ export default function EntregasPage() {
   
   // Estados de modales
   const [mostrarCrearModal, setMostrarCrearModal] = useState(false);
-  const [mostrarCrearGastoModal, setMostrarCrearGastoModal] = useState(false);
+  // mostrarCrearGastoModal eliminado - ya no se usan gastos en entregas
   const [mostrarConfirmarModal, setMostrarConfirmarModal] = useState(false);
   const [entregaAConfirmar, setEntregaAConfirmar] = useState(null);
   const [mostrarImprimirModal, setMostrarImprimirModal] = useState(false);
@@ -180,14 +183,7 @@ export default function EntregasPage() {
     setMostrarCrearModal(true);
   };
 
-  const handleCrearGasto = () => {
-    setMostrarCrearGastoModal(true);
-  };
-
-  const handleGastoCreado = () => {
-    setMostrarCrearGastoModal(false);
-    // Opcional: recargar entregas si es necesario
-  };
+  // handleCrearGasto y handleGastoCreado eliminados - ya no se usan gastos en entregas
 
   const handleEntregaCreada = () => {
     setMostrarCrearModal(false);
@@ -308,13 +304,7 @@ export default function EntregasPage() {
           >
             Imprimir Entregas
           </button>
-          <button 
-            className="btn-crear-entrega" 
-            onClick={handleCrearGasto}
-            style={{ backgroundColor: "#27ae60" }}
-          >
-            + Crear Gasto
-          </button>
+          {/* Botón de Crear Gasto eliminado - ya no se usan gastos en entregas */}
           <button 
             className="btn-crear-entrega" 
             onClick={handleCrearEntrega}
@@ -428,14 +418,7 @@ export default function EntregasPage() {
       />
 
       {/* Modales */}
-      <CrearGastoModal
-        isOpen={mostrarCrearGastoModal}
-        onClose={() => setMostrarCrearGastoModal(false)}
-        onSuccess={handleGastoCreado}
-        sedes={Array.isArray(sedes) ? sedes : []}
-        trabajadores={Array.isArray(trabajadores) ? trabajadores : []}
-        proveedores={Array.isArray(proveedores) ? proveedores : []}
-      />
+      {/* CrearGastoModal eliminado - ya no se usan gastos en entregas */}
 
       <CrearEntregaModal
         isOpen={mostrarCrearModal}
@@ -443,6 +426,8 @@ export default function EntregasPage() {
         onSuccess={handleEntregaCreada}
         sedes={Array.isArray(sedes) ? sedes : []}
         trabajadores={Array.isArray(trabajadores) ? trabajadores : []}
+        sedeIdUsuario={sedeIdUsuario}
+        userId={userId}
       />
 
       <ConfirmarEntregaModal

@@ -19,9 +19,9 @@ export default function ProveedorModal({
   };
 
   // Configuración del hook personalizado
-  const numericFields = ['nit', 'telefono'];
+  // NIT no está en numericFields porque lo manejamos manualmente para permitir edición
+  const numericFields = ['telefono'];
   const validationRules = {
-    nit: { regex: VALIDATION_PATTERNS.NIT_9_DIGITS },
     telefono: { regex: VALIDATION_PATTERNS.PHONE_12_DIGITS }
   };
 
@@ -49,29 +49,54 @@ export default function ProveedorModal({
   const handleChange = (e) => {
     const { name, value } = e.target;
     
-    // Usar el handleChange base del hook
-    baseHandleChange(e);
-    
-    // Validaciones específicas adicionales
+    // Manejo especial para NIT: permite números y guion "-"
     if (name === 'nit') {
-      // Verificar si el NIT ya existe (solo al crear, no al editar)
-      if (!proveedorAEditar && value.length === 9) {
+      // Permitir solo números y guion, máximo 11 caracteres
+      const filtered = value.replace(/[^0-9-]/g, '');
+      // Limitar a 11 caracteres
+      const limited = filtered.slice(0, 11);
+      
+      setFormData(prev => ({
+        ...prev,
+        [name]: limited
+      }));
+      
+      // Verificar si el NIT ya existe (excluyendo el proveedor actual si estamos editando)
+      if (limited.length >= 1) {
         const existe = proveedoresExistentes.some(proveedor => 
-          proveedor.nit === value
+          proveedor.nit === limited && proveedor.id !== proveedorAEditar?.id
         );
         setNitDuplicado(existe);
       } else {
         setNitDuplicado(false);
       }
+      return;
     }
+    
+    // Para otros campos, usar el handleChange base del hook
+    baseHandleChange(e);
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
     
     // Validación final antes de guardar
-    if (formData.nit && formData.nit.length !== 9) {
-      showError('El NIT debe contener exactamente 9 dígitos');
+    const nit = (formData.nit || "").trim();
+    if (!nit) {
+      showError('El NIT es obligatorio');
+      return;
+    }
+    if (nit.length > 11) {
+      showError('El NIT debe contener máximo 11 caracteres (incluyendo el guion -)');
+      return;
+    }
+    if (nit.length < 1) {
+      showError('El NIT debe contener al menos 1 carácter');
+      return;
+    }
+    // Validar formato: solo números y un guion opcional
+    if (!/^[\d-]+$/.test(nit)) {
+      showError('El NIT solo puede contener números y el guion (-)');
       return;
     }
     
@@ -80,10 +105,10 @@ export default function ProveedorModal({
       return;
     }
     
-    // Validar NIT duplicado solo cuando estamos creando (no editando)
-    if (!proveedorAEditar && formData.nit) {
+    // Validar NIT duplicado (excluyendo el proveedor actual si estamos editando)
+    if (formData.nit) {
       const nitExiste = proveedoresExistentes.some(proveedor => 
-        proveedor.nit === formData.nit
+        proveedor.nit === formData.nit && proveedor.id !== proveedorAEditar?.id
       );
       
       if (nitExiste) {
@@ -112,18 +137,28 @@ export default function ProveedorModal({
               name="nit"
               value={formData.nit}
               onChange={handleChange}
-              placeholder="Ingrese 9 dígitos"
-              maxLength="9"
-              pattern="\d{9}"
-              title="El NIT debe contener exactamente 9 dígitos"
+              placeholder="Máximo 11 caracteres (ej: 123456789-0)"
+              maxLength="11"
+              pattern="[\d-]{1,11}"
+              title="El NIT debe contener entre 1 y 11 caracteres (números y guion -)"
               required
-              disabled={!!proveedorAEditar}
+              onKeyDown={(e) => {
+                // Permitir: números, guion, backspace, delete, tab, escape, enter, y atajos de teclado
+                if (!/[0-9-]/.test(e.key) && 
+                    !['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', 'ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key) &&
+                    !(e.key === 'a' && e.ctrlKey) && // Ctrl+A
+                    !(e.key === 'c' && e.ctrlKey) && // Ctrl+C
+                    !(e.key === 'v' && e.ctrlKey) && // Ctrl+V
+                    !(e.key === 'x' && e.ctrlKey)) { // Ctrl+X
+                  e.preventDefault();
+                }
+              }}
               style={{
                 borderColor: nitDuplicado ? '#ef4444' : '',
                 backgroundColor: nitDuplicado ? '#fef2f2' : ''
               }}
             />
-            {nitDuplicado && !proveedorAEditar && (
+            {nitDuplicado && (
               <div style={{ 
                 color: '#ef4444', 
                 fontSize: '0.875rem', 
