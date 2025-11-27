@@ -8,6 +8,7 @@ import { listarProductos } from "../services/ProductosService.js";
 import { listarCategorias } from "../services/CategoriasService.js";
 import { actualizarOrden, obtenerOrden, actualizarOrdenVenta, crearOrdenVenta } from "../services/OrdenesService.js";
 import { useToast } from "../context/ToastContext.jsx";
+import { useConfirm } from "../hooks/useConfirm.jsx";
 import eliminar from "../assets/eliminar.png";
 
 import { api } from "../lib/api";
@@ -45,8 +46,8 @@ export default function OrdenEditarModal({
   const [clienteSearch, setClienteSearch] = useState("");
   const [clienteSearchModal, setClienteSearchModal] = useState(""); // Búsqueda dentro del modal
   const [showClienteModal, setShowClienteModal] = useState(false);
-  const [metodoPago, setMetodoPago] = useState(""); // Método de pago seleccionado
-  const [transferencias, setTransferencias] = useState([]); // Array de transferencias [{ banco: "", monto: 0 }]
+  // Array de métodos de pago: [{ tipo: "EFECTIVO", monto: 50000, banco: "" }, ...]
+  const [metodosPago, setMetodosPago] = useState([]);
   const [observacionesAdicionales, setObservacionesAdicionales] = useState(""); // Observaciones sin método de pago
   const [errorMsg, setErrorMsg] = useState("");
   
@@ -58,95 +59,202 @@ export default function OrdenEditarModal({
     "NEQUI",
     "DAVIPLATA"
   ];
+
+  // Métodos de pago disponibles
+  const tiposMetodoPago = [
+    { value: "EFECTIVO", label: "Efectivo" },
+    { value: "TRANSFERENCIA", label: "Transferencia" },
+    { value: "CHEQUE", label: "Cheque" },
+    { value: "NEQUI", label: "Nequi" },
+    { value: "DAVIPLATA", label: "Daviplata" },
+    { value: "TARJETA", label: "Tarjeta" },
+    { value: "OTRO", label: "Otro" }
+  ];
   
-  // Función para parsear la descripción y extraer método de pago y transferencias
+  // Función para parsear la descripción y extraer métodos de pago
   const parsearDescripcion = (descripcion) => {
-    if (!descripcion) return { metodoPago: "", transferencias: [], observaciones: "" };
+    if (!descripcion) return { metodosPago: [], observaciones: "" };
     
-    // Buscar patrón: "Método de pago: TRANSFERENCIA"
+    const metodosPagoExtraidos = [];
+    let observaciones = descripcion;
+    
+    // Buscar patrón: "Método de pago: X"
     const metodoPagoMatch = descripcion.match(/Método de pago:\s*(\w+)/i);
-    const metodoPagoExtraido = metodoPagoMatch ? metodoPagoMatch[1].toUpperCase() : "";
+    const tipoPrincipal = metodoPagoMatch ? metodoPagoMatch[1].toUpperCase() : "";
     
-    // Buscar todas las transferencias: "Transferencia: BANCO - Monto: $XXX"
-    const transferenciasExtraidas = [];
-    if (metodoPagoExtraido === "TRANSFERENCIA") {
-      const transferenciaRegex = /Transferencia:\s*([^-]+?)\s*-\s*Monto:\s*\$?([\d.,]+)/gi;
-      let match;
-      while ((match = transferenciaRegex.exec(descripcion)) !== null) {
-        const banco = match[1].trim();
-        const montoStr = match[2].replace(/[,.]/g, '');
-        const monto = parseFloat(montoStr) || 0;
-        if (banco && monto > 0) {
-          transferenciasExtraidas.push({ banco, monto });
-        }
+    // Buscar Efectivo: $XXX
+    const efectivoMatch = descripcion.match(/Efectivo:\s*\$?([\d.,]+)/i);
+    if (efectivoMatch) {
+      const montoStr = efectivoMatch[1].replace(/[,.]/g, '');
+      const monto = parseFloat(montoStr) || 0;
+      if (monto > 0) {
+        metodosPagoExtraidos.push({ tipo: "EFECTIVO", monto, banco: "" });
       }
     }
     
-    // Extraer observaciones (todo lo que no sea método de pago ni transferencias)
-    let observaciones = descripcion
+    // Buscar todas las transferencias: "Transferencia: BANCO - Monto: $XXX"
+    const transferenciaRegex = /Transferencia:\s*([^-]+?)\s*-\s*Monto:\s*\$?([\d.,]+)/gi;
+    let match;
+    while ((match = transferenciaRegex.exec(descripcion)) !== null) {
+      const banco = match[1].trim();
+      const montoStr = match[2].replace(/[,.]/g, '');
+      const monto = parseFloat(montoStr) || 0;
+      if (banco && monto > 0) {
+        metodosPagoExtraidos.push({ tipo: "TRANSFERENCIA", monto, banco });
+      }
+    }
+    
+    // Buscar Cheque: $XXX
+    const chequeMatch = descripcion.match(/Cheque:\s*\$?([\d.,]+)/i);
+    if (chequeMatch) {
+      const montoStr = chequeMatch[1].replace(/[,.]/g, '');
+      const monto = parseFloat(montoStr) || 0;
+      if (monto > 0) {
+        metodosPagoExtraidos.push({ tipo: "CHEQUE", monto, banco: "" });
+      }
+    }
+    
+    // Buscar otros métodos: NEQUI, DAVIPLATA, TARJETA, OTRO
+    const otrosMetodos = ["NEQUI", "DAVIPLATA", "TARJETA", "OTRO"];
+    otrosMetodos.forEach(tipo => {
+      const regex = new RegExp(`${tipo}:\\s*\\$?([\\d.,]+)`, 'i');
+      const match = descripcion.match(regex);
+      if (match) {
+        const montoStr = match[1].replace(/[,.]/g, '');
+        const monto = parseFloat(montoStr) || 0;
+        if (monto > 0) {
+          metodosPagoExtraidos.push({ tipo, monto, banco: "" });
+        }
+      }
+    });
+    
+    // Si no se encontró ningún método pero hay un tipo principal, intentar parsear el formato antiguo
+    if (metodosPagoExtraidos.length === 0 && tipoPrincipal) {
+      // Formato antiguo: solo TRANSFERENCIA con transferencias
+      if (tipoPrincipal === "TRANSFERENCIA") {
+        // Ya se buscaron transferencias arriba
+      } else {
+        // Para otros métodos antiguos, no podemos determinar el monto sin más información
+        // Dejamos el array vacío
+      }
+    }
+    
+    // Extraer observaciones (todo lo que no sea método de pago ni métodos específicos)
+    observaciones = descripcion
       .replace(/Método de pago:.*?(?:\n|$)/i, '')
+      .replace(/Efectivo:.*?(?:\n|$)/gi, '')
       .replace(/Transferencia:.*?(?:\n|$)/gi, '')
+      .replace(/Cheque:.*?(?:\n|$)/gi, '')
+      .replace(/NEQUI:.*?(?:\n|$)/gi, '')
+      .replace(/DAVIPLATA:.*?(?:\n|$)/gi, '')
+      .replace(/TARJETA:.*?(?:\n|$)/gi, '')
+      .replace(/OTRO:.*?(?:\n|$)/gi, '')
       .trim();
     
     return {
-      metodoPago: metodoPagoExtraido,
-      transferencias: transferenciasExtraidas,
+      metodosPago: metodosPagoExtraidos,
       observaciones: observaciones
     };
   };
   
-  // Función para construir la descripción completa
-  const construirDescripcion = (metodo, transferenciasArray, observaciones) => {
+  // Función para construir la descripción completa (string estructurado)
+  const construirDescripcion = (metodosArray, observaciones) => {
+    if (metodosArray.length === 0) {
+      return observaciones || "";
+    }
+
     let descripcionCompleta = "";
     
-    if (metodo) {
-      descripcionCompleta = `Método de pago: ${metodo}`;
-      
-      if (metodo === "TRANSFERENCIA" && transferenciasArray.length > 0) {
-        transferenciasArray.forEach((transf) => {
-          if (transf.banco && transf.monto > 0) {
-            const montoFormateado = transf.monto.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
-            descripcionCompleta += `\nTransferencia: ${transf.banco} - Monto: $${montoFormateado}`;
-          }
-        });
+    // Si hay múltiples métodos, usar "MIXTO", si solo hay uno, usar ese método
+    const esMixto = metodosArray.length > 1;
+    const tipoPrincipal = esMixto ? "MIXTO" : metodosArray[0].tipo;
+    
+    descripcionCompleta = `Método de pago: ${tipoPrincipal}`;
+    
+    // Agrupar por tipo de método
+    const efectivo = metodosArray.filter(m => m.tipo === "EFECTIVO");
+    const transferencias = metodosArray.filter(m => m.tipo === "TRANSFERENCIA");
+    const cheques = metodosArray.filter(m => m.tipo === "CHEQUE");
+    const otros = metodosArray.filter(m => !["EFECTIVO", "TRANSFERENCIA", "CHEQUE"].includes(m.tipo));
+    
+    // Efectivo
+    if (efectivo.length > 0) {
+      const totalEfectivo = efectivo.reduce((sum, m) => sum + (parseFloat(m.monto) || 0), 0);
+      if (totalEfectivo > 0) {
+        descripcionCompleta += `\nEfectivo: $${totalEfectivo.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
       }
-      
-      if (observaciones) {
-        descripcionCompleta += `\n${observaciones}`;
-      }
-    } else if (observaciones) {
-      descripcionCompleta = observaciones;
+    }
+    
+    // Transferencias
+    if (transferencias.length > 0) {
+      transferencias.forEach((transf) => {
+        if (transf.banco && transf.monto > 0) {
+          const montoFormateado = transf.monto.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+          descripcionCompleta += `\nTransferencia: ${transf.banco} - Monto: $${montoFormateado}`;
+        }
+      });
+    }
+    
+    // Cheques
+    if (cheques.length > 0) {
+      cheques.forEach((cheque) => {
+        if (cheque.monto > 0) {
+          const montoFormateado = cheque.monto.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+          descripcionCompleta += `\nCheque: $${montoFormateado}`;
+        }
+      });
+    }
+    
+    // Otros métodos (NEQUI, DAVIPLATA, TARJETA, OTRO)
+    if (otros.length > 0) {
+      otros.forEach((otro) => {
+        if (otro.monto > 0) {
+          const montoFormateado = otro.monto.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+          descripcionCompleta += `\n${otro.tipo}: $${montoFormateado}`;
+        }
+      });
+    }
+    
+    if (observaciones) {
+      descripcionCompleta += `\n${observaciones}`;
     }
     
     return descripcionCompleta;
   };
-  
-  // Función para agregar una nueva transferencia
-  const agregarTransferencia = () => {
-    setTransferencias([...transferencias, { banco: "", monto: 0 }]);
+
+  // Función para agregar un nuevo método de pago
+  const agregarMetodoPago = () => {
+    setMetodosPago([...metodosPago, { tipo: "", monto: 0, banco: "" }]);
   };
-  
-  // Función para eliminar una transferencia
-  const eliminarTransferencia = (index) => {
-    const nuevasTransferencias = transferencias.filter((_, i) => i !== index);
-    setTransferencias(nuevasTransferencias);
+
+  // Función para eliminar un método de pago
+  const eliminarMetodoPago = (index) => {
+    const nuevosMetodos = metodosPago.filter((_, i) => i !== index);
+    setMetodosPago(nuevosMetodos);
     // Actualizar descripción
-    const nuevaDescripcion = construirDescripcion(metodoPago, nuevasTransferencias, observacionesAdicionales);
+    const nuevaDescripcion = construirDescripcion(nuevosMetodos, observacionesAdicionales);
     handleChange("descripcion", nuevaDescripcion);
   };
-  
-  // Función para actualizar una transferencia
-  const actualizarTransferencia = (index, campo, valor) => {
-    const nuevasTransferencias = [...transferencias];
-    nuevasTransferencias[index] = { ...nuevasTransferencias[index], [campo]: valor };
-    setTransferencias(nuevasTransferencias);
+
+  // Función para actualizar un método de pago
+  const actualizarMetodoPago = (index, campo, valor) => {
+    const nuevosMetodos = [...metodosPago];
+    nuevosMetodos[index] = { ...nuevosMetodos[index], [campo]: valor };
+    
+    // Si cambia el tipo y no es TRANSFERENCIA, limpiar el banco
+    if (campo === "tipo" && valor !== "TRANSFERENCIA") {
+      nuevosMetodos[index].banco = "";
+    }
+    
+    setMetodosPago(nuevosMetodos);
     // Actualizar descripción
-    const nuevaDescripcion = construirDescripcion(metodoPago, nuevasTransferencias, observacionesAdicionales);
+    const nuevaDescripcion = construirDescripcion(nuevosMetodos, observacionesAdicionales);
     handleChange("descripcion", nuevaDescripcion);
   };
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { showSuccess, showError, showWarning } = useToast();
+  const { confirm, ConfirmDialog } = useConfirm();
   const matchHechoRef = useRef({ ordenId: null, hecho: false });
 
   // =============================
@@ -158,8 +266,7 @@ export default function OrdenEditarModal({
       setForm(null);
       setIsLoading(false);
       setErrorMsg("");
-      setMetodoPago("");
-      setTransferencias([]);
+      setMetodosPago([]);
       setObservacionesAdicionales("");
       setClienteSearch("");
       setClienteSearchModal("");
@@ -208,9 +315,8 @@ export default function OrdenEditarModal({
         };
         setForm(base);
         setClienteSearch("");
-        // Resetear método de pago y transferencias al crear nueva orden
-        setMetodoPago("");
-        setTransferencias([]);
+        // Resetear métodos de pago al crear nueva orden
+        setMetodosPago([]);
         setObservacionesAdicionales("");
       } else {
         // Modo creación vacío (sin productos del carrito)
@@ -232,9 +338,8 @@ export default function OrdenEditarModal({
         };
         setForm(base);
         setClienteSearch("");
-        // Resetear método de pago y transferencias al crear nueva orden
-        setMetodoPago("");
-        setTransferencias([]);
+        // Resetear métodos de pago al crear nueva orden
+        setMetodosPago([]);
         setObservacionesAdicionales("");
       }
       return;
@@ -270,10 +375,9 @@ export default function OrdenEditarModal({
         })) ?? [],
       });
       setClienteSearch(orden?.cliente?.nombre ?? "");
-      // Parsear descripción para extraer método de pago y transferencias
+      // Parsear descripción para extraer métodos de pago
       const descripcionParseada = parsearDescripcion(orden?.descripcion ?? "");
-      setMetodoPago(descripcionParseada.metodoPago);
-      setTransferencias(descripcionParseada.transferencias.length > 0 ? descripcionParseada.transferencias : []);
+      setMetodosPago(descripcionParseada.metodosPago.length > 0 ? descripcionParseada.metodosPago : []);
       setObservacionesAdicionales(descripcionParseada.observaciones);
       return;
     }
@@ -336,10 +440,9 @@ export default function OrdenEditarModal({
       setClienteSearch("");
     }
     
-    // Parsear descripción para extraer método de pago y transferencias
+    // Parsear descripción para extraer métodos de pago
     const descripcionParseada = parsearDescripcion(base.descripcion);
-    setMetodoPago(descripcionParseada.metodoPago);
-    setTransferencias(descripcionParseada.transferencias.length > 0 ? descripcionParseada.transferencias : []);
+    setMetodosPago(descripcionParseada.metodosPago.length > 0 ? descripcionParseada.metodosPago : []);
     setObservacionesAdicionales(descripcionParseada.observaciones);
   }, [orden, isOpen, clientes]);
 
@@ -691,13 +794,34 @@ export default function OrdenEditarModal({
         : null;
       const isJairoVelandia = clienteSeleccionado?.nombre?.toUpperCase() === "JAIRO JAVIER VELANDIA";
 
+      // Calcular el total de la orden
+      const subtotal = itemsActivos.reduce((sum, item) => sum + (item.totalLinea || 0), 0);
+      const totalOrden = subtotal - (form.descuentos || 0);
+
+      // Mostrar diálogo de confirmación para determinar si es crédito o contado
+      const deseaAbonar = await confirm({
+        title: "Confirmar tipo de venta",
+        message: `¿Deseas abonar $${totalOrden.toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} a la orden en el proceso?`,
+        confirmText: "Sí, abonar (Contado)",
+        cancelText: "No, no abonar (Crédito)",
+        type: "info"
+      });
+
+      // Si responde "Sí" → credito = false (contado)
+      // Si responde "No" → credito = true (crédito)
+      const esCredito = !deseaAbonar;
+
+      // Si es crédito, la descripción (método de pago) debe ser null
+      // Si es contado, construir la descripción desde los métodos de pago
+      const descripcionFinal = esCredito ? null : construirDescripcion(metodosPago.filter(m => m.tipo && m.monto > 0), observacionesAdicionales);
+
       // Crear nueva orden
       const payload = {
         fecha: toLocalDateOnly(form.fecha),
         obra: isJairoVelandia ? (form.obra || null) : null, // Enviar obra solo si es Jairo Velandia
-        descripcion: form.descripcion || null,
+        descripcion: descripcionFinal,
         venta: form.venta,
-        credito: form.credito,
+        credito: esCredito,
         descuentos: Number(form.descuentos || 0),
         clienteId: Number(form.clienteId),
         sedeId: Number(form.sedeId),
@@ -774,11 +898,14 @@ export default function OrdenEditarModal({
     const isJairoVelandiaActualizar = clienteSeleccionadoActualizar?.nombre?.toUpperCase() === "JAIRO JAVIER VELANDIA";
 
     // Editar orden existente
+    // Construir descripción desde los métodos de pago (solo si no es crédito)
+    const descripcionFinalEditar = form.credito ? null : construirDescripcion(metodosPago.filter(m => m.tipo && m.monto > 0), observacionesAdicionales);
+    
     const payload = {
     id: form.id,
     fecha: toLocalDateOnly(form.fecha),
     obra: isJairoVelandiaActualizar ? (form.obra || null) : null, // Enviar obra solo si es Jairo Velandia
-    descripcion: form.descripcion || null,
+    descripcion: descripcionFinalEditar,
     venta: form.venta,
     credito: form.credito,
     descuentos: Number(form.descuentos || 0),
@@ -881,165 +1008,195 @@ export default function OrdenEditarModal({
                 ) : null;
               })()}
 
-              <label>
-                Método de Pago
-                <select
-                  value={metodoPago}
-                  onChange={(e) => {
-                    const nuevoMetodo = e.target.value;
-                    setMetodoPago(nuevoMetodo);
-                    let nuevasTransferencias = transferencias;
-                    if (nuevoMetodo !== "TRANSFERENCIA") {
-                      nuevasTransferencias = []; // Limpiar transferencias si no es transferencia
-                      setTransferencias([]);
-                    } else if (transferencias.length === 0) {
-                      // Si es transferencia y no hay ninguna, agregar una por defecto
-                      nuevasTransferencias = [{ banco: "", monto: 0 }];
-                      setTransferencias(nuevasTransferencias);
-                    }
-                    // Construir descripción completa
-                    const nuevaDescripcion = construirDescripcion(nuevoMetodo, nuevasTransferencias, observacionesAdicionales);
-                    handleChange("descripcion", nuevaDescripcion);
-                  }}
-                  style={{
-                    width: '100%',
-                    padding: '0.5rem',
-                    border: '1px solid #c2c2c3',
-                    borderRadius: '8px',
-                    fontSize: '0.95rem'
-                  }}
-                >
-                  <option value="">Seleccione método de pago...</option>
-                  <option value="EFECTIVO">Efectivo</option>
-                  <option value="TRANSFERENCIA">Transferencia</option>
-                  <option value="CHEQUE">Cheque</option>
-                </select>
-              </label>
-              
-              {metodoPago === "TRANSFERENCIA" && (
-                <div style={{ gridColumn: '1 / -1' }}>
-                  <label style={{ marginBottom: '0.5rem', display: 'block', fontWeight: '500' }}>
-                    Transferencias
-                  </label>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                    {transferencias.map((transf, index) => (
-                      <div key={index} style={{ 
-                        display: 'grid', 
-                        gridTemplateColumns: '2fr 1.5fr auto', 
-                        gap: '0.5rem', 
-                        alignItems: 'end',
-                        padding: '0.75rem',
-                        border: '1px solid #e0e0e0',
-                        borderRadius: '8px',
-                        backgroundColor: '#f9f9f9'
-                      }}>
-                        <div>
-                          <label style={{ fontSize: '0.85rem', marginBottom: '0.25rem', display: 'block', color: '#666' }}>
-                            Banco
-                          </label>
-                          <select
-                            value={transf.banco}
-                            onChange={(e) => actualizarTransferencia(index, 'banco', e.target.value)}
-                            style={{
-                              width: '100%',
-                              padding: '0.5rem',
-                              border: '1px solid #c2c2c3',
-                              borderRadius: '8px',
-                              fontSize: '0.9rem'
-                            }}
-                          >
-                            <option value="">Seleccione banco...</option>
-                            {bancos.map((bancoItem) => (
-                              <option key={bancoItem} value={bancoItem}>
-                                {bancoItem}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                        <div>
-                          <label style={{ fontSize: '0.85rem', marginBottom: '0.25rem', display: 'block', color: '#666' }}>
-                            Monto
-                          </label>
-                          <input
-                            type="number"
-                            value={transf.monto || ""}
-                            onChange={(e) => {
-                              const valor = parseFloat(e.target.value) || 0;
-                              actualizarTransferencia(index, 'monto', valor);
-                            }}
-                            onKeyDown={(e) => {
-                              // Permitir números, punto decimal, backspace, delete, tab, etc.
-                              if (!/[0-9.]/.test(e.key) && !['Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
-                                e.preventDefault();
-                              }
-                            }}
-                            placeholder="0"
-                            min="0"
-                            step="0.01"
-                            style={{
-                              width: '100%',
-                              padding: '0.5rem',
-                              border: '1px solid #c2c2c3',
-                              borderRadius: '8px',
-                              fontSize: '0.9rem'
-                            }}
-                          />
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => eliminarTransferencia(index)}
-                          disabled={transferencias.length === 1}
-                          style={{
-                            padding: '0.5rem 0.75rem',
-                            backgroundColor: transferencias.length === 1 ? '#ccc' : '#dc3545',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '8px',
-                            cursor: transferencias.length === 1 ? 'not-allowed' : 'pointer',
-                            fontSize: '0.85rem',
-                            height: 'fit-content'
-                          }}
-                          title={transferencias.length === 1 ? "Debe haber al menos una transferencia" : "Eliminar transferencia"}
-                        >
-                          ✕
-                        </button>
-                      </div>
-                    ))}
+              {/* Sección de Métodos de Pago */}
+              <div style={{ gridColumn: '1 / -1', marginTop: '0.5rem' }}>
+                <div style={{ 
+                  padding: '1rem',
+                  backgroundColor: '#f8f9fa',
+                  borderRadius: '8px',
+                  border: '1px solid #e0e0e0'
+                }}>
+                  <div style={{ 
+                    display: 'flex', 
+                    justifyContent: 'space-between', 
+                    alignItems: 'center',
+                    marginBottom: '0.75rem'
+                  }}>
+                    <label style={{ fontWeight: '500', fontSize: '0.95rem' }}>
+                      Métodos de Pago
+                    </label>
                     <button
                       type="button"
-                      onClick={agregarTransferencia}
+                      onClick={agregarMetodoPago}
                       style={{
-                        padding: '0.5rem 1rem',
-                        backgroundColor: 'var(--color-light-blue)',
+                        padding: '0.4rem 0.8rem',
+                        backgroundColor: '#4f67ff',
                         color: 'white',
                         border: 'none',
-                        borderRadius: '8px',
+                        borderRadius: '6px',
                         cursor: 'pointer',
-                        fontSize: '0.9rem',
-                        fontWeight: '500',
-                        alignSelf: 'flex-start'
+                        fontSize: '0.85rem'
                       }}
                     >
-                      + Agregar Transferencia
+                      + Agregar Método
                     </button>
-                    {transferencias.length > 0 && (
-                      <div style={{ 
-                        marginTop: '0.5rem', 
-                        padding: '0.75rem', 
-                        backgroundColor: '#e8f4f8', 
-                        borderRadius: '8px',
-                        fontSize: '0.9rem',
-                        fontWeight: '500',
-                        color: '#2c5f7c'
-                      }}>
-                        Total Transferencias: ${transferencias
-                          .reduce((sum, t) => sum + (parseFloat(t.monto) || 0), 0)
-                          .toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-                      </div>
-                    )}
                   </div>
+
+                  {metodosPago.length === 0 ? (
+                    <p style={{ 
+                      textAlign: 'center', 
+                      color: '#666', 
+                      fontStyle: 'italic',
+                      padding: '1rem'
+                    }}>
+                      Haz clic en "Agregar Método" para comenzar
+                    </p>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                      {metodosPago.map((metodo, index) => (
+                        <div key={index} style={{ 
+                          padding: '0.75rem',
+                          border: '1px solid #e0e0e0',
+                          borderRadius: '8px',
+                          backgroundColor: '#ffffff'
+                        }}>
+                          <div style={{ 
+                            display: 'grid', 
+                            gridTemplateColumns: metodo.tipo === "TRANSFERENCIA" ? '2fr 1.5fr 1.5fr auto' : '2fr 1.5fr auto', 
+                            gap: '0.5rem', 
+                            alignItems: 'end'
+                          }}>
+                            <div>
+                              <label style={{ fontSize: '0.85rem', marginBottom: '0.25rem', display: 'block', color: '#666' }}>
+                                Tipo de Pago
+                              </label>
+                              <select
+                                value={metodo.tipo}
+                                onChange={(e) => actualizarMetodoPago(index, 'tipo', e.target.value)}
+                                style={{
+                                  width: '100%',
+                                  padding: '0.5rem',
+                                  border: '1px solid #c2c2c3',
+                                  borderRadius: '8px',
+                                  fontSize: '0.9rem'
+                                }}
+                              >
+                                <option value="">Seleccione...</option>
+                                {tiposMetodoPago.map((tipo) => (
+                                  <option key={tipo.value} value={tipo.value}>
+                                    {tipo.label}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+
+                            {metodo.tipo === "TRANSFERENCIA" && (
+                              <div>
+                                <label style={{ fontSize: '0.85rem', marginBottom: '0.25rem', display: 'block', color: '#666' }}>
+                                  Banco
+                                </label>
+                                <select
+                                  value={metodo.banco}
+                                  onChange={(e) => actualizarMetodoPago(index, 'banco', e.target.value)}
+                                  style={{
+                                    width: '100%',
+                                    padding: '0.5rem',
+                                    border: '1px solid #c2c2c3',
+                                    borderRadius: '8px',
+                                    fontSize: '0.9rem'
+                                  }}
+                                >
+                                  <option value="">Seleccione banco...</option>
+                                  {bancos.map((bancoItem) => (
+                                    <option key={bancoItem} value={bancoItem}>
+                                      {bancoItem}
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+                            )}
+
+                            <div>
+                              <label style={{ fontSize: '0.85rem', marginBottom: '0.25rem', display: 'block', color: '#666' }}>
+                                Monto
+                              </label>
+                              <input
+                                type="number"
+                                value={metodo.monto || ""}
+                                onChange={(e) => {
+                                  const valor = parseFloat(e.target.value) || 0;
+                                  actualizarMetodoPago(index, 'monto', valor);
+                                }}
+                                onKeyDown={(e) => {
+                                  if (!/[0-9.]/.test(e.key) && !['Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+                                    e.preventDefault();
+                                  }
+                                }}
+                                placeholder="0"
+                                min="0"
+                                step="0.01"
+                                style={{
+                                  width: '100%',
+                                  padding: '0.5rem',
+                                  border: '1px solid #c2c2c3',
+                                  borderRadius: '8px',
+                                  fontSize: '0.9rem'
+                                }}
+                              />
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={() => eliminarMetodoPago(index)}
+                              style={{
+                                padding: '0.5rem 0.75rem',
+                                backgroundColor: '#dc3545',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '8px',
+                                cursor: 'pointer',
+                                fontSize: '0.85rem',
+                                height: 'fit-content'
+                              }}
+                              title="Eliminar método de pago"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {metodosPago.length > 0 && (() => {
+                    const totalMetodos = metodosPago
+                      .filter(m => m.tipo && m.monto > 0)
+                      .reduce((sum, m) => sum + (parseFloat(m.monto) || 0), 0);
+                    const totalOrden = form.items.reduce((sum, item) => sum + (item.totalLinea || 0), 0) - (form.descuentos || 0);
+                    const coincide = Math.abs(totalMetodos - totalOrden) < 0.01;
+                    
+                    return (
+                      <div style={{ 
+                        marginTop: '0.75rem', 
+                        padding: '0.75rem',
+                        backgroundColor: coincide ? '#d4edda' : '#fff3cd',
+                        borderRadius: '4px',
+                        fontSize: '0.85rem',
+                        color: coincide ? '#155724' : '#856404',
+                        border: `1px solid ${coincide ? '#c3e6cb' : '#ffeaa7'}`
+                      }}>
+                        <strong>Total Métodos de Pago: </strong>
+                        ${totalMetodos.toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        <span style={{ display: 'block', marginTop: '0.25rem', fontSize: '0.8rem' }}>
+                          {coincide 
+                            ? '✓ Coincide con el total de la orden' 
+                            : `⚠ Diferencia: $${Math.abs(totalMetodos - totalOrden).toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                        </span>
+                      </div>
+                    );
+                  })()}
                 </div>
-              )}
+              </div>
 
               <label style={{ gridColumn: '1 / -1' }}>
                 Observaciones Adicionales
@@ -1048,7 +1205,7 @@ export default function OrdenEditarModal({
                   onChange={(e) => {
                     setObservacionesAdicionales(e.target.value);
                     // Construir descripción completa con observaciones
-                    const nuevaDescripcion = construirDescripcion(metodoPago, transferencias, e.target.value);
+                    const nuevaDescripcion = construirDescripcion(metodosPago, e.target.value);
                     handleChange("descripcion", nuevaDescripcion);
                   }}
                   placeholder="Escribe observaciones o detalles adicionales..."
@@ -1144,35 +1301,6 @@ export default function OrdenEditarModal({
                 borderRadius: '8px',
                 marginTop: '0.5rem'
               }}>
-                <label style={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  gap: '0.75rem', 
-                  cursor: 'pointer', 
-                  margin: 0, 
-                  fontSize: '0.95rem',
-                  fontWeight: '500',
-                  color: '#343a40',
-                  width: '100%'
-                }}>
-                  <input
-                    type="checkbox"
-                    checked={form.credito}
-                    onChange={(e) =>
-                      handleChange("credito", e.target.checked)
-                    }
-                    style={{ 
-                      width: '1.3rem', 
-                      height: '1.3rem', 
-                      cursor: 'pointer', 
-                      margin: 0,
-                      accentColor: '#4f67ff',
-                      flexShrink: 0
-                    }}
-                  />
-                  <span>¿Es crédito?</span>
-                </label>
-                
                 {/* Checkbox para Venta Confirmada */}
                 <label
                   style={{
@@ -1181,7 +1309,8 @@ export default function OrdenEditarModal({
                     gap: '0.5rem',
                     cursor: 'pointer',
                     color: '#343a40',
-                    width: '100%'
+                    width: '100%',
+                    margin: 0
                   }}>
                   <input
                     type="checkbox"
@@ -1555,6 +1684,7 @@ export default function OrdenEditarModal({
           </div>
         </div>
       )}
+      <ConfirmDialog />
     </div>
   );
 }

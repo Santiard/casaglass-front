@@ -1,34 +1,40 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { api } from '../lib/api.js';
 import { listarClientes } from '../services/ClientesService.js';
 import { listarOrdenesCredito } from '../services/OrdenesService.js';
 import '../styles/CrudModal.css';
-import './AbonoModal.css';
+import '../styles/Creditos.css';
 
-const AbonoModal = ({ isOpen, onClose, credito, onSuccess }) => {
+const AbonoPage = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  
+  // Obtener clienteId o creditoId de los query params si vienen de CreditosPage
+  const searchParams = new URLSearchParams(location.search);
+  const clienteIdParam = searchParams.get('clienteId');
+  const creditoIdParam = searchParams.get('creditoId');
+
   const [clientes, setClientes] = useState([]);
   const [clienteSeleccionado, setClienteSeleccionado] = useState(null);
-  const [clienteSearch, setClienteSearch] = useState(""); // Búsqueda de cliente
-  const [clienteSearchModal, setClienteSearchModal] = useState(""); // Búsqueda dentro del modal
+  const [clienteSearch, setClienteSearch] = useState("");
+  const [clienteSearchModal, setClienteSearchModal] = useState("");
   const [showClienteModal, setShowClienteModal] = useState(false);
   const [ordenesCredito, setOrdenesCredito] = useState([]);
   const [ordenesSeleccionadas, setOrdenesSeleccionadas] = useState(new Set());
-  const [distribucion, setDistribucion] = useState([]); // [{ ordenId, montoAbono, saldoRestante }]
+  const [distribucion, setDistribucion] = useState([]);
   
   const [formData, setFormData] = useState({
-    montoTotal: '',
     fecha: new Date().toISOString().slice(0, 10),
     factura: ''
   });
   
-  // Array de métodos de pago: [{ tipo: "EFECTIVO", monto: 50000, banco: "" }, ...]
   const [metodosPago, setMetodosPago] = useState([]);
   const [observacionesAdicionales, setObservacionesAdicionales] = useState("");
   const [loading, setLoading] = useState(false);
   const [loadingOrdenes, setLoadingOrdenes] = useState(false);
   const [error, setError] = useState('');
 
-  // Lista de bancos
   const bancos = [
     "BANCOLOMBIA",
     "DAVIVIENDA",
@@ -42,55 +48,46 @@ const AbonoModal = ({ isOpen, onClose, credito, onSuccess }) => {
     { value: "EFECTIVO", label: "Efectivo" },
     { value: "TRANSFERENCIA", label: "Transferencia" },
     { value: "CHEQUE", label: "Cheque" },
-    { value: "NEQUI", label: "Nequi" },
-    { value: "DAVIPLATA", label: "Daviplata" },
-    { value: "TARJETA", label: "Tarjeta" },
-    { value: "OTRO", label: "Otro" }
+    { value: "RETEFUENTE", label: "Retefuente" }
   ];
 
-  // Cargar clientes al abrir el modal
+  // Cargar clientes al montar
   useEffect(() => {
-    if (isOpen) {
-      const cargarClientes = async () => {
-        try {
-          const clientesData = await listarClientes();
-          setClientes(clientesData);
-          
-          // Si viene un crédito, preseleccionar el cliente
-          if (credito?.cliente?.id) {
-            const cliente = clientesData.find(c => c.id === credito.cliente.id);
-            if (cliente) {
-              setClienteSeleccionado(cliente);
-              setClienteSearch(cliente.nombre);
-            }
+    const cargarClientes = async () => {
+      try {
+        const clientesData = await listarClientes();
+        setClientes(clientesData);
+        
+        // Si viene un clienteId en los params, preseleccionarlo
+        if (clienteIdParam) {
+          const cliente = clientesData.find(c => c.id === Number(clienteIdParam));
+          if (cliente) {
+            setClienteSeleccionado(cliente);
+            setClienteSearch(cliente.nombre);
           }
-        } catch (err) {
-          console.error("Error cargando clientes:", err);
         }
-      };
-      cargarClientes();
-    }
-  }, [isOpen, credito]);
+      } catch (err) {
+        console.error("Error cargando clientes:", err);
+      }
+    };
+    cargarClientes();
+  }, [clienteIdParam]);
 
   // Cargar órdenes a crédito del cliente seleccionado
   useEffect(() => {
-    if (isOpen && clienteSeleccionado?.id) {
+    if (clienteSeleccionado?.id) {
       cargarOrdenesCredito(clienteSeleccionado.id);
     } else {
       setOrdenesCredito([]);
       setOrdenesSeleccionadas(new Set());
       setDistribucion([]);
     }
-  }, [isOpen, clienteSeleccionado]);
+  }, [clienteSeleccionado]);
 
   const cargarOrdenesCredito = async (clienteId) => {
     setLoadingOrdenes(true);
     try {
-      // Usar el nuevo endpoint que devuelve solo órdenes a crédito con creditoDetalle
       const ordenes = await listarOrdenesCredito(clienteId);
-      
-      // El endpoint ya filtra solo órdenes a crédito con saldo pendiente
-      // Pero por seguridad, filtramos las que tienen saldo > 0
       const ordenesConSaldo = ordenes.filter(orden => {
         return orden.creditoDetalle?.saldoPendiente > 0;
       });
@@ -107,28 +104,32 @@ const AbonoModal = ({ isOpen, onClose, credito, onSuccess }) => {
     }
   };
 
-  // Calcular distribución automática cuando cambia el monto total o las órdenes seleccionadas
+  // Calcular el total desde los métodos de pago
+  const totalMetodosPago = metodosPago
+    .filter(m => m.tipo && m.monto > 0)
+    .reduce((sum, m) => sum + (parseFloat(m.monto) || 0), 0);
+
+  // Calcular distribución automática cuando cambia el total de métodos de pago o las órdenes seleccionadas
   useEffect(() => {
-    if (formData.montoTotal && ordenesSeleccionadas.size > 0) {
+    if (totalMetodosPago > 0 && ordenesSeleccionadas.size > 0) {
       calcularDistribucion();
     } else {
       setDistribucion([]);
     }
-  }, [formData.montoTotal, ordenesSeleccionadas]);
+  }, [totalMetodosPago, ordenesSeleccionadas, ordenesCredito]);
 
   const calcularDistribucion = () => {
-    const montoTotal = parseFloat(formData.montoTotal) || 0;
-    if (montoTotal <= 0) {
+    if (totalMetodosPago <= 0) {
       setDistribucion([]);
       return;
     }
+    
+    const montoTotal = totalMetodosPago;
 
-    // Obtener las órdenes seleccionadas con su información
     const ordenesSeleccionadasArray = Array.from(ordenesSeleccionadas)
       .map(ordenId => ordenesCredito.find(o => o.id === ordenId))
       .filter(Boolean)
       .sort((a, b) => {
-        // Ordenar por fecha (más antiguas primero) o por saldo (menor primero)
         const fechaA = new Date(a.fecha || 0);
         const fechaB = new Date(b.fecha || 0);
         return fechaA - fechaB;
@@ -141,7 +142,6 @@ const AbonoModal = ({ isOpen, onClose, credito, onSuccess }) => {
       const saldoPendiente = orden.creditoDetalle?.saldoPendiente || 0;
       
       if (montoDisponible <= 0) {
-        // Si no hay más dinero disponible, no se abona nada a esta orden
         nuevaDistribucion.push({
           ordenId: orden.id,
           ordenNumero: orden.numero,
@@ -151,7 +151,6 @@ const AbonoModal = ({ isOpen, onClose, credito, onSuccess }) => {
           saldoRestante: saldoPendiente
         });
       } else if (montoDisponible >= saldoPendiente) {
-        // Si el monto disponible es mayor o igual al saldo, se abona todo el saldo
         nuevaDistribucion.push({
           ordenId: orden.id,
           ordenNumero: orden.numero,
@@ -162,7 +161,6 @@ const AbonoModal = ({ isOpen, onClose, credito, onSuccess }) => {
         });
         montoDisponible -= saldoPendiente;
       } else {
-        // Si el monto disponible es menor al saldo, se abona solo lo disponible
         nuevaDistribucion.push({
           ordenId: orden.id,
           ordenNumero: orden.numero,
@@ -196,57 +194,23 @@ const AbonoModal = ({ isOpen, onClose, credito, onSuccess }) => {
     }
   };
 
-  // Función para construir la descripción completa (string estructurado)
-  const construirDescripcion = (metodosArray, observaciones) => {
-    if (metodosArray.length === 0) {
-      return observaciones || "";
-    }
-
-    let descripcionCompleta = "";
+  const construirDescripcion = (metodos, observaciones) => {
+    if (!metodos || metodos.length === 0) return observaciones || "";
     
-    const esMixto = metodosArray.length > 1;
-    const tipoPrincipal = esMixto ? "MIXTO" : metodosArray[0].tipo;
-    
-    descripcionCompleta = `Método de pago: ${tipoPrincipal}`;
-    
-    const efectivo = metodosArray.filter(m => m.tipo === "EFECTIVO");
-    const transferencias = metodosArray.filter(m => m.tipo === "TRANSFERENCIA");
-    const cheques = metodosArray.filter(m => m.tipo === "CHEQUE");
-    const otros = metodosArray.filter(m => !["EFECTIVO", "TRANSFERENCIA", "CHEQUE"].includes(m.tipo));
-    
-    if (efectivo.length > 0) {
-      const totalEfectivo = efectivo.reduce((sum, m) => sum + (parseFloat(m.monto) || 0), 0);
-      if (totalEfectivo > 0) {
-        descripcionCompleta += `\nEfectivo: $${totalEfectivo.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
-      }
-    }
-    
-    if (transferencias.length > 0) {
-      transferencias.forEach((transf) => {
-        if (transf.banco && transf.monto > 0) {
-          const montoFormateado = transf.monto.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
-          descripcionCompleta += `\nTransferencia: ${transf.banco} - Monto: $${montoFormateado}`;
+    const partes = metodos
+      .filter(m => m.tipo && m.monto > 0)
+      .map(m => {
+        if (m.tipo === "TRANSFERENCIA" && m.banco) {
+          return `${m.tipo}: ${m.monto.toLocaleString('es-CO')} (${m.banco})`;
         }
-      });
-    }
-    
-    if (cheques.length > 0) {
-      cheques.forEach((cheque) => {
-        if (cheque.monto > 0) {
-          const montoFormateado = cheque.monto.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
-          descripcionCompleta += `\nCheque: $${montoFormateado}`;
+        if (m.tipo === "RETEFUENTE") {
+          // Para retención en la fuente, incluir información adicional si es necesario
+          return `${m.tipo}: ${m.monto.toLocaleString('es-CO')}`;
         }
+        return `${m.tipo}: ${m.monto.toLocaleString('es-CO')}`;
       });
-    }
     
-    if (otros.length > 0) {
-      otros.forEach((otro) => {
-        if (otro.monto > 0) {
-          const montoFormateado = otro.monto.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
-          descripcionCompleta += `\n${otro.tipo}: $${montoFormateado}`;
-        }
-      });
-    }
+    let descripcionCompleta = partes.join(" | ");
     
     if (observaciones) {
       descripcionCompleta += `\n${observaciones}`;
@@ -274,31 +238,6 @@ const AbonoModal = ({ isOpen, onClose, credito, onSuccess }) => {
     setMetodosPago(nuevosMetodos);
   };
 
-  const resetForm = () => {
-    setFormData({
-      montoTotal: '',
-      fecha: new Date().toISOString().slice(0, 10),
-      factura: ''
-    });
-    setMetodosPago([]);
-    setObservacionesAdicionales("");
-    setClienteSeleccionado(null);
-    setClienteSearch("");
-    setClienteSearchModal("");
-    setShowClienteModal(false);
-    setOrdenesSeleccionadas(new Set());
-    setDistribucion([]);
-    setError('');
-  };
-
-  useEffect(() => {
-    if (isOpen) {
-      resetForm();
-    }
-  }, [isOpen]);
-
-  if (!isOpen) return null;
-
   const handleChange = (e) => {
     const { name, value, type } = e.target;
     const processedValue = (type === 'text' && name !== 'fecha') ? value.toUpperCase() : value;
@@ -309,12 +248,11 @@ const AbonoModal = ({ isOpen, onClose, credito, onSuccess }) => {
     e.preventDefault();
     setError('');
 
-    // Validaciones
-    const montoTotal = parseFloat(formData.montoTotal);
+    const montoTotal = totalMetodosPago;
     const hoy = new Date().toISOString().split('T')[0];
     
-    if (isNaN(montoTotal) || montoTotal <= 0) {
-      setError('El monto total del abono debe ser mayor a 0.');
+    if (montoTotal <= 0) {
+      setError('Debes agregar al menos un método de pago con monto mayor a 0.');
       return;
     }
     
@@ -358,19 +296,13 @@ const AbonoModal = ({ isOpen, onClose, credito, onSuccess }) => {
       return;
     }
 
-    const sumaMetodos = metodosValidos.reduce((sum, m) => sum + (parseFloat(m.monto) || 0), 0);
-    if (Math.abs(sumaMetodos - montoTotal) > 0.01) {
-      setError(`La suma de los métodos de pago ($${sumaMetodos.toLocaleString()}) debe coincidir con el monto total ($${montoTotal.toLocaleString()}).`);
-      return;
-    }
+    // Ya no necesitamos validar que coincidan porque el monto total se calcula desde los métodos
 
     try {
       setLoading(true);
       
       const metodoPagoString = construirDescripcion(metodosValidos, observacionesAdicionales);
 
-      // Crear un abono por cada orden con monto de abono > 0
-      // El creditoId viene directamente en creditoDetalle.creditoId de cada orden
       const abonosACrear = distribucionValida.map(dist => {
         const orden = ordenesCredito.find(o => o.id === dist.ordenId);
         const creditoId = orden?.creditoDetalle?.creditoId;
@@ -387,7 +319,7 @@ const AbonoModal = ({ isOpen, onClose, credito, onSuccess }) => {
           metodoPago: metodoPagoString,
           factura: formData.factura || null
         };
-      }).filter(abono => abono !== null && abono.creditoId); // Solo crear si tiene creditoId válido
+      }).filter(abono => abono !== null && abono.creditoId);
 
       if (abonosACrear.length === 0) {
         setError('No se pudo determinar el crédito para alguna de las órdenes seleccionadas.');
@@ -395,17 +327,14 @@ const AbonoModal = ({ isOpen, onClose, credito, onSuccess }) => {
       }
 
       // Crear todos los abonos
-      const resultados = await Promise.all(
+      await Promise.all(
         abonosACrear.map(abonoData => 
           api.post(`/creditos/${abonoData.creditoId}/abonos`, abonoData)
         )
       );
       
-      resetForm();
-      if (onSuccess) {
-        onSuccess();
-      }
-      onClose();
+      // Redirigir a la página de créditos después de crear los abonos
+      navigate('/creditos');
     } catch (err) {
       const errorMessage = err.response?.data?.message || err.message || 'Error al crear los abonos';
       console.error("Error al registrar abonos:", errorMessage);
@@ -415,41 +344,35 @@ const AbonoModal = ({ isOpen, onClose, credito, onSuccess }) => {
     }
   };
 
-  const totalMetodosPago = metodosPago
-    .filter(m => m.tipo && m.monto > 0)
-    .reduce((sum, m) => sum + (parseFloat(m.monto) || 0), 0);
-
   const totalDistribuido = distribucion.reduce((sum, d) => sum + d.montoAbono, 0);
-  const montoRestante = parseFloat(formData.montoTotal || 0) - totalDistribuido;
+  const montoRestante = totalMetodosPago - totalDistribuido;
 
-  // Calcular total deuda (suma de todos los saldos pendientes de las órdenes seleccionadas)
-  const totalDeuda = Array.from(ordenesSeleccionadas)
+  // Calcular total deuda (suma de TODAS las órdenes del cliente con saldo pendiente, no solo las seleccionadas)
+  const totalDeudaCliente = ordenesCredito.reduce((sum, orden) => {
+    return sum + (orden.creditoDetalle?.saldoPendiente || 0);
+  }, 0);
+
+  // Calcular total deuda de las órdenes seleccionadas (para la distribución)
+  const totalDeudaSeleccionadas = Array.from(ordenesSeleccionadas)
     .map(ordenId => ordenesCredito.find(o => o.id === ordenId))
     .filter(Boolean)
     .reduce((sum, orden) => sum + (orden.creditoDetalle?.saldoPendiente || 0), 0);
 
-  // Calcular saldo después del abono
-  const saldoDespuesAbono = totalDeuda - totalDistribuido;
-
-  if (!isOpen) return null;
+  // Calcular saldo después del abono (deuda total del cliente menos lo abonado)
+  const saldoDespuesAbono = totalDeudaCliente - totalDistribuido;
 
   return (
-    <div className="modal-overlay">
-      <div className="modal-container modal-wide" style={{ maxWidth: '95vw', width: '1200px', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}>
-        {/* Header con título y fecha */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', paddingBottom: '1rem', borderBottom: '2px solid #e0e0e0' }}>
-          <h2 style={{ margin: 0, color: '#1e2753' }}>CRÉDITOS X CLIENTE</h2>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <label style={{ fontWeight: '500', fontSize: '0.9rem' }}>FECHA:</label>
-            <input
-              type="date"
-              name="fecha"
-              value={formData.fecha}
-              onChange={handleChange}
-              style={{ padding: '0.4rem', fontSize: '0.9rem' }}
-            />
-          </div>
-        </div>
+    <div style={{ 
+      padding: '0', 
+      minHeight: '100vh',
+      backgroundColor: '#f5f5f5'
+    }}>
+      <div style={{ 
+        width: '100%',
+        backgroundColor: '#fff',
+        padding: '1.5rem',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+      }}>
 
         {error && (
           <div className="modal-error" role="alert" style={{ marginBottom: '1rem' }}>
@@ -457,7 +380,7 @@ const AbonoModal = ({ isOpen, onClose, credito, onSuccess }) => {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
           {/* Selección de Cliente con Búsqueda */}
           {!clienteSeleccionado && (
             <div style={{ marginBottom: '1rem', padding: '1rem', backgroundColor: '#f8f9fa', borderRadius: '8px', border: '1px solid #e0e0e0' }}>
@@ -496,42 +419,50 @@ const AbonoModal = ({ isOpen, onClose, credito, onSuccess }) => {
             </div>
           )}
 
-          {/* Información del Cliente */}
+          {/* Información del Cliente - Formato Compacto */}
           {clienteSeleccionado && (
             <div style={{ 
               marginBottom: '1rem', 
-              padding: '1rem', 
+              padding: '0.75rem 1rem', 
               backgroundColor: '#f8f9fa', 
               borderRadius: '8px', 
               border: '1px solid #e0e0e0',
-              display: 'grid',
-              gridTemplateColumns: '1fr 1fr',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
               gap: '1rem'
             }}>
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                  <strong style={{ color: '#1e2753' }}>CLIENTE</strong>
-                  <button
-                    type="button"
-                    onClick={() => setShowClienteModal(true)}
-                    className="btn-guardar"
-                    style={{ padding: '0.3rem 0.6rem', fontSize: '0.8rem' }}
-                  >
-                    Cambiar
-                  </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap', flex: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <strong style={{ color: '#1e2753', fontSize: '0.9rem' }}>CLIENTE:</strong>
+                  <span style={{ fontSize: '0.9rem' }}>{clienteSeleccionado.nombre || '-'}</span>
                 </div>
-                <div style={{ fontSize: '0.9rem', lineHeight: '1.6' }}>
-                  <div><strong>NOMBRE:</strong> {clienteSeleccionado.nombre || '-'}</div>
-                  <div><strong>DIRECCIÓN:</strong> {clienteSeleccionado.direccion || '-'}</div>
-                  <div><strong>TELÉFONO:</strong> {clienteSeleccionado.telefono || '-'}</div>
+                <div style={{ fontSize: '0.85rem', color: '#666' }}>|</div>
+                <div style={{ fontSize: '0.85rem', color: '#666' }}>
+                  <strong>NIT:</strong> {clienteSeleccionado.nit || '-'}
                 </div>
-              </div>
-              <div style={{ fontSize: '0.9rem', lineHeight: '1.6' }}>
-                <div style={{ marginTop: '1.5rem' }}>
-                  <div><strong>NIT:</strong> {clienteSeleccionado.nit || '-'}</div>
-                  <div><strong>CIUDAD:</strong> {clienteSeleccionado.ciudad || '-'}</div>
+                <div style={{ fontSize: '0.85rem', color: '#666' }}>|</div>
+                <div style={{ fontSize: '0.85rem', color: '#666' }}>
+                  <strong>DIR:</strong> {clienteSeleccionado.direccion || '-'}
+                </div>
+                <div style={{ fontSize: '0.85rem', color: '#666' }}>|</div>
+                <div style={{ fontSize: '0.85rem', color: '#666' }}>
+                  <strong>TEL:</strong> {clienteSeleccionado.telefono || '-'}
+                </div>
+                <div style={{ fontSize: '0.85rem', color: '#666' }}>|</div>
+                <div style={{ fontSize: '0.85rem', color: '#666' }}>
+                  <strong>CIUDAD:</strong> {clienteSeleccionado.ciudad || '-'}
                 </div>
               </div>
+              <button
+                type="button"
+                onClick={() => setShowClienteModal(true)}
+                className="btn-guardar"
+                style={{ padding: '0.3rem 0.6rem', fontSize: '0.8rem', whiteSpace: 'nowrap' }}
+              >
+                Cambiar Cliente
+              </button>
             </div>
           )}
 
@@ -539,61 +470,55 @@ const AbonoModal = ({ isOpen, onClose, credito, onSuccess }) => {
           {clienteSeleccionado && (
             <div style={{ 
               display: 'grid', 
-              gridTemplateColumns: '200px 1fr 300px', 
+              gridTemplateColumns: '180px 1fr 280px', 
               gap: '1rem', 
-              flex: 1, 
-              minHeight: 0,
-              marginTop: '1rem'
+              minHeight: '450px'
             }}>
               {/* COLUMNA IZQUIERDA: Botones de Métodos de Pago */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                 <div style={{ fontWeight: '600', marginBottom: '0.5rem', color: '#1e2753' }}>Métodos de Pago</div>
-                {tiposMetodoPago.slice(0, 4).map((tipo) => (
-                  <button
-                    key={tipo.value}
-                    type="button"
-                    onClick={() => {
-                      const existe = metodosPago.find(m => m.tipo === tipo.value);
-                      if (!existe) {
-                        setMetodosPago([...metodosPago, { tipo: tipo.value, monto: 0, banco: "" }]);
-                      }
-                    }}
-                    style={{
-                      padding: '0.75rem',
-                      backgroundColor: '#fff',
-                      border: '2px solid #1e2753',
-                      borderRadius: '8px',
-                      cursor: 'pointer',
-                      fontSize: '0.85rem',
-                      fontWeight: '500',
-                      color: '#1e2753',
-                      textAlign: 'center',
-                      transition: 'all 0.2s'
-                    }}
-                    onMouseEnter={(e) => {
-                      e.target.style.backgroundColor = '#1e2753';
-                      e.target.style.color = '#fff';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.target.style.backgroundColor = '#fff';
-                      e.target.style.color = '#1e2753';
-                    }}
-                  >
-                    {tipo.label}
-                  </button>
-                ))}
-                <button
-                  type="button"
-                  onClick={agregarMetodoPago}
-                  className="btn-guardar"
-                  style={{
-                    padding: '0.5rem',
-                    fontSize: '0.85rem',
-                    marginTop: '0.5rem'
-                  }}
-                >
-                  + Agregar Otro
-                </button>
+                {tiposMetodoPago.map((tipo) => {
+                  const existe = metodosPago.find(m => m.tipo === tipo.value);
+                  return (
+                    <button
+                      key={tipo.value}
+                      type="button"
+                      onClick={() => {
+                        if (!existe) {
+                          setMetodosPago([...metodosPago, { tipo: tipo.value, monto: 0, banco: "" }]);
+                        }
+                      }}
+                      style={{
+                        padding: '0.75rem',
+                        backgroundColor: existe ? '#1e2753' : '#fff',
+                        border: '2px solid #1e2753',
+                        borderRadius: '8px',
+                        cursor: existe ? 'default' : 'pointer',
+                        fontSize: '0.85rem',
+                        fontWeight: '500',
+                        color: existe ? '#fff' : '#1e2753',
+                        textAlign: 'center',
+                        transition: 'all 0.2s',
+                        opacity: existe ? 0.7 : 1
+                      }}
+                      onMouseEnter={(e) => {
+                        if (!existe) {
+                          e.target.style.backgroundColor = '#1e2753';
+                          e.target.style.color = '#fff';
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (!existe) {
+                          e.target.style.backgroundColor = '#fff';
+                          e.target.style.color = '#1e2753';
+                        }
+                      }}
+                      disabled={existe}
+                    >
+                      {tipo.label} {existe && '✓'}
+                    </button>
+                  );
+                })}
               </div>
 
               {/* COLUMNA CENTRAL: Tabla de Órdenes */}
@@ -639,11 +564,14 @@ const AbonoModal = ({ isOpen, onClose, credito, onSuccess }) => {
                   <div style={{ 
                     flex: 1,
                     overflowY: 'auto',
+                    overflowX: 'auto',
                     border: '1px solid #e0e0e0',
                     borderRadius: '8px',
-                    backgroundColor: '#fff'
+                    backgroundColor: '#fff',
+                    maxHeight: '500px',
+                    position: 'relative'
                   }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem', minWidth: '600px' }}>
                       <thead style={{ position: 'sticky', top: 0, zIndex: 5, backgroundColor: '#1e2753', color: '#fff' }}>
                         <tr>
                           <th style={{ padding: '0.5rem', textAlign: 'center', borderRight: '1px solid #fff' }}>
@@ -727,13 +655,15 @@ const AbonoModal = ({ isOpen, onClose, credito, onSuccess }) => {
                             TOTAL DEUDA:
                           </td>
                           <td style={{ padding: '0.5rem', textAlign: 'right', borderTop: '2px solid #1e2753' }}>
-                            ${(Array.from(ordenesSeleccionadas)
-                              .map(ordenId => ordenesCredito.find(o => o.id === ordenId))
-                              .filter(Boolean)
-                              .reduce((sum, orden) => sum + (orden.total || 0), 0)).toLocaleString('es-CO')}
+                            ${ordenesCredito.reduce((sum, orden) => sum + (orden.total || 0), 0).toLocaleString('es-CO')}
                           </td>
-                          <td style={{ padding: '0.5rem', textAlign: 'right', borderTop: '2px solid #1e2753', color: '#dc3545' }}>
-                            ${totalDeuda.toLocaleString('es-CO')}
+                          <td style={{ 
+                            padding: '0.5rem', 
+                            textAlign: 'right', 
+                            borderTop: '2px solid #1e2753', 
+                            color: saldoDespuesAbono > 0 ? '#dc3545' : '#28a745'
+                          }}>
+                            ${saldoDespuesAbono.toLocaleString('es-CO')}
                           </td>
                           <td style={{ padding: '0.5rem', textAlign: 'right', borderTop: '2px solid #1e2753', color: '#28a745' }}>
                             ${totalDistribuido.toLocaleString('es-CO')}
@@ -744,27 +674,14 @@ const AbonoModal = ({ isOpen, onClose, credito, onSuccess }) => {
                   </div>
                 )}
 
-                {/* Input de Monto Total */}
-                <div style={{ marginTop: '1rem', padding: '0.75rem', backgroundColor: '#f8f9fa', borderRadius: '8px', border: '1px solid #e0e0e0' }}>
-                  <label style={{ display: 'block', fontWeight: '500', marginBottom: '0.5rem' }}>
-                    Monto Total del Abono (COP) *
+                {/* Resumen del Total Calculado */}
+                <div style={{ marginTop: '0.75rem', padding: '0.5rem 0.75rem', backgroundColor: totalMetodosPago > 0 ? '#e7f3ff' : '#f8f9fa', borderRadius: '8px', border: '1px solid #e0e0e0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <label style={{ fontWeight: '500', fontSize: '0.9rem' }}>
+                    Total del Abono:
                   </label>
-                  <input
-                    type="number"
-                    name="montoTotal"
-                    value={formData.montoTotal}
-                    onChange={handleChange}
-                    step="any"
-                    min="0"
-                    placeholder="Ej: 5000000"
-                    style={{
-                      width: '100%',
-                      padding: '0.5rem',
-                      fontSize: '1rem',
-                      fontWeight: '600',
-                      textAlign: 'right'
-                    }}
-                  />
+                  <span style={{ fontSize: '1rem', fontWeight: '600', color: '#1e2753' }}>
+                    ${totalMetodosPago.toLocaleString('es-CO')}
+                  </span>
                 </div>
               </div>
 
@@ -833,7 +750,7 @@ const AbonoModal = ({ isOpen, onClose, credito, onSuccess }) => {
                   <div style={{ fontSize: '0.9rem', lineHeight: '1.8' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                       <span>Total Deuda:</span>
-                      <strong style={{ color: '#dc3545' }}>${totalDeuda.toLocaleString('es-CO')}</strong>
+                      <strong style={{ color: '#dc3545' }}>${totalDeudaCliente.toLocaleString('es-CO')}</strong>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                       <span>Total Abonado:</span>
@@ -846,7 +763,7 @@ const AbonoModal = ({ isOpen, onClose, credito, onSuccess }) => {
                       borderTop: '2px solid #1e2753',
                       marginTop: '0.5rem'
                     }}>
-                      <span style={{ fontWeight: '600' }}>SALDO:</span>
+                      <span style={{ fontWeight: '600' }}>SALDO RESTANTE:</span>
                       <strong style={{ 
                         color: saldoDespuesAbono > 0 ? '#dc3545' : '#28a745',
                         fontSize: '1.1rem'
@@ -864,11 +781,11 @@ const AbonoModal = ({ isOpen, onClose, credito, onSuccess }) => {
                     backgroundColor: '#fff',
                     borderRadius: '8px',
                     border: '1px solid #e0e0e0',
-                    maxHeight: '200px',
+                    maxHeight: '250px',
                     overflowY: 'auto'
                   }}>
                     <div style={{ fontWeight: '600', marginBottom: '0.5rem', fontSize: '0.85rem', color: '#1e2753' }}>
-                      Editar Métodos
+                      Editar Métodos de Pago
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                       {metodosPago.map((metodo, index) => (
@@ -876,32 +793,31 @@ const AbonoModal = ({ isOpen, onClose, credito, onSuccess }) => {
                           padding: '0.5rem',
                           border: '1px solid #e0e0e0',
                           borderRadius: '4px',
-                          fontSize: '0.8rem'
+                          fontSize: '0.8rem',
+                          backgroundColor: metodo.tipo === "RETEFUENTE" ? '#fff3cd' : '#fff'
                         }}>
-                          <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '0.5rem', alignItems: 'center' }}>
-                            <div>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                            <div style={{ fontWeight: '500', color: '#1e2753', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                              {tiposMetodoPago.find(t => t.value === metodo.tipo)?.label || metodo.tipo}
+                              {metodo.tipo === "RETEFUENTE" && (
+                                <span style={{ fontSize: '0.75rem', color: '#856404', backgroundColor: '#ffeaa7', padding: '0.1rem 0.4rem', borderRadius: '3px' }}>
+                                  Retención
+                                </span>
+                              )}
+                            </div>
+                            {metodo.tipo === "TRANSFERENCIA" && (
                               <select
-                                value={metodo.tipo}
-                                onChange={(e) => actualizarMetodoPago(index, 'tipo', e.target.value)}
-                                style={{ width: '100%', padding: '0.25rem', fontSize: '0.8rem' }}
+                                value={metodo.banco}
+                                onChange={(e) => actualizarMetodoPago(index, 'banco', e.target.value)}
+                                style={{ width: '100%', padding: '0.4rem', fontSize: '0.85rem', border: '1px solid #c2c2c3', borderRadius: '4px' }}
                               >
-                                <option value="">Tipo...</option>
-                                {tiposMetodoPago.map((tipo) => (
-                                  <option key={tipo.value} value={tipo.value}>{tipo.label}</option>
+                                <option value="">Seleccione banco...</option>
+                                {bancos.map((bancoItem) => (
+                                  <option key={bancoItem} value={bancoItem}>{bancoItem}</option>
                                 ))}
                               </select>
-                              {metodo.tipo === "TRANSFERENCIA" && (
-                                <select
-                                  value={metodo.banco}
-                                  onChange={(e) => actualizarMetodoPago(index, 'banco', e.target.value)}
-                                  style={{ width: '100%', padding: '0.25rem', fontSize: '0.8rem', marginTop: '0.25rem' }}
-                                >
-                                  <option value="">Banco...</option>
-                                  {bancos.map((bancoItem) => (
-                                    <option key={bancoItem} value={bancoItem}>{bancoItem}</option>
-                                  ))}
-                                </select>
-                              )}
+                            )}
+                            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                               <input
                                 type="number"
                                 value={metodo.monto || ""}
@@ -909,27 +825,29 @@ const AbonoModal = ({ isOpen, onClose, credito, onSuccess }) => {
                                   const valor = parseFloat(e.target.value) || 0;
                                   actualizarMetodoPago(index, 'monto', valor);
                                 }}
-                                placeholder="Monto"
+                                placeholder={metodo.tipo === "RETEFUENTE" ? "Monto de retención" : "Monto"}
                                 min="0"
                                 step="0.01"
-                                style={{ width: '100%', padding: '0.25rem', fontSize: '0.8rem', marginTop: '0.25rem' }}
+                                style={{ flex: 1, padding: '0.4rem', fontSize: '0.85rem', border: '1px solid #c2c2c3', borderRadius: '4px' }}
                               />
+                              <button
+                                type="button"
+                                onClick={() => eliminarMetodoPago(index)}
+                                style={{
+                                  padding: '0.4rem 0.6rem',
+                                  backgroundColor: '#dc3545',
+                                  color: 'white',
+                                  border: 'none',
+                                  borderRadius: '4px',
+                                  cursor: 'pointer',
+                                  fontSize: '0.75rem',
+                                  whiteSpace: 'nowrap'
+                                }}
+                                title="Eliminar método"
+                              >
+                                ✕
+                              </button>
                             </div>
-                            <button
-                              type="button"
-                              onClick={() => eliminarMetodoPago(index)}
-                              style={{
-                                padding: '0.25rem 0.5rem',
-                                backgroundColor: '#dc3545',
-                                color: 'white',
-                                border: 'none',
-                                borderRadius: '4px',
-                                cursor: 'pointer',
-                                fontSize: '0.75rem'
-                              }}
-                            >
-                              ✕
-                            </button>
                           </div>
                         </div>
                       ))}
@@ -940,18 +858,30 @@ const AbonoModal = ({ isOpen, onClose, credito, onSuccess }) => {
             </div>
           )}
 
-          {/* Campos adicionales y botones */}
+          {/* Campos adicionales y botones - Compacto */}
           {clienteSeleccionado && (
             <div style={{ 
               marginTop: '1rem', 
               display: 'grid', 
-              gridTemplateColumns: '1fr 1fr', 
+              gridTemplateColumns: '1fr 1fr 1fr', 
               gap: '1rem',
-              paddingTop: '1rem',
-              borderTop: '2px solid #e0e0e0'
+              paddingTop: '0.75rem',
+              borderTop: '1px solid #e0e0e0'
             }}>
               <div>
-                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>
+                <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: '500', fontSize: '0.9rem' }}>
+                  Fecha *
+                </label>
+                <input
+                  type="date"
+                  name="fecha"
+                  value={formData.fecha}
+                  onChange={handleChange}
+                  style={{ fontSize: '0.9rem', padding: '0.4rem', width: '100%' }}
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: '500', fontSize: '0.9rem' }}>
                   Número de Factura / Recibo (Opcional)
                 </label>
                 <input
@@ -961,29 +891,32 @@ const AbonoModal = ({ isOpen, onClose, credito, onSuccess }) => {
                   onChange={handleChange}
                   placeholder="Ej: FAC-001"
                   maxLength={50}
+                  style={{ fontSize: '0.9rem', padding: '0.4rem', width: '100%' }}
                 />
               </div>
               <div>
-                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>
+                <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: '500', fontSize: '0.9rem' }}>
                   Observaciones Adicionales (Opcional)
                 </label>
                 <textarea
                   value={observacionesAdicionales}
                   onChange={(e) => setObservacionesAdicionales(e.target.value)}
                   placeholder="Agregar notas adicionales..."
-                  rows="3"
+                  rows="2"
                   style={{
                     width: '100%',
                     fontFamily: 'inherit',
-                    resize: 'vertical'
+                    resize: 'vertical',
+                    fontSize: '0.9rem',
+                    padding: '0.4rem'
                   }}
                 />
               </div>
             </div>
           )}
 
-          <div className="modal-buttons" style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '2px solid #e0e0e0' }}>
-            <button type="button" className="btn-cancelar" onClick={onClose} disabled={loading}>
+          <div className="modal-buttons" style={{ marginTop: '1rem', paddingTop: '0.75rem', borderTop: '1px solid #e0e0e0', display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
+            <button type="button" className="btn-cancelar" onClick={() => navigate('/creditos')} disabled={loading}>
               Cancelar
             </button>
             <button type="submit" className="btn-guardar" disabled={loading || !clienteSeleccionado}>
@@ -1055,7 +988,7 @@ const AbonoModal = ({ isOpen, onClose, credito, onSuccess }) => {
                         <tr style={{ backgroundColor: '#f8f9fa' }}>
                           <th style={{ padding: '0.75rem', textAlign: 'left', borderBottom: '2px solid #e0e0e0', backgroundColor: '#f8f9fa' }}>Nombre</th>
                           <th style={{ padding: '0.75rem', textAlign: 'left', borderBottom: '2px solid #e0e0e0', backgroundColor: '#f8f9fa' }}>NIT</th>
-                          <th style={{ padding: '0.75rem', textAlign: 'left', borderBottom: '2px solid #e0e0e0', backgroundColor: '#f8f9fa' }}>Ciudad</th>
+                          <th style={{ padding: '0.7575rem', textAlign: 'left', borderBottom: '2px solid #e0e0e0', backgroundColor: '#f8f9fa' }}>Ciudad</th>
                           <th style={{ padding: '0.75rem', textAlign: 'center', borderBottom: '2px solid #e0e0e0', backgroundColor: '#f8f9fa' }}>Acción</th>
                         </tr>
                       </thead>
@@ -1124,4 +1057,5 @@ const AbonoModal = ({ isOpen, onClose, credito, onSuccess }) => {
   );
 };
 
-export default AbonoModal;
+export default AbonoPage;
+

@@ -1,4 +1,4 @@
-import { useState, useMemo, Fragment } from "react";
+import React, { useState, useMemo, Fragment, useEffect } from "react";
 import "../styles/Creditos.css";
 import "../styles/Table.css";
 
@@ -36,23 +36,13 @@ const CreditosTable = ({ creditos, onAbrirAbonoModal, rowsPerPage: rowsPerPagePr
   const showingFrom = total === 0 ? 0 : start + 1;
   const showingTo = Math.min(start + rowsPerPage, total);
 
+  // Sincronizar rowsPerPage cuando cambia la prop
+  useEffect(() => {
+    setRowsPerPage(rowsPerPageProp);
+  }, [rowsPerPageProp]);
+
   return (
     <div className="tabla-creditos">
-      {/* Selector de filas por página */}
-      <div className="rows-per-page" style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-        <span>Filas:</span>
-        <select
-          className="clientes-select"
-          value={rowsPerPage}
-          onChange={(e) => {
-            setRowsPerPage(Number(e.target.value));
-            setPage(1);
-          }}
-        >
-          {[5, 10, 20, 50].map(n => <option key={n} value={n}>{n}</option>)}
-        </select>
-      </div>
-
       <table>
         <thead>
           <tr>

@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import CreditosTable from "../componets/CreditosTable";
-import AbonoModal from "../modals/AbonoModal";
 import { api } from "../lib/api.js";
 import { listarClientes } from "../services/ClientesService.js";
+import addIcon from "../assets/add.png";
 import "../styles/Creditos.css";
 
 const CreditosPage = () => {
+  const navigate = useNavigate();
   const [creditos, setCreditos] = useState([]);
   const [clientes, setClientes] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -13,14 +15,7 @@ const CreditosPage = () => {
   const [error, setError] = useState("");
   const [filtroCliente, setFiltroCliente] = useState("");
   const [filtroEstado, setFiltroEstado] = useState("");
-  const [filtroTotalMin, setFiltroTotalMin] = useState("");
-  const [filtroTotalMax, setFiltroTotalMax] = useState("");
-  const [filtroSaldoMin, setFiltroSaldoMin] = useState("");
-  const [filtroSaldoMax, setFiltroSaldoMax] = useState("");
-
-  // Estados para el modal de abono
-  const [isAbonoOpen, setAbonoOpen] = useState(false);
-  const [creditoSeleccionado, setCreditoSeleccionado] = useState(null);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
 
   useEffect(() => {
     const loadData = async () => {
@@ -58,15 +53,7 @@ const CreditosPage = () => {
         const matchCliente = filtroCliente ? c.cliente?.id === Number(filtroCliente) : true;
         const matchEstado = filtroEstado ? c.estado === filtroEstado : true;
 
-        const matchTotal =
-          (!filtroTotalMin || c.totalCredito >= filtroTotalMin) &&
-          (!filtroTotalMax || c.totalCredito <= filtroTotalMax);
-
-        const matchSaldo =
-          (!filtroSaldoMin || c.saldoPendiente >= filtroSaldoMin) &&
-          (!filtroSaldoMax || c.saldoPendiente <= filtroSaldoMax);
-
-        return matchCliente && matchEstado && matchTotal && matchSaldo;
+        return matchCliente && matchEstado;
       })
       .sort((a, b) => {
         // Ordenar por fechaInicio descendente (más recientes primero)
@@ -76,10 +63,13 @@ const CreditosPage = () => {
       });
   };
 
-  // Función para abrir el modal de abono
-  const handleAbrirAbonoModal = (credito) => {
-    setCreditoSeleccionado(credito);
-    setAbonoOpen(true);
+  // Función para navegar a la página de abono
+  const handleAbrirAbonoPage = (credito) => {
+    if (credito?.cliente?.id) {
+      navigate(`/abono?clienteId=${credito.cliente.id}&creditoId=${credito.id}`);
+    } else {
+      navigate('/abono');
+    }
   };
 
   // Función para recargar los créditos después de crear un abono
@@ -122,6 +112,38 @@ const CreditosPage = () => {
           )}
           
           <div className="filtros-creditos">
+        <button 
+          onClick={() => navigate('/abono')}
+          className="btn-agregar-abono"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.375rem',
+            padding: '0.625rem 1rem',
+            background: 'var(--color-dark-blue)',
+            color: 'white',
+            fontWeight: '500',
+            border: 'none',
+            borderRadius: '9999px',
+            cursor: 'pointer',
+            transition: 'background-color 0.2s ease',
+            whiteSpace: 'nowrap'
+          }}
+          onMouseEnter={(e) => e.target.style.background = 'var(--color-light-blue)'}
+          onMouseLeave={(e) => e.target.style.background = 'var(--color-dark-blue)'}
+        >
+          <img 
+            src={addIcon} 
+            alt="Agregar" 
+            style={{ 
+              width: '16px', 
+              height: '16px',
+              filter: 'brightness(0) invert(1)'
+            }} 
+          />
+          Agregar Abono
+        </button>
+
         <select value={filtroCliente} onChange={(e) => setFiltroCliente(e.target.value)}>
           <option value="">Todos los clientes</option>
           {clientes.map((cli) => (
@@ -139,37 +161,34 @@ const CreditosPage = () => {
           <option value="ANULADO">Anulado</option>
         </select>
 
-        <div className="filtro-rango">
-          <label>Total Crédito</label>
-          <div className="inputs-row">
-            <input type="number" placeholder="Mín" value={filtroTotalMin} onChange={(e) => setFiltroTotalMin(e.target.value)} />
-            <input type="number" placeholder="Máx" value={filtroTotalMax} onChange={(e) => setFiltroTotalMax(e.target.value)} />
-          </div>
-        </div>
-
-        <div className="filtro-rango">
-          <label>Saldo Pendiente</label>
-          <div className="inputs-row">
-            <input type="number" placeholder="Mín" value={filtroSaldoMin} onChange={(e) => setFiltroSaldoMin(e.target.value)} />
-            <input type="number" placeholder="Máx" value={filtroSaldoMax} onChange={(e) => setFiltroSaldoMax(e.target.value)} />
-          </div>
+        <div className="rows-per-page" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <span style={{ fontSize: '0.875rem', fontWeight: '500', color: 'var(--color-white)' }}>Filas:</span>
+          <select
+            className="clientes-select"
+            value={rowsPerPage}
+            onChange={(e) => setRowsPerPage(Number(e.target.value))}
+            style={{
+              padding: '0.5rem 0.75rem',
+              border: '1px solid #d1d5db',
+              borderRadius: '9999px',
+              fontSize: '0.875rem',
+              background: '#fff',
+              outline: 'none',
+              minWidth: '80px'
+            }}
+          >
+            {[5, 10, 20, 50].map(n => <option key={n} value={n}>{n}</option>)}
+          </select>
         </div>
           </div>
 
           <CreditosTable 
             creditos={filtrarCreditos()} 
-            onAbrirAbonoModal={handleAbrirAbonoModal}
+            onAbrirAbonoModal={handleAbrirAbonoPage}
+            rowsPerPage={rowsPerPage}
           />
         </>
       )}
-
-      {/* Modal de Abono */}
-      <AbonoModal
-        isOpen={isAbonoOpen}
-        onClose={() => setAbonoOpen(false)}
-        credito={creditoSeleccionado}
-        onSuccess={loadCreditoDetalles}
-      />
     </div>
   );
 };

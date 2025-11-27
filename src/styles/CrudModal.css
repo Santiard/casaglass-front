@@ -180,6 +180,16 @@
   color: #1e2753; /* azul oscuro */
 }
 
+.modal-error {
+  background-color: #fee;
+  color: #c33;
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  border-left: 4px solid #c33;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+}
+
 .form {
   display: flex;
   flex-direction: column;

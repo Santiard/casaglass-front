@@ -16,6 +16,15 @@ export async function listarOrdenesTabla(params = {}) {
   return data || [];
 }
 
+// GET /api/ordenes/credito?clienteId=X → órdenes a crédito del cliente con creditoDetalle
+export async function listarOrdenesCredito(clienteId) {
+  if (!clienteId) {
+    throw new Error("clienteId es obligatorio para listar órdenes a crédito");
+  }
+  const { data } = await api.get("ordenes/credito", { params: { clienteId } });
+  return data || [];
+}
+
 // GET /api/ordenes/{id}
 export async function obtenerOrden(id) {
   try {
