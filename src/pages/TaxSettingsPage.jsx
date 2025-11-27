@@ -80,11 +80,11 @@ onChange={(e)=>setIva(Number(e.target.value))} />
 <div className="form-row">
 <label htmlFor="rete">Retención en la fuente (%)</label>
 <div className="input-with-suffix">
-<input id="rete" type="number" step="0.1" min="0" max="100" value={rete}
+<input id="rete" type="number" step="0.01" min="0" max="100" value={rete}
 onChange={(e)=>setRete(Number(e.target.value))} />
 <span className="suffix">%</span>
 </div>
-<small className="hint">0–100</small>
+<small className="hint">0–100 (precisión: 0.01%)</small>
 </div>
 <div className="form-row">
 <label htmlFor="umbral">Umbral retención (COP)</label>

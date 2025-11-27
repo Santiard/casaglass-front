@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import CreditosTable from "../componets/CreditosTable";
 import { api } from "../lib/api.js";
 import { listarClientes } from "../services/ClientesService.js";
@@ -8,6 +8,7 @@ import "../styles/Creditos.css";
 
 const CreditosPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [creditos, setCreditos] = useState([]);
   const [clientes, setClientes] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -17,35 +18,46 @@ const CreditosPage = () => {
   const [filtroEstado, setFiltroEstado] = useState("");
   const [rowsPerPage, setRowsPerPage] = useState(10);
 
-  useEffect(() => {
-    const loadData = async () => {
-      setIsLoading(true);
-      setError("");
+  const loadData = async () => {
+    setIsLoading(true);
+    setError("");
+    
+    try {
+      // Cargar créditos y clientes usando la instancia api centralizada
+      const [creditosResponse, clientesData] = await Promise.all([
+        api.get("/creditos"),
+        listarClientes()
+      ]);
       
-      try {
-        // Cargar créditos y clientes usando la instancia api centralizada
-        const [creditosResponse, clientesData] = await Promise.all([
-          api.get("/creditos"),
-          listarClientes()
-        ]);
-        
-        const creditosData = creditosResponse.data || [];
-        
-        
-        setCreditos(creditosData);
-        setClientes(clientesData);
-      } catch (err) {
-        console.error("Error loading data:", err);
-        setError(`Error cargando datos: ${err.message}`);
-        setCreditos([]);
-        setClientes([]);
-      } finally {
-        setIsLoading(false);
-      }
-    };
+      const creditosData = creditosResponse.data || [];
+      
+      
+      setCreditos(creditosData);
+      setClientes(clientesData);
+    } catch (err) {
+      console.error("Error loading data:", err);
+      setError(`Error cargando datos: ${err.message}`);
+      setCreditos([]);
+      setClientes([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
+  useEffect(() => {
+    // Si viene con parámetro reload=true, limpiar la URL primero
+    const searchParams = new URLSearchParams(location.search);
+    const shouldReload = searchParams.get('reload') === 'true';
+    
+    if (shouldReload) {
+      // Limpiar el parámetro de la URL
+      navigate('/creditos', { replace: true });
+    }
+    
+    // Cargar datos (siempre se carga al montar o cuando cambia location.search)
     loadData();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.search]);
 
   const filtrarCreditos = () => {
     return creditos
@@ -56,10 +68,10 @@ const CreditosPage = () => {
         return matchCliente && matchEstado;
       })
       .sort((a, b) => {
-        // Ordenar por fechaInicio descendente (más recientes primero)
-        const fechaA = new Date(a.fechaInicio || 0);
-        const fechaB = new Date(b.fechaInicio || 0);
-        return fechaB - fechaA; // Descendente: fechaB - fechaA
+        // Ordenar por ID descendente (mayor ID = más nuevos primero)
+        const idA = Number(a.id) || 0;
+        const idB = Number(b.id) || 0;
+        return idB - idA; // Descendente: mayor ID primero
       });
   };
 

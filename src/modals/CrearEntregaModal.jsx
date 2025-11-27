@@ -5,10 +5,20 @@ import { useToast } from '../context/ToastContext.jsx';
 
 const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores, sedeIdUsuario, userId }) => {
   const { showWarning } = useToast();
+  
+  // Función para obtener la fecha local en formato YYYY-MM-DD
+  const obtenerFechaLocal = () => {
+    const ahora = new Date();
+    const año = ahora.getFullYear();
+    const mes = String(ahora.getMonth() + 1).padStart(2, '0');
+    const dia = String(ahora.getDate()).padStart(2, '0');
+    return `${año}-${mes}-${dia}`;
+  };
+  
   const [formData, setFormData] = useState({
     sedeId: '',
     empleadoId: '',
-    fechaEntrega: new Date().toISOString().slice(0, 10), // Fecha única para la entrega (solo un día)
+    fechaEntrega: obtenerFechaLocal(), // Fecha única para la entrega (solo un día)
     modalidadEntrega: 'EFECTIVO',
     ordenesIds: [], // IDs de órdenes a contado (se seleccionan automáticamente)
     abonosIds: [], // IDs de abonos individuales (se seleccionan automáticamente)
@@ -39,7 +49,7 @@ const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores, se
     setFormData({
       sedeId: sedeInicial,
       empleadoId: empleadoInicial,
-      fechaEntrega: new Date().toISOString().slice(0, 10),
+      fechaEntrega: obtenerFechaLocal(),
       modalidadEntrega: 'EFECTIVO',
       ordenesIds: [],
       abonosIds: [],
@@ -108,22 +118,30 @@ const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores, se
           descripcion: orden.descripcion || '' // Incluir descripción para parsear método de pago
         }));
         
-        // Abonos disponibles (NUEVO - reemplaza ordenesConAbonos)
-        // FILTRAR solo abonos de órdenes con ventaOrden: true (confirmadas/pagadas)
+        // Abonos disponibles - Los abonos ya vienen filtrados del backend
+        // El backend filtra por: orden ACTIVA, ventaOrden: true, no yaEntregado
+        // NOTA: Ya NO se filtra por estado del crédito, así que abonos de créditos cerrados también aparecen
         const abonosDisponibles = Array.isArray(ordenes.abonosDisponibles) 
-          ? ordenes.abonosDisponibles.filter(abono => abono.ventaOrden === true) 
+          ? ordenes.abonosDisponibles.filter(abono => !abono.yaEntregado) 
           : [];
         abonosArray = abonosDisponibles.map(abono => ({
-          id: abono.id, // ID del abono
-          ordenId: abono.ordenId,
+          id: abono.id, // ID del abono (no de la orden)
+          ordenId: abono.ordenId, // ID de la orden
           numeroOrden: abono.numeroOrden,
-          fechaAbono: abono.fechaAbono,
-          montoAbono: abono.montoAbono || abono.monto || 0,
+          fechaOrden: abono.fechaOrden, // Fecha de la orden
+          fechaAbono: abono.fechaAbono, // Fecha del abono
+          montoAbono: abono.montoAbono || 0, // Monto del abono individual
           montoOrden: abono.montoOrden || 0, // Monto total de la orden
           clienteNombre: abono.clienteNombre || 'Cliente no especificado',
           clienteNit: abono.clienteNit || null,
-          metodoPago: abono.metodoPago || null,
-          yaEntregado: abono.yaEntregado || false
+          metodoPago: abono.metodoPago || null, // Puede ser largo (hasta 3000 caracteres)
+          factura: abono.factura || null, // Número de factura/recibo
+          obra: abono.obra || null,
+          sedeNombre: abono.sedeNombre || null,
+          trabajadorNombre: abono.trabajadorNombre || null,
+          yaEntregado: abono.yaEntregado || false,
+          estadoOrden: abono.estadoOrden || 'ACTIVA',
+          ventaOrden: abono.ventaOrden !== undefined ? abono.ventaOrden : true
         }));
       } else if (Array.isArray(ordenes)) {
         // Si por alguna razón viene como array directamente (fallback)
@@ -392,8 +410,8 @@ const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores, se
           return;
         }
         
-        // Validar abonos disponibles (NUEVO) - FILTRAR solo abonos de órdenes con ventaOrden: true
-        const abonosDisponiblesValidos = (elegibles?.abonosDisponibles || []).filter(a => a.ventaOrden === true);
+        // Validar abonos disponibles (NUEVO) - Solo filtrar los que no están ya entregados
+        const abonosDisponiblesValidos = (elegibles?.abonosDisponibles || []).filter(a => !a.yaEntregado);
         const abonosDisponiblesIds = new Set(abonosDisponiblesValidos.map(a => a.id));
         const abonosIds = Array.isArray(formData.abonosIds) ? formData.abonosIds : [];
         const abonosInvalidos = abonosIds.filter(id => !abonosDisponiblesIds.has(id));
@@ -413,7 +431,7 @@ const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores, se
       const entregaData = {
         sedeId: parseInt(formData.sedeId),
         empleadoId: parseInt(formData.empleadoId),
-        fechaEntrega: formData.fechaEntrega || new Date().toISOString().slice(0, 10),
+        fechaEntrega: formData.fechaEntrega || obtenerFechaLocal(),
         fechaDesde: fechaUnica, // Misma fecha (solo un día)
         fechaHasta: fechaUnica // Misma fecha (solo un día)
       };
@@ -652,21 +670,31 @@ const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores, se
                               />
                               <div className="orden-info">
                                 <div className="orden-header">
-                                  <span className="orden-numero">Orden #{abono.numeroOrden}</span>
-                                  <span className="orden-fecha">{abono.fechaAbono}</span>
-                                  <span className="orden-total">${abono.montoAbono?.toLocaleString()}</span>
+                                  <span className="orden-numero">Abono #{abono.id} - Orden #{abono.numeroOrden}</span>
+                                  <span className="orden-fecha">{abono.fechaAbono || abono.fechaAbono}</span>
+                                  <span className="orden-total">${(abono.montoAbono || 0).toLocaleString()}</span>
                                 </div>
                                 <div className="orden-cliente">
                                   {abono.clienteNombre || 'Cliente no especificado'}
                                   {abono.clienteNit && <span> - NIT: {abono.clienteNit}</span>}
                                 </div>
                                 <div className="orden-obra">
-                                  Abono de ${abono.montoAbono?.toLocaleString()} 
+                                  <strong>Abono:</strong> ${(abono.montoAbono || 0).toLocaleString()} 
                                   {abono.montoOrden > 0 && (
-                                    <span> (Orden total: ${abono.montoOrden?.toLocaleString()})</span>
+                                    <span> | <strong>Orden total:</strong> ${(abono.montoOrden || 0).toLocaleString()}</span>
                                   )}
-                                  {abono.metodoPago && <span> - Método: {abono.metodoPago}</span>}
+                                  {abono.factura && <span> | <strong>Factura:</strong> {abono.factura}</span>}
                                 </div>
+                                {abono.metodoPago && (
+                                  <div className="orden-metodo-pago" style={{ fontSize: '0.85rem', color: '#666', marginTop: '0.25rem' }}>
+                                    <strong>Método:</strong> {abono.metodoPago.length > 100 ? `${abono.metodoPago.substring(0, 100)}...` : abono.metodoPago}
+                                  </div>
+                                )}
+                                {abono.obra && (
+                                  <div className="orden-obra" style={{ fontSize: '0.85rem', color: '#666', marginTop: '0.25rem' }}>
+                                    <strong>Obra:</strong> {abono.obra}
+                                  </div>
+                                )}
                               </div>
                             </label>
                           </div>

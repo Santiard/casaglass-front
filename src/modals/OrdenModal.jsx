@@ -813,7 +813,19 @@ export default function OrdenEditarModal({
 
       // Si es crédito, la descripción (método de pago) debe ser null
       // Si es contado, construir la descripción desde los métodos de pago
-      const descripcionFinal = esCredito ? null : construirDescripcion(metodosPago.filter(m => m.tipo && m.monto > 0), observacionesAdicionales);
+      let metodosPagoParaDescripcion = metodosPago.filter(m => m.tipo).map(m => ({ ...m })); // Crear copia para no modificar el estado original
+      
+      // Si NO es crédito y hay un solo método de pago con monto vacío, asignar el total de la orden
+      if (!esCredito && metodosPagoParaDescripcion.length === 1) {
+        const metodo = metodosPagoParaDescripcion[0];
+        // Si el monto está vacío o es 0, asignar el total de la orden
+        if (!metodo.monto || metodo.monto === 0 || metodo.monto === '') {
+          metodo.monto = totalOrden;
+        }
+      }
+      
+      // Filtrar solo métodos con monto > 0 para construir la descripción
+      const descripcionFinal = esCredito ? null : construirDescripcion(metodosPagoParaDescripcion.filter(m => m.monto > 0), observacionesAdicionales);
 
       // Crear nueva orden
       const payload = {
@@ -898,8 +910,22 @@ export default function OrdenEditarModal({
     const isJairoVelandiaActualizar = clienteSeleccionadoActualizar?.nombre?.toUpperCase() === "JAIRO JAVIER VELANDIA";
 
     // Editar orden existente
+    // Calcular el total de la orden para edición
+    const subtotalEditar = itemsActivos.reduce((sum, item) => sum + (item.totalLinea || 0), 0);
+    const totalOrdenEditar = subtotalEditar - (form.descuentos || 0);
+    
+    // Si NO es crédito y hay un solo método de pago con monto vacío, asignar el total de la orden
+    let metodosPagoParaDescripcionEditar = metodosPago.filter(m => m.tipo).map(m => ({ ...m })); // Crear copia para no modificar el estado original
+    if (!form.credito && metodosPagoParaDescripcionEditar.length === 1) {
+      const metodo = metodosPagoParaDescripcionEditar[0];
+      // Si el monto está vacío o es 0, asignar el total de la orden
+      if (!metodo.monto || metodo.monto === 0 || metodo.monto === '') {
+        metodo.monto = totalOrdenEditar;
+      }
+    }
+    
     // Construir descripción desde los métodos de pago (solo si no es crédito)
-    const descripcionFinalEditar = form.credito ? null : construirDescripcion(metodosPago.filter(m => m.tipo && m.monto > 0), observacionesAdicionales);
+    const descripcionFinalEditar = form.credito ? null : construirDescripcion(metodosPagoParaDescripcionEditar.filter(m => m.monto > 0), observacionesAdicionales);
     
     const payload = {
     id: form.id,
@@ -1028,13 +1054,9 @@ export default function OrdenEditarModal({
                     <button
                       type="button"
                       onClick={agregarMetodoPago}
+                      className="btn-guardar"
                       style={{
                         padding: '0.4rem 0.8rem',
-                        backgroundColor: '#4f67ff',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '6px',
-                        cursor: 'pointer',
                         fontSize: '0.85rem'
                       }}
                     >

@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { api } from '../lib/api.js';
 import { listarClientes } from '../services/ClientesService.js';
 import { listarOrdenesCredito } from '../services/OrdenesService.js';
+import { getBusinessSettings } from '../services/businessSettingsService.js';
 import '../styles/CrudModal.css';
 import '../styles/Creditos.css';
 
@@ -22,10 +23,20 @@ const AbonoPage = () => {
   const [showClienteModal, setShowClienteModal] = useState(false);
   const [ordenesCredito, setOrdenesCredito] = useState([]);
   const [ordenesSeleccionadas, setOrdenesSeleccionadas] = useState(new Set());
+  const [ordenesConRetencion, setOrdenesConRetencion] = useState(new Set()); // Órdenes a las que se aplica retención
   const [distribucion, setDistribucion] = useState([]);
   
+  // Función para obtener la fecha local en formato YYYY-MM-DD
+  const obtenerFechaLocal = () => {
+    const ahora = new Date();
+    const año = ahora.getFullYear();
+    const mes = String(ahora.getMonth() + 1).padStart(2, '0');
+    const dia = String(ahora.getDate()).padStart(2, '0');
+    return `${año}-${mes}-${dia}`;
+  };
+
   const [formData, setFormData] = useState({
-    fecha: new Date().toISOString().slice(0, 10),
+    fecha: obtenerFechaLocal(),
     factura: ''
   });
   
@@ -34,6 +45,10 @@ const AbonoPage = () => {
   const [loading, setLoading] = useState(false);
   const [loadingOrdenes, setLoadingOrdenes] = useState(false);
   const [error, setError] = useState('');
+  
+  // Configuración de retención
+  const [retefuenteRate, setRetefuenteRate] = useState(2.5);
+  const [retefuenteThreshold, setRetefuenteThreshold] = useState(1000000);
 
   const bancos = [
     "BANCOLOMBIA",
@@ -43,13 +58,28 @@ const AbonoPage = () => {
     "DAVIPLATA"
   ];
 
-  // Métodos de pago disponibles
+  // Métodos de pago disponibles (RETEFUENTE se calcula automáticamente, no se agrega manualmente)
   const tiposMetodoPago = [
     { value: "EFECTIVO", label: "Efectivo" },
     { value: "TRANSFERENCIA", label: "Transferencia" },
-    { value: "CHEQUE", label: "Cheque" },
-    { value: "RETEFUENTE", label: "Retefuente" }
+    { value: "CHEQUE", label: "Cheque" }
   ];
+
+  // Cargar configuración de retención al montar
+  useEffect(() => {
+    const cargarConfiguracion = async () => {
+      try {
+        const settings = await getBusinessSettings();
+        if (settings) {
+          setRetefuenteRate(Number(settings.retefuenteRate) || 2.5);
+          setRetefuenteThreshold(Number(settings.retefuenteThreshold) || 1000000);
+        }
+      } catch (err) {
+        console.error("Error cargando configuración:", err);
+      }
+    };
+    cargarConfiguracion();
+  }, []);
 
   // Cargar clientes al montar
   useEffect(() => {
@@ -73,14 +103,45 @@ const AbonoPage = () => {
     cargarClientes();
   }, [clienteIdParam]);
 
-  // Cargar órdenes a crédito del cliente seleccionado
+  // Función para obtener el siguiente número de abono
+  const obtenerSiguienteNumeroAbono = async () => {
+    try {
+      // Formato: ABO-YYYYMMDD-HHMMSS (año, mes, día, hora, minutos, segundos)
+      // Esto garantiza un número único por segundo
+      const hoy = new Date();
+      const año = hoy.getFullYear();
+      const mes = String(hoy.getMonth() + 1).padStart(2, '0');
+      const dia = String(hoy.getDate()).padStart(2, '0');
+      const hora = String(hoy.getHours()).padStart(2, '0');
+      const minutos = String(hoy.getMinutes()).padStart(2, '0');
+      const segundos = String(hoy.getSeconds()).padStart(2, '0');
+      
+      return `ABO-${año}${mes}${dia}-${hora}${minutos}${segundos}`;
+    } catch (error) {
+      console.error('Error obteniendo siguiente número de abono:', error);
+      // Fallback: usar timestamp completo
+      const hoy = new Date();
+      const año = hoy.getFullYear();
+      const mes = String(hoy.getMonth() + 1).padStart(2, '0');
+      const dia = String(hoy.getDate()).padStart(2, '0');
+      return `ABO-${año}${mes}${dia}-${Date.now().toString().slice(-6)}`;
+    }
+  };
+
+  // Cargar órdenes a crédito del cliente seleccionado y generar número de abono
   useEffect(() => {
     if (clienteSeleccionado?.id) {
       cargarOrdenesCredito(clienteSeleccionado.id);
+      // Generar número de abono automáticamente
+      obtenerSiguienteNumeroAbono().then(numero => {
+        setFormData(prev => ({ ...prev, factura: numero }));
+      });
     } else {
       setOrdenesCredito([]);
       setOrdenesSeleccionadas(new Set());
       setDistribucion([]);
+      // Limpiar número de abono cuando no hay cliente
+      setFormData(prev => ({ ...prev, factura: '' }));
     }
   }, [clienteSeleccionado]);
 
@@ -94,6 +155,7 @@ const AbonoPage = () => {
       
       setOrdenesCredito(ordenesConSaldo);
       setOrdenesSeleccionadas(new Set());
+      setOrdenesConRetencion(new Set());
       setDistribucion([]);
     } catch (err) {
       console.error("Error cargando órdenes a crédito:", err);
@@ -104,19 +166,22 @@ const AbonoPage = () => {
     }
   };
 
-  // Calcular el total desde los métodos de pago
+  // Calcular el total desde los métodos de pago (excluyendo RETEFUENTE manual, ya que se calcula automáticamente)
   const totalMetodosPago = metodosPago
-    .filter(m => m.tipo && m.monto > 0)
+    .filter(m => m.tipo && m.tipo !== "RETEFUENTE" && m.monto > 0)
     .reduce((sum, m) => sum + (parseFloat(m.monto) || 0), 0);
+  
+  // Calcular total de retenciones automáticas
+  const totalRetenciones = distribucion.reduce((sum, d) => sum + (d.montoRetencion || 0), 0);
 
-  // Calcular distribución automática cuando cambia el total de métodos de pago o las órdenes seleccionadas
+  // Calcular distribución automática cuando cambia el total de métodos de pago, las órdenes seleccionadas o las órdenes con retención
   useEffect(() => {
     if (totalMetodosPago > 0 && ordenesSeleccionadas.size > 0) {
       calcularDistribucion();
     } else {
       setDistribucion([]);
     }
-  }, [totalMetodosPago, ordenesSeleccionadas, ordenesCredito]);
+  }, [totalMetodosPago, ordenesSeleccionadas, ordenesConRetencion, ordenesCredito, metodosPago, retefuenteRate, retefuenteThreshold]);
 
   const calcularDistribucion = () => {
     if (totalMetodosPago <= 0) {
@@ -124,7 +189,9 @@ const AbonoPage = () => {
       return;
     }
     
-    const montoTotal = totalMetodosPago;
+    // Separar métodos de pago normales de la retención
+    const metodosNormales = metodosPago.filter(m => m.tipo && m.tipo !== "RETEFUENTE" && m.monto > 0);
+    const montoTotalSinRetencion = metodosNormales.reduce((sum, m) => sum + (parseFloat(m.monto) || 0), 0);
 
     const ordenesSeleccionadasArray = Array.from(ordenesSeleccionadas)
       .map(ordenId => ordenesCredito.find(o => o.id === ordenId))
@@ -136,41 +203,43 @@ const AbonoPage = () => {
       });
 
     const nuevaDistribucion = [];
-    let montoDisponible = montoTotal;
+    let montoDisponible = montoTotalSinRetencion;
 
     for (const orden of ordenesSeleccionadasArray) {
       const saldoPendiente = orden.creditoDetalle?.saldoPendiente || 0;
       
-      if (montoDisponible <= 0) {
-        nuevaDistribucion.push({
-          ordenId: orden.id,
-          ordenNumero: orden.numero,
-          ordenFecha: orden.fecha,
-          saldoPendiente: saldoPendiente,
-          montoAbono: 0,
-          saldoRestante: saldoPendiente
-        });
-      } else if (montoDisponible >= saldoPendiente) {
-        nuevaDistribucion.push({
-          ordenId: orden.id,
-          ordenNumero: orden.numero,
-          ordenFecha: orden.fecha,
-          saldoPendiente: saldoPendiente,
-          montoAbono: saldoPendiente,
-          saldoRestante: 0
-        });
-        montoDisponible -= saldoPendiente;
-      } else {
-        nuevaDistribucion.push({
-          ordenId: orden.id,
-          ordenNumero: orden.numero,
-          ordenFecha: orden.fecha,
-          saldoPendiente: saldoPendiente,
-          montoAbono: montoDisponible,
-          saldoRestante: saldoPendiente - montoDisponible
-        });
-        montoDisponible = 0;
+      let montoAbono = 0;
+      let saldoRestante = saldoPendiente;
+      
+      if (montoDisponible > 0) {
+        if (montoDisponible >= saldoPendiente) {
+          montoAbono = saldoPendiente;
+          saldoRestante = 0;
+          montoDisponible -= saldoPendiente;
+        } else {
+          montoAbono = montoDisponible;
+          saldoRestante = saldoPendiente - montoDisponible;
+          montoDisponible = 0;
+        }
       }
+      
+      // Calcular retención solo si la orden está marcada para retención Y el monto abonado >= umbral
+      let montoRetencion = 0;
+      const tieneRetencion = ordenesConRetencion.has(orden.id);
+      if (tieneRetencion && montoAbono > 0 && montoAbono >= retefuenteThreshold) {
+        montoRetencion = (montoAbono * retefuenteRate) / 100;
+      }
+      
+      nuevaDistribucion.push({
+        ordenId: orden.id,
+        ordenNumero: orden.numero,
+        ordenFecha: orden.fecha,
+        saldoPendiente: saldoPendiente,
+        montoAbono: montoAbono,
+        saldoRestante: saldoRestante,
+        montoRetencion: montoRetencion,
+        tieneRetencion: tieneRetencion
+      });
     }
 
     setDistribucion(nuevaDistribucion);
@@ -180,6 +249,10 @@ const AbonoPage = () => {
     const nuevasSeleccionadas = new Set(ordenesSeleccionadas);
     if (nuevasSeleccionadas.has(ordenId)) {
       nuevasSeleccionadas.delete(ordenId);
+      // Si se deselecciona la orden, también quitar la retención
+      const nuevasConRetencion = new Set(ordenesConRetencion);
+      nuevasConRetencion.delete(ordenId);
+      setOrdenesConRetencion(nuevasConRetencion);
     } else {
       nuevasSeleccionadas.add(ordenId);
     }
@@ -194,21 +267,39 @@ const AbonoPage = () => {
     }
   };
 
-  const construirDescripcion = (metodos, observaciones) => {
+  const toggleRetencionOrden = (ordenId) => {
+    const nuevasConRetencion = new Set(ordenesConRetencion);
+    if (nuevasConRetencion.has(ordenId)) {
+      nuevasConRetencion.delete(ordenId);
+    } else {
+      nuevasConRetencion.add(ordenId);
+    }
+    setOrdenesConRetencion(nuevasConRetencion);
+  };
+
+  const construirDescripcion = (metodos, observaciones, distribucionConRetencion) => {
     if (!metodos || metodos.length === 0) return observaciones || "";
     
-    const partes = metodos
-      .filter(m => m.tipo && m.monto > 0)
-      .map(m => {
-        if (m.tipo === "TRANSFERENCIA" && m.banco) {
-          return `${m.tipo}: ${m.monto.toLocaleString('es-CO')} (${m.banco})`;
-        }
-        if (m.tipo === "RETEFUENTE") {
-          // Para retención en la fuente, incluir información adicional si es necesario
-          return `${m.tipo}: ${m.monto.toLocaleString('es-CO')}`;
-        }
-        return `${m.tipo}: ${m.monto.toLocaleString('es-CO')}`;
-      });
+    // Filtrar solo métodos normales (sin RETEFUENTE manual)
+    const metodosNormales = metodos.filter(m => m.tipo && m.tipo !== "RETEFUENTE" && m.monto > 0);
+    
+    const partes = metodosNormales.map(m => {
+      if (m.tipo === "TRANSFERENCIA" && m.banco) {
+        return `${m.tipo}: ${m.monto.toLocaleString('es-CO')} (${m.banco})`;
+      }
+      return `${m.tipo}: ${m.monto.toLocaleString('es-CO')}`;
+    });
+    
+    // Agregar retenciones calculadas automáticamente por orden
+    if (distribucionConRetencion && distribucionConRetencion.length > 0) {
+      const retencionesPorOrden = distribucionConRetencion
+        .filter(d => d.montoRetencion > 0)
+        .map(d => `RETEFUENTE Orden #${d.ordenNumero}: ${d.montoRetencion.toLocaleString('es-CO')}`);
+      
+      if (retencionesPorOrden.length > 0) {
+        partes.push(...retencionesPorOrden);
+      }
+    }
     
     let descripcionCompleta = partes.join(" | ");
     
@@ -249,7 +340,7 @@ const AbonoPage = () => {
     setError('');
 
     const montoTotal = totalMetodosPago;
-    const hoy = new Date().toISOString().split('T')[0];
+    const hoy = obtenerFechaLocal();
     
     if (montoTotal <= 0) {
       setError('Debes agregar al menos un método de pago con monto mayor a 0.');
@@ -282,7 +373,8 @@ const AbonoPage = () => {
       return;
     }
 
-    const metodosValidos = metodosPago.filter(m => m.tipo && m.monto > 0);
+    // Filtrar solo métodos normales (sin RETEFUENTE manual)
+    const metodosValidos = metodosPago.filter(m => m.tipo && m.tipo !== "RETEFUENTE" && m.monto > 0);
     if (metodosValidos.length === 0) {
       setError('Debes completar al menos un método de pago con tipo y monto válidos.');
       return;
@@ -298,10 +390,19 @@ const AbonoPage = () => {
 
     // Ya no necesitamos validar que coincidan porque el monto total se calcula desde los métodos
 
+    // Validar que haya un número de abono
+    let numeroAbono = formData.factura?.trim();
+    if (!numeroAbono) {
+      // Si no hay número, generarlo automáticamente
+      numeroAbono = await obtenerSiguienteNumeroAbono();
+      setFormData(prev => ({ ...prev, factura: numeroAbono }));
+    }
+
     try {
       setLoading(true);
       
-      const metodoPagoString = construirDescripcion(metodosValidos, observacionesAdicionales);
+      // Construir descripción incluyendo retenciones calculadas
+      const metodoPagoString = construirDescripcion(metodosValidos, observacionesAdicionales, distribucionValida);
 
       const abonosACrear = distribucionValida.map(dist => {
         const orden = ordenesCredito.find(o => o.id === dist.ordenId);
@@ -317,7 +418,7 @@ const AbonoPage = () => {
           total: dist.montoAbono,
           fecha: formData.fecha,
           metodoPago: metodoPagoString,
-          factura: formData.factura || null
+          factura: numeroAbono // Siempre enviar un valor válido
         };
       }).filter(abono => abono !== null && abono.creditoId);
 
@@ -334,7 +435,8 @@ const AbonoPage = () => {
       );
       
       // Redirigir a la página de créditos después de crear los abonos
-      navigate('/creditos');
+      // Agregar parámetro para indicar que se deben recargar los datos
+      navigate('/creditos?reload=true');
     } catch (err) {
       const errorMessage = err.response?.data?.message || err.message || 'Error al crear los abonos';
       console.error("Error al registrar abonos:", errorMessage);
@@ -364,14 +466,16 @@ const AbonoPage = () => {
   return (
     <div style={{ 
       padding: '0', 
-      minHeight: '100vh',
+      height: '100vh',
+      overflowY: 'auto',
       backgroundColor: '#f5f5f5'
     }}>
       <div style={{ 
         width: '100%',
         backgroundColor: '#fff',
         padding: '1.5rem',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+        minHeight: '100%'
       }}>
 
         {error && (
@@ -478,51 +582,101 @@ const AbonoPage = () => {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                 <div style={{ fontWeight: '600', marginBottom: '0.5rem', color: '#1e2753' }}>Métodos de Pago</div>
                 {tiposMetodoPago.map((tipo) => {
-                  const existe = metodosPago.find(m => m.tipo === tipo.value);
+                  // Para TRANSFERENCIA, permitir múltiples (siempre habilitado)
+                  // Para otros métodos, solo permitir uno de cada tipo
+                  const esTransferencia = tipo.value === 'TRANSFERENCIA';
+                  const existe = !esTransferencia ? metodosPago.find(m => m.tipo === tipo.value) : null;
+                  const tieneTransferencias = esTransferencia ? metodosPago.filter(m => m.tipo === 'TRANSFERENCIA').length > 0 : false;
+                  
                   return (
                     <button
                       key={tipo.value}
                       type="button"
                       onClick={() => {
-                        if (!existe) {
+                        if (esTransferencia || !existe) {
                           setMetodosPago([...metodosPago, { tipo: tipo.value, monto: 0, banco: "" }]);
                         }
                       }}
                       style={{
                         padding: '0.75rem',
-                        backgroundColor: existe ? '#1e2753' : '#fff',
+                        backgroundColor: (existe || (esTransferencia && tieneTransferencias)) ? '#1e2753' : '#fff',
                         border: '2px solid #1e2753',
                         borderRadius: '8px',
-                        cursor: existe ? 'default' : 'pointer',
+                        cursor: (esTransferencia || !existe) ? 'pointer' : 'default',
                         fontSize: '0.85rem',
                         fontWeight: '500',
-                        color: existe ? '#fff' : '#1e2753',
+                        color: (existe || (esTransferencia && tieneTransferencias)) ? '#fff' : '#1e2753',
                         textAlign: 'center',
                         transition: 'all 0.2s',
-                        opacity: existe ? 0.7 : 1
+                        opacity: (existe || (esTransferencia && tieneTransferencias)) ? 0.7 : 1
                       }}
                       onMouseEnter={(e) => {
-                        if (!existe) {
+                        if (esTransferencia || !existe) {
                           e.target.style.backgroundColor = '#1e2753';
                           e.target.style.color = '#fff';
                         }
                       }}
                       onMouseLeave={(e) => {
-                        if (!existe) {
+                        if (esTransferencia || !existe) {
                           e.target.style.backgroundColor = '#fff';
                           e.target.style.color = '#1e2753';
                         }
                       }}
-                      disabled={existe}
+                      disabled={!esTransferencia && existe}
                     >
-                      {tipo.label} {existe && '✓'}
+                      {tipo.label} {(existe || (esTransferencia && tieneTransferencias)) && '✓'}
                     </button>
                   );
                 })}
+                
+                {/* Información de Retefuente */}
+                <div style={{
+                  marginTop: '1.5rem',
+                  padding: '1rem',
+                  backgroundColor: '#fff3cd',
+                  border: '1px solid #ffc107',
+                  borderRadius: '8px',
+                  borderLeft: '4px solid #856404'
+                }}>
+                  <div style={{ 
+                    fontWeight: '600', 
+                    marginBottom: '0.75rem', 
+                    color: '#856404',
+                    fontSize: '0.9rem'
+                  }}>
+                    Retefuente
+                  </div>
+                  <div style={{ 
+                    display: 'flex', 
+                    flexDirection: 'column', 
+                    gap: '0.5rem',
+                    fontSize: '0.85rem',
+                    color: '#856404'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontWeight: '500' }}>Porcentaje:</span>
+                      <strong style={{ fontSize: '1rem' }}>{retefuenteRate.toFixed(2)}%</strong>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontWeight: '500' }}>Umbral mínimo:</span>
+                      <strong style={{ fontSize: '0.9rem' }}>${retefuenteThreshold.toLocaleString('es-CO')}</strong>
+                    </div>
+                    <div style={{ 
+                      marginTop: '0.5rem', 
+                      paddingTop: '0.5rem', 
+                      borderTop: '1px solid #ffc107',
+                      fontSize: '0.75rem',
+                      fontStyle: 'italic',
+                      color: '#856404'
+                    }}>
+                      Selecciona la orden para aplicar
+                    </div>
+                  </div>
+                </div>
               </div>
 
               {/* COLUMNA CENTRAL: Tabla de Órdenes */}
-              <div style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', minHeight: 0, height: '100%' }}>
                 <div style={{ 
                   display: 'flex', 
                   justifyContent: 'space-between', 
@@ -563,15 +717,21 @@ const AbonoPage = () => {
                 ) : (
                   <div style={{ 
                     flex: 1,
-                    overflowY: 'auto',
-                    overflowX: 'auto',
                     border: '1px solid #e0e0e0',
                     borderRadius: '8px',
                     backgroundColor: '#fff',
-                    maxHeight: '500px',
-                    position: 'relative'
+                    height: '500px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    overflow: 'hidden'
                   }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem', minWidth: '600px' }}>
+                    <div style={{ 
+                      overflowY: 'auto', 
+                      overflowX: 'auto', 
+                      flex: 1,
+                      height: '100%'
+                    }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem', minWidth: '800px' }}>
                       <thead style={{ position: 'sticky', top: 0, zIndex: 5, backgroundColor: '#1e2753', color: '#fff' }}>
                         <tr>
                           <th style={{ padding: '0.5rem', textAlign: 'center', borderRight: '1px solid #fff' }}>
@@ -580,6 +740,7 @@ const AbonoPage = () => {
                               checked={ordenesSeleccionadas.size === ordenesCredito.length && ordenesCredito.length > 0}
                               onChange={toggleSeleccionarTodas}
                               style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+                              title="Seleccionar todas las órdenes"
                             />
                           </th>
                           <th style={{ padding: '0.5rem', textAlign: 'left', borderRight: '1px solid #fff' }}>FECHA</th>
@@ -587,7 +748,9 @@ const AbonoPage = () => {
                           <th style={{ padding: '0.5rem', textAlign: 'center', borderRight: '1px solid #fff' }}>FACTURA</th>
                           <th style={{ padding: '0.5rem', textAlign: 'right', borderRight: '1px solid #fff' }}>VALOR</th>
                           <th style={{ padding: '0.5rem', textAlign: 'right', borderRight: '1px solid #fff' }}>SALDO</th>
-                          <th style={{ padding: '0.5rem', textAlign: 'right' }}>ABONO</th>
+                          <th style={{ padding: '0.5rem', textAlign: 'right', borderRight: '1px solid #fff' }}>ABONO</th>
+                          <th style={{ padding: '0.5rem', textAlign: 'center', borderRight: '1px solid #fff', fontSize: '0.75rem' }}>RETENCIÓN</th>
+                          <th style={{ padding: '0.5rem', textAlign: 'right' }}>VALOR RETENCIÓN</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -596,7 +759,10 @@ const AbonoPage = () => {
                           const valorOrden = orden.total || 0;
                           const saldoPendiente = orden.creditoDetalle?.saldoPendiente || 0;
                           const montoAbono = dist?.montoAbono || 0;
+                          const montoRetencion = dist?.montoRetencion || 0;
+                          const tieneRetencion = dist?.tieneRetencion || false;
                           const estaSeleccionada = ordenesSeleccionadas.has(orden.id);
+                          const puedeAplicarRetencion = estaSeleccionada && montoAbono > 0 && montoAbono >= retefuenteThreshold;
                           
                           return (
                             <tr
@@ -640,18 +806,63 @@ const AbonoPage = () => {
                               <td style={{ 
                                 padding: '0.5rem', 
                                 textAlign: 'right',
+                                borderRight: '1px solid #e0e0e0',
                                 color: montoAbono > 0 ? '#28a745' : '#666',
                                 fontWeight: montoAbono > 0 ? 'bold' : 'normal'
                               }}>
                                 ${montoAbono.toLocaleString('es-CO')}
                               </td>
+                              <td style={{ 
+                                padding: '0.5rem', 
+                                textAlign: 'center',
+                                borderRight: '1px solid #e0e0e0',
+                                cursor: puedeAplicarRetencion ? 'pointer' : 'default'
+                              }}
+                              onClick={(e) => {
+                                if (puedeAplicarRetencion) {
+                                  e.stopPropagation();
+                                  toggleRetencionOrden(orden.id);
+                                }
+                              }}
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={tieneRetencion}
+                                  disabled={!puedeAplicarRetencion}
+                                  onChange={(e) => {
+                                    e.stopPropagation();
+                                    if (puedeAplicarRetencion) {
+                                      toggleRetencionOrden(orden.id);
+                                    }
+                                  }}
+                                  style={{ 
+                                    width: '18px', 
+                                    height: '18px', 
+                                    cursor: puedeAplicarRetencion ? 'pointer' : 'not-allowed',
+                                    opacity: puedeAplicarRetencion ? 1 : 0.5
+                                  }}
+                                  title={puedeAplicarRetencion 
+                                    ? "Aplicar retención a esta orden" 
+                                    : `Para aplicar retención: la orden debe estar seleccionada, tener abono > 0 y el abono debe ser >= $${retefuenteThreshold.toLocaleString('es-CO')}`}
+                                />
+                              </td>
+                              <td style={{ 
+                                padding: '0.5rem', 
+                                textAlign: 'right',
+                                borderRight: '1px solid #e0e0e0',
+                                color: montoRetencion > 0 ? '#856404' : '#999',
+                                fontWeight: montoRetencion > 0 ? 'bold' : 'normal',
+                                backgroundColor: montoRetencion > 0 ? '#fff3cd' : 'transparent'
+                              }}>
+                                {montoRetencion > 0 ? `$${montoRetencion.toLocaleString('es-CO')}` : '-'}
+                              </td>
                             </tr>
                           );
                         })}
                       </tbody>
-                      <tfoot style={{ backgroundColor: '#f8f9fa', fontWeight: 'bold', position: 'sticky', bottom: 0 }}>
+                      <tfoot style={{ backgroundColor: '#f8f9fa', fontWeight: 'bold', position: 'sticky', bottom: 0, zIndex: 3 }}>
                         <tr>
-                          <td colSpan="4" style={{ padding: '0.5rem', textAlign: 'right', borderTop: '2px solid #1e2753' }}>
+                          <td colSpan="5" style={{ padding: '0.5rem', textAlign: 'right', borderTop: '2px solid #1e2753' }}>
                             TOTAL DEUDA:
                           </td>
                           <td style={{ padding: '0.5rem', textAlign: 'right', borderTop: '2px solid #1e2753' }}>
@@ -668,9 +879,22 @@ const AbonoPage = () => {
                           <td style={{ padding: '0.5rem', textAlign: 'right', borderTop: '2px solid #1e2753', color: '#28a745' }}>
                             ${totalDistribuido.toLocaleString('es-CO')}
                           </td>
+                          <td style={{ padding: '0.5rem', textAlign: 'center', borderTop: '2px solid #1e2753' }}>
+                            -
+                          </td>
+                          <td style={{ 
+                            padding: '0.5rem', 
+                            textAlign: 'right', 
+                            borderTop: '2px solid #1e2753',
+                            color: totalRetenciones > 0 ? '#856404' : '#999',
+                            backgroundColor: totalRetenciones > 0 ? '#fff3cd' : 'transparent'
+                          }}>
+                            {totalRetenciones > 0 ? `$${totalRetenciones.toLocaleString('es-CO')}` : '-'}
+                          </td>
                         </tr>
                       </tfoot>
                     </table>
+                    </div>
                   </div>
                 )}
 
@@ -704,36 +928,61 @@ const AbonoPage = () => {
                         </tr>
                       </thead>
                       <tbody>
-                        {metodosPago.filter(m => m.tipo && m.monto > 0).length === 0 ? (
+                        {metodosPago.filter(m => m.tipo && m.tipo !== "RETEFUENTE" && m.monto > 0).length === 0 ? (
                           <tr>
                             <td colSpan="2" style={{ padding: '1rem', textAlign: 'center', color: '#666', fontStyle: 'italic' }}>
                               Agregue métodos de pago
                             </td>
                           </tr>
                         ) : (
-                          metodosPago.filter(m => m.tipo && m.monto > 0).map((metodo, index) => {
-                            const tipoLabel = tiposMetodoPago.find(t => t.value === metodo.tipo)?.label || metodo.tipo;
-                            const bancoInfo = metodo.tipo === "TRANSFERENCIA" && metodo.banco ? ` (${metodo.banco})` : '';
-                            return (
-                              <tr key={index} style={{ borderBottom: '1px solid #e0e0e0' }}>
-                                <td style={{ padding: '0.5rem' }}>
-                                  {tipoLabel}{bancoInfo}
-                                </td>
-                                <td style={{ padding: '0.5rem', textAlign: 'right', fontWeight: '500' }}>
-                                  ${(metodo.monto || 0).toLocaleString('es-CO')}
-                                </td>
-                              </tr>
-                            );
-                          })
+                          <>
+                            {metodosPago.filter(m => m.tipo && m.tipo !== "RETEFUENTE" && m.monto > 0).map((metodo, index) => {
+                              const tipoLabel = tiposMetodoPago.find(t => t.value === metodo.tipo)?.label || metodo.tipo;
+                              const bancoInfo = metodo.tipo === "TRANSFERENCIA" && metodo.banco ? ` (${metodo.banco})` : '';
+                              return (
+                                <tr key={index} style={{ borderBottom: '1px solid #e0e0e0' }}>
+                                  <td style={{ padding: '0.5rem' }}>
+                                    {tipoLabel}{bancoInfo}
+                                  </td>
+                                  <td style={{ padding: '0.5rem', textAlign: 'right', fontWeight: '500' }}>
+                                    ${(metodo.monto || 0).toLocaleString('es-CO')}
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                            {/* Mostrar retenciones calculadas automáticamente */}
+                            {distribucion.filter(d => d.montoRetencion > 0).length > 0 && (
+                              <>
+                                {distribucion.filter(d => d.montoRetencion > 0).map((dist, index) => (
+                                  <tr key={`rete-${index}`} style={{ borderBottom: '1px solid #e0e0e0', backgroundColor: '#fff3cd' }}>
+                                    <td style={{ padding: '0.5rem', fontSize: '0.85rem' }}>
+                                      Retefuente (Orden #{dist.ordenNumero})
+                                    </td>
+                                    <td style={{ padding: '0.5rem', textAlign: 'right', fontWeight: '500', color: '#856404' }}>
+                                      ${dist.montoRetencion.toLocaleString('es-CO')}
+                                    </td>
+                                  </tr>
+                                ))}
+                              </>
+                            )}
+                          </>
                         )}
                       </tbody>
                       <tfoot style={{ backgroundColor: '#f8f9fa', fontWeight: 'bold', borderTop: '2px solid #1e2753' }}>
                         <tr>
-                          <td style={{ padding: '0.5rem' }}>TOTAL:</td>
+                          <td style={{ padding: '0.5rem' }}>TOTAL PAGOS:</td>
                           <td style={{ padding: '0.5rem', textAlign: 'right', color: '#1e2753' }}>
                             ${totalMetodosPago.toLocaleString('es-CO')}
                           </td>
                         </tr>
+                        {totalRetenciones > 0 && (
+                          <tr style={{ backgroundColor: '#fff3cd' }}>
+                            <td style={{ padding: '0.5rem', fontSize: '0.85rem', color: '#856404' }}>TOTAL RETENCIONES:</td>
+                            <td style={{ padding: '0.5rem', textAlign: 'right', color: '#856404', fontWeight: 'bold' }}>
+                              ${totalRetenciones.toLocaleString('es-CO')}
+                            </td>
+                          </tr>
+                        )}
                       </tfoot>
                     </table>
                   </div>
@@ -794,16 +1043,11 @@ const AbonoPage = () => {
                           border: '1px solid #e0e0e0',
                           borderRadius: '4px',
                           fontSize: '0.8rem',
-                          backgroundColor: metodo.tipo === "RETEFUENTE" ? '#fff3cd' : '#fff'
+                          backgroundColor: '#fff'
                         }}>
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                            <div style={{ fontWeight: '500', color: '#1e2753', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <div style={{ fontWeight: '500', color: '#1e2753', fontSize: '0.85rem' }}>
                               {tiposMetodoPago.find(t => t.value === metodo.tipo)?.label || metodo.tipo}
-                              {metodo.tipo === "RETEFUENTE" && (
-                                <span style={{ fontSize: '0.75rem', color: '#856404', backgroundColor: '#ffeaa7', padding: '0.1rem 0.4rem', borderRadius: '3px' }}>
-                                  Retención
-                                </span>
-                              )}
                             </div>
                             {metodo.tipo === "TRANSFERENCIA" && (
                               <select
@@ -882,16 +1126,17 @@ const AbonoPage = () => {
               </div>
               <div>
                 <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: '500', fontSize: '0.9rem' }}>
-                  Número de Factura / Recibo (Opcional)
+                  Número de Abono
                 </label>
                 <input
                   type="text"
                   name="factura"
                   value={formData.factura}
                   onChange={handleChange}
-                  placeholder="Ej: FAC-001"
+                  placeholder="Se generará automáticamente"
                   maxLength={50}
                   style={{ fontSize: '0.9rem', padding: '0.4rem', width: '100%' }}
+                  title="Se genera automáticamente, pero puedes editarlo si es necesario"
                 />
               </div>
               <div>
