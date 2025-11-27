@@ -1,0 +1,266 @@
+/* Estilos específicos para el modal de detalles de entrega */
+.entrega-detalle-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(30, 39, 83, 0.6);
+  display: grid;
+  place-items: center;
+  z-index: 10000;
+}
+
+.entrega-detalle-modal-container {
+  background: #fff;
+  padding: 1.5rem;
+  border-radius: 8px;
+  width: 90vw;
+  max-width: 1200px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.entrega-detalle-modal-container h2 {
+  margin: 0 0 1rem 0;
+  color: #1e2753;
+  font-size: 1.5rem;
+  font-weight: 600;
+  border-bottom: 2px solid #1e2753;
+  padding-bottom: 0.5rem;
+}
+
+/* Información general compacta */
+.entrega-detalle-info-header {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+  padding: 0.75rem;
+  background: #f8f9fa;
+  border-radius: 6px;
+  border: 1px solid #e0e0e0;
+}
+
+.entrega-detalle-info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.entrega-detalle-info-item label {
+  font-size: 0.75rem;
+  color: #666;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.entrega-detalle-info-item span {
+  font-size: 0.95rem;
+  color: #1e2753;
+  font-weight: 600;
+}
+
+.entrega-detalle-info-item .estado-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  width: fit-content;
+}
+
+.entrega-detalle-info-item .estado-badge.entregada {
+  background-color: #d4edda;
+  color: #155724;
+}
+
+.entrega-detalle-info-item .estado-badge.pendiente {
+  background-color: #fff3cd;
+  color: #856404;
+}
+
+.entrega-detalle-info-item .estado-badge.rechazada {
+  background-color: #f8d7da;
+  color: #721c24;
+}
+
+/* Sección de órdenes */
+.entrega-detalle-section {
+  margin-bottom: 1.5rem;
+}
+
+.entrega-detalle-section h3 {
+  margin: 0 0 0.75rem 0;
+  color: #1e2753;
+  font-size: 1.1rem;
+  font-weight: 600;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.entrega-detalle-table-wrapper {
+  overflow-x: auto;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+}
+
+.entrega-detalle-table {
+  width: 100%;
+  min-width: 800px;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.entrega-detalle-table thead {
+  background-color: #1e2753;
+  color: #fff;
+}
+
+.entrega-detalle-table thead th {
+  padding: 10px 12px;
+  text-align: left;
+  font-weight: 600;
+  white-space: nowrap;
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.entrega-detalle-table thead th:last-child {
+  border-right: none;
+}
+
+.entrega-detalle-table tbody tr {
+  border-bottom: 1px solid #f0f0f0;
+  transition: background-color 0.2s;
+}
+
+.entrega-detalle-table tbody tr:hover {
+  background-color: #f8f9fa;
+}
+
+.entrega-detalle-table tbody tr:nth-child(even) {
+  background-color: #fafafa;
+}
+
+.entrega-detalle-table tbody tr:nth-child(even):hover {
+  background-color: #f5f5f5;
+}
+
+.entrega-detalle-table tbody td {
+  padding: 10px 12px;
+  white-space: nowrap;
+}
+
+.entrega-detalle-table .empty {
+  text-align: center;
+  padding: 30px;
+  color: #999;
+  font-style: italic;
+}
+
+/* Resumen financiero compacto */
+.entrega-detalle-resumen {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+  padding: 1rem;
+  background: #f8f9fa;
+  border-radius: 6px;
+  border: 1px solid #e0e0e0;
+}
+
+.entrega-detalle-resumen-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.entrega-detalle-resumen-item label {
+  font-size: 0.75rem;
+  color: #666;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.entrega-detalle-resumen-item span {
+  font-size: 1rem;
+  color: #1e2753;
+  font-weight: 700;
+}
+
+.entrega-detalle-resumen-item.monto-total {
+  grid-column: 1 / -1;
+  padding-top: 0.5rem;
+  border-top: 2px solid #1e2753;
+  margin-top: 0.5rem;
+}
+
+.entrega-detalle-resumen-item.monto-total label {
+  font-size: 0.85rem;
+  color: #1e2753;
+}
+
+.entrega-detalle-resumen-item.monto-total span {
+  font-size: 1.3rem;
+  color: #1e2753;
+}
+
+.entrega-detalle-warning {
+  grid-column: 1 / -1;
+  padding: 0.75rem;
+  background: #fff3cd;
+  border: 1px solid #ffc107;
+  border-radius: 4px;
+  color: #856404;
+  font-size: 0.9rem;
+  margin-top: 0.5rem;
+}
+
+/* Botones */
+.entrega-detalle-modal-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e0e0e0;
+}
+
+.entrega-detalle-modal-buttons .btn-cerrar {
+  padding: 0.625rem 1.5rem;
+  background-color: #dc3545;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.entrega-detalle-modal-buttons .btn-cerrar:hover {
+  background-color: #c82333;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Scrollbar personalizado */
+.entrega-detalle-modal-container::-webkit-scrollbar {
+  width: 8px;
+}
+
+.entrega-detalle-modal-container::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.entrega-detalle-modal-container::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}
+
+.entrega-detalle-modal-container::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+

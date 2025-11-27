@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import "../styles/OrdenImprimirModal.css";
+import "../styles/EntregasImprimirModal.css";
 
 export default function EntregasImprimirModal({ entregas = [], isOpen, onClose }) {
   const [entregasSeleccionadas, setEntregasSeleccionadas] = useState([]);
@@ -15,10 +15,12 @@ export default function EntregasImprimirModal({ entregas = [], isOpen, onClose }
     }
   }, [isOpen, entregas]);
 
-  if (!isOpen) return null;
+  // Si solo hay una entrega, usar todas las entregas directamente (sin filtro)
+  const entregasParaImprimir = entregas.length === 1 
+    ? entregas 
+    : entregas.filter(e => entregasSeleccionadas.includes(e.id));
 
-  // Filtrar entregas seleccionadas
-  const entregasParaImprimir = entregas.filter(e => entregasSeleccionadas.includes(e.id));
+  if (!isOpen) return null;
 
   // Formatear fecha
   const fmtFecha = (iso) => {
@@ -105,42 +107,90 @@ export default function EntregasImprimirModal({ entregas = [], isOpen, onClose }
     );
   };
 
+  const seleccionarTodas = () => {
+    setEntregasSeleccionadas(entregas.map(e => e.id));
+  };
+
+  const deseleccionarTodas = () => {
+    setEntregasSeleccionadas([]);
+  };
+
+  const fmtCOP = (n) => new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(Number(n||0));
+
+  // Si solo hay una entrega, no mostrar la sección de selección
+  const mostrarSeleccion = entregas.length > 1;
+
   return (
     <>
-      <div className="modal-overlay">
-        <div className="modal-container modal-print">
-          <div className="modal-header">
+      <div className="entregas-imprimir-modal-overlay" onClick={onClose}>
+        <div className="entregas-imprimir-modal-container" onClick={(e) => e.stopPropagation()}>
+          <div className="entregas-imprimir-modal-header">
             <h2>Imprimir Entregas de Dinero</h2>
-            <div className="modal-actions">
-              {/* Selector de entregas */}
-              <div style={{ marginRight: "10px", display: "flex", flexDirection: "column", gap: "5px" }}>
-                <label style={{ fontSize: "12px", color: "var(--color-dark-gray)" }}>
-                  Seleccionar entregas ({entregasSeleccionadas.length} de {entregas.length})
-                </label>
-                <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", maxHeight: "100px", overflowY: "auto" }}>
-                  {entregas.map(ent => (
-                    <label key={ent.id} style={{ display: "flex", alignItems: "center", gap: "5px", fontSize: "12px" }}>
-                      <input
-                        type="checkbox"
-                        checked={entregasSeleccionadas.includes(ent.id)}
-                        onChange={() => toggleEntrega(ent.id)}
-                      />
-                      #{ent.id} - {fmtFecha(ent.fechaEntrega)}
-                    </label>
-                  ))}
-                </div>
-              </div>
-              <button onClick={handleGuardarPDF} className="btn-guardar">
+            <div className="entregas-imprimir-buttons">
+              <button onClick={handleGuardarPDF} className="btn-imprimir">
                 Guardar como PDF
               </button>
-              <button onClick={handleImprimir} className="btn-guardar">
+              <button onClick={handleImprimir} className="btn-imprimir">
                 Imprimir
               </button>
-              <button onClick={onClose} className="btn-cancelar">
+              <button onClick={onClose} className="btn-cerrar">
                 Cerrar
               </button>
             </div>
           </div>
+
+          {/* Sección de selección mejorada - Solo mostrar si hay más de una entrega */}
+          {mostrarSeleccion && (
+          <div className="entregas-seleccion-section">
+            <div className="entregas-seleccion-header">
+              <h3>Seleccionar Entregas</h3>
+              <span className="entregas-seleccion-count">
+                {entregasSeleccionadas.length} de {entregas.length} seleccionadas
+              </span>
+            </div>
+            
+            <div className="entregas-seleccion-controls">
+              <button onClick={seleccionarTodas} disabled={entregasSeleccionadas.length === entregas.length}>
+                Seleccionar Todas
+              </button>
+              <button onClick={deseleccionarTodas} disabled={entregasSeleccionadas.length === 0}>
+                Deseleccionar Todas
+              </button>
+            </div>
+
+            <div className="entregas-seleccion-grid">
+              {entregas.map(ent => {
+                const monto = Number(ent.monto ?? 0);
+                const estaSeleccionada = entregasSeleccionadas.includes(ent.id);
+                return (
+                  <div
+                    key={ent.id}
+                    className={`entregas-seleccion-item ${estaSeleccionada ? 'selected' : ''}`}
+                    onClick={() => toggleEntrega(ent.id)}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={estaSeleccionada}
+                      onChange={() => toggleEntrega(ent.id)}
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                    <div className="entregas-seleccion-item-info">
+                      <div className="entregas-seleccion-item-numero">
+                        Entrega #{ent.id}
+                      </div>
+                      <div className="entregas-seleccion-item-fecha">
+                        {fmtFecha(ent.fechaEntrega)}
+                      </div>
+                      <div className="entregas-seleccion-item-monto">
+                        {fmtCOP(monto)}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+          )}
 
           {/* Contenido imprimible */}
           <div id="printable-entregas-content" className="printable-content">
@@ -157,17 +207,17 @@ export default function EntregasImprimirModal({ entregas = [], isOpen, onClose }
               return (
                 <div key={entrega.id} style={{ marginBottom: "40px", pageBreakInside: "avoid" }}>
                   {/* Encabezado de entrega */}
-                  <div style={{ marginBottom: "20px", padding: "10px", background: "var(--color-light-gray)", borderRadius: "4px" }}>
-                    <h3 style={{ margin: "0 0 10px 0", color: "var(--color-dark-blue)" }}>
+                  <div className="entrega-header">
+                    <h3>
                       Entrega #{entrega.id} - Fecha: {fmtFecha(entrega.fechaEntrega)}
                     </h3>
-                    <p style={{ margin: "5px 0", color: "var(--color-dark-gray)" }}>
+                    <p>
                       Sede: {entrega.sede?.nombre || "-"}
                     </p>
                   </div>
 
                   {/* Tabla de órdenes */}
-                  <table className="items-table">
+                  <table className="entregas-imprimir-table">
                     <thead>
                       <tr>
                         <th>N° Orden</th>
@@ -221,11 +271,59 @@ export default function EntregasImprimirModal({ entregas = [], isOpen, onClose }
                     </tbody>
                   </table>
 
+                  {/* Descripción de métodos de pago */}
+                  {(() => {
+                    // Recopilar descripciones de métodos de pago de los detalles
+                    const descripciones = [];
+                    
+                    entrega.detalles?.forEach((detalle) => {
+                    if (!detalle.ventaCredito) {
+                        // Orden a contado: el backend envía la descripción en detalle.descripcion
+                        // Este campo contiene el string con el método de pago de la orden
+                        const desc = detalle.descripcion || "";
+                        if (desc && desc.trim()) {
+                          descripciones.push(`Orden #${detalle.numeroOrden}:\n${desc}`);
+                        }
+                      } else {
+                        // Orden a crédito (abono): el backend envía el método de pago en detalle.metodoPago
+                        // Este campo contiene el string con el método de pago del abono
+                        const metodoPago = detalle.metodoPago || "";
+                        if (metodoPago && metodoPago.trim()) {
+                          descripciones.push(`Abono Orden #${detalle.numeroOrden}:\n${metodoPago}`);
+                        }
+                      }
+                    });
+                    
+                    // Solo mostrar la sección si hay descripciones
+                    if (descripciones.length === 0) return null;
+                    
+                    return (
+                      <div className="metodos-pago-descripcion" style={{ marginTop: "20px", marginBottom: "20px" }}>
+                        <h4 style={{ marginBottom: "10px", color: "var(--color-dark-blue)", fontSize: "1rem", fontWeight: "600" }}>
+                          Descripción de Métodos de Pago
+                        </h4>
+                        <div style={{ 
+                          background: "#f8f9fa", 
+                          padding: "12px", 
+                          borderRadius: "6px", 
+                          border: "1px solid #e0e0e0",
+                          whiteSpace: "pre-wrap",
+                          fontSize: "0.85rem",
+                          lineHeight: "1.6",
+                          color: "#333",
+                          fontFamily: "monospace"
+                        }}>
+                          {descripciones.join("\n\n")}
+                        </div>
+                      </div>
+                    );
+                  })()}
+
                   {/* Tabla de gastos */}
                   {entrega.gastos && Array.isArray(entrega.gastos) && entrega.gastos.length > 0 && (
                     <div style={{ marginTop: "30px" }}>
                       <h4 style={{ marginBottom: "10px", color: "var(--color-dark-blue)" }}>Gastos Asociados</h4>
-                      <table className="items-table">
+                      <table className="entregas-imprimir-table">
                         <thead>
                           <tr>
                             <th>ID</th>

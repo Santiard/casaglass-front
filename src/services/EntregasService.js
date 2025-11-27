@@ -115,18 +115,10 @@ const EntregasService = {
     }
   },
 
-  // Confirmar entrega
-  confirmarEntrega: async (id, montoEntregado, observaciones = '') => {
+  // Confirmar entrega (modelo simplificado: solo cambia el estado, sin montoEntregado ni observaciones)
+  confirmarEntrega: async (id) => {
     try {
-      const params = new URLSearchParams({
-        montoEntregado: montoEntregado
-      });
-      
-      if (observaciones) {
-        params.append('observaciones', observaciones);
-      }
-      
-      const response = await api.put(`entregas-dinero/${id}/confirmar?${params}`);
+      const response = await api.put(`entregas-dinero/${id}/confirmar`);
       return response.data;
     } catch (error) {
       console.error(`Error confirmando entrega ${id}:`, error);

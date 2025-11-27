@@ -1,16 +1,12 @@
-import "../styles/Table.css";
+import "../styles/EntregaTable.css";
 import React, { useEffect, useMemo, useState, useCallback } from "react";
-import editar from "../assets/editar.png";
 import EntregaModal from "../modals/EntregaModal.jsx";
-import EntregaConfirmarModal from "../modals/EntregaConfirmarModal.jsx";
-import EntregaCancelarModal from "../modals/EntregaCancelarModal.jsx";
 
 export default function EntregasTable({
   data = [],
   rowsPerPage = 10,
   onVerDetalles, // (entrega) => void
   onConfirmar, // (entrega) => void
-  onCancelar, // (entrega, motivo) => void
   onEliminar, // (entrega) => Promise<void>
   onImprimir, // (entrega) => void - nuevo prop para imprimir
   onImprimirSeleccionadas, // (entregas[]) => void - nuevo prop para imprimir múltiples
@@ -20,8 +16,6 @@ export default function EntregasTable({
   const [entregas, setEntregas] = useState([]);
   const [entregasSeleccionadas, setEntregasSeleccionadas] = useState([]); // IDs de entregas seleccionadas
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
-  const [isCancelOpen, setIsCancelOpen] = useState(false);
   const [entregaEditando, setEntregaEditando] = useState(null);
 
   // Actualizar entregas cuando cambian los datos del padre
@@ -30,9 +24,12 @@ export default function EntregasTable({
   }, [data]);
 
   const openNuevo = () => { setEntregaEditando(null); setIsModalOpen(true); };
-  const openEditar = (ent) => { setEntregaEditando(ent); setIsModalOpen(true); };
-  const openConfirmar = (ent) => { setEntregaEditando(ent); setIsConfirmOpen(true); };
-  const openCancelar = (ent) => { setEntregaEditando(ent); setIsCancelOpen(true); };
+  const openConfirmar = (ent) => {
+    // Solo llamar a onConfirmar, el diálogo se maneja en la página padre
+    if (onConfirmar) {
+      onConfirmar(ent);
+    }
+  };
 
   const handleGuardarEntrega = (payload, isEdit) => {
     setEntregas(prev => {
@@ -46,21 +43,7 @@ export default function EntregasTable({
     setEntregaEditando(null);
   };
 
-  const handleConfirmar = (entrega) => {
-    if (onConfirmar) {
-      onConfirmar(entrega);
-    }
-    setIsConfirmOpen(false);
-    setEntregaEditando(null);
-  };
 
-  const handleCancelar = ({ motivo }) => {
-    if (onCancelar && entregaEditando) {
-      onCancelar(entregaEditando, motivo);
-    }
-    setIsCancelOpen(false);
-    setEntregaEditando(null);
-  };
 
   const handleEliminar = async (ent) => {
     await onEliminar?.(ent);
@@ -169,10 +152,9 @@ export default function EntregasTable({
   }, [entregasSeleccionadas.length]);
 
   return (
-    <div className="table-container">
+    <div className="entregas-table-container">
       {/* Tabla principal */}
-      <div className="table-wrapper">
-        <table className="table entregas-table">
+      <table className="entregas-table">
           <thead>
             <tr>
               <th style={{ width: "50px" }}>
@@ -192,10 +174,11 @@ export default function EntregasTable({
               <th>Fecha</th>
               <th>Sede</th>
               <th>Empleado</th>
-              <th>Monto esperado</th>
-              <th>Gastos</th>
-              <th>Entregado</th>
-              <th>Diferencia</th>
+              <th>Monto Total</th>
+              <th>Efectivo</th>
+              <th>Transferencia</th>
+              <th>Cheque</th>
+              <th>Depósito</th>
               <th>Estado</th>
               <th>Detalles</th>
               <th>Acciones</th>
@@ -204,13 +187,13 @@ export default function EntregasTable({
 
           <tbody>
             {pageData.length === 0 ? (
-              <tr><td colSpan={11} className="empty">No hay entregas registradas</td></tr>
+              <tr><td colSpan={12} className="empty">No hay entregas registradas</td></tr>
             ) : pageData.map((ent) => {
-              // Diferencia = (Monto Esperado - Monto Gastos) - Monto Entregado
-              const montoNetoEsperado = Number(ent.montoEsperado ?? 0) - Number(ent.montoGastos ?? 0);
-              const diferencia = ent.estado === "ENTREGADA"
-                ? montoNetoEsperado - Number(ent.montoEntregado ?? 0)
-                : (ent.diferencia ?? 0);
+              const monto = Number(ent.monto ?? 0);
+              const montoEfectivo = Number(ent.montoEfectivo ?? 0);
+              const montoTransferencia = Number(ent.montoTransferencia ?? 0);
+              const montoCheque = Number(ent.montoCheque ?? 0);
+              const montoDeposito = Number(ent.montoDeposito ?? 0);
               const estaSeleccionada = entregasSeleccionadas.includes(ent.id);
               
               return (
@@ -236,10 +219,11 @@ export default function EntregasTable({
                   <td>{fmtFecha(ent.fechaEntrega)}</td>
                   <td>{ent.sede?.nombre ?? "-"}</td>
                   <td>{ent.empleado?.nombre ?? "-"}</td>
-                  <td>{fmtCOP(ent.montoEsperado)}</td>
-                  <td>{fmtCOP(ent.montoGastos)}</td>
-                  <td>{ent.montoEntregado != null ? fmtCOP(ent.montoEntregado) : "-"}</td>
-                  <td style={{ fontWeight: 600 }}>{fmtCOP(diferencia)}</td>
+                  <td className="monto-total">{fmtCOP(monto)}</td>
+                  <td className="monto-desglose">{fmtCOP(montoEfectivo)}</td>
+                  <td className="monto-desglose">{fmtCOP(montoTransferencia)}</td>
+                  <td className="monto-desglose">{fmtCOP(montoCheque)}</td>
+                  <td className="monto-desglose">{fmtCOP(montoDeposito)}</td>
                   <td>
                     {ent.estado === "ENTREGADA" && <span className="status ok">Entregada</span>}
                     {ent.estado === "PENDIENTE" && <span className="status pending">Pendiente</span>}
@@ -251,12 +235,18 @@ export default function EntregasTable({
                     </button>
                   </td>
                   <td className="clientes-actions" style={{ display: "flex", gap: 6 }}>
-                    <button className="btnEdit" onClick={() => openEditar(ent)} title="Editar">
-                      <img src={editar} className="iconButton" alt="Editar" />
-                    </button>
                     <button className="btn" onClick={() => onImprimir?.(ent)} title="Imprimir">Imprimir</button>
-                    <button className="btn" onClick={() => openConfirmar(ent)} disabled={ent.estado !== "PENDIENTE"}>Confirmar</button>
-                    <button className="btn" onClick={() => openCancelar(ent)} disabled={ent.estado !== "PENDIENTE"}>Cancelar</button>
+                    <button 
+                      className="btn" 
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        openConfirmar(ent);
+                      }} 
+                      disabled={ent.estado !== "PENDIENTE"}
+                    >
+                      Confirmar
+                    </button>
                     <button className="btn" onClick={() => handleEliminar(ent)} disabled={ent.estado === "ENTREGADA"}>Eliminar</button>
                   </td>
                 </tr>
@@ -264,14 +254,13 @@ export default function EntregasTable({
             })}
           </tbody>
         </table>
-      </div>
 
       {/* Paginación */}
-      <div className="pagination-bar">
-        <div className="pagination-info">
+      <div className="entregas-pagination">
+        <div className="entregas-pagination-info">
           Mostrando {Math.min((curPage - 1) * rowsPerPage + 1, total)}–{Math.min(curPage * rowsPerPage, total)} de {total}
         </div>
-        <div className="pagination-controls">
+        <div className="entregas-pagination-controls">
           <button className="pg-btn" onClick={() => setPage(1)} disabled={curPage <= 1}>«</button>
           <button className="pg-btn" onClick={() => setPage(curPage - 1)} disabled={curPage <= 1}>‹</button>
           {Array.from({ length: Math.min(5, maxPage) }, (_, i) => {
@@ -295,19 +284,7 @@ export default function EntregasTable({
         gastosDisponibles={[]}
       />
 
-      <EntregaConfirmarModal
-        isOpen={isConfirmOpen}
-        onClose={() => { setIsConfirmOpen(false); setEntregaEditando(null); }}
-        entrega={entregaEditando}
-        onConfirm={handleConfirmar}
-      />
 
-      <EntregaCancelarModal
-        isOpen={isCancelOpen}
-        onClose={() => { setIsCancelOpen(false); setEntregaEditando(null); }}
-        entrega={entregaEditando}
-        onCancel={handleCancelar}
-      />
     </div>
   );
 }

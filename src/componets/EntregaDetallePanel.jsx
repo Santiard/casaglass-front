@@ -14,13 +14,15 @@ export default function EntregaDetallePanel({ entrega, onClose }){
     return isNaN(d) ? "-" : d.toLocaleString("es-CO", { year: "numeric", month: "2-digit", day: "2-digit" });
   };
 
-  const esperado = Number(entrega.montoEsperado ?? 0);
-  const totalGastos = Number(entrega.montoGastos ?? 0);
-  const montoEntregado = Number(entrega.montoEntregado ?? 0);
-  // Monto Neto Esperado = Monto Esperado - Monto Gastos
-  const montoNetoEsperado = esperado - totalGastos;
-  // Diferencia = Monto Neto Esperado - Monto Entregado
-  const dif = entrega.estado === "ENTREGADA" ? montoNetoEsperado - montoEntregado : (entrega.diferencia ?? 0);
+  // Usar monto (único campo de monto según el modelo simplificado)
+  const monto = Number(entrega.monto ?? 0);
+  const montoEfectivo = Number(entrega.montoEfectivo ?? 0);
+  const montoTransferencia = Number(entrega.montoTransferencia ?? 0);
+  const montoCheque = Number(entrega.montoCheque ?? 0);
+  const montoDeposito = Number(entrega.montoDeposito ?? 0);
+  
+  // Calcular suma del desglose para validación
+  const sumaDesglose = montoEfectivo + montoTransferencia + montoCheque + montoDeposito;
 
   return (
     <section className="ingreso-panel">
@@ -34,7 +36,6 @@ export default function EntregaDetallePanel({ entrega, onClose }){
         <div><strong>Sede:</strong> {entrega.sede?.nombre ?? "-"}</div>
         <div><strong>Empleado:</strong> {entrega.empleado?.nombre ?? "-"}</div>
         <div><strong>Estado:</strong> {entrega.estado}</div>
-        <div className="span2"><strong>Observaciones:</strong> {entrega.observaciones ?? "—"}</div>
       </div>
 
       <div className="ingreso-panel__content">
@@ -86,11 +87,16 @@ export default function EntregaDetallePanel({ entrega, onClose }){
       </div>
 
       <div className="ingreso-panel__foot" style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit, minmax(120px, 1fr))", gap:"0.5rem" }}>
-        <div><strong>Monto Esperado (Órdenes):</strong> {fmtCOP(esperado)}</div>
-        <div><strong>Gastos:</strong> {fmtCOP(totalGastos)}</div>
-        <div><strong>Monto Neto Esperado:</strong> {fmtCOP(montoNetoEsperado)}</div>
-        <div><strong>Monto Entregado:</strong> {fmtCOP(montoEntregado)}</div>
-        <div><strong>Diferencia:</strong> {fmtCOP(dif)}</div>
+        <div><strong>Monto Total:</strong> {fmtCOP(monto)}</div>
+        <div><strong>Efectivo:</strong> {fmtCOP(montoEfectivo)}</div>
+        <div><strong>Transferencia:</strong> {fmtCOP(montoTransferencia)}</div>
+        <div><strong>Cheque:</strong> {fmtCOP(montoCheque)}</div>
+        <div><strong>Depósito:</strong> {fmtCOP(montoDeposito)}</div>
+        {sumaDesglose !== monto && (
+          <div style={{ gridColumn: "1 / -1", color: "red", fontWeight: "bold" }}>
+            ⚠️ Advertencia: La suma del desglose (${sumaDesglose.toLocaleString()}) no coincide con el monto total (${monto.toLocaleString()})
+          </div>
+        )}
       </div>
     </section>
   );

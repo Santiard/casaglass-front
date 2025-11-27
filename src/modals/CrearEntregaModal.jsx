@@ -234,6 +234,61 @@ const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores, se
     return { montoEfectivo, montoTransferencia, montoCheque };
   };
 
+  // Función para parsear el método de pago de un abono (formato: "EFECTIVO: 100.000 | TRANSFERENCIA: 50.000 (Banco de Bogotá) | RETEFUENTE Orden #1057: 12.500")
+  const parsearMetodoPagoAbono = (metodoPagoString) => {
+    if (!metodoPagoString || typeof metodoPagoString !== 'string') {
+      return { montoEfectivo: 0, montoTransferencia: 0, montoCheque: 0 };
+    }
+    
+    let montoEfectivo = 0;
+    let montoTransferencia = 0;
+    let montoCheque = 0;
+    
+    // Convertir a mayúsculas para búsqueda
+    const metodoUpper = metodoPagoString.toUpperCase();
+    
+    // Dividir por " | " para obtener cada método
+    const partes = metodoUpper.split('|').map(p => p.trim());
+    
+    for (const parte of partes) {
+      // Ignorar RETEFUENTE (es una deducción, no un método de pago)
+      if (parte.includes('RETEFUENTE')) {
+        continue;
+      }
+      
+      // Buscar EFECTIVO: monto
+      const efectivoMatch = parte.match(/EFECTIVO[:\s]+([\d.,\s]+)/);
+      if (efectivoMatch) {
+        // Extraer el número, puede tener formato: "100.000" o "100,000" o "100 000"
+        const montoStr = efectivoMatch[1].replace(/[^\d]/g, '');
+        const monto = parseFloat(montoStr) || 0;
+        montoEfectivo += monto;
+        continue;
+      }
+      
+      // Buscar TRANSFERENCIA: monto (puede tener banco entre paréntesis)
+      // Formato: "TRANSFERENCIA: 50.000 (Banco de Bogotá)" o "TRANSFERENCIA: 50.000"
+      const transferenciaMatch = parte.match(/TRANSFERENCIA[:\s]+([\d.,\s]+)/);
+      if (transferenciaMatch) {
+        const montoStr = transferenciaMatch[1].replace(/[^\d]/g, '');
+        const monto = parseFloat(montoStr) || 0;
+        montoTransferencia += monto;
+        continue;
+      }
+      
+      // Buscar CHEQUE: monto
+      const chequeMatch = parte.match(/CHEQUE[:\s]+([\d.,\s]+)/);
+      if (chequeMatch) {
+        const montoStr = chequeMatch[1].replace(/[^\d]/g, '');
+        const monto = parseFloat(montoStr) || 0;
+        montoCheque += monto;
+        continue;
+      }
+    }
+    
+    return { montoEfectivo, montoTransferencia, montoCheque };
+  };
+
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     
@@ -311,20 +366,20 @@ const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores, se
       montoCheque += parseado.montoCheque;
     });
     
-    // Los abonos pueden tener método de pago en el campo metodoPago
-    // Si no tienen método de pago específico, se asumen como efectivo por defecto
+    // Los abonos tienen método de pago en el campo metodoPago como string complejo
+    // Formato: "EFECTIVO: 100.000 | TRANSFERENCIA: 50.000 (Banco de Bogotá) | RETEFUENTE Orden #1057: 12.500"
     abonosSeleccionados.forEach(abono => {
-      const metodoPagoAbono = (abono.metodoPago || '').toUpperCase();
-      const montoAbono = Number(abono.montoAbono) || 0;
+      const metodoPagoString = abono.metodoPago || '';
       
-      if (metodoPagoAbono === 'EFECTIVO') {
-        montoEfectivo += montoAbono;
-      } else if (metodoPagoAbono === 'TRANSFERENCIA') {
-        montoTransferencia += montoAbono;
-      } else if (metodoPagoAbono === 'CHEQUE') {
-        montoCheque += montoAbono;
+      if (metodoPagoString) {
+        // Parsear el string del método de pago
+        const parseado = parsearMetodoPagoAbono(metodoPagoString);
+        montoEfectivo += parseado.montoEfectivo;
+        montoTransferencia += parseado.montoTransferencia;
+        montoCheque += parseado.montoCheque;
       } else {
-        // Por defecto, si no tiene método de pago, se asume efectivo
+        // Si no tiene método de pago, se asume efectivo por defecto
+        const montoAbono = Number(abono.montoAbono) || 0;
         montoEfectivo += montoAbono;
       }
     });
@@ -427,13 +482,10 @@ const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores, se
 
       // Gastos eliminados - ya no se validan ni se envían
 
-      // fechaUnica ya está declarada arriba (línea 306), reutilizarla
       const entregaData = {
         sedeId: parseInt(formData.sedeId),
         empleadoId: parseInt(formData.empleadoId),
-        fechaEntrega: formData.fechaEntrega || obtenerFechaLocal(),
-        fechaDesde: fechaUnica, // Misma fecha (solo un día)
-        fechaHasta: fechaUnica // Misma fecha (solo un día)
+        fechaEntrega: formData.fechaEntrega || obtenerFechaLocal()
       };
 
       // Campos opcionales - solo agregar si tienen valor

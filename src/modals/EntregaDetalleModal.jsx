@@ -1,5 +1,4 @@
-import "../styles/Table.css";
-import "../styles/IngresoNuevoModal.css";
+import "../styles/EntregaDetalleModal.css";
 
 export default function EntregaDetalleModal({ entrega, isOpen, onClose }) {
   if (!isOpen || !entrega) return null;
@@ -13,45 +12,48 @@ export default function EntregaDetalleModal({ entrega, isOpen, onClose }) {
     return isNaN(d) ? "-" : d.toLocaleString("es-CO", { year: "numeric", month: "2-digit", day: "2-digit" });
   };
 
-  const esperado = Number(entrega.montoEsperado ?? 0);
-  const totalGastos = Number(entrega.montoGastos ?? 0);
-  const montoEntregado = Number(entrega.montoEntregado ?? 0);
-  // Monto Neto Esperado = Monto Esperado - Monto Gastos
-  const montoNetoEsperado = esperado - totalGastos;
-  // Diferencia = Monto Neto Esperado - Monto Entregado
-  const dif = entrega.estado === "ENTREGADA" ? montoNetoEsperado - montoEntregado : (entrega.diferencia ?? 0);
+  // Usar monto (único campo de monto según el modelo simplificado)
+  const monto = Number(entrega.monto ?? 0);
+  const montoEfectivo = Number(entrega.montoEfectivo ?? 0);
+  const montoTransferencia = Number(entrega.montoTransferencia ?? 0);
+  const montoCheque = Number(entrega.montoCheque ?? 0);
+  const montoDeposito = Number(entrega.montoDeposito ?? 0);
+  
+  // Calcular suma del desglose para validación
+  const sumaDesglose = montoEfectivo + montoTransferencia + montoCheque + montoDeposito;
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-container modal-wide" onClick={(e) => e.stopPropagation()} style={{ maxHeight: "90vh", overflowY: "auto" }}>
+    <div className="entrega-detalle-modal-overlay" onClick={onClose}>
+      <div className="entrega-detalle-modal-container" onClick={(e) => e.stopPropagation()}>
         <h2>Detalles de Entrega #{entrega.id ?? "—"}</h2>
 
-        {/* Información general */}
-        <div className="modal-alerts" style={{ marginBottom: "20px" }}>
-          <div className="alert info">
-            <strong>Fecha:</strong> {fmtFecha(entrega.fechaEntrega)}
+        {/* Información general compacta */}
+        <div className="entrega-detalle-info-header">
+          <div className="entrega-detalle-info-item">
+            <label>Fecha</label>
+            <span>{fmtFecha(entrega.fechaEntrega)}</span>
           </div>
-          <div className="alert info">
-            <strong>Sede:</strong> {entrega.sede?.nombre ?? "-"}
+          <div className="entrega-detalle-info-item">
+            <label>Sede</label>
+            <span>{entrega.sede?.nombre ?? "-"}</span>
           </div>
-          <div className="alert info">
-            <strong>Empleado:</strong> {entrega.empleado?.nombre ?? "-"}
+          <div className="entrega-detalle-info-item">
+            <label>Empleado</label>
+            <span>{entrega.empleado?.nombre ?? "-"}</span>
           </div>
-          <div className={`alert ${entrega.estado === "ENTREGADA" ? "success" : entrega.estado === "PENDIENTE" ? "warning" : "error"}`}>
-            <strong>Estado:</strong> {entrega.estado}
+          <div className="entrega-detalle-info-item">
+            <label>Estado</label>
+            <span className={`estado-badge ${entrega.estado?.toLowerCase()}`}>
+              {entrega.estado}
+            </span>
           </div>
-          {entrega.observaciones && (
-            <div className="alert info" style={{ gridColumn: "1 / -1" }}>
-              <strong>Observaciones:</strong> {entrega.observaciones}
-            </div>
-          )}
         </div>
 
         {/* Tabla de órdenes */}
-        <div style={{ marginBottom: "20px" }}>
-          <h3 style={{ marginBottom: "10px" }}>Órdenes</h3>
-          <div className="table-wrapper">
-            <table className="table">
+        <div className="entrega-detalle-section">
+          <h3>Órdenes</h3>
+          <div className="entrega-detalle-table-wrapper">
+            <table className="entrega-detalle-table">
               <thead>
                 <tr>
                   <th># Orden</th>
@@ -97,10 +99,10 @@ export default function EntregaDetalleModal({ entrega, isOpen, onClose }) {
 
         {/* Tabla de gastos */}
         {gastos.length > 0 && (
-          <div style={{ marginBottom: "20px" }}>
-            <h3 style={{ marginBottom: "10px" }}>Gastos</h3>
-            <div className="table-wrapper">
-              <table className="table">
+          <div className="entrega-detalle-section">
+            <h3>Gastos</h3>
+            <div className="entrega-detalle-table-wrapper">
+              <table className="entrega-detalle-table">
                 <thead>
                   <tr>
                     <th>ID</th>
@@ -128,27 +130,37 @@ export default function EntregaDetalleModal({ entrega, isOpen, onClose }) {
           </div>
         )}
 
-        {/* Resumen financiero */}
-        <div className="modal-alerts" style={{ marginTop: "20px" }}>
-          <div className="alert info">
-            <strong>Monto Esperado (Órdenes):</strong> {fmtCOP(esperado)}
+        {/* Resumen financiero compacto */}
+        <div className="entrega-detalle-resumen">
+          <div className="entrega-detalle-resumen-item">
+            <label>Efectivo</label>
+            <span>{fmtCOP(montoEfectivo)}</span>
           </div>
-          <div className="alert info">
-            <strong>Total Gastos:</strong> {fmtCOP(totalGastos)}
+          <div className="entrega-detalle-resumen-item">
+            <label>Transferencia</label>
+            <span>{fmtCOP(montoTransferencia)}</span>
           </div>
-          <div className="alert info">
-            <strong>Monto Neto Esperado:</strong> {fmtCOP(montoNetoEsperado)}
+          <div className="entrega-detalle-resumen-item">
+            <label>Cheque</label>
+            <span>{fmtCOP(montoCheque)}</span>
           </div>
-          <div className="alert info">
-            <strong>Monto Entregado:</strong> {fmtCOP(montoEntregado)}
+          <div className="entrega-detalle-resumen-item">
+            <label>Depósito</label>
+            <span>{fmtCOP(montoDeposito)}</span>
           </div>
-          <div className={`alert ${dif === 0 ? 'success' : dif > 0 ? 'warning' : 'error'}`}>
-            <strong>Diferencia:</strong> {fmtCOP(dif)}
+          <div className="entrega-detalle-resumen-item monto-total">
+            <label>Monto Total</label>
+            <span>{fmtCOP(monto)}</span>
           </div>
+          {sumaDesglose !== monto && (
+            <div className="entrega-detalle-warning">
+              ⚠️ Advertencia: La suma del desglose (${sumaDesglose.toLocaleString()}) no coincide con el monto total (${monto.toLocaleString()})
+            </div>
+          )}
         </div>
 
-        <div className="modal-buttons">
-          <button className="btn-cancelar" onClick={onClose} type="button">Cerrar</button>
+        <div className="entrega-detalle-modal-buttons">
+          <button className="btn-cerrar" onClick={onClose} type="button">Cerrar</button>
         </div>
       </div>
     </div>

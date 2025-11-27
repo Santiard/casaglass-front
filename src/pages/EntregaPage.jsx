@@ -3,7 +3,6 @@ import EntregasTable from "../componets/EntregaTable.jsx";
 import EntregaDetalleModal from "../modals/EntregaDetalleModal.jsx";
 import CrearEntregaModal from "../modals/CrearEntregaModal.jsx";
 // CrearGastoModal eliminado - ya no se usan gastos en entregas
-import ConfirmarEntregaModal from "../modals/ConfirmarEntregaModal.jsx";
 import EntregasImprimirModal from "../modals/EntregasImprimirModal.jsx";
 import EntregasService from "../services/EntregasService.js";
 import * as SedesService from "../services/SedesService.js";
@@ -34,8 +33,6 @@ export default function EntregasPage() {
   // Estados de modales
   const [mostrarCrearModal, setMostrarCrearModal] = useState(false);
   // mostrarCrearGastoModal eliminado - ya no se usan gastos en entregas
-  const [mostrarConfirmarModal, setMostrarConfirmarModal] = useState(false);
-  const [entregaAConfirmar, setEntregaAConfirmar] = useState(null);
   const [mostrarImprimirModal, setMostrarImprimirModal] = useState(false);
   const [entregasParaImprimir, setEntregasParaImprimir] = useState([]);
   const [infoSeleccionadas, setInfoSeleccionadas] = useState({ count: 0, handler: null });
@@ -190,26 +187,38 @@ export default function EntregasPage() {
     cargarEntregas(); // Recargar lista
   };
 
-  const handleConfirmarEntrega = (entrega) => {
-    setEntregaAConfirmar(entrega);
-    setMostrarConfirmarModal(true);
-  };
-
-  const handleEntregaConfirmada = () => {
-    setMostrarConfirmarModal(false);
-    setEntregaAConfirmar(null);
-    cargarEntregas(); // Recargar lista
-  };
-
-  const handleCancelarEntrega = async (entrega, motivo) => {
-    try {
-      await EntregasService.cancelarEntrega(entrega.id, motivo);
-      cargarEntregas(); // Recargar lista
-    } catch (err) {
-      console.error("Error cancelando entrega:", err);
-      setError(`Error cancelando entrega: ${err.message}`);
+  const [confirmandoEntrega, setConfirmandoEntrega] = useState(false);
+  
+  const handleConfirmarEntrega = useCallback(async (entrega) => {
+    // Prevenir doble envío
+    if (confirmandoEntrega) {
+      return;
     }
-  };
+    
+    const confirmed = await confirm({
+      title: "Confirmar Entrega",
+      message: `¿Está seguro de que desea confirmar la entrega #${entrega.id}? El estado cambiará a "ENTREGADA".`,
+      confirmText: "Confirmar",
+      cancelText: "Cancelar",
+      type: "warning"
+    });
+    
+    if (confirmed) {
+      try {
+        setConfirmandoEntrega(true);
+        await EntregasService.confirmarEntrega(entrega.id);
+        // Recargar entregas después de confirmar
+        await cargarEntregas();
+      } catch (err) {
+        console.error("Error confirmando entrega:", err);
+        const errorMsg = err?.response?.data?.error || err?.response?.data?.message || err.message || "Error desconocido";
+        showToastError(`Error confirmando entrega: ${errorMsg}`);
+      } finally {
+        setConfirmandoEntrega(false);
+      }
+    }
+  }, [confirm, confirmandoEntrega, cargarEntregas, showToastError]);
+
 
   const handleEliminarEntrega = async (entrega) => {
     try {
@@ -291,7 +300,7 @@ export default function EntregasPage() {
               <button 
                 className="btn-crear-entrega" 
                 onClick={infoSeleccionadas.handler}
-                style={{ backgroundColor: "#1976d2" }}
+                style={{ backgroundColor: "#1e2753" }}
               >
                 Imprimir Seleccionadas
               </button>
@@ -301,6 +310,7 @@ export default function EntregasPage() {
             className="btn-crear-entrega" 
             onClick={handleImprimirMultiples}
             disabled={entregas.length === 0}
+            style={{ backgroundColor: "#1e2753" }}
           >
             Imprimir Entregas
           </button>
@@ -402,7 +412,6 @@ export default function EntregasPage() {
           data={entregas}
           onVerDetalles={(entrega) => setSeleccionado(entrega)}
           onConfirmar={handleConfirmarEntrega}
-          onCancelar={handleCancelarEntrega}
           onEliminar={handleEliminarEntrega}
           onImprimir={handleImprimirEntrega}
           onImprimirSeleccionadas={handleImprimirSeleccionadas}
@@ -430,12 +439,6 @@ export default function EntregasPage() {
         userId={userId}
       />
 
-      <ConfirmarEntregaModal
-        isOpen={mostrarConfirmarModal}
-        entrega={entregaAConfirmar}
-        onClose={() => setMostrarConfirmarModal(false)}
-        onSuccess={handleEntregaConfirmada}
-      />
 
       <EntregasImprimirModal
         isOpen={mostrarImprimirModal}

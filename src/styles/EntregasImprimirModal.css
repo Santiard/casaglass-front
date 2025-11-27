@@ -1,0 +1,374 @@
+/* Estilos específicos para el modal de imprimir entregas */
+.entregas-imprimir-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(30, 39, 83, 0.6);
+  display: grid;
+  place-items: center;
+  z-index: 10000;
+}
+
+.entregas-imprimir-modal-container {
+  background: #fff;
+  padding: 1.5rem;
+  border-radius: 8px;
+  width: 95vw;
+  max-width: 1400px;
+  max-height: 95vh;
+  overflow-y: auto;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.entregas-imprimir-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid #1e2753;
+}
+
+.entregas-imprimir-modal-header h2 {
+  margin: 0;
+  color: #1e2753;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.entregas-imprimir-modal-actions {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+}
+
+/* Sección de selección mejorada */
+.entregas-seleccion-section {
+  background: #f8f9fa;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.entregas-seleccion-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.entregas-seleccion-header h3 {
+  margin: 0;
+  color: #1e2753;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.entregas-seleccion-count {
+  color: #666;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.entregas-seleccion-controls {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.entregas-seleccion-controls button {
+  padding: 0.5rem 1rem;
+  border: 1px solid #1e2753;
+  background: #fff;
+  color: #1e2753;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.entregas-seleccion-controls button:hover {
+  background: #1e2753;
+  color: #fff;
+}
+
+/* Grid de tarjetas de entregas */
+.entregas-seleccion-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 0.75rem;
+  max-height: 300px;
+  overflow-y: auto;
+  padding: 0.5rem;
+}
+
+.entregas-seleccion-item {
+  background: #fff;
+  border: 2px solid #e0e0e0;
+  border-radius: 6px;
+  padding: 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.entregas-seleccion-item:hover {
+  border-color: #1e2753;
+  background: #f0f4ff;
+  transform: translateY(-2px);
+  box-shadow: 0 2px 8px rgba(30, 39, 83, 0.15);
+}
+
+.entregas-seleccion-item.selected {
+  border-color: #1e2753;
+  background: #e3f2fd;
+}
+
+.entregas-seleccion-item input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  accent-color: #1e2753;
+  flex-shrink: 0;
+}
+
+.entregas-seleccion-item-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.entregas-seleccion-item-numero {
+  font-weight: 700;
+  color: #1e2753;
+  font-size: 0.95rem;
+}
+
+.entregas-seleccion-item-fecha {
+  font-size: 0.85rem;
+  color: #666;
+}
+
+.entregas-seleccion-item-monto {
+  font-size: 0.9rem;
+  color: #333;
+  font-weight: 600;
+}
+
+/* Botones de acción */
+.entregas-imprimir-buttons {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.entregas-imprimir-buttons .btn-imprimir {
+  padding: 0.625rem 1.5rem;
+  background-color: #1e2753;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.entregas-imprimir-buttons .btn-imprimir:hover {
+  background-color: #2a3569;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.entregas-imprimir-buttons .btn-cerrar {
+  padding: 0.625rem 1.5rem;
+  background-color: #dc3545;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.entregas-imprimir-buttons .btn-cerrar:hover {
+  background-color: #c82333;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Scrollbar personalizado */
+.entregas-seleccion-grid::-webkit-scrollbar {
+  width: 8px;
+}
+
+.entregas-seleccion-grid::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.entregas-seleccion-grid::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}
+
+.entregas-seleccion-grid::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+/* Estilos específicos para las tablas del reporte de impresión */
+.entregas-imprimir-modal-container .entregas-imprimir-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 10px 0;
+  font-size: 0.9rem;
+  background: #fff;
+}
+
+.entregas-imprimir-modal-container .entregas-imprimir-table thead {
+  background-color: #1e2753;
+  color: #fff;
+}
+
+.entregas-imprimir-modal-container .entregas-imprimir-table th {
+  padding: 10px 12px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.85rem;
+  border: 1px solid #1e2753;
+}
+
+.entregas-imprimir-modal-container .entregas-imprimir-table td {
+  padding: 8px 12px;
+  border-bottom: 1px solid #e0e0e0;
+  border-right: 1px solid #f0f0f0;
+  font-size: 0.85rem;
+  color: #333;
+}
+
+.entregas-imprimir-modal-container .entregas-imprimir-table tbody tr:nth-child(even) {
+  background-color: #f8f9fa;
+}
+
+.entregas-imprimir-modal-container .entregas-imprimir-table tbody tr:hover {
+  background-color: #f0f4ff;
+}
+
+.entregas-imprimir-modal-container .entregas-imprimir-table .empty {
+  text-align: center;
+  color: #999;
+  padding: 20px;
+  font-style: italic;
+}
+
+/* Estilos para el contenido imprimible */
+.entregas-imprimir-modal-container .printable-content {
+  background: #fff;
+  padding: 20px;
+}
+
+.entregas-imprimir-modal-container .orden-header {
+  text-align: center;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 2px solid #1e2753;
+}
+
+.entregas-imprimir-modal-container .orden-header h1 {
+  margin: 0 0 5px 0;
+  color: #1e2753;
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.entregas-imprimir-modal-container .orden-header h2 {
+  margin: 5px 0;
+  color: #333;
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.entregas-imprimir-modal-container .orden-header p {
+  margin: 5px 0;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+/* Estilos para el encabezado de cada entrega */
+.entregas-imprimir-modal-container .entrega-header {
+  margin-bottom: 15px;
+  padding: 12px;
+  background: #f8f9fa;
+  border-radius: 6px;
+  border-left: 4px solid #1e2753;
+}
+
+.entregas-imprimir-modal-container .entrega-header h3 {
+  margin: 0 0 5px 0;
+  color: #1e2753;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.entregas-imprimir-modal-container .entrega-header p {
+  margin: 3px 0;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+/* Estilos para los totales */
+.entregas-imprimir-modal-container .total {
+  margin-top: 15px;
+  padding: 12px;
+  background: #f8f9fa;
+  border-radius: 6px;
+  text-align: right;
+}
+
+.entregas-imprimir-modal-container .total p {
+  margin: 4px 0;
+  font-size: 0.9rem;
+  color: #333;
+}
+
+.entregas-imprimir-modal-container .total p strong {
+  color: #1e2753;
+  font-weight: 600;
+}
+
+/* Estilos para impresión */
+@media print {
+  .entregas-imprimir-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: #fff;
+    padding: 0;
+  }
+
+  .entregas-imprimir-modal-container {
+    max-width: 100%;
+    max-height: 100%;
+    box-shadow: none;
+    padding: 20px;
+  }
+
+  .entregas-imprimir-modal-header,
+  .entregas-seleccion-section {
+    display: none !important;
+  }
+
+  .entregas-imprimir-modal-container .entregas-imprimir-table {
+    font-size: 0.75rem;
+  }
+
+  .entregas-imprimir-modal-container .entregas-imprimir-table th,
+  .entregas-imprimir-modal-container .entregas-imprimir-table td {
+    padding: 4px 6px;
+  }
+}
+

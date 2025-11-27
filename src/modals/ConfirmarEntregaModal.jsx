@@ -3,37 +3,8 @@ import EntregasService from '../services/EntregasService';
 import './ConfirmarEntregaModal.css';
 
 const ConfirmarEntregaModal = ({ isOpen, entrega, onClose, onSuccess }) => {
-  const [formData, setFormData] = useState({
-    montoEntregado: '',
-    observaciones: ''
-  });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-
-  useEffect(() => {
-    if (entrega && isOpen) {
-      setFormData({
-        montoEntregado: entrega.montoEntregado || '',
-        observaciones: ''
-      });
-      setError('');
-    }
-  }, [entrega, isOpen]);
-
-  const handleChange = (e) => {
-    const { name, value, type } = e.target;
-    // Campos de texto se convierten a mayúsculas
-    const processedValue = (type === 'text') ? value.toUpperCase() : value;
-    setFormData(prev => ({
-      ...prev,
-      [name]: processedValue
-    }));
-  };
-
-  const calcularDiferencia = () => {
-    if (!entrega || !formData.montoEntregado) return 0;
-    return parseFloat(formData.montoEntregado) - (entrega.montoEntregado || 0);
-  };
 
   const sumaDesglose = () => {
     const e = entrega || {};
@@ -46,25 +17,11 @@ const ConfirmarEntregaModal = ({ isOpen, entrega, onClose, onSuccess }) => {
     e.preventDefault();
     setError('');
 
-    if (!formData.montoEntregado) {
-      setError('Debe especificar el monto entregado');
-      return;
-    }
-
-    const montoEntregado = parseFloat(formData.montoEntregado);
-    if (isNaN(montoEntregado) || montoEntregado < 0) {
-      setError('El monto debe ser un número válido mayor o igual a 0');
-      return;
-    }
-
     try {
       setLoading(true);
       
-      await EntregasService.confirmarEntrega(
-        entrega.id,
-        montoEntregado,
-        formData.observaciones
-      );
+      // Confirmar entrega sin montoEntregado ni observaciones (modelo simplificado)
+      await EntregasService.confirmarEntrega(entrega.id);
       
       if (onSuccess) onSuccess();
       onClose();
@@ -79,7 +36,12 @@ const ConfirmarEntregaModal = ({ isOpen, entrega, onClose, onSuccess }) => {
 
   if (!isOpen || !entrega) return null;
 
-  const diferencia = calcularDiferencia();
+  const monto = Number(entrega.monto ?? 0);
+  const montoEfectivo = Number(entrega.montoEfectivo ?? 0);
+  const montoTransferencia = Number(entrega.montoTransferencia ?? 0);
+  const montoCheque = Number(entrega.montoCheque ?? 0);
+  const montoDeposito = Number(entrega.montoDeposito ?? 0);
+  const suma = sumaDesglose();
 
   return (
     <div className="confirmar-entrega-modal-overlay">
@@ -107,18 +69,31 @@ const ConfirmarEntregaModal = ({ isOpen, entrega, onClose, onSuccess }) => {
               <label>Fecha:</label>
               <span>{entrega.fechaEntrega}</span>
             </div>
-            <div className="info-item">
-              <label>Total Órdenes:</label>
-              <span>${entrega.montoEsperado?.toLocaleString()}</span>
-            </div>
-            <div className="info-item">
-              <label>Gastos:</label>
-              <span>${entrega.montoGastos?.toLocaleString()}</span>
-            </div>
             <div className="info-item highlight">
-              <label>Suma Desglose (efec+transf+cheque+dep):</label>
-              <span>${sumaDesglose().toLocaleString()}</span>
+              <label>Monto Total:</label>
+              <span>${monto.toLocaleString()}</span>
             </div>
+            <div className="info-item">
+              <label>Efectivo:</label>
+              <span>${montoEfectivo.toLocaleString()}</span>
+            </div>
+            <div className="info-item">
+              <label>Transferencia:</label>
+              <span>${montoTransferencia.toLocaleString()}</span>
+            </div>
+            <div className="info-item">
+              <label>Cheque:</label>
+              <span>${montoCheque.toLocaleString()}</span>
+            </div>
+            <div className="info-item">
+              <label>Depósito:</label>
+              <span>${montoDeposito.toLocaleString()}</span>
+            </div>
+            {suma !== monto && (
+              <div className="info-item" style={{ gridColumn: "1 / -1", color: "red" }}>
+                ⚠️ Advertencia: La suma del desglose (${suma.toLocaleString()}) no coincide con el monto total (${monto.toLocaleString()})
+              </div>
+            )}
             <div className="info-item">
               <label>Estado Actual:</label>
               <span className={`estado-badge ${entrega.estado?.toLowerCase()}`}>
@@ -130,50 +105,10 @@ const ConfirmarEntregaModal = ({ isOpen, entrega, onClose, onSuccess }) => {
 
         <form onSubmit={handleSubmit} className="confirmar-form">
           <div className="form-group">
-            <label>Monto Real Entregado *</label>
-            <div className="monto-input-container">
-              <span className="currency-symbol">$</span>
-              <input
-                type="number"
-                name="montoEntregado"
-                value={formData.montoEntregado}
-                onChange={handleChange}
-                placeholder="0"
-                step="any"
-                min="0"
-                required
-              />
-            </div>
-          </div>
-
-          {diferencia !== 0 && (
-            <div className={`diferencia-alert ${diferencia < 0 ? 'negativa' : 'positiva'}`}>
-              <div className="diferencia-header">
-                <strong>
-                  {diferencia < 0 ? '⚠️ Diferencia Negativa' : 'ℹ️ Diferencia Positiva'}
-                </strong>
-              </div>
-              <div className="diferencia-amount">
-                {diferencia < 0 ? 'Faltante' : 'Sobrante'}: ${Math.abs(diferencia).toLocaleString()}
-              </div>
-              <div className="diferencia-description">
-                {diferencia < 0 
-                  ? 'Se entregó menos dinero del calculado. Por favor verifica los gastos o las órdenes incluidas.'
-                  : 'Se entregó más dinero del calculado. Por favor verifica si hay ingresos adicionales no registrados.'
-                }
-              </div>
-            </div>
-          )}
-
-          <div className="form-group">
-            <label>Observaciones</label>
-            <textarea
-              name="observaciones"
-              value={formData.observaciones}
-              onChange={handleChange}
-              rows="4"
-              placeholder="Observaciones sobre la entrega (opcional)..."
-            />
+            <label>¿Está seguro de que desea confirmar esta entrega?</label>
+            <p style={{ color: '#666', fontSize: '0.9em', marginTop: '0.5rem' }}>
+              El estado cambiará a "ENTREGADA". Esta acción confirma que se entregó el monto total especificado.
+            </p>
           </div>
 
           {error && (

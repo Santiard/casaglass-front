@@ -14,11 +14,13 @@ export default function EntregaModal({
     fechaEntrega: new Date().toISOString().substring(0, 10),
     sede: { id: "sede-1", nombre: "Sede Principal" },
     empleado: { id: "emp-1", nombre: "Cajero (mock)" },
-    observaciones: "",
     detalles: [],             // [{ id, orden:{id}, numeroOrden, fechaOrden, montoOrden }]
     gastos: [],               // [{ id, descripcion, monto }]
-    montoEsperado: 0,
-    montoGastos: 0,
+    monto: 0,                 // Monto total (único campo de monto según modelo simplificado)
+    montoEfectivo: 0,
+    montoTransferencia: 0,
+    montoCheque: 0,
+    montoDeposito: 0,
     estado: "PENDIENTE",
   };
 
@@ -38,11 +40,13 @@ export default function EntregaModal({
         fechaEntrega: fechaLocal,
         sede: entregaInicial.sede ?? empty.sede,
         empleado: entregaInicial.empleado ?? empty.empleado,
-        observaciones: entregaInicial.observaciones ?? "",
         detalles: Array.isArray(entregaInicial.detalles) ? entregaInicial.detalles : [],
         gastos: Array.isArray(entregaInicial.gastos) ? entregaInicial.gastos : [],
-        montoEsperado: Number(entregaInicial.montoEsperado ?? 0),
-        montoGastos: Number(entregaInicial.montoGastos ?? 0),
+        monto: Number(entregaInicial.monto ?? 0),
+        montoEfectivo: Number(entregaInicial.montoEfectivo ?? 0),
+        montoTransferencia: Number(entregaInicial.montoTransferencia ?? 0),
+        montoCheque: Number(entregaInicial.montoCheque ?? 0),
+        montoDeposito: Number(entregaInicial.montoDeposito ?? 0),
         estado: entregaInicial.estado ?? "PENDIENTE",
       });
     } else {
@@ -68,15 +72,15 @@ export default function EntregaModal({
     return base.filter(g => String(g.descripcion ?? "").toLowerCase().includes(q));
   }, [gastosDisponibles, qGasto, form.gastos]);
 
-  const esperado = useMemo(() => form.detalles.reduce((acc, d) => acc + Number(d.montoOrden ?? 0), 0), [form.detalles]);
-  const totalGastos = useMemo(() => form.gastos.reduce((acc, g) => acc + Number(g.monto ?? 0), 0), [form.gastos]);
+  // Calcular monto total desde el desglose
+  const montoCalculado = useMemo(() => {
+    return (form.montoEfectivo ?? 0) + (form.montoTransferencia ?? 0) + (form.montoCheque ?? 0) + (form.montoDeposito ?? 0);
+  }, [form.montoEfectivo, form.montoTransferencia, form.montoCheque, form.montoDeposito]);
 
   useEffect(() => {
-    setField("montoEsperado", Math.round(esperado));
-  }, [esperado]);
-  useEffect(() => {
-    setField("montoGastos", Math.round(totalGastos));
-  }, [totalGastos]);
+    // Actualizar monto total cuando cambia el desglose
+    setField("monto", Math.round(montoCalculado));
+  }, [montoCalculado]);
 
   const addOrden = (o) => {
     if (!editable) return;
@@ -119,7 +123,6 @@ export default function EntregaModal({
       fechaEntrega: isoFecha,
       sede: form.sede,
       empleado: form.empleado,
-      observaciones: form.observaciones?.trim() ?? "",
       detalles: form.detalles.map(d => ({
         id: d.id,
         orden: { id: d.orden.id },
@@ -128,8 +131,11 @@ export default function EntregaModal({
         montoOrden: Number(d.montoOrden),
       })),
       gastos: form.gastos.map(g => ({ id: g.id, descripcion: g.descripcion, monto: Number(g.monto) })),
-      montoEsperado: Number(esperado),
-      montoGastos: Number(totalGastos),
+      monto: Number(form.monto ?? 0),
+      montoEfectivo: Number(form.montoEfectivo ?? 0),
+      montoTransferencia: Number(form.montoTransferencia ?? 0),
+      montoCheque: Number(form.montoCheque ?? 0),
+      montoDeposito: Number(form.montoDeposito ?? 0),
       estado: form.estado ?? "PENDIENTE",
     };
     onSave?.(payload, isEdit);
@@ -185,9 +191,21 @@ export default function EntregaModal({
                 <input type="text" value={form.empleado?.nombre ?? ""} onChange={(e) => setField("empleado", { ...form.empleado, nombre: e.target.value })} disabled={!editable} />
               </label>
 
-              <label className="full">
-                Observaciones
-                <input type="text" value={form.observaciones} onChange={(e) => setField("observaciones", e.target.value)} disabled={!editable} />
+              <label>
+                Monto Efectivo
+                <input type="number" value={form.montoEfectivo ?? 0} onChange={(e) => setField("montoEfectivo", parseFloat(e.target.value) || 0)} disabled={!editable} />
+              </label>
+              <label>
+                Monto Transferencia
+                <input type="number" value={form.montoTransferencia ?? 0} onChange={(e) => setField("montoTransferencia", parseFloat(e.target.value) || 0)} disabled={!editable} />
+              </label>
+              <label>
+                Monto Cheque
+                <input type="number" value={form.montoCheque ?? 0} onChange={(e) => setField("montoCheque", parseFloat(e.target.value) || 0)} disabled={!editable} />
+              </label>
+              <label>
+                Monto Depósito
+                <input type="number" value={form.montoDeposito ?? 0} onChange={(e) => setField("montoDeposito", parseFloat(e.target.value) || 0)} disabled={!editable} />
               </label>
             </div>
 
@@ -335,10 +353,12 @@ export default function EntregaModal({
         </div>
 
         {/* Resumen */}
-        <div className="modal-alerts" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
-          <div className="alert info"><strong>Órdenes:</strong> {form.detalles.length}</div>
-          <div className="alert info"><strong>Esperado (Órdenes):</strong> {fmtCOP(esperado)}</div>
-          <div className="alert info"><strong>Gastos:</strong> {fmtCOP(totalGastos)}</div>
+        <div className="modal-alerts" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 8 }}>
+          <div className="alert info"><strong>Monto Total:</strong> {fmtCOP(form.monto ?? 0)}</div>
+          <div className="alert info"><strong>Efectivo:</strong> {fmtCOP(form.montoEfectivo ?? 0)}</div>
+          <div className="alert info"><strong>Transferencia:</strong> {fmtCOP(form.montoTransferencia ?? 0)}</div>
+          <div className="alert info"><strong>Cheque:</strong> {fmtCOP(form.montoCheque ?? 0)}</div>
+          <div className="alert info"><strong>Depósito:</strong> {fmtCOP(form.montoDeposito ?? 0)}</div>
         </div>
 
         {/* Botones */}
