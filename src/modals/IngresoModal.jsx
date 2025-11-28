@@ -1,12 +1,14 @@
 // src/modals/IngresoModal.jsx
 import { useEffect, useMemo, useState } from "react";
 import "../styles/IngresoNuevoModal.css";
+import "../styles/Table.css";
 import {
   toLocalDateString,
 } from "../services/IngresosService.js";
 import CategorySidebar from "../componets/CategorySidebar.jsx";
 import { listarCategorias } from "../services/CategoriasService.js";
 import { useToast } from "../context/ToastContext.jsx";
+import { listarProveedores } from "../services/ProveedoresService.js";
 
 export default function IngresoModal({
   isOpen,
@@ -31,6 +33,9 @@ export default function IngresoModal({
   const [editable, setEditable] = useState(true);
   const [selectedCategoryId, setSelectedCategoryId] = useState(null);
   const [categorias, setCategorias] = useState([]);
+  const [proveedoresLista, setProveedoresLista] = useState([]);
+  const [showProveedorModal, setShowProveedorModal] = useState(false);
+  const [proveedorSearchModal, setProveedorSearchModal] = useState("");
 
   const isEdit = Boolean(ingresoInicial?.id);
 
@@ -98,7 +103,7 @@ export default function IngresoModal({
   setSelectedCategoryId(null);
 }, [isOpen, ingresoInicial]);
 
-  // Cargar categorías desde el servidor
+  // Cargar categorías y proveedores desde el servidor
   useEffect(() => {
     const fetchCategorias = async () => {
       try {
@@ -110,12 +115,24 @@ export default function IngresoModal({
         // No mostramos alert para evitar interrumpir la UX del modal
       }
     };
+
+    const fetchProveedores = async () => {
+      try {
+        const provs = await listarProveedores();
+        setProveedoresLista(Array.isArray(provs) ? provs : []);
+      } catch (e) {
+        console.error("Error cargando proveedores:", e);
+        setProveedoresLista([]);
+      }
+    };
     
     if (isOpen) {
       fetchCategorias();
+      fetchProveedores();
     } else {
-      // Reset categorías cuando se cierre el modal
+      // Reset categorías y proveedores cuando se cierre el modal
       setCategorias([]);
+      setProveedoresLista([]);
     }
   }, [isOpen]);
 
@@ -195,16 +212,15 @@ export default function IngresoModal({
   const setField = (field, value) =>
     setForm((prev) => ({ ...prev, [field]: value }));
 
-  const handleProveedorSelect = (value) => {
+  const handleProveedorSelect = (proveedor) => {
     if (!editable) return;
-    setForm((prev) => {
-      const prov = proveedores.find((p) => String(p.id) === String(value));
-      return {
-        ...prev,
-        proveedorId: value,
-        proveedorNombre: prov?.nombre ?? prev.proveedorNombre,
-      };
-    });
+    setForm((prev) => ({
+      ...prev,
+      proveedorId: String(proveedor.id),
+      proveedorNombre: proveedor.nombre ?? "",
+    }));
+    setShowProveedorModal(false);
+    setProveedorSearchModal("");
   };
 
   const addProducto = (prod) => {
@@ -267,7 +283,7 @@ export default function IngresoModal({
           filtered = parts[0] + '.' + parts[1].substring(0, 2);
         }
         row[field] = filtered === "" || filtered === "." ? "" : filtered;
-      } else if (field === "nombre" || field === "codigo") {
+      } else if (field === "nombre" || field === "codigo" || field === "color") {
         row.producto = { ...row.producto, [field]: value };
       }
       arr[idx] = row;
@@ -384,19 +400,44 @@ export default function IngresoModal({
               </label>
 
               <label>
-                Proveedor (seleccionar)
-                <select
-                  value={form.proveedorId}
-                  onChange={(e) => handleProveedorSelect(e.target.value)}
-                  disabled={!editable && isEdit}
-                >
-                  <option value="">-- Ninguno --</option>
-                  {proveedores.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.nombre}
-                    </option>
-                  ))}
-                </select>
+                Proveedor
+                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                  <input
+                    type="text"
+                    value={form.proveedorNombre || ""}
+                    readOnly
+                    onClick={() => editable && !isEdit && setShowProveedorModal(true)}
+                    placeholder="Haz clic para seleccionar un proveedor..."
+                    disabled={!editable && isEdit}
+                    style={{
+                      width: '100%',
+                      padding: '0.5rem',
+                      border: '1px solid #c2c2c3',
+                      borderRadius: '8px',
+                      fontSize: '0.95rem',
+                      cursor: editable && !isEdit ? 'pointer' : 'not-allowed',
+                      backgroundColor: editable && !isEdit ? '#fff' : '#f5f5f5'
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (editable && !isEdit) {
+                        setProveedorSearchModal("");
+                        setShowProveedorModal(true);
+                      }
+                    }}
+                    className="btn-guardar"
+                    disabled={!editable && isEdit}
+                    style={{
+                      whiteSpace: 'nowrap',
+                      padding: '0.5rem 1rem',
+                      fontSize: '0.9rem'
+                    }}
+                  >
+                    {form.proveedorId ? 'Cambiar' : 'Seleccionar'}
+                  </button>
+                </div>
               </label>
 
               <label className="full">
@@ -422,6 +463,7 @@ export default function IngresoModal({
                     <tr>
                       <th>Nombre</th>
                       <th>Código</th>
+                      <th>Color</th>
                       <th style={{ width: 110 }}>Cantidad</th>
                       <th style={{ width: 130 }}>Costo unit.</th>
                       <th style={{ width: 60 }}></th>
@@ -436,20 +478,28 @@ export default function IngresoModal({
                           <input
                             type="text"
                             value={d.producto.nombre}
-                            onChange={(e) =>
-                              setDetalle(idx, "nombre", e.target.value)
-                            }
-                            disabled={!editable && isEdit}
+                            readOnly
+                            disabled
+                            style={{ backgroundColor: '#f5f5f5', cursor: 'not-allowed' }}
                           />
                         </td>
                         <td>
                           <input
                             type="text"
                             value={d.producto.codigo ?? ""}
-                            onChange={(e) =>
-                              setDetalle(idx, "codigo", e.target.value)
-                            }
-                            disabled={!editable && isEdit}
+                            readOnly
+                            disabled
+                            style={{ backgroundColor: '#f5f5f5', cursor: 'not-allowed' }}
+                          />
+                        </td>
+                        <td>
+                          <input
+                            type="text"
+                            value={d.producto.color ?? ""}
+                            readOnly
+                            disabled
+                            placeholder="Color"
+                            style={{ backgroundColor: '#f5f5f5', cursor: 'not-allowed' }}
                           />
                         </td>
                         <td>
@@ -510,7 +560,7 @@ export default function IngresoModal({
                       </tr>
                     ))}
                     <tr>
-                      <td colSpan={3} style={{ textAlign: "right", fontWeight: 600 }}>
+                      <td colSpan={4} style={{ textAlign: "right", fontWeight: 600 }}>
                         Total
                       </td>
                       <td colSpan={2} style={{ fontWeight: 700 }}>
@@ -644,6 +694,162 @@ export default function IngresoModal({
           </button>
         </div>
       </div>
+
+      {/* Modal de selección de proveedores */}
+      {showProveedorModal && (
+        <div className="modal-overlay proveedor-seleccion-overlay" style={{ zIndex: 100001 }}>
+          <div className="proveedor-seleccion-modal-container">
+            <header className="modal-header proveedor-seleccion-header">
+              <h2>Seleccionar Proveedor</h2>
+              <button 
+                className="close-btn-proveedor" 
+                onClick={() => {
+                  setProveedorSearchModal("");
+                  setShowProveedorModal(false);
+                }}
+              >
+                ✕
+              </button>
+            </header>
+            
+            <div className="proveedor-seleccion-search-container">
+              <input
+                type="text"
+                value={proveedorSearchModal}
+                onChange={(e) => setProveedorSearchModal(e.target.value)}
+                placeholder="Buscar proveedor por nombre, NIT, ciudad, dirección o teléfono..."
+                className="clientes-input"
+                style={{
+                  width: '100%',
+                  fontSize: '1rem',
+                  padding: '0.5rem',
+                  border: '1px solid #d2d5e2',
+                  borderRadius: '5px'
+                }}
+                autoFocus
+              />
+              {(() => {
+                const searchTerm = proveedorSearchModal.trim().toLowerCase();
+                const filtered = searchTerm
+                  ? proveedoresLista.filter((p) =>
+                      [p.nombre, p.nit, p.ciudad, p.direccion, p.telefono]
+                        .filter(Boolean)
+                        .some((v) => String(v).toLowerCase().includes(searchTerm))
+                    )
+                  : proveedoresLista;
+                return (
+                  <div style={{ 
+                    marginTop: '0.5rem', 
+                    fontSize: '0.85rem', 
+                    color: '#666',
+                    textAlign: 'right'
+                  }}>
+                    {filtered.length} proveedor{filtered.length !== 1 ? 'es' : ''} encontrado{filtered.length !== 1 ? 's' : ''}
+                  </div>
+                );
+              })()}
+            </div>
+            
+            <div className="proveedor-seleccion-table-container">
+              {(() => {
+                const searchTerm = proveedorSearchModal.trim().toLowerCase();
+                const filtered = searchTerm
+                  ? proveedoresLista.filter((p) =>
+                      [p.nombre, p.nit, p.ciudad, p.direccion, p.telefono]
+                        .filter(Boolean)
+                        .some((v) => String(v).toLowerCase().includes(searchTerm))
+                    )
+                  : proveedoresLista;
+                
+                // Ordenar alfabéticamente
+                const sorted = [...filtered].sort((a, b) => {
+                  const nombreA = (a.nombre || "").toLowerCase();
+                  const nombreB = (b.nombre || "").toLowerCase();
+                  return nombreA.localeCompare(nombreB, 'es', { sensitivity: 'base' });
+                });
+                
+                if (sorted.length === 0) {
+                  return (
+                    <div style={{ padding: '2rem', color: '#666', textAlign: 'center' }}>
+                      No se encontraron proveedores
+                    </div>
+                  );
+                }
+                
+                return (
+                  <div style={{ 
+                    overflowX: 'auto', 
+                    overflowY: 'auto',
+                    maxWidth: '100%',
+                    width: '100%',
+                    WebkitOverflowScrolling: 'touch'
+                  }}>
+                    <table className="table proveedor-seleccion-table">
+                      <thead>
+                        <tr>
+                          <th style={{ width: '25%' }}>Nombre</th>
+                          <th style={{ width: '15%' }}>NIT</th>
+                          <th style={{ width: '20%' }}>Ciudad</th>
+                          <th style={{ width: '20%' }}>Dirección</th>
+                          <th style={{ width: '10%' }}>Teléfono</th>
+                          <th style={{ width: '10%', textAlign: 'center' }}>Acción</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {sorted.map((p) => (
+                          <tr key={p.id}>
+                            <td title={p.nombre || '-'} style={{ fontWeight: '500', color: '#1e2753' }}>
+                              {p.nombre || '-'}
+                            </td>
+                            <td title={p.nit || '-'}>
+                              {p.nit || '-'}
+                            </td>
+                            <td title={p.ciudad || '-'}>
+                              {p.ciudad || '-'}
+                            </td>
+                            <td title={p.direccion || '-'}>
+                              {p.direccion || '-'}
+                            </td>
+                            <td title={p.telefono || '-'}>
+                              {p.telefono || '-'}
+                            </td>
+                            <td style={{ textAlign: 'center' }}>
+                              <button
+                                type="button"
+                                onClick={() => handleProveedorSelect(p)}
+                                className="btn-guardar"
+                                style={{
+                                  padding: '0.5rem 1rem',
+                                  fontSize: '0.9rem',
+                                  whiteSpace: 'nowrap'
+                                }}
+                              >
+                                Seleccionar
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                );
+              })()}
+            </div>
+            
+            <div className="proveedor-seleccion-footer">
+              <button 
+                className="proveedor-seleccion-cancel-btn" 
+                onClick={() => {
+                  setProveedorSearchModal("");
+                  setShowProveedorModal(false);
+                }}
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

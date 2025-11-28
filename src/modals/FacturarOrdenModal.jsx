@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from "react";
 import "../styles/FacturarOrdenModal.css";
+import "../styles/Table.css";
 import { useToast } from "../context/ToastContext.jsx";
 import { getBusinessSettings } from "../services/businessSettingsService.js";
+import { listarClientes } from "../services/ClientesService.js";
 
 export default function FacturarOrdenModal({ isOpen, onClose, onSave, orden }) {
   const { showError } = useToast();
@@ -22,10 +24,15 @@ export default function FacturarOrdenModal({ isOpen, onClose, onSave, orden }) {
   const [ivaRate, setIvaRate] = useState(19); // Porcentaje de IVA desde configuración
   const [retefuenteRate, setRetefuenteRate] = useState(2.5); // Porcentaje de retención desde configuración
   const [retefuenteThreshold, setRetefuenteThreshold] = useState(1000000); // Umbral de retención desde configuración
+  const [clientes, setClientes] = useState([]);
+  const [clienteFacturaId, setClienteFacturaId] = useState(""); // Cliente al que se factura (opcional)
+  const [clienteFactura, setClienteFactura] = useState(null); // Objeto completo del cliente seleccionado
+  const [showClienteModal, setShowClienteModal] = useState(false);
+  const [clienteSearchModal, setClienteSearchModal] = useState("");
   const creditoPendiente = Boolean(orden?.credito) && Number(orden?.creditoDetalle?.saldoPendiente || 0) > 0;
   const isAnulada = String(orden?.estado || "").toUpperCase() === "ANULADA";
 
-  // Cargar configuración de impuestos al abrir el modal
+  // Cargar configuración de impuestos y clientes al abrir el modal
   useEffect(() => {
     if (isOpen) {
       getBusinessSettings().then((settings) => {
@@ -35,8 +42,27 @@ export default function FacturarOrdenModal({ isOpen, onClose, onSave, orden }) {
           setRetefuenteThreshold(Number(settings.retefuenteThreshold) || 1000000);
         }
       });
+      
+      // Cargar clientes (solo para el modal de selección cuando se quiere cambiar)
+      listarClientes().then((clientesData) => {
+        const clientesArray = Array.isArray(clientesData) ? clientesData : [];
+        setClientes(clientesArray);
+      }).catch((err) => {
+        console.error("Error cargando clientes:", err);
+        setClientes([]);
+      });
+      
+      // Inicializar con el cliente de la orden (ahora viene completo desde el backend)
+      if (orden?.cliente) {
+        // El backend ahora retorna todos los datos del cliente en orden.cliente
+        setClienteFactura(orden.cliente);
+        setClienteFacturaId(String(orden.cliente.id));
+      } else {
+        setClienteFactura(null);
+        setClienteFacturaId("");
+      }
     }
-  }, [isOpen]);
+  }, [isOpen, orden]);
 
   useEffect(() => {
     if (isOpen && orden) {
@@ -81,6 +107,9 @@ export default function FacturarOrdenModal({ isOpen, onClose, onSave, orden }) {
         formaPago: "EFECTIVO",
         observaciones: `Factura generada desde orden #${orden.numero}`,
       });
+      
+      // La inicialización del cliente se hace en el useEffect anterior
+      // después de cargar la lista de clientes para tener todos los datos
     }
   }, [isOpen, orden, ivaRate, retefuenteRate, retefuenteThreshold]);
 
@@ -129,6 +158,9 @@ export default function FacturarOrdenModal({ isOpen, onClose, onSave, orden }) {
       const payloadToSend = {
         ...form,
         descuentos: form.descuentos === "" ? 0 : form.descuentos,
+        // Si se seleccionó un cliente diferente, incluir clienteId
+        // Si no se seleccionó ninguno (clienteFacturaId === ""), no se envía y el backend usa el cliente de la orden
+        ...(clienteFacturaId && clienteFacturaId !== "" ? { clienteId: Number(clienteFacturaId) } : {}),
         // No enviar estado: el backend lo ignora y crea PENDIENTE
       };
       await onSave(payloadToSend, false);
@@ -144,10 +176,10 @@ export default function FacturarOrdenModal({ isOpen, onClose, onSave, orden }) {
   if (!isOpen) return null;
 
   return (
-    <div className="modal-overlay">
-      <div className="modal-container">
+    <div className="facturar-modal-overlay">
+      <div className="facturar-modal-container">
         {/* CABECERA */}
-        <header className="modal-header">
+        <header className="facturar-modal-header">
           <h2>Facturar Orden #{orden?.numero}</h2>
           <button className="close-btn" onClick={onClose}>
             ✕
@@ -155,7 +187,7 @@ export default function FacturarOrdenModal({ isOpen, onClose, onSave, orden }) {
         </header>
 
         {/* CONTENIDO */}
-        <form onSubmit={handleSubmit} className="modal-body">
+        <form onSubmit={handleSubmit} className="facturar-modal-body">
           {/* SECCIÓN RESUMEN */}
           <section className="section-card">
             <h3>Resumen de la Orden</h3>
@@ -165,8 +197,149 @@ export default function FacturarOrdenModal({ isOpen, onClose, onSave, orden }) {
                 <input type="text" value={orden?.id || ""} disabled />
               </div>
               <div>
-                <label>Cliente:</label>
+                <label>Cliente de la Orden:</label>
                 <input type="text" value={orden?.cliente?.nombre || "—"} disabled />
+              </div>
+              <div style={{ gridColumn: "1 / -1" }}>
+                <label>Cliente para Facturación:</label>
+                <div style={{ display: "flex", gap: "0.5rem", alignItems: "flex-start", marginBottom: "0.5rem" }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setClienteSearchModal("");
+                      setShowClienteModal(true);
+                    }}
+                    className="btn-save"
+                    style={{
+                      whiteSpace: "nowrap",
+                      padding: "0.5rem 1rem",
+                      fontSize: "0.9rem"
+                    }}
+                  >
+                    Cambiar Cliente
+                  </button>
+                  {clienteFactura && clienteFactura.id !== orden?.cliente?.id && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (orden?.cliente) {
+                          setClienteFactura(orden.cliente);
+                          setClienteFacturaId(String(orden.cliente.id));
+                        } else {
+                          setClienteFactura(null);
+                          setClienteFacturaId("");
+                        }
+                      }}
+                      className="btn-cancel"
+                      style={{
+                        whiteSpace: "nowrap",
+                        padding: "0.5rem 1rem",
+                        fontSize: "0.9rem"
+                      }}
+                    >
+                      Usar Cliente de la Orden
+                    </button>
+                  )}
+                </div>
+                <div style={{ 
+                  display: "grid", 
+                  gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", 
+                  gap: "1.5rem",
+                  padding: "2rem",
+                  backgroundColor: "#f8f9ff",
+                  border: "1px solid #e6e8f0",
+                  borderRadius: "12px"
+                }}>
+                  <div>
+                    <label style={{ fontSize: "0.9rem", color: "#333", marginBottom: "0.5rem", display: "block", fontWeight: "500" }}>Nombre:</label>
+                    <input 
+                      type="text" 
+                      value={clienteFactura?.nombre || orden?.cliente?.nombre || "—"} 
+                      disabled 
+                      style={{ 
+                        fontSize: "1.1rem", 
+                        padding: "0.8rem 1rem",
+                        minHeight: "48px",
+                        width: "100%"
+                      }} 
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: "0.9rem", color: "#333", marginBottom: "0.5rem", display: "block", fontWeight: "500" }}>NIT:</label>
+                    <input 
+                      type="text" 
+                      value={clienteFactura?.nit || orden?.cliente?.nit || "—"} 
+                      disabled 
+                      style={{ 
+                        fontSize: "1.1rem", 
+                        padding: "0.8rem 1rem",
+                        minHeight: "48px",
+                        width: "100%"
+                      }} 
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: "0.9rem", color: "#333", marginBottom: "0.5rem", display: "block", fontWeight: "500" }}>Correo:</label>
+                    <input 
+                      type="text" 
+                      value={clienteFactura?.correo || orden?.cliente?.correo || "—"} 
+                      disabled 
+                      style={{ 
+                        fontSize: "1.1rem", 
+                        padding: "0.8rem 1rem",
+                        minHeight: "48px",
+                        width: "100%"
+                      }} 
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: "0.9rem", color: "#333", marginBottom: "0.5rem", display: "block", fontWeight: "500" }}>Ciudad:</label>
+                    <input 
+                      type="text" 
+                      value={clienteFactura?.ciudad || orden?.cliente?.ciudad || "—"} 
+                      disabled 
+                      style={{ 
+                        fontSize: "1.1rem", 
+                        padding: "0.8rem 1rem",
+                        minHeight: "48px",
+                        width: "100%"
+                      }} 
+                    />
+                  </div>
+                  <div style={{ gridColumn: "1 / -1" }}>
+                    <label style={{ fontSize: "0.9rem", color: "#333", marginBottom: "0.5rem", display: "block", fontWeight: "500" }}>Dirección:</label>
+                    <input 
+                      type="text" 
+                      value={clienteFactura?.direccion || orden?.cliente?.direccion || "—"} 
+                      disabled 
+                      style={{ 
+                        fontSize: "1.1rem", 
+                        padding: "0.8rem 1rem",
+                        minHeight: "48px",
+                        width: "100%"
+                      }} 
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: "0.9rem", color: "#333", marginBottom: "0.5rem", display: "block", fontWeight: "500" }}>Teléfono:</label>
+                    <input 
+                      type="text" 
+                      value={clienteFactura?.telefono || orden?.cliente?.telefono || "—"} 
+                      disabled 
+                      style={{ 
+                        fontSize: "1.1rem", 
+                        padding: "0.8rem 1rem",
+                        minHeight: "48px",
+                        width: "100%"
+                      }} 
+                    />
+                  </div>
+                </div>
+                {clienteFactura && clienteFactura.id !== orden?.cliente?.id && (
+                  <small style={{ display: "block", color: "#1f2a5c", fontSize: "0.75rem", marginTop: "0.5rem", fontStyle: "italic" }}>
+                    ⚠️ La factura se emitirá a un cliente diferente al de la orden
+                  </small>
+                )}
               </div>
               <div>
                 <label>Fecha:</label>
@@ -383,7 +556,7 @@ export default function FacturarOrdenModal({ isOpen, onClose, onSave, orden }) {
           </section>
 
           {/* FOOTER */}
-          <footer className="modal-footer">
+          <footer className="facturar-modal-footer">
             <button
               type="button"
               className="btn-cancel"
@@ -410,6 +583,176 @@ export default function FacturarOrdenModal({ isOpen, onClose, onSave, orden }) {
           </footer>
         </form>
       </div>
+
+      {/* Modal de selección de clientes */}
+      {showClienteModal && (
+        <div className="modal-overlay" style={{ zIndex: 100001 }}>
+          <div className="modal-container" style={{ 
+            maxWidth: '900px', 
+            width: '95vw', 
+            maxHeight: '85vh',
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden'
+          }}>
+            <header className="modal-header">
+              <h2>Seleccionar Cliente</h2>
+              <button className="close-btn" onClick={() => {
+                setClienteSearchModal("");
+                setShowClienteModal(false);
+              }}>
+                ✕
+              </button>
+            </header>
+            
+            <div style={{ marginBottom: '1rem', flexShrink: 0, padding: '1.2rem' }}>
+              <input
+                type="text"
+                value={clienteSearchModal}
+                onChange={(e) => setClienteSearchModal(e.target.value)}
+                placeholder="Buscar cliente por nombre, NIT, correo, ciudad o dirección..."
+                className="clientes-input"
+                style={{
+                  width: '100%',
+                  fontSize: '1rem',
+                  padding: '0.5rem',
+                  border: '1px solid #d2d5e2',
+                  borderRadius: '5px'
+                }}
+                autoFocus
+              />
+              {(() => {
+                const searchTerm = clienteSearchModal.trim().toLowerCase();
+                const filtered = searchTerm
+                  ? clientes.filter((c) =>
+                      [c.nombre, c.nit, c.correo, c.ciudad, c.direccion]
+                        .filter(Boolean)
+                        .some((v) => String(v).toLowerCase().includes(searchTerm))
+                    )
+                  : clientes;
+                return (
+                  <div style={{ 
+                    marginTop: '0.5rem', 
+                    fontSize: '0.85rem', 
+                    color: '#666',
+                    textAlign: 'right'
+                  }}>
+                    {filtered.length} cliente{filtered.length !== 1 ? 's' : ''} encontrado{filtered.length !== 1 ? 's' : ''}
+                  </div>
+                );
+              })()}
+            </div>
+            
+            <div style={{ 
+              flex: 1,
+              minHeight: 0,
+              overflowY: 'auto',
+              overflowX: 'hidden',
+              border: '1px solid #e6e8f0',
+              borderRadius: '8px',
+              margin: '0 1.2rem',
+              marginBottom: '1.2rem'
+            }}>
+              {(() => {
+                const searchTerm = clienteSearchModal.trim().toLowerCase();
+                const filtered = searchTerm
+                  ? clientes.filter((c) =>
+                      [c.nombre, c.nit, c.correo, c.ciudad, c.direccion]
+                        .filter(Boolean)
+                        .some((v) => String(v).toLowerCase().includes(searchTerm))
+                    )
+                  : clientes;
+                
+                // Ordenar alfabéticamente
+                const sorted = [...filtered].sort((a, b) => {
+                  const nombreA = (a.nombre || "").toLowerCase();
+                  const nombreB = (b.nombre || "").toLowerCase();
+                  return nombreA.localeCompare(nombreB, 'es', { sensitivity: 'base' });
+                });
+                
+                if (sorted.length === 0) {
+                  return (
+                    <div style={{ padding: '2rem', color: '#666', textAlign: 'center' }}>
+                      No se encontraron clientes
+                    </div>
+                  );
+                }
+                
+                return (
+                  <div style={{ overflowX: 'auto', maxWidth: '100%' }}>
+                    <table className="table" style={{ tableLayout: 'fixed', width: '100%' }}>
+                      <thead>
+                        <tr>
+                          <th style={{ width: '25%' }}>Nombre</th>
+                          <th style={{ width: '15%' }}>NIT</th>
+                          <th style={{ width: '25%' }}>Correo</th>
+                          <th style={{ width: '15%' }}>Ciudad</th>
+                          <th style={{ width: '20%', textAlign: 'center' }}>Acción</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {sorted.map((c) => (
+                          <tr
+                            key={c.id}
+                            style={{
+                              transition: 'background-color 0.2s'
+                            }}
+                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f9fbff'}
+                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                          >
+                            <td title={c.nombre || '-'} style={{ fontWeight: '500', color: '#1e2753' }}>
+                              {c.nombre || '-'}
+                            </td>
+                            <td title={c.nit || '-'}>
+                              {c.nit || '-'}
+                            </td>
+                            <td title={c.correo || '-'}>
+                              {c.correo || '-'}
+                            </td>
+                            <td title={c.ciudad || '-'}>
+                              {c.ciudad || '-'}
+                            </td>
+                            <td style={{ textAlign: 'center', padding: '0.75rem' }}>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setClienteFactura(c);
+                                  setClienteFacturaId(String(c.id));
+                                  setClienteSearchModal("");
+                                  setShowClienteModal(false);
+                                }}
+                                className="btn-save"
+                                style={{
+                                  padding: '0.5rem 1rem',
+                                  fontSize: '0.9rem'
+                                }}
+                              >
+                                Seleccionar
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                );
+              })()}
+            </div>
+            
+            <div className="modal-footer" style={{ marginTop: 0 }}>
+              <button 
+                className="btn-cancel" 
+                onClick={() => {
+                  setClienteSearchModal("");
+                  setShowClienteModal(false);
+                }}
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

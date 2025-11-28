@@ -1,34 +1,113 @@
 import { useEffect, useState } from "react";
 import "../styles/OrdenImprimirModal.css";
+import { obtenerOrden, obtenerOrdenDetalle } from "../services/OrdenesService.js";
 
 export default function OrdenImprimirModal({ orden, isOpen, onClose }) {
   const [form, setForm] = useState(null);
   const [formato, setFormato] = useState("orden"); // "orden" | "trabajadores" | "ambos"
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (!isOpen || !orden?.id) return;
+    if (!isOpen || !orden?.id) {
+      setForm(null);
+      return;
+    }
 
-    const base = {
-      id: orden.id,
-      numero: orden.numero,
-      fecha: orden.fecha,
-      obra: orden.obra ?? "",
-      venta: orden.venta ?? false,
-      credito: orden.credito ?? false,
-      estado: orden.estado ?? "ACTIVA",
-      subtotal: typeof orden.subtotal === "number" ? orden.subtotal : null,
-      descuentos: typeof orden.descuentos === "number" ? orden.descuentos : 0,
-      total: typeof orden.total === "number" ? orden.total : null,
-      cliente: orden.cliente || {},
-      sede: orden.sede || {},
-      trabajador: orden.trabajador || {},
-      items: orden.items || [],
+    // Cargar la orden completa con todos los datos del producto (color, tipo)
+    const cargarOrdenCompleta = async () => {
+      setLoading(true);
+      try {
+        // Intentar primero con obtenerOrden
+        let ordenCompleta = await obtenerOrden(orden.id);
+        
+        // Verificar si los items tienen información completa del producto (color, tipo)
+        // Si no, intentar con el endpoint de detalle
+        if (ordenCompleta.items && ordenCompleta.items.length > 0) {
+          const primerItem = ordenCompleta.items[0];
+          const tieneColorYTipo = primerItem?.producto?.color !== null && 
+                                  primerItem?.producto?.color !== undefined &&
+                                  primerItem?.producto?.tipo !== null && 
+                                  primerItem?.producto?.tipo !== undefined;
+          
+          if (!tieneColorYTipo) {
+            console.log("⚠️ Orden sin datos completos del producto (color/tipo), usando endpoint de detalle...");
+            try {
+              const ordenDetalle = await obtenerOrdenDetalle(orden.id);
+              // Combinar información de ambos endpoints, priorizando el detalle
+              ordenCompleta = {
+                ...ordenCompleta,
+                items: ordenDetalle.items || ordenCompleta.items || []
+              };
+            } catch (detalleError) {
+              console.warn("⚠️ No se pudo obtener detalle, usando orden básica:", detalleError);
+            }
+          }
+        }
+
+        const base = {
+          id: ordenCompleta.id,
+          numero: ordenCompleta.numero,
+          fecha: ordenCompleta.fecha,
+          obra: ordenCompleta.obra ?? "",
+          venta: ordenCompleta.venta ?? false,
+          credito: ordenCompleta.credito ?? false,
+          estado: ordenCompleta.estado ?? "ACTIVA",
+          subtotal: typeof ordenCompleta.subtotal === "number" ? ordenCompleta.subtotal : null,
+          descuentos: typeof ordenCompleta.descuentos === "number" ? ordenCompleta.descuentos : 0,
+          total: typeof ordenCompleta.total === "number" ? ordenCompleta.total : null,
+          cliente: ordenCompleta.cliente || {},
+          sede: ordenCompleta.sede || {},
+          trabajador: ordenCompleta.trabajador || {},
+          items: ordenCompleta.items || [],
+        };
+
+        setForm(base);
+      } catch (error) {
+        console.error("Error cargando orden completa:", error);
+        // Si falla, usar los datos que vienen en la orden (aunque puedan estar incompletos)
+        const base = {
+          id: orden.id,
+          numero: orden.numero,
+          fecha: orden.fecha,
+          obra: orden.obra ?? "",
+          venta: orden.venta ?? false,
+          credito: orden.credito ?? false,
+          estado: orden.estado ?? "ACTIVA",
+          subtotal: typeof orden.subtotal === "number" ? orden.subtotal : null,
+          descuentos: typeof orden.descuentos === "number" ? orden.descuentos : 0,
+          total: typeof orden.total === "number" ? orden.total : null,
+          cliente: orden.cliente || {},
+          sede: orden.sede || {},
+          trabajador: orden.trabajador || {},
+          items: orden.items || [],
+        };
+        setForm(base);
+      } finally {
+        setLoading(false);
+      }
     };
 
-    setForm(base);
+    cargarOrdenCompleta();
   }, [orden, isOpen]);
 
-  if (!isOpen || !form) return null;
+  if (!isOpen) return null;
+
+  if (loading) {
+    return (
+      <div className="modal-overlay">
+        <div className="modal-container modal-print">
+          <div className="modal-header">
+            <h2>Cargando orden...</h2>
+          </div>
+          <div style={{ padding: "2rem", textAlign: "center" }}>
+            <p>Cargando datos de la orden...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!form) return null;
 
   // Calcular totales
   const subtotal = form.subtotal !== null 

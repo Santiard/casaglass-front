@@ -41,13 +41,20 @@ export default function ProveedorTable({
 
   const filtrados = useMemo(() => {
     const q = query.trim().toLowerCase();
-    const arr = q
+    let arr = q
       ? data.filter((r) =>
           [r.nombre, r.nit, r.ciudad, r.direccion, r.telefono]
             .filter(Boolean)
             .some(v => String(v).toLowerCase().includes(q))
         )
       : data;
+
+    // Ordenar alfabéticamente por nombre
+    arr = [...arr].sort((a, b) => {
+      const nombreA = (a.nombre || "").toLowerCase();
+      const nombreB = (b.nombre || "").toLowerCase();
+      return nombreA.localeCompare(nombreB, 'es', { sensitivity: 'base' });
+    });
 
     const total = arr.length;
     const maxPage = Math.max(1, Math.ceil(total / rowsPerPage));

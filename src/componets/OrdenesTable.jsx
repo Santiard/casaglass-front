@@ -1,4 +1,5 @@
 import "../styles/Table.css";
+import "../styles/OrdenesTable.css";
 import { useMemo, useState, Fragment } from "react";
 import editar from "../assets/editar.png";
 import eliminar from "../assets/eliminar.png";
@@ -131,7 +132,6 @@ export default function OrdenesTable({
           o.fecha,
           o.cliente?.nombre,
           o.sede?.nombre,
-          o.obra,
           o.venta ? "venta" : "cotizacion",
         ]
           .filter(Boolean)
@@ -194,7 +194,7 @@ export default function OrdenesTable({
 
 
   return (
-    <div className="table-container ordenes">
+    <div className="ordenes-table-container">
       {/* 🔍 Buscador y Filtros */}
       <div className="ordenes-toolbar">
         <div className="ordenes-filters">
@@ -254,15 +254,14 @@ export default function OrdenesTable({
       </div>
 
       {/* 📋 Tabla principal */}
-      <div className="table-wrapper">
-        <table className="table">
+      <div className="ordenes-table-wrapper">
+        <table className="ordenes-table">
           <thead>
             <tr>
               <th>Número</th>
               <th>Fecha</th>
               <th>Cliente</th>
               <th>Sede</th>
-              <th>Obra</th>
               <th>Tipo</th>
               <th>Crédito</th>
               <th>Estado</th>
@@ -274,7 +273,7 @@ export default function OrdenesTable({
           <tbody>
             {loading && (
               <tr>
-                <td colSpan={10} className="empty">
+                <td colSpan={9} className="empty">
                   Cargando...
                 </td>
               </tr>
@@ -295,7 +294,6 @@ export default function OrdenesTable({
                       <td>{fmtFecha(o.fecha)}</td>
                       <td>{o.cliente?.nombre ?? "-"}</td>
                       <td>{o.sede?.nombre ?? "-"}</td>
-                      <td>{o.obra ?? "-"}</td>
                       <td>{o.venta ? "Venta" : "Cotización"}</td>
                       <td>{o.credito ? "Sí" : "No"}</td>
                       <td>{formatearEstado(o.estado)}</td>
@@ -369,7 +367,7 @@ export default function OrdenesTable({
 
                     {expanded[id] && (
                       <tr key={`detalles-${id}`}>
-                        <td colSpan={10}>
+                        <td colSpan={9}>
                           {detalles.length === 0 ? (
                             <div className="empty-sub">Sin ítems.</div>
                           ) : (
@@ -411,22 +409,22 @@ export default function OrdenesTable({
       </div>
 
       {/* Paginación */}
-      <div className="pagination-bar">
-        <div className="pagination-info">
+      <div className="ordenes-pagination">
+        <div className="ordenes-pagination-info">
           Mostrando {showingFrom}–{showingTo} de {total}
         </div>
 
-        <div className="pagination-controls">
-          <button className="pg-btn" onClick={goFirst} disabled={!canPrev}>«</button>
-          <button className="pg-btn" onClick={goPrev}  disabled={!canPrev}>‹</button>
+        <div className="ordenes-pagination-controls">
+          <button onClick={goFirst} disabled={!canPrev}>«</button>
+          <button onClick={goPrev}  disabled={!canPrev}>‹</button>
           {Array.from({ length: Math.min(5, maxPage) }, (_, i) => {
             const p = Math.max(1, Math.min(curPage - 2, maxPage - 4)) + i;
             return p <= maxPage ? (
-              <button key={p} className={`pg-btn ${p === curPage ? "active" : ""}`} onClick={() => setPage(p)}>{p}</button>
+              <button key={p} className={`page-number ${p === curPage ? "active" : ""}`} onClick={() => setPage(p)}>{p}</button>
             ) : null;
           })}
-          <button className="pg-btn" onClick={goNext} disabled={!canNext}>›</button>
-          <button className="pg-btn" onClick={goLast} disabled={!canNext}>»</button>
+          <button onClick={goNext} disabled={!canNext}>›</button>
+          <button onClick={goLast} disabled={!canNext}>»</button>
         </div>
       </div>
 

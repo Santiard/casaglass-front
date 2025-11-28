@@ -140,6 +140,19 @@ export default function InventoryPage() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
+  // Escuchar evento de actualización de inventario (cuando se actualiza un producto desde ingresos)
+  useEffect(() => {
+    const handleInventoryUpdate = () => {
+      console.log("🔄 Evento de actualización de inventario recibido, refrescando datos...");
+      fetchData();
+    };
+
+    window.addEventListener('inventory-updated', handleInventoryUpdate);
+    return () => {
+      window.removeEventListener('inventory-updated', handleInventoryUpdate);
+    };
+  }, [fetchData]);
+
   // === Cargar TODOS los cortes con inventario completo ===
   const fetchCortesData = useCallback(async () => {
     if (view !== "corte") return;
