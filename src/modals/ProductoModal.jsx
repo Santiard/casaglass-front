@@ -110,10 +110,25 @@ export default function ProductModal({ isOpen, onClose, onSave, product }) {
       setFormData((prev) => ({
         ...prev,
         esVidrio: shouldBeVidrio,
-        // si marcó vidrio, autocompleta categoría buscando "Vidrios" en las categorías
+        // si marcó vidrio, autocompleta categoría buscando "VIDRIO" o "Vidrios" en las categorías
         categoria: shouldBeVidrio 
-          ? (categories.find(cat => cat.nombre.toLowerCase().includes('vidrio'))?.nombre || "Vidrios")
-          : (prev.categoria?.toLowerCase().includes('vidrio') ? "" : prev.categoria),
+          ? (categories.find(cat => cat.nombre.toLowerCase().includes('vidrio'))?.nombre || "VIDRIO")
+          : prev.categoria, // Mantener la categoría actual si se desmarca
+      }));
+      return;
+    }
+
+    // Si cambia la categoría, actualizar el checkbox esVidrio automáticamente
+    if (name === "categoria") {
+      const categoriaNombre = value?.toLowerCase() || "";
+      const esCategoriaVidrio = categoriaNombre.includes('vidrio');
+      
+      setFormData((prev) => ({
+        ...prev,
+        categoria: value,
+        // Si se selecciona categoría VIDRIO, marcar el checkbox automáticamente
+        // Si se cambia a otra categoría (que no sea vidrio), desmarcar el checkbox
+        esVidrio: esCategoriaVidrio,
       }));
       return;
     }
@@ -187,15 +202,44 @@ export default function ProductModal({ isOpen, onClose, onSave, product }) {
 
     // Normalizar/transformar m1/m2 si quieres guardarlos como m1m2 combinado:
     const toSave = { ...formData };
-    if (formData.esVidrio) {
-      // opcional: crear campo m1m2 concatenado
-      toSave.m1m2 = `${formData.m1 ?? ""}x${formData.m2 ?? ""}`.replace(/(^x|x$)/, "");
+    
+    // Determinar si es vidrio: por checkbox o por categoría
+    const categoriaNombre = typeof toSave.categoria === 'string' 
+      ? toSave.categoria.toLowerCase() 
+      : toSave.categoria?.nombre?.toLowerCase() || "";
+    const esVidrio = toSave.esVidrio || categoriaNombre.includes('vidrio');
+    
+    console.log("🔍 DEBUG handleSubmit:");
+    console.log("  - formData.esVidrio:", formData.esVidrio);
+    console.log("  - categoriaNombre:", categoriaNombre);
+    console.log("  - esVidrio calculado:", esVidrio);
+    
+    if (esVidrio) {
+      // IMPORTANTE: Limpiar y preparar m1, m2 y mm como strings primero
+      const m1Str = (formData.m1?.trim() || "").replace(/[^0-9.]/g, "") || "0";
+      const m2Str = (formData.m2?.trim() || "").replace(/[^0-9.]/g, "") || "0";
+      const mmStr = (formData.mm?.trim() || "").replace(/[^0-9.]/g, "") || "0";
+      
+      // Guardar como strings en toSave (se convertirán a números en backendPayload)
+      toSave.m1 = m1Str;
+      toSave.m2 = m2Str;
+      toSave.mm = mmStr;
+      
+      // NO crear m1m2 - el backend lo calcula automáticamente
+      // NO incluir laminas - no existe en el modelo del backend
+      
+      // Asegurar que esVidrio esté en true
+      toSave.esVidrio = true;
+      
+      console.log("  ✅ Es vidrio - m1:", toSave.m1, "m2:", toSave.m2, "mm:", toSave.mm);
     } else {
-      toSave.mm = "";
-      toSave.m1 = "";
-      toSave.m2 = "";
-      toSave.m1m2 = "";
-      toSave.laminas = "";
+      // Si no es vidrio, no incluir campos de vidrio
+      delete toSave.mm;
+      delete toSave.m1;
+      delete toSave.m2;
+      delete toSave.m1m2;
+      delete toSave.laminas;
+      toSave.esVidrio = false;
     }
 
     // Convertir precios a números (parseFloat para decimales)
@@ -203,7 +247,7 @@ export default function ProductModal({ isOpen, onClose, onSave, product }) {
     toSave.precio2 = toSave.precio2 === "" ? 0 : parseFloat(toSave.precio2) || 0;
     toSave.precio3 = toSave.precio3 === "" ? 0 : parseFloat(toSave.precio3) || 0;
     toSave.costo = toSave.costo === "" ? 0 : parseFloat(toSave.costo) || 0;
-    toSave.laminas = toSave.laminas === "" ? 0 : parseInt(toSave.laminas) || 0;
+    // laminas no se envía al backend (no existe en el modelo)
 
     // Convertir cantidades a números enteros (si está vacío, parsear a 0)
     toSave.cantidadInsula = toSave.cantidadInsula === "" || toSave.cantidadInsula === null ? 0 : parseInt(toSave.cantidadInsula) || 0;
@@ -247,6 +291,38 @@ export default function ProductModal({ isOpen, onClose, onSave, product }) {
       posicion: toSave.posicion || ""
     };
 
+    // IMPORTANTE: Si es vidrio, incluir los campos específicos de vidrio
+    // Usar la misma lógica para determinar si es vidrio
+    const categoriaNombreFinal = typeof backendPayload.categoria === 'string' 
+      ? backendPayload.categoria.toLowerCase() 
+      : backendPayload.categoria?.nombre?.toLowerCase() || "";
+    const esVidrioFinal = toSave.esVidrio || categoriaNombreFinal.includes('vidrio');
+    
+    if (esVidrioFinal) {
+      // IMPORTANTE: Enviar m1, m2 y mm como NÚMEROS (Double), no strings
+      // El backend calcula m1m2 = m1 * m2 automáticamente
+      backendPayload.mm = parseFloat(toSave.mm || "0") || 0;
+      backendPayload.m1 = parseFloat(toSave.m1 || "0") || 0;
+      backendPayload.m2 = parseFloat(toSave.m2 || "0") || 0;
+      // NO enviar m1m2 - el backend lo calcula automáticamente
+      // NO enviar laminas - no existe en el modelo del backend
+      
+      // Simplificar categoria: solo enviar id
+      if (backendPayload.categoria && typeof backendPayload.categoria === 'object') {
+        backendPayload.categoria = {
+          id: backendPayload.categoria.id
+        };
+      }
+      
+      console.log("🔍 DEBUG: Creando producto VIDRIO");
+      console.log("🔍 mm:", backendPayload.mm, "(número)");
+      console.log("🔍 m1:", backendPayload.m1, "(número)");
+      console.log("🔍 m2:", backendPayload.m2, "(número)");
+      console.log("🔍 Payload completo para vidrio:", JSON.stringify(backendPayload, null, 2));
+    } else {
+      console.log("🔍 DEBUG: NO es vidrio, no se incluyen campos de vidrio");
+    }
+
     // Para edición, incluir campos requeridos del producto original
     if (isEditing && toSave.id) {
       backendPayload.id = toSave.id;
@@ -268,10 +344,33 @@ export default function ProductModal({ isOpen, onClose, onSave, product }) {
   return (
     <div className="modal-overlay">
       <div className="modal-container-producto">
-        <h2>{isEditing ? "Editar Producto" : "Agregar Producto"}</h2>
+        <div className="modal-header">
+          <h2>{isEditing ? "Editar Producto" : "Agregar Producto"}</h2>
+          <button 
+            type="button" 
+            onClick={onClose} 
+            className="close-btn" 
+            style={{ 
+              background: 'none', 
+              border: 'none', 
+              fontSize: '2rem', 
+              cursor: 'pointer', 
+              color: '#666',
+              padding: '0',
+              width: '2rem',
+              height: '2rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+          >
+            ×
+          </button>
+        </div>
 
-        <form onSubmit={handleSubmit} className="form">
-          <div className="form-two-columns">
+        <div className="modal-body">
+          <form onSubmit={handleSubmit} className="form">
+            <div className="form-two-columns">
             {/* COLUMNA IZQUIERDA */}
             <div className="form-column">
               <label>
@@ -386,22 +485,22 @@ export default function ProductModal({ isOpen, onClose, onSave, product }) {
 
                   <div className="dimensions-row">
                     <label>
-                      Largo (m1):
+                      Largo (m1) - cm:
                       <input
                         type="text"
                         name="m1"
-                        placeholder="Largo"
+                        placeholder="Largo en cm"
                         value={formData.m1}
                         onChange={handleChange}
                       />
                     </label>
 
                     <label>
-                      Ancho (m2):
+                      Ancho (m2) - cm:
                       <input
                         type="text"
                         name="m2"
-                        placeholder="Ancho"
+                        placeholder="Ancho en cm"
                         value={formData.m2}
                         onChange={handleChange}
                       />
@@ -529,17 +628,18 @@ export default function ProductModal({ isOpen, onClose, onSave, product }) {
             </div>
           </div>
 
-          <div className="form-full-width">
-            <div className="modal-buttons">
-              <button type="button" onClick={onClose} className="btn-cancelar">
-                Cancelar
-              </button>
-              <button type="submit" className="btn-guardar">
-                Guardar
-              </button>
+            <div className="form-full-width">
+              <div className="modal-buttons">
+                <button type="button" onClick={onClose} className="btn-cancelar">
+                  Cancelar
+                </button>
+                <button type="submit" className="btn-guardar">
+                  Guardar
+                </button>
+              </div>
             </div>
-          </div>
-        </form>
+          </form>
+        </div>
       </div>
     </div>
   );

@@ -4,7 +4,7 @@ import CategorySidebar from "../componets/CategorySidebar.jsx";
 import { listarClientes } from "../services/ClientesService.js";
 import { listarSedes } from "../services/SedesService.js";
 import { listarTrabajadores } from "../services/TrabajadoresService.js";
-import { listarProductos } from "../services/ProductosService.js";
+import { listarTodosLosProductos } from "../services/ProductosService.js";
 import { listarCategorias } from "../services/CategoriasService.js";
 import { actualizarOrden, obtenerOrden, actualizarOrdenVenta, crearOrdenVenta } from "../services/OrdenesService.js";
 import { useToast } from "../context/ToastContext.jsx";
@@ -61,13 +61,11 @@ export default function OrdenEditarModal({
   ];
 
   // Métodos de pago disponibles
+  // NOTA: Nequi y Daviplata están disponibles como bancos cuando se selecciona TRANSFERENCIA
   const tiposMetodoPago = [
     { value: "EFECTIVO", label: "Efectivo" },
     { value: "TRANSFERENCIA", label: "Transferencia" },
     { value: "CHEQUE", label: "Cheque" },
-    { value: "NEQUI", label: "Nequi" },
-    { value: "DAVIPLATA", label: "Daviplata" },
-    { value: "TARJETA", label: "Tarjeta" },
     { value: "OTRO", label: "Otro" }
   ];
   
@@ -481,7 +479,7 @@ export default function OrdenEditarModal({
         }
         
         try {
-          prods = await listarProductos();
+          prods = await listarTodosLosProductos(); // ✅ Incluye productos normales + vidrios
         } catch (e) {
           console.error("Error cargando productos:", e);
         }
@@ -1361,7 +1359,7 @@ export default function OrdenEditarModal({
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <span>Subtotal:</span>
-                  <strong>${form.items.reduce((sum, item) => sum + (item.totalLinea || 0), 0).toFixed(2)}</strong>
+                  <strong>${form.items.reduce((sum, item) => sum + (item.totalLinea || 0), 0).toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span>Descuentos:</span>
@@ -1387,7 +1385,7 @@ export default function OrdenEditarModal({
                 <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid #ddd', paddingTop: '0.5rem', marginTop: '0.5rem' }}>
                   <span><strong>Total:</strong></span>
                   <strong style={{ fontSize: '1.1em', color: '#4f67ff' }}>
-                    ${(form.items.reduce((sum, item) => sum + (item.totalLinea || 0), 0) - (form.descuentos || 0)).toFixed(2)}
+                    ${(form.items.reduce((sum, item) => sum + (item.totalLinea || 0), 0) - (form.descuentos || 0)).toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </strong>
                 </div>
               </div>
@@ -1453,7 +1451,7 @@ export default function OrdenEditarModal({
                       />
                     </td>
                     <td>
-                      {(i.cantidad * i.precioUnitario).toFixed(2)}
+                      ${((i.cantidad || 0) * (i.precioUnitario || 0)).toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </td>
                     <td>
                       <button

@@ -36,7 +36,29 @@ function transformarInventarioDTO(productos, isAdmin = true, userSedeId = null) 
         }
       });
     }
+    
+    // Detectar vidrios correctamente: solo si tiene esVidrio=true O tiene campos mm/m1/m2 con valores
+    const esVidrio = producto.esVidrio === true || 
+                     (producto.mm != null && producto.mm !== undefined) || 
+                     (producto.m1 != null && producto.m1 !== undefined);
 
+    // Normalizar categoría: puede venir como objeto {id, nombre} o como string
+    let categoriaNormalizada = producto.categoria;
+    let categoriaId = null;
+    let categoriaNombre = null;
+    
+    if (typeof producto.categoria === 'object' && producto.categoria !== null) {
+      categoriaNombre = producto.categoria.nombre || producto.categoria;
+      categoriaId = producto.categoria.id || null;
+    } else if (typeof producto.categoria === 'string') {
+      categoriaNombre = producto.categoria;
+    }
+    
+    // Si es vidrio, asegurar que la categoría sea "VIDRIO"
+    if (esVidrio && !categoriaNombre?.toLowerCase().includes('vidrio')) {
+      categoriaNombre = "VIDRIO";
+    }
+    
     return {
       id: producto.productoId || producto.id,
       codigo: producto.codigo,
@@ -44,7 +66,9 @@ function transformarInventarioDTO(productos, isAdmin = true, userSedeId = null) 
       posicion: producto.posicion,
       tipo: producto.tipo,
       color: producto.color,
-      categoria: producto.categoria,
+      categoria: categoriaNombre || categoriaNormalizada, // Nombre de categoría para filtros
+      categoriaId: categoriaId || producto.categoriaId || producto.categoria_id, // ID para filtros por ID
+      categoriaObj: producto.categoria, // Objeto completo si existe
       descripcion: producto.descripcion,
       costo: producto.costo,
       precio1: producto.precio1,
@@ -54,26 +78,82 @@ function transformarInventarioDTO(productos, isAdmin = true, userSedeId = null) 
       cantidadCentro,
       cantidadPatios,
       cantidadTotal: producto.cantidadTotal || (cantidadInsula + cantidadCentro + cantidadPatios),
-      // Campos para vidrios
-      largoCm: producto.largoCm,
-      anchoCm: producto.anchoCm,
-      grosorMm: producto.grosorMm,
-      esVidrio: producto.esVidrio,
-      // Compatibilidad
-      mm: producto.mm || producto.grosorMm,
-      m1m2: producto.m1m2 || (producto.largoCm && producto.anchoCm ? (producto.largoCm * producto.anchoCm / 10000).toFixed(2) : null),
-      laminas: producto.laminas
+      // Campos para vidrios (del nuevo endpoint /inventario-completo/vidrios)
+      esVidrio: esVidrio || producto.esVidrio === true,
+      mm: producto.mm || producto.grosorMm || null,
+      m1: producto.m1 || producto.largoCm || null,
+      m2: producto.m2 || producto.anchoCm || null,
+      m1m2: producto.m1m2 || (producto.m1 && producto.m2 ? `${producto.m1}x${producto.m2}` : null) || (producto.largoCm && producto.anchoCm ? (producto.largoCm * producto.anchoCm / 10000).toFixed(2) : null),
+      // Compatibilidad con formato antiguo
+      largoCm: producto.largoCm || producto.m1 || null,
+      anchoCm: producto.anchoCm || producto.m2 || null,
+      grosorMm: producto.grosorMm || producto.mm || null,
+      laminas: producto.laminas || null
     };
   });
 }
 
 /**
+ * Obtiene inventario completo de productos vidrio
+ * GET /api/inventario-completo/vidrios
+ */
+export async function listarInventarioCompletoVidrios(params = {}, isAdmin = true, userSedeId = null) {
+  try {
+    const { data } = await api.get("/inventario-completo/vidrios", { params });
+    return transformarInventarioDTO(data || [], isAdmin, userSedeId);
+  } catch (error) {
+    console.error("Error obteniendo productos vidrio:", error);
+    // Si el endpoint no existe o falla, retornar array vacío
+    return [];
+  }
+}
+
+/**
  * Obtiene inventario completo con productos y cantidades por sede unificado
- * GET /api/inventario-completo
+ * Combina productos normales y productos vidrio
+ * GET /api/inventario-completo + GET /api/inventario-completo/vidrios
  */
 export async function listarInventarioCompleto(params = {}, isAdmin = true, userSedeId = null) {
-  const { data } = await api.get("/inventario-completo", { params });
-  return transformarInventarioDTO(data || [], isAdmin, userSedeId);
+  try {
+    // Obtener productos normales y vidrios en paralelo
+    const [productosNormales, productosVidrio] = await Promise.all([
+      api.get("/inventario-completo", { params }).then(res => res.data || []),
+      api.get("/inventario-completo/vidrios", { params }).then(res => {
+        console.log(`✅ Respuesta de /inventario-completo/vidrios:`, res.data?.length || 0, "productos");
+        if (res.data && res.data.length > 0) {
+          console.log(`  - Primer vidrio del endpoint:`, res.data[0]);
+        }
+        return res.data || [];
+      }).catch((err) => {
+        console.error("❌ Error obteniendo productos vidrio:", err);
+        console.error("  - URL:", err.config?.url);
+        console.error("  - Status:", err.response?.status);
+        console.error("  - Data:", err.response?.data);
+        return [];
+      })
+    ]);
+    
+    console.log(`📦 Inventario completo - Respuestas del backend:`);
+    console.log(`  - Productos normales: ${productosNormales?.length || 0}`);
+    console.log(`  - Productos vidrio: ${productosVidrio?.length || 0}`);
+    
+    // Combinar ambos arrays
+    const todosLosProductos = [...(productosNormales || []), ...(productosVidrio || [])];
+    
+    const transformados = transformarInventarioDTO(todosLosProductos, isAdmin, userSedeId);
+    
+    return transformados;
+  } catch (error) {
+    console.error("Error obteniendo inventario completo:", error);
+    // Si falla, intentar solo con productos normales (comportamiento anterior)
+    try {
+      const { data } = await api.get("/inventario-completo", { params });
+      return transformarInventarioDTO(data || [], isAdmin, userSedeId);
+    } catch (fallbackError) {
+      console.error("Error en fallback:", fallbackError);
+      throw fallbackError;
+    }
+  }
 }
 
 /**

@@ -4,7 +4,7 @@ import IngresosTable from "../componets/IngresoTable.jsx";
 import IngresoDetalleModal from "../modals/IngresoDetalleModal.jsx";
 import { listarIngresos, crearIngresoDesdeForm, actualizarIngresoDesdeForm, eliminarIngreso, procesarIngreso } from "../services/IngresosService.js";
 import { listarProveedores } from "../services/ProveedoresService.js";
-import { listarProductos } from "../services/ProductosService.js";
+import { listarTodosLosProductos } from "../services/ProductosService.js";
 import { useConfirm } from "../hooks/useConfirm.jsx";
 import { useToast } from "../context/ToastContext.jsx";
 
@@ -39,17 +39,22 @@ export default function IngresosPage() {
     try {
       const [prov, prods] = await Promise.all([
         listarProveedores(),
-        listarProductos(),
+        listarTodosLosProductos(), // ✅ Incluye productos normales + vidrios
       ]);
       
 
       
       setProveedores(prov || []);
       // Filtrar cortes: excluir productos que tengan largoCm (son cortes)
-      // Solo incluir productos regulares (sin largoCm)
+      // PERO incluir productos vidrio (tienen m1, m2, mm pero NO largoCm)
+      // Solo incluir productos regulares y vidrios (sin largoCm)
       setCatalogo(
         (prods || [])
-          .filter(p => p.largoCm === undefined || p.largoCm === null) // Excluir cortes
+          .filter(p => {
+            // Excluir cortes (tienen largoCm)
+            // Incluir productos normales (sin largoCm) y vidrios (tienen m1, m2 pero no largoCm)
+            return p.largoCm === undefined || p.largoCm === null;
+          })
           .map((p) => ({
             id: p.id,
             nombre: p.nombre,
@@ -57,6 +62,10 @@ export default function IngresosPage() {
             categoria: p.categoria?.nombre ?? p.categoria ?? "", // ✅ Extraemos el nombre si es objeto
             color: p.color, // ✅ Incluir el color del producto
             largoCm: p.largoCm, // Incluir para que el filtro del modal funcione
+            esVidrio: p.esVidrio || false, // ✅ Incluir flag de vidrio
+            m1: p.m1, // ✅ Campos de vidrio
+            m2: p.m2,
+            mm: p.mm,
           }))
       );
     } catch (e) {

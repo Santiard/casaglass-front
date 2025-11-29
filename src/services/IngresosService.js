@@ -1,6 +1,6 @@
 // src/services/IngresosService.js
 import { api } from "../lib/api.js";
-import { listarProductos, actualizarProducto } from "./ProductosService.js";
+import { listarProductos, actualizarProducto, actualizarCostoProducto } from "./ProductosService.js";
 import { listarInventarioCompleto } from "./InventarioService.js";
 import { listarCategorias } from "./CategoriasService.js";
 
@@ -110,33 +110,47 @@ export async function obtenerIngreso(id) {
 }
 
 export async function crearIngresoDesdeForm(form) {
-  const payload = mapFormAIngresoAPI(form);
-  // Al crear un ingreso nuevo, siempre va procesado: false
-  payload.procesado = false;
-  
-  // IMPORTANTE: Obtener los productos con inventario ANTES de crear el ingreso para tener las cantidades correctas
+  // IMPORTANTE: Obtener los productos con inventario ANTES de crear el ingreso para calcular el promedio ponderado
   // Usamos listarInventarioCompleto porque incluye cantidadInsula, cantidadCentro, cantidadPatios
   let productosAntes = [];
   try {
     productosAntes = await listarInventarioCompleto({}, true, null);
     console.log("📦 Productos con inventario obtenidos antes de crear el ingreso");
   } catch (error) {
-    console.warn("⚠️ No se pudieron obtener productos con inventario antes del ingreso, se intentará después");
+    console.warn("⚠️ No se pudieron obtener productos con inventario antes del ingreso");
   }
+  
+  // Calcular el costo ponderado para cada producto ANTES de crear el ingreso
+  const detallesConCostoCalculado = calcularCostosPonderados(form.detalles, productosAntes);
+  
+  // Crear el payload base
+  const payload = mapFormAIngresoAPI(form);
+  
+  // IMPORTANTE: Reemplazar los detalles con los que tienen el costo calculado
+  // El backend usará el costoUnitario para actualizar el costo del producto
+  // Pero necesitamos mantener el costo original del ingreso para calcular el totalCosto correctamente
+  let totalCostoOriginal = 0;
+  detallesConCostoCalculado.forEach((detalle, idx) => {
+    // Si tiene costoUnitarioOriginal, usarlo para calcular el totalCosto del ingreso
+    // Si no, usar el costoUnitario (que ya es el calculado)
+    const costoParaTotal = detalle.costoUnitarioOriginal || detalle.costoUnitario;
+    totalCostoOriginal += detalle.cantidad * costoParaTotal;
+  });
+  
+  // Actualizar el payload con los detalles modificados y el totalCosto correcto
+  payload.detalles = detallesConCostoCalculado.map(d => {
+    // Remover costoUnitarioOriginal del payload (solo lo usamos internamente)
+    const { costoUnitarioOriginal, ...detalleSinOriginal } = d;
+    return detalleSinOriginal;
+  });
+  payload.totalCosto = totalCostoOriginal; // Usar el costo original del ingreso para el total
+  payload.procesado = false;
+  
+  console.log("📤 Payload del ingreso preparado con costos ponderados para actualizar productos");
   
   try {
     const { data } = await api.post("/ingresos", payload);
-    
-    // Actualizar costos de productos usando promedio ponderado
-    // Pasamos los productos obtenidos ANTES del ingreso
-    try {
-      await actualizarCostosProductosPromedioPonderado(payload.detalles, productosAntes);
-    } catch (costoError) {
-      console.error("❌ Error al actualizar costos de productos (el ingreso se creó correctamente):", costoError);
-      console.error("📋 Detalles del error:", costoError?.response?.data || costoError?.message);
-      // No lanzamos el error para que el ingreso se cree aunque falle la actualización de costos
-    }
-    
+    console.log("✅ Ingreso creado. El backend debería haber actualizado el costo del producto con el promedio ponderado.");
     return data;
   } catch (error) {
     console.error("❌ Error completo al crear ingreso:", {
@@ -156,10 +170,99 @@ export async function crearIngresoDesdeForm(form) {
 }
 
 /**
+ * Calcula los costos ponderados para cada producto ANTES de crear el ingreso
+ * Retorna los detalles con el costoUnitario reemplazado por el costo calculado
+ * @param {Array} detalles - Detalles del ingreso con producto, cantidad y costoUnitario
+ * @param {Array} productosAntes - Productos obtenidos ANTES de crear el ingreso
+ * @returns {Array} Detalles con costoUnitario actualizado al costo ponderado calculado
+ */
+function calcularCostosPonderados(detalles, productosAntes = []) {
+  if (!Array.isArray(detalles) || detalles.length === 0) {
+    console.warn("⚠️ No hay detalles para calcular costos ponderados");
+    return detalles;
+  }
+
+  if (!Array.isArray(productosAntes) || productosAntes.length === 0) {
+    console.warn("⚠️ No hay productos para calcular costos ponderados, usando costos originales");
+    return detalles;
+  }
+
+  console.log("🔄 Calculando costos ponderados ANTES de crear el ingreso...");
+  const productosMap = new Map(productosAntes.map(p => [p.id, p]));
+
+  const detallesConCostoCalculado = detalles.map((detalle, idx) => {
+    const productoId = detalle.producto?.id;
+    if (!productoId) {
+      console.warn(`⚠️ Detalle #${idx + 1} sin producto.id, usando costo original`);
+      return detalle;
+    }
+
+    const producto = productosMap.get(productoId);
+    if (!producto) {
+      console.warn(`⚠️ Producto con ID ${productoId} no encontrado, usando costo original`);
+      return detalle;
+    }
+
+    // Calcular cantidad actual sumando las cantidades de las sedes
+    const cantidadInsula = Number(producto.cantidadInsula || 0);
+    const cantidadCentro = Number(producto.cantidadCentro || 0);
+    const cantidadPatios = Number(producto.cantidadPatios || 0);
+    const cantidadAntes = cantidadInsula + cantidadCentro + cantidadPatios;
+    const costoActual = Number(producto.costo || 0);
+    const cantidadNueva = Number(detalle.cantidad || 0);
+    const costoNuevoIngreso = Number(detalle.costoUnitario || 0); // Costo original del ingreso
+
+    // Validar que tenemos datos válidos
+    if (cantidadNueva <= 0 || costoNuevoIngreso <= 0) {
+      console.warn(`⚠️ Detalle #${idx + 1} con cantidad o costo inválido, usando costo original`);
+      return detalle;
+    }
+
+    // Calcular nuevo costo usando promedio ponderado
+    let nuevoCosto;
+    if (cantidadAntes <= 0) {
+      nuevoCosto = costoNuevoIngreso;
+      console.log(`   ✅ Producto ${productoId}: No había cantidad previa, usando costo del ingreso: ${nuevoCosto}`);
+    } else {
+      const totalCostoAntes = cantidadAntes * costoActual;
+      const totalCostoNuevo = cantidadNueva * costoNuevoIngreso;
+      const cantidadTotal = cantidadAntes + cantidadNueva;
+      nuevoCosto = (totalCostoAntes + totalCostoNuevo) / cantidadTotal;
+      console.log(`   📐 Producto ${productoId} (${producto.nombre}):`);
+      console.log(`      - Cantidad antes: ${cantidadAntes}, Costo actual: ${costoActual}`);
+      console.log(`      - Cantidad nueva: ${cantidadNueva}, Costo ingreso: ${costoNuevoIngreso}`);
+      console.log(`      - Cálculo: (${cantidadAntes} * ${costoActual} + ${cantidadNueva} * ${costoNuevoIngreso}) / ${cantidadTotal} = ${nuevoCosto}`);
+    }
+
+    // Redondear a número entero (sin decimales)
+    nuevoCosto = Math.round(nuevoCosto);
+    console.log(`   ✅ Costo calculado (redondeado a entero): ${nuevoCosto}`);
+
+    // Crear nuevo detalle con el costo calculado
+    // IMPORTANTE: Reemplazamos costoUnitario con el costo calculado para que el backend lo use
+    // El backend actualizará el costo del producto con este valor
+    // Pero mantenemos el totalLinea original del ingreso
+    const totalLineaOriginal = detalle.cantidad * costoNuevoIngreso;
+    const detalleActualizado = {
+      ...detalle,
+      costoUnitario: nuevoCosto, // ✅ Reemplazar con el costo calculado (el backend lo usará para actualizar el producto)
+      costoUnitarioOriginal: costoNuevoIngreso, // Guardar el costo original del ingreso
+      totalLinea: totalLineaOriginal, // Mantener el totalLinea original del ingreso
+      totalLineaCalculado: detalle.cantidad * nuevoCosto // Guardar el totalLinea con el costo calculado (por si acaso)
+    };
+
+    return detalleActualizado;
+  });
+
+  return detallesConCostoCalculado;
+}
+
+/**
  * Actualiza el costo de los productos usando promedio ponderado
  * Fórmula: nuevo_costo = (cantidad_actual * costo_actual + cantidad_nueva * costo_nuevo) / (cantidad_actual + cantidad_nueva)
  * @param {Array} detalles - Detalles del ingreso con producto, cantidad y costoUnitario
  * @param {Array} productosAntes - Productos obtenidos ANTES de crear el ingreso (opcional, si no se proporciona se obtienen después)
+ * @deprecated Esta función ya no se usa, los costos se calculan antes de crear el ingreso
  */
 async function actualizarCostosProductosPromedioPonderado(detalles, productosAntes = null) {
   if (!Array.isArray(detalles) || detalles.length === 0) {
@@ -251,9 +354,12 @@ async function actualizarCostosProductosPromedioPonderado(detalles, productosAnt
       console.log(`   📐 Cálculo: (${totalCostoAntes} + ${totalCostoNuevo}) / ${cantidadTotal} = ${nuevoCosto}`);
     }
 
-    // Redondear al entero más cercano (sin decimales)
+    // Redondear al entero más cercano (sin decimales) - SIEMPRE número entero
     nuevoCosto = Math.ceil(nuevoCosto);
-    console.log(`   ✅ Nuevo costo calculado (redondeado hacia arriba): ${nuevoCosto}`);
+    // Asegurarse de que sea un número entero (sin decimales)
+    nuevoCosto = Math.round(nuevoCosto);
+    console.log(`   ✅ Nuevo costo calculado (redondeado a entero): ${nuevoCosto}`);
+    console.log(`   🔍 Tipo de dato: ${typeof nuevoCosto}, Valor: ${nuevoCosto}`);
 
     // Preparar payload para actualizar el producto
     // Incluir todos los campos necesarios para evitar errores
@@ -324,31 +430,84 @@ async function actualizarCostosProductosPromedioPonderado(detalles, productosAnt
     console.log(`   🔍 Categoría formateada:`, categoriaFormateada);
     console.log(`   🔍 Categoría original:`, producto.categoria);
 
-    // IMPORTANTE: NO enviar las cantidades por sede porque el backend ya las actualizó al crear el ingreso
-    // Si enviamos las cantidades antiguas, el backend podría sobrescribir las nuevas cantidades
-    // Solo actualizamos el costo, no las cantidades
-    // Las cantidades ya fueron actualizadas por el backend cuando se creó el ingreso
-    
-    // Obtener el producto actualizado del backend para tener las cantidades correctas
-    // Pero solo si es necesario para el payload
-    // Por ahora, NO incluimos las cantidades para evitar sobrescribir las que el backend ya actualizó
-
-    // Actualizar el producto
+    // IMPORTANTE: Obtener el producto actualizado del backend DESPUÉS de crear el ingreso
+    // para tener las cantidades correctas (ya actualizadas por el backend)
+    // El backend podría requerir las cantidades actualizadas para guardar el costo correctamente
+    let productoActualizado = null;
     try {
-      console.log(`   📤 Enviando actualización del producto ${productoId} con costo: ${nuevoCosto}`);
-      console.log(`   📤 Payload completo:`, JSON.stringify(payloadActualizacion, null, 2));
-      const resultado = await actualizarProducto(productoId, payloadActualizacion);
+      // Obtener el producto actualizado del inventario completo
+      const productosActualizados = await listarInventarioCompleto({}, true, null);
+      productoActualizado = productosActualizados.find(p => p.id === productoId);
+      
+      if (productoActualizado) {
+        console.log(`   🔄 Producto actualizado obtenido del backend:`);
+        console.log(`      - cantidadInsula: ${productoActualizado.cantidadInsula}`);
+        console.log(`      - cantidadCentro: ${productoActualizado.cantidadCentro}`);
+        console.log(`      - cantidadPatios: ${productoActualizado.cantidadPatios}`);
+        
+        // Incluir las cantidades actualizadas en el payload
+        payloadActualizacion.cantidadInsula = Number(productoActualizado.cantidadInsula || 0);
+        payloadActualizacion.cantidadCentro = Number(productoActualizado.cantidadCentro || 0);
+        payloadActualizacion.cantidadPatios = Number(productoActualizado.cantidadPatios || 0);
+      } else {
+        console.warn(`   ⚠️ No se pudo obtener el producto actualizado del backend, usando cantidades anteriores`);
+        // Si no podemos obtener el producto actualizado, calcular las cantidades nuevas
+        // basándonos en las cantidades anteriores + la cantidad nueva del ingreso
+        // Pero necesitamos saber a qué sede se hizo el ingreso...
+        // Por ahora, no incluimos las cantidades si no podemos obtenerlas actualizadas
+      }
+    } catch (error) {
+      console.warn(`   ⚠️ Error al obtener producto actualizado del backend:`, error);
+      // Continuar sin las cantidades actualizadas
+    }
+
+    // Actualizar SOLO el costo del producto usando endpoint específico
+    // IMPORTANTE: Asegurarse de que el costo sea un número entero (sin decimales)
+    const costoEntero = Math.ceil(nuevoCosto);
+    
+    try {
+      console.log(`   📤 Enviando actualización SOLO del costo del producto ${productoId}: ${costoEntero}`);
+      console.log(`   📤 Usando endpoint específico: PUT /productos/${productoId}/costo`);
+      console.log(`   📤 Costo calculado: ${nuevoCosto} → redondeado a entero: ${costoEntero}`);
+      
+      // Intentar primero con el endpoint específico para actualizar solo el costo
+      const resultado = await actualizarCostoProducto(productoId, costoEntero);
+      
       console.log(`   ✅ Respuesta del backend:`, resultado);
-      console.log(`✅ Costo actualizado para producto ${productoId} (${producto.nombre}): ${costoActual} → ${nuevoCosto} (cantidad antes: ${cantidadAntes} + cantidad nueva: ${cantidadNueva} = ${cantidadAntes + cantidadNueva})`);
+      console.log(`   🔍 Verificando costo en respuesta:`, resultado.costo);
+      
+      // Verificar que el costo se guardó correctamente
+      if (resultado.costo !== costoEntero) {
+        console.warn(`   ⚠️ ADVERTENCIA: El costo en la respuesta (${resultado.costo}) no coincide con el enviado (${costoEntero})`);
+      }
+      
+      console.log(`✅ Costo actualizado para producto ${productoId} (${producto.nombre}): ${costoActual} → ${costoEntero} (cantidad antes: ${cantidadAntes} + cantidad nueva: ${cantidadNueva} = ${cantidadAntes + cantidadNueva})`);
+      
+      // Esperar un momento antes de disparar el evento para asegurar que el backend guardó el cambio
+      await new Promise(resolve => setTimeout(resolve, 200));
       
       // Disparar evento personalizado para refrescar el inventario
       window.dispatchEvent(new CustomEvent('inventory-updated', { 
-        detail: { productoId, nuevoCosto } 
+        detail: { productoId, nuevoCosto: costoEntero } 
       }));
     } catch (updateError) {
       console.error(`❌ Error al actualizar costo del producto ${productoId}:`, updateError);
       console.error(`❌ Detalles del error:`, updateError?.response?.data || updateError?.message);
-      throw updateError;
+      console.error(`❌ Status:`, updateError?.response?.status);
+      
+      // Si el endpoint específico no existe, intentar con el método completo como fallback
+      if (updateError.response?.status === 404) {
+        console.warn(`   ⚠️ Endpoint específico no encontrado, intentando con actualización completa...`);
+        try {
+          const resultado = await actualizarProducto(productoId, payloadActualizacion);
+          console.log(`   ✅ Actualización completa exitosa:`, resultado);
+        } catch (fallbackError) {
+          console.error(`❌ Error en fallback también:`, fallbackError);
+          throw fallbackError;
+        }
+      } else {
+        throw updateError;
+      }
     }
   });
 

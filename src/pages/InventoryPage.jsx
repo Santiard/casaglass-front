@@ -129,6 +129,9 @@ export default function InventoryPage() {
     try {
       // Pasar información de autenticación para filtrar según rol
       const productos = await listarInventarioCompleto({}, isAdmin, sedeId);
+      console.log("📦 Productos obtenidos de /inventario-completo:", productos?.length || 0);
+      console.log("📦 Productos vidrio encontrados:", productos?.filter(p => p.esVidrio || p.categoria?.nombre?.toLowerCase().includes('vidrio')).length || 0);
+      console.log("📦 Primeros 3 productos:", productos?.slice(0, 3).map(p => ({ id: p.id, nombre: p.nombre, categoria: p.categoria, esVidrio: p.esVidrio })));
       setData(productos || []);
     } catch (e) {
       console.error("Error cargando inventario completo", e);
@@ -188,9 +191,17 @@ export default function InventoryPage() {
 
   const handleSaveProduct = async (product) => {
     try {
-      const categoriaNombre = product.categoria?.nombre?.toLowerCase() || "";
-      const esVidrio = categoriaNombre === "vidrio";
+      // Determinar si es vidrio: verificar categoría o campo esVidrio
+      const categoriaNombre = product.categoria?.nombre?.toLowerCase() || 
+                              (typeof product.categoria === 'string' ? product.categoria.toLowerCase() : "");
+      const esVidrio = categoriaNombre.includes('vidrio') || product.esVidrio === true;
       const editando = !!editingProduct?.id;
+
+      console.log("🔍 handleSaveProduct - Verificando si es vidrio:");
+      console.log("  - categoriaNombre:", categoriaNombre);
+      console.log("  - product.categoria:", product.categoria);
+      console.log("  - product.esVidrio:", product.esVidrio);
+      console.log("  - esVidrio calculado:", esVidrio);
 
       if (esVidrio) {
         if (editando) await actualizarProductoVidrio(editingProduct.id, product);
@@ -200,11 +211,14 @@ export default function InventoryPage() {
         else await crearProducto(product);
       }
 
+      // Refrescar datos después de guardar
+      console.log("🔄 Refrescando inventario después de guardar producto...");
       await fetchData();
       setModalOpen(false);
+      showSuccess(editando ? "Producto actualizado correctamente" : "Producto creado correctamente");
     } catch (e) {
       console.error("Error guardando producto", e);
-      // alert(e?.response?.data?.message || "No se pudo guardar el producto."); // Reemplazado por toast
+      showError(e?.response?.data?.message || "No se pudo guardar el producto.");
     }
   };
 
