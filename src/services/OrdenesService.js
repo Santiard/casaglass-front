@@ -79,6 +79,19 @@ export async function crearOrdenVenta(payload) {
       throw new Error("Todos los items deben tener productoId, cantidad y precioUnitario válidos (mayor a 0)");
     }
 
+    // 🔍 LOG: Verificar payload antes de enviar
+    console.log("📤 Payload completo para crear orden:", {
+      clienteId: payload.clienteId,
+      sedeId: payload.sedeId,
+      totalItems: payload.items?.length || 0,
+      items: payload.items?.map(item => ({
+        productoId: item.productoId,
+        productoIdParsed: parseInt(item.productoId),
+        cantidad: item.cantidad,
+        precioUnitario: item.precioUnitario
+      })) || []
+    });
+    
     // Formato correcto para el backend actualizado
     const ordenData = {
       obra: payload.obra || "",
@@ -91,14 +104,27 @@ export async function crearOrdenVenta(payload) {
       sedeId: parseInt(payload.sedeId), // OBLIGATORIO
       // trabajadorId es opcional según la documentación
       ...(payload.trabajadorId ? { trabajadorId: parseInt(payload.trabajadorId) } : {}),
-      items: payload.items.map(item => ({
-        productoId: parseInt(item.productoId),
-        cantidad: parseInt(item.cantidad),
-        descripcion: String(item.descripcion || ""),
-        precioUnitario: parseFloat(item.precioUnitario),
-        // reutilizarCorteSolicitadoId es opcional
-        ...(item.reutilizarCorteSolicitadoId ? { reutilizarCorteSolicitadoId: parseInt(item.reutilizarCorteSolicitadoId) } : {})
-      })),
+      items: payload.items.map(item => {
+        const productoId = parseInt(item.productoId);
+        
+        // 🔍 LOG: Verificar cada item antes de parsear
+        if (!productoId || productoId === 0 || isNaN(productoId)) {
+          console.error("❌ ERROR: Item con productoId inválido en crearOrdenVenta:", {
+            productoId: item.productoId,
+            productoIdParsed: productoId,
+            item: item
+          });
+        }
+        
+        return {
+          productoId: productoId,
+          cantidad: parseInt(item.cantidad),
+          descripcion: String(item.descripcion || ""),
+          precioUnitario: parseFloat(item.precioUnitario),
+          // reutilizarCorteSolicitadoId es opcional
+          ...(item.reutilizarCorteSolicitadoId ? { reutilizarCorteSolicitadoId: parseInt(item.reutilizarCorteSolicitadoId) } : {})
+        };
+      }),
       // 🆕 NUEVO: Incluir cortes pendientes
       cortes: payload.cortes ? payload.cortes.map(corte => {
         // Nueva estructura: cantidadesPorSede (array de {sedeId, cantidad})

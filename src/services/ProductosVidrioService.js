@@ -13,8 +13,9 @@ export async function listarProductosVidrio({ q, mm, laminas } = {}) {
 
 export async function crearProductoVidrio(payload) {
   console.log("📤 POST /productos-vidrio - Payload enviado:", JSON.stringify(payload, null, 2));
-  console.log("📤 ¿Tiene m1m2?:", payload.m1m2 !== undefined, "Valor:", payload.m1m2);
+  console.log("📤 Campos de vidrio - mm:", payload.mm, "m1:", payload.m1, "m2:", payload.m2);
   const { data } = await api.post("/productos-vidrio", payload);
+  console.log("✅ Producto vidrio creado - ID:", data?.id, "Nombre:", data?.nombre);
   return data;
 }
 

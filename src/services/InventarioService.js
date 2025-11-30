@@ -8,7 +8,8 @@ import { api } from "../lib/api";
  * @param {number} userSedeId - ID de la sede del usuario (solo para vendedores)
  * @returns {Array} Productos transformados
  */
-function transformarInventarioDTO(productos, isAdmin = true, userSedeId = null) {
+function transformarInventarioDTO(productos, isAdmin = true, userSedeId = null, categoriasMap = null) {
+  // categoriasMap: Map de nombre de categoría -> { id, nombre } para mapear nombres a IDs
   return productos.map(producto => {
     // El backend ya devuelve cantidadInsula, cantidadCentro, cantidadPatios directamente
     // No necesitamos transformar si ya vienen en el formato correcto
@@ -42,21 +43,25 @@ function transformarInventarioDTO(productos, isAdmin = true, userSedeId = null) 
                      (producto.mm != null && producto.mm !== undefined) || 
                      (producto.m1 != null && producto.m1 !== undefined);
 
-    // Normalizar categoría: puede venir como objeto {id, nombre} o como string
-    let categoriaNormalizada = producto.categoria;
+    // Normalizar categoría: ahora TODOS los productos (normales y vidrios) vienen con objeto {id, nombre}
+    // ✅ Backend unificado: categoria siempre es { id: X, nombre: "..." }
     let categoriaId = null;
     let categoriaNombre = null;
     
-    if (typeof producto.categoria === 'object' && producto.categoria !== null) {
-      categoriaNombre = producto.categoria.nombre || producto.categoria;
+    if (producto.categoria && typeof producto.categoria === 'object') {
+      // Todos los productos ahora vienen con categoria como objeto {id, nombre}
+      categoriaNombre = producto.categoria.nombre || null;
       categoriaId = producto.categoria.id || null;
     } else if (typeof producto.categoria === 'string') {
+      // Compatibilidad: si aún llega como string (por si acaso)
       categoriaNombre = producto.categoria;
-    }
-    
-    // Si es vidrio, asegurar que la categoría sea "VIDRIO"
-    if (esVidrio && !categoriaNombre?.toLowerCase().includes('vidrio')) {
-      categoriaNombre = "VIDRIO";
+      // Intentar obtener el ID usando el mapa de categorías
+      if (categoriasMap) {
+        const catInfo = categoriasMap[categoriaNombre] || categoriasMap[categoriaNombre.toUpperCase()] || categoriasMap[categoriaNombre.toLowerCase()];
+        if (catInfo) {
+          categoriaId = catInfo.id;
+        }
+      }
     }
     
     return {
@@ -66,9 +71,9 @@ function transformarInventarioDTO(productos, isAdmin = true, userSedeId = null) 
       posicion: producto.posicion,
       tipo: producto.tipo,
       color: producto.color,
-      categoria: categoriaNombre || categoriaNormalizada, // Nombre de categoría para filtros
-      categoriaId: categoriaId || producto.categoriaId || producto.categoria_id, // ID para filtros por ID
-      categoriaObj: producto.categoria, // Objeto completo si existe
+      categoria: categoriaNombre || (producto.categoria?.nombre) || null, // Nombre de categoría para filtros (compatibilidad)
+      categoriaId: categoriaId || producto.categoria?.id || producto.categoriaId || producto.categoria_id, // ID para filtros por ID
+      categoriaObj: producto.categoria, // Objeto completo {id, nombre} - formato unificado del backend
       descripcion: producto.descripcion,
       costo: producto.costo,
       precio1: producto.precio1,
@@ -83,7 +88,10 @@ function transformarInventarioDTO(productos, isAdmin = true, userSedeId = null) 
       mm: producto.mm || producto.grosorMm || null,
       m1: producto.m1 || producto.largoCm || null,
       m2: producto.m2 || producto.anchoCm || null,
-      m1m2: producto.m1m2 || (producto.m1 && producto.m2 ? `${producto.m1}x${producto.m2}` : null) || (producto.largoCm && producto.anchoCm ? (producto.largoCm * producto.anchoCm / 10000).toFixed(2) : null),
+      // Calcular m² (metros cuadrados) = (m1 * m2) / 10000 (si m1 y m2 están en cm)
+      m1m2: producto.m1m2 || 
+            (producto.m1 && producto.m2 ? ((producto.m1 * producto.m2) / 10000).toFixed(2) : null) || 
+            (producto.largoCm && producto.anchoCm ? ((producto.largoCm * producto.anchoCm) / 10000).toFixed(2) : null),
       // Compatibilidad con formato antiguo
       largoCm: producto.largoCm || producto.m1 || null,
       anchoCm: producto.anchoCm || producto.m2 || null,
@@ -94,65 +102,23 @@ function transformarInventarioDTO(productos, isAdmin = true, userSedeId = null) 
 }
 
 /**
- * Obtiene inventario completo de productos vidrio
- * GET /api/inventario-completo/vidrios
+ * Obtiene inventario completo con productos y cantidades por sede
+ * GET /api/inventario-completo (retorna todos los productos: normales y vidrios)
+ * @param {Object} categoriasMap - Mapa de nombres de categoría a {id, nombre} para mapear IDs
  */
-export async function listarInventarioCompletoVidrios(params = {}, isAdmin = true, userSedeId = null) {
+export async function listarInventarioCompleto(params = {}, isAdmin = true, userSedeId = null, categoriasMap = null) {
   try {
-    const { data } = await api.get("/inventario-completo/vidrios", { params });
-    return transformarInventarioDTO(data || [], isAdmin, userSedeId);
-  } catch (error) {
-    console.error("Error obteniendo productos vidrio:", error);
-    // Si el endpoint no existe o falla, retornar array vacío
-    return [];
-  }
-}
-
-/**
- * Obtiene inventario completo con productos y cantidades por sede unificado
- * Combina productos normales y productos vidrio
- * GET /api/inventario-completo + GET /api/inventario-completo/vidrios
- */
-export async function listarInventarioCompleto(params = {}, isAdmin = true, userSedeId = null) {
-  try {
-    // Obtener productos normales y vidrios en paralelo
-    const [productosNormales, productosVidrio] = await Promise.all([
-      api.get("/inventario-completo", { params }).then(res => res.data || []),
-      api.get("/inventario-completo/vidrios", { params }).then(res => {
-        console.log(`✅ Respuesta de /inventario-completo/vidrios:`, res.data?.length || 0, "productos");
-        if (res.data && res.data.length > 0) {
-          console.log(`  - Primer vidrio del endpoint:`, res.data[0]);
-        }
-        return res.data || [];
-      }).catch((err) => {
-        console.error("❌ Error obteniendo productos vidrio:", err);
-        console.error("  - URL:", err.config?.url);
-        console.error("  - Status:", err.response?.status);
-        console.error("  - Data:", err.response?.data);
-        return [];
-      })
-    ]);
+    // El endpoint /inventario-completo retorna todos los productos (normales y vidrios)
+    const { data } = await api.get("/inventario-completo", { params });
     
-    console.log(`📦 Inventario completo - Respuestas del backend:`);
-    console.log(`  - Productos normales: ${productosNormales?.length || 0}`);
-    console.log(`  - Productos vidrio: ${productosVidrio?.length || 0}`);
+    console.log(`📦 Inventario completo - Productos obtenidos: ${data?.length || 0}`);
     
-    // Combinar ambos arrays
-    const todosLosProductos = [...(productosNormales || []), ...(productosVidrio || [])];
-    
-    const transformados = transformarInventarioDTO(todosLosProductos, isAdmin, userSedeId);
+    const transformados = transformarInventarioDTO(data || [], isAdmin, userSedeId, categoriasMap);
     
     return transformados;
   } catch (error) {
     console.error("Error obteniendo inventario completo:", error);
-    // Si falla, intentar solo con productos normales (comportamiento anterior)
-    try {
-      const { data } = await api.get("/inventario-completo", { params });
-      return transformarInventarioDTO(data || [], isAdmin, userSedeId);
-    } catch (fallbackError) {
-      console.error("Error en fallback:", fallbackError);
-      throw fallbackError;
-    }
+    throw error;
   }
 }
 

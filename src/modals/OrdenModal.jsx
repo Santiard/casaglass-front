@@ -43,6 +43,7 @@ export default function OrdenEditarModal({
   const [catalogoProductos, setCatalogoProductos] = useState([]);
   const [search, setSearch] = useState("");
   const [selectedCategoryId, setSelectedCategoryId] = useState(null);
+  const [selectedColor, setSelectedColor] = useState(""); // Filtro de color
   const [clienteSearch, setClienteSearch] = useState("");
   const [clienteSearchModal, setClienteSearchModal] = useState(""); // Búsqueda dentro del modal
   const [showClienteModal, setShowClienteModal] = useState(false);
@@ -480,6 +481,28 @@ export default function OrdenEditarModal({
         
         try {
           prods = await listarTodosLosProductos(); // ✅ Incluye productos normales + vidrios
+          
+          // 🔍 LOG: Verificar estructura de productos cargados
+          console.log("📦 Productos cargados para órdenes:", {
+            total: prods?.length || 0,
+            primeros3: prods?.slice(0, 3).map(p => ({
+              id: p.id,
+              productoId: p.productoId,
+              codigo: p.codigo,
+              nombre: p.nombre,
+              tieneId: !!(p.id || p.productoId),
+              tipo: p.esVidrio ? "VIDRIO" : "NORMAL"
+            })) || []
+          });
+          
+          // Verificar si hay productos sin ID
+          const productosSinId = prods?.filter(p => !p.id && !p.productoId) || [];
+          if (productosSinId.length > 0) {
+            console.warn("⚠️ Productos sin ID encontrados:", productosSinId.map(p => ({
+              codigo: p.codigo,
+              nombre: p.nombre
+            })));
+          }
         } catch (e) {
           console.error("Error cargando productos:", e);
         }
@@ -603,11 +626,41 @@ export default function OrdenEditarModal({
     });
   }, [isOpen, orden?.id, clientes.length, trabajadores.length, sedes.length, catalogoProductos.length]);
 
+  // === Establecer primera categoría por defecto al cargar (igual que en InventoryPage) ===
+  useEffect(() => {
+    if (categorias.length > 0 && !selectedCategoryId) {
+      const primeraCategoria = categorias[0];
+      if (primeraCategoria) {
+        // Determinar el color por defecto según la categoría
+        const categoriasConMate = [
+          "5020",
+          "744",
+          "8025",
+          "7038",
+          "3831",
+          "BAÑO",
+          "TUBOS CUARTO CIRCULOS",
+          "CANALES"
+        ];
+        const categoriaNombre = primeraCategoria.nombre?.toUpperCase().trim() || "";
+        const tieneMate = categoriasConMate.some(cat => 
+          cat.toUpperCase().trim() === categoriaNombre
+        );
+        const colorDefault = tieneMate ? "MATE" : "";
+        
+        setSelectedCategoryId(primeraCategoria.id);
+        setSelectedColor(colorDefault);
+      }
+    }
+  }, [categorias, selectedCategoryId]);
+
   // =============================
   // Filtro de catálogo
   // =============================
   const catalogoFiltrado = useMemo(() => {
     let filtered = catalogoProductos;
+    
+    // Filtro por categoría (siempre debe haber una seleccionada)
     if (selectedCategoryId) {
       const selected = categorias.find((c) => c.id === selectedCategoryId);
       if (selected) {
@@ -630,15 +683,28 @@ export default function OrdenEditarModal({
         });
       }
     }
+    
+    // Filtro por color
+    if (selectedColor) {
+      filtered = filtered.filter((p) => {
+        const productoColor = (p.color || "").toUpperCase().trim();
+        const colorFiltro = selectedColor.toUpperCase().trim();
+        return productoColor === colorFiltro;
+      });
+    }
+    
+    // Filtro por búsqueda
     const q = search.trim().toLowerCase();
-    if (q)
+    if (q) {
       filtered = filtered.filter(
         (p) =>
           (p.nombre ?? "").toLowerCase().includes(q) ||
           (p.codigo ?? "").toLowerCase().includes(q)
       );
+    }
+    
     return filtered;
-  }, [catalogoProductos, search, selectedCategoryId, categorias]);
+  }, [catalogoProductos, search, selectedCategoryId, selectedColor, categorias]);
 
   if (!isOpen) return null;
   
@@ -709,12 +775,34 @@ export default function OrdenEditarModal({
         return prev; // evitar duplicados
       }
       
+      // 🔍 LOG: Verificar datos del producto antes de agregar
+      const productoId = item.id || item.productoId;
+      console.log("➕ Agregando producto a la orden:", {
+        id: item.id,
+        productoId: item.productoId,
+        idFinal: productoId,
+        codigo: item.codigo,
+        nombre: item.nombre,
+        tieneId: !!productoId,
+        precio1: item.precio1
+      });
+      
+      if (!productoId) {
+        console.error("❌ ERROR: Producto sin ID:", {
+          codigo: item.codigo,
+          nombre: item.nombre,
+          itemCompleto: item
+        });
+        showError(`El producto "${item.nombre || item.codigo}" no tiene un ID válido. Por favor, recarga la página.`);
+        return prev;
+      }
+      
       // Obtener el precio según la sede del usuario (necesitamos acceso a la sede)
       const precioUnitario = item.precio1 || 0; // Por ahora usar precio1, después se puede mejorar
       
       const nuevo = {
         id: null,
-        productoId: item.id,
+        productoId: productoId, // Usar item.id o item.productoId
         codigo: item.codigo,
         nombre: item.nombre,
         descripcion: item.descripcion || "",
@@ -724,6 +812,12 @@ export default function OrdenEditarModal({
         eliminar: false,
         color: item.color, // Incluir el color del producto
       };
+      
+      console.log("✅ Producto agregado al formulario:", {
+        productoId: nuevo.productoId,
+        codigo: nuevo.codigo,
+        nombre: nuevo.nombre
+      });
       
       const nuevosItems = [...prev.items, nuevo];
       
@@ -773,9 +867,24 @@ export default function OrdenEditarModal({
       // Validar que todos los items tengan productoId válido
       const itemsInvalidos = itemsActivos.filter(i => !i.productoId || i.productoId === 0 || i.productoId === null);
       if (itemsInvalidos.length > 0) {
+        console.error("❌ ERROR: Items sin productoId válido:", itemsInvalidos.map(i => ({
+          codigo: i.codigo,
+          nombre: i.nombre,
+          productoId: i.productoId
+        })));
         showError(`Los siguientes productos no tienen un ID válido: ${itemsInvalidos.map(i => i.nombre || i.codigo).join(", ")}`);
         return;
       }
+      
+      // 🔍 LOG: Verificar items antes de crear la orden
+      console.log("📋 Items validados para crear orden:", itemsActivos.map(i => ({
+        productoId: i.productoId,
+        codigo: i.codigo,
+        nombre: i.nombre,
+        cantidad: i.cantidad,
+        precioUnitario: i.precioUnitario,
+        totalLinea: i.totalLinea
+      })));
 
       // Validar que las cantidades y precios sean válidos
       const itemsConDatosInvalidos = itemsActivos.filter(i => 
@@ -838,8 +947,19 @@ export default function OrdenEditarModal({
         // trabajadorId es opcional según la documentación
         ...(form.trabajadorId ? { trabajadorId: Number(form.trabajadorId) } : {}),
         items: itemsActivos.map((i) => {
+          // 🔍 LOG: Verificar cada item antes de enviar
+          const productoId = Number(i.productoId);
+          if (!productoId || productoId === 0) {
+            console.error("❌ ERROR: Item con productoId inválido:", {
+              codigo: i.codigo,
+              nombre: i.nombre,
+              productoId: i.productoId,
+              productoIdNumber: productoId
+            });
+          }
+          
           const item = {
-            productoId: Number(i.productoId),
+            productoId: productoId,
             descripcion: i.descripcion ?? "",
             cantidad: Number(i.cantidad),
             precioUnitario: Number(i.precioUnitario),
@@ -848,6 +968,15 @@ export default function OrdenEditarModal({
           if (i.reutilizarCorteSolicitadoId) {
             item.reutilizarCorteSolicitadoId = Number(i.reutilizarCorteSolicitadoId);
           }
+          
+          console.log("📤 Item preparado para enviar:", {
+            productoId: item.productoId,
+            codigo: i.codigo,
+            nombre: i.nombre,
+            cantidad: item.cantidad,
+            precioUnitario: item.precioUnitario
+          });
+          
           return item;
         }),
       };
@@ -942,8 +1071,22 @@ export default function OrdenEditarModal({
         // Validar que productoId sea válido antes de enviar
         const productoId = Number(i.productoId);
         if (!productoId || productoId === 0) {
+          console.error("❌ ERROR: Producto sin ID válido en edición:", {
+            codigo: i.codigo,
+            nombre: i.nombre,
+            productoId: i.productoId,
+            productoIdNumber: productoId
+          });
           throw new Error(`El producto "${i.nombre || i.codigo}" no tiene un ID válido. Por favor, recarga la página e intenta nuevamente.`);
         }
+        
+        console.log("📤 Item preparado para actualizar orden:", {
+          productoId: productoId,
+          codigo: i.codigo,
+          nombre: i.nombre,
+          cantidad: Number(i.cantidad ?? 1),
+          precioUnitario: Number(i.precioUnitario ?? 0)
+        });
         
         return {
           id: i.id ?? null,
@@ -1471,11 +1614,38 @@ export default function OrdenEditarModal({
           {/* PANEL CENTRAL */}
           <div className="pane pane-sidebar">
             <CategorySidebar
-              categories={[{ id: null, nombre: "Todas" }, ...categorias]}
+              categories={categorias}
               selectedId={selectedCategoryId}
-              onSelect={(id) =>
-                setSelectedCategoryId(id === null ? null : id)
-              }
+              onSelect={(catId) => {
+                // No permitir deseleccionar (siempre debe haber una categoría seleccionada)
+                if (selectedCategoryId === catId) {
+                  return; // No hacer nada si se intenta deseleccionar
+                }
+                
+                // Determinar el color por defecto según la categoría
+                const categoriasConMate = [
+                  "5020",
+                  "744",
+                  "8025",
+                  "7038",
+                  "3831",
+                  "BAÑO",
+                  "TUBOS CUARTO CIRCULOS",
+                  "CANALES"
+                ];
+                
+                const selectedCategory = categorias.find(cat => cat.id === catId);
+                const categoriaNombre = selectedCategory?.nombre?.toUpperCase().trim() || "";
+                
+                const tieneMate = categoriasConMate.some(cat => 
+                  cat.toUpperCase().trim() === categoriaNombre
+                );
+                
+                const colorDefault = tieneMate ? "MATE" : "";
+                
+                setSelectedCategoryId(catId);
+                setSelectedColor(colorDefault);
+              }}
             />
           </div>
 
@@ -1483,13 +1653,38 @@ export default function OrdenEditarModal({
           <div className="pane pane-right">
             <div className="inv-header">
               <h3>Catálogo de Productos</h3>
-              <input
-                className="inv-search"
-                type="text"
-                placeholder="Buscar..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
+              <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+                <input
+                  className="inv-search"
+                  type="text"
+                  placeholder="Buscar..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  style={{ flex: 1 }}
+                />
+                <select
+                  className="filter-select"
+                  value={selectedColor}
+                  onChange={(e) => setSelectedColor(e.target.value)}
+                  style={{ 
+                    padding: "0.5rem",
+                    borderRadius: "4px",
+                    border: "1px solid #ddd",
+                    fontSize: "0.9rem",
+                    minWidth: "120px"
+                  }}
+                >
+                  <option value="">Todos los colores</option>
+                  <option value="MATE">MATE</option>
+                  <option value="NA">NA</option>
+                  <option value="TRANSPARENTE">TRANSPARENTE</option>
+                  <option value="BLANCO">BLANCO</option>
+                  <option value="BRONCE">BRONCE</option>
+                  <option value="VERDE">VERDE</option>
+                  <option value="AZUL">AZUL</option>
+                  <option value="GRIS">GRIS</option>
+                </select>
+              </div>
             </div>
             <div className="inventory-scroll">
               <table className="inv-table">

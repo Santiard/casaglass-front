@@ -18,26 +18,45 @@ export async function listarProductos(params = {}) {
 /**
  * Obtiene TODOS los productos (normales + vidrios) combinados
  * Útil para catálogos donde se necesitan ambos tipos
+ * NOTA: Usa /inventario-completo que retorna todos los productos (normales y vidrios)
  */
 export async function listarTodosLosProductos(params = {}) {
   try {
-    // Obtener productos normales y vidrios en paralelo
-    const [productosNormales, productosVidrio] = await Promise.all([
-      api.get("/productos", { params }).then(res => res.data || []),
-      api.get("/inventario-completo/vidrios", { params }).then(res => res.data || []).catch(() => [])
-    ]);
+    // El endpoint /inventario-completo retorna todos los productos (normales y vidrios)
+    const { data } = await api.get("/inventario-completo", { params });
     
-    // Combinar ambos arrays
-    const todosLosProductos = [...(productosNormales || []), ...(productosVidrio || [])];
+    console.log(`📦 listarTodosLosProductos: ${data?.length || 0} productos totales (normales + vidrios)`);
     
-    console.log(`📦 listarTodosLosProductos: ${productosNormales?.length || 0} normales + ${productosVidrio?.length || 0} vidrios = ${todosLosProductos.length} total`);
+    // 🔍 LOG: Verificar estructura de productos retornados
+    if (data && data.length > 0) {
+      const primeros3 = data.slice(0, 3);
+      console.log("🔍 Estructura de productos del endpoint /inventario-completo:", primeros3.map(p => ({
+        id: p.id,
+        productoId: p.productoId,
+        codigo: p.codigo,
+        nombre: p.nombre,
+        tieneId: !!(p.id || p.productoId),
+        esVidrio: p.esVidrio,
+        categoria: p.categoria
+      })));
+      
+      // Verificar productos sin ID
+      const sinId = data.filter(p => !p.id && !p.productoId);
+      if (sinId.length > 0) {
+        console.warn(`⚠️ ${sinId.length} productos sin ID encontrados en /inventario-completo:`, sinId.map(p => ({
+          codigo: p.codigo,
+          nombre: p.nombre
+        })));
+      }
+    }
     
-    return todosLosProductos;
+    return data || [];
   } catch (error) {
     console.error("Error obteniendo todos los productos:", error);
     // Si falla, intentar solo con productos normales (comportamiento anterior)
     try {
       const { data } = await api.get("/productos", { params });
+      console.log("⚠️ Fallback a /productos:", data?.length || 0, "productos");
       return data || [];
     } catch (fallbackError) {
       console.error("Error en fallback:", fallbackError);

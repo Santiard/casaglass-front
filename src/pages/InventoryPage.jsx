@@ -84,54 +84,111 @@ export default function InventoryPage() {
   }, [fetchCategorias]);
 
   // === Establecer primera categoría para productos al cargar ===
+  // Siempre debe haber una categoría seleccionada por defecto
   useEffect(() => {
-    if (categories.length > 0) {
+    if (categories.length > 0 && view === "producto") {
       setFilters((prev) => {
         // Solo establecer si no hay categoría seleccionada
         if (!prev.categoryId) {
           const primeraCategoria = categories[0];
           if (primeraCategoria) {
+            // Determinar el color por defecto según la categoría
+            const categoriasConMate = [
+              "5020",
+              "744",
+              "8025",
+              "7038",
+              "3831",
+              "BAÑO",
+              "TUBOS CUARTO CIRCULOS",
+              "CANALES"
+            ];
+            const categoriaNombre = primeraCategoria.nombre?.toUpperCase().trim() || "";
+            const tieneMate = categoriasConMate.some(cat => 
+              cat.toUpperCase().trim() === categoriaNombre
+            );
+            const colorDefault = tieneMate ? "MATE" : "";
+            
             return {
               ...prev,
               categoryId: primeraCategoria.id,
+              color: colorDefault,
             };
           }
         }
         return prev;
       });
     }
-  }, [categories]);
+  }, [categories, view]);
 
-  useEffect(() => {
-    // Establecer el primer color (MATE) si no hay color seleccionado para productos
-    if (!filters.color) {
-      setFilters((prev) => ({
-        ...prev,
-        color: "MATE", // Primer color disponible
-      }));
-    }
-  }, []); // Solo al montar el componente
+  // COMENTADO: No establecer color automáticamente para permitir ver todos los productos
+  // El usuario puede seleccionar un color específico si lo desea
+  // useEffect(() => {
+  //   // Establecer el primer color (MATE) si no hay color seleccionado para productos
+  //   if (!filters.color) {
+  //     setFilters((prev) => ({
+  //       ...prev,
+  //       color: "MATE", // Primer color disponible
+  //     }));
+  //   }
+  // }, []); // Solo al montar el componente
 
-  useEffect(() => {
-    // Establecer el primer color (MATE) si no hay color seleccionado para cortes
-    if (!corteFilters.color) {
-      setCorteFilters((prev) => ({
-        ...prev,
-        color: "MATE", // Primer color disponible
-      }));
-    }
-  }, []); // Solo al montar el componente
+  // COMENTADO: No establecer color automáticamente para permitir ver todos los cortes
+  // useEffect(() => {
+  //   // Establecer el primer color (MATE) si no hay color seleccionado para cortes
+  //   if (!corteFilters.color) {
+  //     setCorteFilters((prev) => ({
+  //       ...prev,
+  //       color: "MATE", // Primer color disponible
+  //     }));
+  //   }
+  // }, []); // Solo al montar el componente
 
   // === Cargar TODOS los productos con inventario completo ===
   const fetchData = useCallback(async () => {
     if (view !== "producto") return;
     setLoading(true);
     try {
+      // Crear mapa de categorías para mapear nombres a IDs
+      const categoriasMap = {};
+      categories.forEach(cat => {
+        categoriasMap[cat.nombre] = { id: cat.id, nombre: cat.nombre };
+        categoriasMap[cat.nombre.toUpperCase()] = { id: cat.id, nombre: cat.nombre };
+        categoriasMap[cat.nombre.toLowerCase()] = { id: cat.id, nombre: cat.nombre };
+      });
+      
+      // Buscar la categoría "VIDRIO" específicamente
+      const categoriaVidrio = categories.find(c => c.nombre?.toLowerCase() === 'vidrio');
+      if (categoriaVidrio) {
+        console.log("🔍 Categoría VIDRIO encontrada:", categoriaVidrio);
+      } else {
+        console.warn("⚠️ Categoría VIDRIO NO encontrada en la lista de categorías");
+      }
+      
       // Pasar información de autenticación para filtrar según rol
-      const productos = await listarInventarioCompleto({}, isAdmin, sedeId);
+      // Pasar también el mapa de categorías para mapear nombres a IDs
+      const productos = await listarInventarioCompleto({}, isAdmin, sedeId, categoriasMap);
       console.log("📦 Productos obtenidos de /inventario-completo:", productos?.length || 0);
-      console.log("📦 Productos vidrio encontrados:", productos?.filter(p => p.esVidrio || p.categoria?.nombre?.toLowerCase().includes('vidrio')).length || 0);
-      console.log("📦 Primeros 3 productos:", productos?.slice(0, 3).map(p => ({ id: p.id, nombre: p.nombre, categoria: p.categoria, esVidrio: p.esVidrio })));
+      
+      const vidrios = productos?.filter(p => p.esVidrio || (typeof p.categoria === 'string' && p.categoria.toLowerCase().includes('vidrio'))) || [];
+      console.log("📦 Productos vidrio encontrados:", vidrios.length);
+      if (vidrios.length > 0) {
+        console.log("📦 Vidrios:", vidrios.map(v => ({ 
+          id: v.id, 
+          nombre: v.nombre, 
+          categoria: v.categoria, 
+          categoriaId: v.categoriaId,
+          esVidrio: v.esVidrio 
+        })));
+      }
+      
+      console.log("📦 Primeros 3 productos:", productos?.slice(0, 3).map(p => ({ 
+        id: p.id, 
+        nombre: p.nombre, 
+        categoria: p.categoria, 
+        categoriaId: p.categoriaId,
+        esVidrio: p.esVidrio 
+      })));
       setData(productos || []);
     } catch (e) {
       console.error("Error cargando inventario completo", e);
@@ -139,7 +196,7 @@ export default function InventoryPage() {
     } finally {
       setLoading(false);
     }
-  }, [view, isAdmin, sedeId]);
+  }, [view, isAdmin, sedeId, categories]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -191,22 +248,30 @@ export default function InventoryPage() {
 
   const handleSaveProduct = async (product) => {
     try {
-      // Determinar si es vidrio: verificar categoría o campo esVidrio
+      // Determinar si es vidrio: verificar categoría, campo esVidrio, o presencia de campos mm/m1/m2
       const categoriaNombre = product.categoria?.nombre?.toLowerCase() || 
                               (typeof product.categoria === 'string' ? product.categoria.toLowerCase() : "");
-      const esVidrio = categoriaNombre.includes('vidrio') || product.esVidrio === true;
+      const tieneCamposVidrio = (product.mm != null && product.mm !== undefined) || 
+                                 (product.m1 != null && product.m1 !== undefined) || 
+                                 (product.m2 != null && product.m2 !== undefined);
+      const esVidrio = categoriaNombre.includes('vidrio') || 
+                       product.esVidrio === true || 
+                       tieneCamposVidrio;
       const editando = !!editingProduct?.id;
 
       console.log("🔍 handleSaveProduct - Verificando si es vidrio:");
       console.log("  - categoriaNombre:", categoriaNombre);
-      console.log("  - product.categoria:", product.categoria);
       console.log("  - product.esVidrio:", product.esVidrio);
+      console.log("  - tieneCamposVidrio (mm/m1/m2):", tieneCamposVidrio);
       console.log("  - esVidrio calculado:", esVidrio);
+      console.log("  - Endpoint a usar:", esVidrio ? "POST /productos-vidrio" : "POST /productos");
 
       if (esVidrio) {
+        // ✅ Producto vidrio: usar endpoint /productos-vidrio
         if (editando) await actualizarProductoVidrio(editingProduct.id, product);
         else await crearProductoVidrio(product);
       } else {
+        // ✅ Producto normal: usar endpoint /productos
         if (editando) await actualizarProducto(editingProduct.id, product);
         else await crearProducto(product);
       }
@@ -260,28 +325,88 @@ export default function InventoryPage() {
     const min = filters.priceMin !== "" ? Number(filters.priceMin) : -Infinity;
     const max = filters.priceMax !== "" ? Number(filters.priceMax) : Infinity;
 
-    return (data || [])
-      // Filtro por categoría (CategorySidebar)
-      .filter((item) => {
-        if (!categoryId) return true;
+    // Debug: mostrar qué categoría está seleccionada
+    if (categoryId) {
+      const selectedCategory = categories.find(cat => cat.id === categoryId);
+      console.log(`🔍 Filtro activo - Categoría seleccionada:`, {
+        categoryId,
+        categoryNombre: selectedCategory?.nombre,
+        totalProductos: data?.length || 0,
+        productosVidrio: data?.filter(p => p.esVidrio).length || 0
+      });
+    }
+    
+    let productosDespuesCategoria = (data || []);
+    
+    // Filtro por categoría (CategorySidebar)
+    if (categoryId) {
+      const selectedCategory = categories.find(cat => cat.id === categoryId);
+      if (selectedCategory) {
+        productosDespuesCategoria = productosDespuesCategoria.filter((item) => {
+          // IMPORTANTE: Ahora TODOS los productos (normales y vidrios) tienen categoria como objeto {id, nombre}
+          // ✅ Backend unificado: categoria siempre es { id: X, nombre: "..." }
+          const itemCategoriaNombre = typeof item.categoria === 'string' 
+            ? item.categoria  // Compatibilidad: si aún llega como string
+            : item.categoriaObj?.nombre || item.categoria?.nombre || item.categoria;
+          
+          // Comparar por ID (más confiable) o por nombre de categoría
+          const coincidePorId = item.categoriaId === categoryId || 
+                               item.categoria_id === categoryId ||
+                               item.categoriaObj?.id === categoryId ||
+                               item.categoria?.id === categoryId;
+          const coincidePorNombre = (itemCategoriaNombre || "").toLowerCase() === selectedCategory.nombre.toLowerCase();
+          
+          const coincide = coincidePorId || coincidePorNombre;
+          
+          // Debug detallado para vidrios
+          if (item.esVidrio) {
+            console.log(`🔍 Filtro categoría - Vidrio (${coincide ? '✅' : '❌'}):`, {
+              itemId: item.id,
+              itemNombre: item.nombre,
+              itemCategoria: item.categoria,
+              itemCategoriaObj: item.categoriaObj,
+              itemCategoriaId: item.categoriaId,
+              itemCategoriaNombre,
+              selectedCategoryId: categoryId,
+              selectedCategoryNombre: selectedCategory.nombre,
+              coincidePorId,
+              coincidePorNombre,
+              coincide,
+              tipoCategoria: typeof item.categoria,
+              tieneCategoriaObj: !!item.categoriaObj,
+              categoriaObjId: item.categoriaObj?.id,
+              categoriaObjNombre: item.categoriaObj?.nombre
+            });
+          }
+          
+          return coincide;
+        });
         
-        // Buscar la categoría seleccionada para obtener su nombre
-        const selectedCategory = categories.find(cat => cat.id === categoryId);
-        if (!selectedCategory) return true;
-        
-        // Comparar por ID o por nombre de categoría
-        return (
-          item.categoriaId === categoryId || 
-          item.categoria_id === categoryId ||
-          (item.categoria || "").toLowerCase() === selectedCategory.nombre.toLowerCase()
-        );
-      })
+        console.log(`📊 Después del filtro de categoría (ID: ${categoryId}):`, {
+          totalAntes: data?.length || 0,
+          totalDespues: productosDespuesCategoria.length,
+          vidriosDespues: productosDespuesCategoria.filter(p => p.esVidrio).length
+        });
+      }
+    }
+    
+    return productosDespuesCategoria
       // Filtro por búsqueda (nombre, código)
       .filter((item) => {
         if (!search) return true;
         const nombre = (item.nombre || "").toLowerCase();
         const codigo = (item.codigo || "").toLowerCase();
-        return nombre.includes(search) || codigo.includes(search);
+        const pasa = nombre.includes(search) || codigo.includes(search);
+        if (item.esVidrio && !pasa && categoryId === 26) {
+          console.log(`🔍 Filtro búsqueda - Vidrio filtrado:`, {
+            itemId: item.id,
+            itemNombre: item.nombre,
+            search,
+            nombreIncluye: nombre.includes(search),
+            codigoIncluye: codigo.includes(search)
+          });
+        }
+        return pasa;
       })
       // Filtro por status (Disponible/Agotado)
       // Los valores negativos se consideran "Disponible" porque permiten ventas anticipadas
@@ -295,26 +420,118 @@ export default function InventoryPage() {
         // Disponible: stock > 0 o stock < 0 (venta anticipada)
         // Agotado: stock === 0 exactamente
         const estado = total !== 0 ? "Disponible" : "Agotado";
-        return estado === status;
+        const pasa = estado === status;
+        if (item.esVidrio && !pasa && categoryId === 26) {
+          console.log(`🔍 Filtro status - Vidrio filtrado:`, {
+            itemId: item.id,
+            itemNombre: item.nombre,
+            total,
+            estado,
+            statusFiltro: status
+          });
+        }
+        return pasa;
       })
       // Filtro por color
       .filter((item) => {
         if (!color) return true;
-        return (item.color || "").toUpperCase() === color.toUpperCase();
+        const pasa = (item.color || "").toUpperCase() === color.toUpperCase();
+        if (item.esVidrio && !pasa && categoryId === 26) {
+          console.log(`🔍 Filtro color - Vidrio filtrado:`, {
+            itemId: item.id,
+            itemNombre: item.nombre,
+            itemColor: item.color,
+            colorFiltro: color
+          });
+        }
+        return pasa;
       })
       // Filtro por rango de precios
       .filter((item) => {
         const precio = Number(item.precio1 || 0);
-        return precio >= min && precio <= max;
+        const pasa = precio >= min && precio <= max;
+        if (item.esVidrio && !pasa && categoryId === 26) {
+          console.log(`🔍 Filtro precio - Vidrio filtrado:`, {
+            itemId: item.id,
+            itemNombre: item.nombre,
+            precio,
+            min,
+            max
+          });
+        }
+        return pasa;
       });
   }, [view, data, categories, filters.categoryId, filters.search, filters.status, filters.color, filters.priceMin, filters.priceMax]);
+  
+  // Log del resultado final del filtro
+  useEffect(() => {
+    if (view === "producto" && filters.categoryId === 26) {
+      console.log(`📊 Resultado final del filtro (VIDRIO):`, {
+        totalProductos: data?.length || 0,
+        productosFiltrados: filteredData.length,
+        vidriosFiltrados: filteredData.filter(p => p.esVidrio).length,
+        filtrosActivos: {
+          categoryId: filters.categoryId,
+          search: filters.search,
+          status: filters.status,
+          color: filters.color,
+          priceMin: filters.priceMin,
+          priceMax: filters.priceMax
+        }
+      });
+      if (filteredData.length > 0) {
+        console.log(`✅ Productos que pasaron todos los filtros:`, filteredData.map(p => ({
+          id: p.id,
+          nombre: p.nombre,
+          categoria: p.categoria,
+          categoriaId: p.categoriaId,
+          esVidrio: p.esVidrio
+        })));
+      } else {
+        console.warn(`⚠️ NO HAY PRODUCTOS DESPUÉS DE TODOS LOS FILTROS`);
+      }
+    }
+  }, [view, filteredData, filters, data]);
 
   // === Selección de categoría desde el sidebar ===
+  // IMPORTANTE: No se puede deseleccionar la categoría, siempre debe haber una seleccionada
   const handleSelectCategory = (catId) => {
-    setFilters((prev) => ({
-      ...prev,
-      categoryId: prev.categoryId === catId ? null : catId,
-    }));
+    // No permitir deseleccionar si ya está seleccionada (siempre debe haber una categoría)
+    if (filters.categoryId === catId) {
+      return; // No hacer nada si se intenta deseleccionar
+    }
+    
+    setFilters((prev) => {
+      // Categorías que deben tener color "MATE" por defecto (comparación case-insensitive)
+      const categoriasConMate = [
+        "5020",
+        "744",
+        "8025",
+        "7038",
+        "3831",
+        "BAÑO",
+        "TUBOS CUARTO CIRCULOS",
+        "CANALES"
+      ];
+      
+      // Buscar la categoría seleccionada
+      const selectedCategory = categories.find(cat => cat.id === catId);
+      const categoriaNombre = selectedCategory?.nombre?.toUpperCase().trim() || "";
+      
+      // Verificar si la categoría está en la lista (comparación case-insensitive)
+      const tieneMate = categoriasConMate.some(cat => 
+        cat.toUpperCase().trim() === categoriaNombre
+      );
+      
+      // Determinar el color por defecto según la categoría
+      const colorDefault = tieneMate ? "MATE" : "";
+      
+      return {
+        ...prev,
+        categoryId: catId, // Siempre establecer una categoría (no permitir null)
+        color: colorDefault, // Establecer color según la categoría
+      };
+    });
   };
 
   // ======= CORTE =======
@@ -501,6 +718,8 @@ export default function InventoryPage() {
                 onEliminar={(id) => handleDeleteProduct(id)}
                 isAdmin={isAdmin}
                 userSede={sedeId === 1 ? "Insula" : sedeId === 2 ? "Centro" : sedeId === 3 ? "Patios" : ""}
+                selectedCategoryId={filters.categoryId}
+                categories={categories}
               />
             </>
           ) : (

@@ -3,10 +3,11 @@ import "../styles/Table.css"
 import eliminar from "../assets/eliminar.png";
 import editar from "../assets/editar.png";
 
-export default function InventoryTable({ data = [], filters, loading, onEditar, onEliminar, isAdmin = true, userSede = "" }) {
-  const isVidrio =
-    (filters?.category || "").toLowerCase() === "vidrio" ||
-    (data || []).some(p => (p.categoria || "").toLowerCase() === "vidrio");
+export default function InventoryTable({ data = [], filters, loading, onEditar, onEliminar, isAdmin = true, userSede = "", selectedCategoryId = null, categories = [] }) {
+  // Detectar si la categoría seleccionada es VIDRIO
+  // IMPORTANTE: Solo usar la categoría seleccionada para determinar si mostrar columnas de vidrio
+  const selectedCategory = categories.find(cat => cat.id === selectedCategoryId);
+  const isVidrio = selectedCategory?.nombre?.toUpperCase().trim() === "VIDRIO";
 
   return (
     <div className="table-container">
@@ -17,42 +18,52 @@ export default function InventoryTable({ data = [], filters, loading, onEditar, 
             <th>Código</th>
             <th>Nombre</th>
             <th>Color</th>
-            {isVidrio && <th>mm</th>}
-            {isVidrio && <th>m²</th>}
-            {isVidrio && <th>Láminas</th>}
-            {/* Para ADMINISTRADOR: mostrar todas las columnas de inventario */}
-            {isAdmin ? (
+            {isVidrio ? (
               <>
-                <th>Insula</th>
-                <th>Centro</th>
-                <th>Patios</th>
-                <th>Total</th>
+                {/* Columnas específicas para VIDRIO */}
+                <th>mm</th>
+                <th>m²</th>
+                {isAdmin && <th>Precio Insula</th>}
+                {isAdmin && <th>Cantidad Insula</th>}
               </>
             ) : (
-              // Para VENDEDOR: mostrar solo la cantidad de su sede
-              <th>Cantidad ({userSede})</th>
-            )}
-            {/* Columna de costo solo para administradores */}
-            {isAdmin && <th>Costo</th>}
-            {/* Precios según el rol */}
-            {isAdmin ? (
               <>
-                <th>P. Insula</th>
-                <th>P. Centro</th>
-                <th>P. Patios</th>
+                {/* Columnas normales para otras categorías */}
+                {/* Para ADMINISTRADOR: mostrar todas las columnas de inventario */}
+                {isAdmin ? (
+                  <>
+                    <th>Insula</th>
+                    <th>Centro</th>
+                    <th>Patios</th>
+                    <th>Total</th>
+                  </>
+                ) : (
+                  // Para VENDEDOR: mostrar solo la cantidad de su sede
+                  <th>Cantidad ({userSede})</th>
+                )}
+                {/* Columna de costo solo para administradores */}
+                {isAdmin && <th>Costo</th>}
+                {/* Precios según el rol */}
+                {isAdmin ? (
+                  <>
+                    <th>P. Insula</th>
+                    <th>P. Centro</th>
+                    <th>P. Patios</th>
+                  </>
+                ) : (
+                  <th>Precio</th>
+                )}
               </>
-            ) : (
-              <th>Precio</th>
             )}
             {isAdmin && <th>Acciones</th>}
           </tr>
         </thead>
         <tbody>
           {loading && (
-            <tr><td colSpan={isAdmin ? (isVidrio ? 15 : 12) : (isVidrio ? 8 : 5)} className="empty">Cargando…</td></tr>
+            <tr><td colSpan={isAdmin ? (isVidrio ? 7 : 12) : (isVidrio ? 4 : 5)} className="empty">Cargando…</td></tr>
           )}
           {!loading && data.length === 0 && (
-            <tr><td colSpan={isAdmin ? (isVidrio ? 15 : 12) : (isVidrio ? 8 : 5)} className="empty">Sin resultados</td></tr>
+            <tr><td colSpan={isAdmin ? (isVidrio ? 7 : 12) : (isVidrio ? 4 : 5)} className="empty">Sin resultados</td></tr>
           )}
           {!loading && data.map((p) => {
             const total = Number(p.cantidadTotal || 0) || 
@@ -77,57 +88,73 @@ export default function InventoryTable({ data = [], filters, loading, onEditar, 
                 <td>{p.codigo}</td>
                 <td>{p.nombre}</td>
                 <td>{p.color ?? "N/A"}</td>
-                {isVidrio && <td>{p.mm ?? "-"}</td>}
-                {isVidrio && <td>{p.m1m2 ?? "-"}</td>}
-                {isVidrio && <td>{p.laminas ?? "-"}</td>}
-                
-                {/* Columnas de inventario según el rol */}
-                {isAdmin ? (
+                {isVidrio ? (
                   <>
-                    <td className={Number(p.cantidadInsula || 0) < 0 ? "stock-negativo" : ""}>
-                      {p.cantidadInsula ?? 0}
-                      {Number(p.cantidadInsula || 0) < 0 && <span className="badge-negativo"> ⚠️</span>}
-                    </td>
-                    <td className={Number(p.cantidadCentro || 0) < 0 ? "stock-negativo" : ""}>
-                      {p.cantidadCentro ?? 0}
-                      {Number(p.cantidadCentro || 0) < 0 && <span className="badge-negativo"> ⚠️</span>}
-                    </td>
-                    <td className={Number(p.cantidadPatios || 0) < 0 ? "stock-negativo" : ""}>
-                      {p.cantidadPatios ?? 0}
-                      {Number(p.cantidadPatios || 0) < 0 && <span className="badge-negativo"> ⚠️</span>}
-                    </td>
-                    <td className={stockNegativo ? "stock-negativo" : ""}>
-                      <strong>{total}</strong>
-                      {stockNegativo && <span className="badge-negativo"> ⚠️ Faltan {Math.abs(total)}</span>}
-                    </td>
+                    {/* Columnas específicas para VIDRIO */}
+                    <td>{p.mm ?? "-"}</td>
+                    <td>{p.m1m2 ?? "-"}</td>
+                    {isAdmin && (
+                      <>
+                        <td>{p.precio1 ? new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(p.precio1) : "-"}</td>
+                        <td className={Number(p.cantidadInsula || 0) < 0 ? "stock-negativo" : ""}>
+                          {p.cantidadInsula ?? 0}
+                          {Number(p.cantidadInsula || 0) < 0 && <span className="badge-negativo"> ⚠️</span>}
+                        </td>
+                      </>
+                    )}
                   </>
                 ) : (
-                  // Para VENDEDOR: mostrar solo la cantidad de su sede
-                  <td className={stockNegativo ? "stock-negativo" : ""}>
-                    <strong>{cantidadVendedor}</strong>
-                    {stockNegativo && <span className="badge-negativo"> ⚠️ Faltan {Math.abs(cantidadVendedor)}</span>}
-                  </td>
-                )}
-                
-                {/* Columna de costo solo para administradores */}
-                {isAdmin && (
-                  <td>{p.costo ? new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(p.costo) : "-"}</td>
-                )}
-                
-                {/* Precios según el rol */}
-                {isAdmin ? (
                   <>
-                    <td>{p.precio1 ?? "-"}</td>
-                    <td>{p.precio2 ?? "-"}</td>
-                    <td>{p.precio3 ?? "-"}</td>
+                    {/* Columnas normales para otras categorías */}
+                    {/* Columnas de inventario según el rol */}
+                    {isAdmin ? (
+                      <>
+                        <td className={Number(p.cantidadInsula || 0) < 0 ? "stock-negativo" : ""}>
+                          {p.cantidadInsula ?? 0}
+                          {Number(p.cantidadInsula || 0) < 0 && <span className="badge-negativo"> ⚠️</span>}
+                        </td>
+                        <td className={Number(p.cantidadCentro || 0) < 0 ? "stock-negativo" : ""}>
+                          {p.cantidadCentro ?? 0}
+                          {Number(p.cantidadCentro || 0) < 0 && <span className="badge-negativo"> ⚠️</span>}
+                        </td>
+                        <td className={Number(p.cantidadPatios || 0) < 0 ? "stock-negativo" : ""}>
+                          {p.cantidadPatios ?? 0}
+                          {Number(p.cantidadPatios || 0) < 0 && <span className="badge-negativo"> ⚠️</span>}
+                        </td>
+                        <td className={stockNegativo ? "stock-negativo" : ""}>
+                          <strong>{total}</strong>
+                          {stockNegativo && <span className="badge-negativo"> ⚠️ Faltan {Math.abs(total)}</span>}
+                        </td>
+                      </>
+                    ) : (
+                      // Para VENDEDOR: mostrar solo la cantidad de su sede
+                      <td className={stockNegativo ? "stock-negativo" : ""}>
+                        <strong>{cantidadVendedor}</strong>
+                        {stockNegativo && <span className="badge-negativo"> ⚠️ Faltan {Math.abs(cantidadVendedor)}</span>}
+                      </td>
+                    )}
+                    
+                    {/* Columna de costo solo para administradores */}
+                    {isAdmin && (
+                      <td>{p.costo ? new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(p.costo) : "-"}</td>
+                    )}
+                    
+                    {/* Precios según el rol */}
+                    {isAdmin ? (
+                      <>
+                        <td>{p.precio1 ? new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(p.precio1) : "-"}</td>
+                        <td>{p.precio2 ? new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(p.precio2) : "-"}</td>
+                        <td>{p.precio3 ? new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(p.precio3) : "-"}</td>
+                      </>
+                    ) : (
+                      // Para VENDEDOR: mostrar solo el precio de su sede
+                      <td><strong>
+                        {userSede === "Insula" ? (p.precio1 ? new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(p.precio1) : "-") : 
+                         userSede === "Centro" ? (p.precio2 ? new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(p.precio2) : "-") :
+                         userSede === "Patios" ? (p.precio3 ? new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(p.precio3) : "-") : "-"}
+                      </strong></td>
+                    )}
                   </>
-                ) : (
-                  // Para VENDEDOR: mostrar solo el precio de su sede
-                  <td><strong>
-                    {userSede === "Insula" ? (p.precio1 ?? "-") : 
-                     userSede === "Centro" ? (p.precio2 ?? "-") :
-                     userSede === "Patios" ? (p.precio3 ?? "-") : "-"}
-                  </strong></td>
                 )}
                 
                 {/* Solo administradores pueden editar/eliminar */}
