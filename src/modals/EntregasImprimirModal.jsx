@@ -299,10 +299,12 @@ export default function EntregasImprimirModal({ entregas = [], isOpen, onClose }
                     
                     return (
                       <div className="metodos-pago-descripcion" style={{ marginTop: "20px", marginBottom: "20px" }}>
-                        <h4 style={{ marginBottom: "10px", color: "var(--color-dark-blue)", fontSize: "1rem", fontWeight: "600" }}>
+                        <h4 className="metodos-pago-titulo" style={{ marginBottom: "10px", color: "var(--color-dark-blue)", fontSize: "1rem", fontWeight: "600" }}>
                           Descripción de Métodos de Pago
                         </h4>
-                        <div style={{ 
+                        <div 
+                          className="metodos-pago-descripcion-box"
+                          style={{ 
                           background: "#f8f9fa", 
                           padding: "12px", 
                           borderRadius: "6px", 
@@ -397,15 +399,24 @@ export default function EntregasImprimirModal({ entregas = [], isOpen, onClose }
           body {
             margin: 0;
             padding: 0;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+            color-adjust: exact;
           }
           
           body * {
             visibility: hidden;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+            color-adjust: exact;
           }
           
           #printable-entregas-content,
           #printable-entregas-content * {
             visibility: visible;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+            color-adjust: exact;
           }
           
           #printable-entregas-content {
@@ -413,13 +424,28 @@ export default function EntregasImprimirModal({ entregas = [], isOpen, onClose }
             left: 0;
             top: 0;
             width: 100%;
+            min-height: 100%;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+            color-adjust: exact;
           }
           
-          .modal-actions,
-          .modal-header button,
-          .modal-header select,
-          .modal-header label {
-            display: none;
+          .entregas-imprimir-modal-header,
+          .entregas-seleccion-section,
+          .entregas-imprimir-buttons,
+          .btn-imprimir,
+          .btn-cerrar {
+            display: none !important;
+          }
+
+          .metodos-pago-descripcion-box {
+            background: transparent !important;
+            border: 1px solid #000 !important;
+            color: #000 !important;
+          }
+
+          .metodos-pago-titulo {
+            color: #000 !important;
           }
         }
       `}</style>

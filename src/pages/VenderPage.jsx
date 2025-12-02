@@ -277,8 +277,26 @@ export default function VenderPage() {
       .filter((item) => {
         const precio = Number(item.precio1 || item.precio || 0);
         return precio >= min && precio <= max;
+      })
+      // Filtro adicional para cortes: solo mostrar cortes con inventario > 0
+      .filter((item) => {
+        // Solo aplicar este filtro cuando estamos en la vista de cortes
+        if (view !== "corte") return true;
+        
+        if (isAdmin) {
+          // Admin: mostrar solo cortes con cantidadTotal > 0 (suma de las 3 sedes)
+          const total = Number(item.cantidadTotal || 0) || 
+                       (Number(item.cantidadInsula || 0) + Number(item.cantidadCentro || 0) + Number(item.cantidadPatios || 0));
+          return total > 0;
+        } else {
+          // Vendedor: mostrar solo cortes con cantidad de su sede > 0
+          const cantidadSede = sedeId === 1 ? Number(item.cantidadInsula || 0) :
+                              sedeId === 2 ? Number(item.cantidadCentro || 0) :
+                              sedeId === 3 ? Number(item.cantidadPatios || 0) : 0;
+          return cantidadSede > 0;
+        }
       });
-  }, [data, cortesData, filters, cortesFilters, categories, view]);
+  }, [data, cortesData, filters, cortesFilters, categories, view, isAdmin, sedeId]);
 
   // ======= Cálculos del carrito =======
   // El precio ya incluye IVA, así que calculamos el total

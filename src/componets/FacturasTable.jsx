@@ -236,6 +236,8 @@ export default function FacturasTable({
 
             {!loading &&
               pageData.map((f) => {
+                // El backend ahora siempre retorna el cliente en f.cliente (puede ser null)
+                // Si la factura tiene cliente, usa ese; si no, usa el de la orden
                 const cliente = f.cliente || f.orden?.cliente;
                 const subtotal = f.subtotal || 0;
                 const iva = f.iva || 0;

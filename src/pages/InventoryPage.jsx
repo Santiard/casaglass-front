@@ -601,8 +601,23 @@ export default function InventoryPage() {
       .filter((c) => {
         const precio = Number(c.precio1 || c.precio || 0);
         return precio >= minPrecio && precio <= maxPrecio;
+      })
+      // Filtro por inventario > 0 (solo mostrar cortes con stock disponible)
+      .filter((c) => {
+        if (isAdmin) {
+          // Admin: mostrar solo cortes con cantidadTotal > 0 (suma de las 3 sedes)
+          const total = Number(c.cantidadTotal || 0) || 
+                       (Number(c.cantidadInsula || 0) + Number(c.cantidadCentro || 0) + Number(c.cantidadPatios || 0));
+          return total > 0;
+        } else {
+          // Vendedor: mostrar solo cortes con cantidad de su sede > 0
+          const cantidadSede = sedeId === 1 ? Number(c.cantidadInsula || 0) :
+                              sedeId === 2 ? Number(c.cantidadCentro || 0) :
+                              sedeId === 3 ? Number(c.cantidadPatios || 0) : 0;
+          return cantidadSede > 0;
+        }
       });
-  }, [view, cortes, categories, corteFilters]);
+  }, [view, cortes, categories, corteFilters, isAdmin, sedeId]);
 
   const handleAddCorte = () => { setEditingCorte(null); setCorteModalOpen(true); };
   const handleEditCorte = (c) => { setEditingCorte(c); setCorteModalOpen(true); };

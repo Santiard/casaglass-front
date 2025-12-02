@@ -292,29 +292,8 @@ const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores, se
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     
-    if (name === 'ordenesIds') {
-      const ordenId = parseInt(value);
-      setFormData(prev => {
-        const ordenesIds = Array.isArray(prev.ordenesIds) ? prev.ordenesIds : [];
-        return {
-          ...prev,
-          ordenesIds: checked 
-            ? [...ordenesIds, ordenId]
-            : ordenesIds.filter(id => id !== ordenId)
-        };
-      });
-    } else if (name === 'abonosIds') {
-      const abonoId = parseInt(value);
-      setFormData(prev => {
-        const abonosIds = Array.isArray(prev.abonosIds) ? prev.abonosIds : [];
-        return {
-          ...prev,
-          abonosIds: checked 
-            ? [...abonosIds, abonoId]
-            : abonosIds.filter(id => id !== abonoId)
-        };
-      });
-    } else if (name === 'fechaEntrega') {
+    // Los checkboxes de órdenes y abonos ya no existen, se seleccionan automáticamente
+    if (name === 'fechaEntrega') {
       // Cuando cambia la fecha de entrega, actualizar el formData
       setFormData(prev => ({
         ...prev,
@@ -645,149 +624,121 @@ const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores, se
           {/* Resumen de Ingresos (automático) */}
           {validarStep(1) && (
             <div className="form-step">
-              <h3>Seleccionar Órdenes y Abonos</h3>
+              <h3>Ingresos del Día</h3>
               
               {loadingOrdenes ? (
                 <div className="loading-ordenes">Cargando órdenes y abonos disponibles...</div>
               ) : (
                 <>
-                  {/* Órdenes a Contado */}
-                  {Array.isArray(ordenesDisponibles) && ordenesDisponibles.length > 0 && (
-                    <div style={{ marginBottom: '30px' }}>
-                      <h4 style={{ marginBottom: '15px', color: 'var(--color-dark-blue)' }}>Órdenes a Contado</h4>
+                  {/* Contadores de Órdenes y Abonos */}
+                  <div style={{ 
+                    marginBottom: '30px', 
+                    padding: '20px', 
+                    backgroundColor: '#f8f9ff', 
+                    borderRadius: '8px',
+                    border: '1px solid #e6e8f0'
+                  }}>
+                    <div style={{ 
+                      display: 'flex', 
+                      gap: '2rem', 
+                      alignItems: 'center',
+                      flexWrap: 'wrap',
+                      justifyContent: 'center'
+                    }}>
+                      {/* Contador de Órdenes */}
                       <div style={{ 
-                        marginBottom: '10px', 
-                        padding: '8px 12px', 
-                        backgroundColor: '#e3f2fd', 
-                        borderRadius: '4px',
-                        fontSize: '0.9em',
-                        color: '#1976d2'
+                        display: 'flex', 
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        padding: '1.5rem',
+                        backgroundColor: '#fff',
+                        borderRadius: '8px',
+                        border: '2px solid #1f2a5c',
+                        minWidth: '180px',
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
                       }}>
-                        ℹ️ Solo se muestran órdenes confirmadas (venta: true). Las órdenes pendientes de pago no aparecen aquí.
+                        <div style={{ 
+                          fontSize: '3rem', 
+                          fontWeight: 'bold', 
+                          color: '#1f2a5c',
+                          marginBottom: '0.5rem',
+                          lineHeight: '1'
+                        }}>
+                          {Array.isArray(ordenesDisponibles) ? ordenesDisponibles.length : 0}
+                        </div>
+                        <div style={{ 
+                          fontSize: '1rem', 
+                          color: '#666',
+                          textAlign: 'center',
+                          fontWeight: '500'
+                        }}>
+                          {Array.isArray(ordenesDisponibles) && ordenesDisponibles.length === 1 
+                            ? 'Orden a Contado' 
+                            : 'Órdenes a Contado'}
+                        </div>
                       </div>
-                      <div className="ordenes-list">
-                        {ordenesDisponibles.map(orden => (
-                          <div key={orden.id} className="orden-item">
-                            <label className="orden-checkbox">
-                              <input
-                                type="checkbox"
-                                name="ordenesIds"
-                                value={orden.id}
-                                checked={(Array.isArray(formData.ordenesIds) ? formData.ordenesIds : []).includes(orden.id)}
-                                onChange={handleChange}
-                              />
-                              <div className="orden-info">
-                                <div className="orden-header">
-                                  <span className="orden-numero">#{orden.numero}</span>
-                                  <span className="orden-fecha">{orden.fecha}</span>
-                                  <span className="orden-total">${orden.total?.toLocaleString()}</span>
-                                </div>
-                                <div className="orden-cliente">
-                                  {orden.clienteNombre || 'Cliente no especificado'}
-                                  {orden.clienteNit && <span> - NIT: {orden.clienteNit}</span>}
-                                </div>
-                                <div className="orden-obra">{orden.obra || 'Obra no especificada'}</div>
-                              </div>
-                            </label>
-                          </div>
-                        ))}
+
+                      {/* Contador de Abonos */}
+                      <div style={{ 
+                        display: 'flex', 
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        padding: '1.5rem',
+                        backgroundColor: '#fff',
+                        borderRadius: '8px',
+                        border: '2px solid #1f2a5c',
+                        minWidth: '180px',
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                      }}>
+                        <div style={{ 
+                          fontSize: '3rem', 
+                          fontWeight: 'bold', 
+                          color: '#1f2a5c',
+                          marginBottom: '0.5rem',
+                          lineHeight: '1'
+                        }}>
+                          {Array.isArray(abonosDisponibles) ? abonosDisponibles.length : 0}
+                        </div>
+                        <div style={{ 
+                          fontSize: '1rem', 
+                          color: '#666',
+                          textAlign: 'center',
+                          fontWeight: '500'
+                        }}>
+                          {Array.isArray(abonosDisponibles) && abonosDisponibles.length === 1 
+                            ? 'Abono' 
+                            : 'Abonos'}
+                        </div>
                       </div>
                     </div>
-                  )}
-                  
-                  {/* Abonos Disponibles (NUEVO) */}
-                  {Array.isArray(abonosDisponibles) && abonosDisponibles.length > 0 && (
-                    <div style={{ marginBottom: '30px' }}>
-                      <h4 style={{ marginBottom: '15px', color: 'var(--color-dark-blue)' }}>Abonos Disponibles (Órdenes a Crédito)</h4>
-                      <div style={{ 
-                        marginBottom: '10px', 
-                        padding: '8px 12px', 
-                        backgroundColor: '#e3f2fd', 
-                        borderRadius: '4px',
-                        fontSize: '0.9em',
-                        color: '#1976d2'
-                      }}>
-                        ℹ️ Solo se muestran abonos de órdenes confirmadas (venta: true). Los abonos de órdenes pendientes de pago no aparecen aquí.
-                      </div>
-                      <div className="ordenes-list">
-                        {abonosDisponibles.map(abono => (
-                          <div key={abono.id} className="orden-item">
-                            <label className="orden-checkbox">
-                              <input
-                                type="checkbox"
-                                name="abonosIds"
-                                value={abono.id}
-                                checked={(Array.isArray(formData.abonosIds) ? formData.abonosIds : []).includes(abono.id)}
-                                onChange={handleChange}
-                              />
-                              <div className="orden-info">
-                                <div className="orden-header">
-                                  <span className="orden-numero">Abono #{abono.id} - Orden #{abono.numeroOrden}</span>
-                                  <span className="orden-fecha">{abono.fechaAbono || abono.fechaAbono}</span>
-                                  <span className="orden-total">${(abono.montoAbono || 0).toLocaleString()}</span>
-                                </div>
-                                <div className="orden-cliente">
-                                  {abono.clienteNombre || 'Cliente no especificado'}
-                                  {abono.clienteNit && <span> - NIT: {abono.clienteNit}</span>}
-                                </div>
-                                <div className="orden-obra">
-                                  <strong>Abono:</strong> ${(abono.montoAbono || 0).toLocaleString()} 
-                                  {abono.montoOrden > 0 && (
-                                    <span> | <strong>Orden total:</strong> ${(abono.montoOrden || 0).toLocaleString()}</span>
-                                  )}
-                                  {abono.factura && <span> | <strong>Factura:</strong> {abono.factura}</span>}
-                                </div>
-                                {abono.metodoPago && (
-                                  <div className="orden-metodo-pago" style={{ fontSize: '0.85rem', color: '#666', marginTop: '0.25rem' }}>
-                                    <strong>Método:</strong> {abono.metodoPago.length > 100 ? `${abono.metodoPago.substring(0, 100)}...` : abono.metodoPago}
-                                  </div>
-                                )}
-                                {abono.obra && (
-                                  <div className="orden-obra" style={{ fontSize: '0.85rem', color: '#666', marginTop: '0.25rem' }}>
-                                    <strong>Obra:</strong> {abono.obra}
-                                  </div>
-                                )}
-                              </div>
-                            </label>
-                          </div>
-                        ))}
-                      </div>
+
+                    {/* Información adicional */}
+                    <div style={{ 
+                      marginTop: '1.5rem', 
+                      padding: '12px', 
+                      backgroundColor: '#e3f2fd', 
+                      borderRadius: '4px',
+                      fontSize: '0.9em',
+                      color: '#1976d2',
+                      textAlign: 'center'
+                    }}>
+                      ℹ️ Se incluirán automáticamente todas las órdenes a contado y abonos del día seleccionado. 
+                      Solo se muestran órdenes y abonos de órdenes confirmadas (venta: true).
                     </div>
-                  )}
+                  </div>
                   
                   {/* Mensaje si no hay nada disponible */}
                   {(!Array.isArray(ordenesDisponibles) || ordenesDisponibles.length === 0) &&
                    (!Array.isArray(abonosDisponibles) || abonosDisponibles.length === 0) && (
-                    <div className="no-ordenes">
-                      No hay órdenes ni abonos disponibles para el período y sede seleccionados
-                    </div>
-                  )}
-                  
-                  {/* Resumen de selección */}
-                  {(() => {
-                    const ordenesIds = Array.isArray(formData.ordenesIds) ? formData.ordenesIds : [];
-                    const abonosIds = Array.isArray(formData.abonosIds) ? formData.abonosIds : [];
-                    return ordenesIds.length > 0 || abonosIds.length > 0;
-                  })() && (
-                    <div className="ordenes-seleccionadas">
-                      <strong>
-                        {(() => {
-                          const ordenesIds = Array.isArray(formData.ordenesIds) ? formData.ordenesIds : [];
-                          const abonosIds = Array.isArray(formData.abonosIds) ? formData.abonosIds : [];
-                          return (
-                            <>
-                              {ordenesIds.length > 0 && `Órdenes: ${ordenesIds.length}`}
-                              {ordenesIds.length > 0 && abonosIds.length > 0 && ' | '}
-                              {abonosIds.length > 0 && `Abonos: ${abonosIds.length}`}
-                            </>
-                          );
-                        })()}
-                      </strong>
-                      <div>
-                        {totales.montoOrdenes > 0 && <span>Órdenes: ${totales.montoOrdenes.toLocaleString()} | </span>}
-                        {totales.montoAbonos > 0 && <span>Abonos: ${totales.montoAbonos.toLocaleString()} | </span>}
-                        <strong>Total: ${totales.monto.toLocaleString()}</strong>
-                      </div>
+                    <div className="no-ordenes" style={{ 
+                      padding: '20px', 
+                      textAlign: 'center', 
+                      color: '#666',
+                      backgroundColor: '#f9f9f9',
+                      borderRadius: '8px',
+                      border: '1px solid #e0e0e0'
+                    }}>
+                      No hay órdenes ni abonos disponibles para el día y sede seleccionados
                     </div>
                   )}
                 </>

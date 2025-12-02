@@ -1,11 +1,20 @@
 /* Estilos específicos para la tabla de entregas */
 .entregas-table-container {
   width: 100%;
-  overflow-x: auto;
-  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
   border: 1px solid #e0e0e0;
   border-radius: 8px;
   background: #fff;
+  min-height: 0; /* Necesario para que el flex funcione correctamente */
+}
+
+/* Wrapper con scroll solo para el contenido de la tabla */
+.entregas-table-wrapper {
+  flex: 1; /* Ocupa el espacio disponible */
+  min-height: 0; /* Necesario para que el scroll funcione en flex */
+  overflow-x: auto;
+  overflow-y: auto; /* Scroll vertical solo en el contenido */
 }
 
 .entregas-table {

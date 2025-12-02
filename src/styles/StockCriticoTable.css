@@ -1,6 +1,8 @@
 .stock-critico-table {
   width: 100%;
   overflow-x: auto;
+  overflow-y: auto; /* Scroll vertical cuando el contenido excede */
+  max-height: calc(100vh - 300px); /* Altura máxima para permitir scroll */
 }
 
 .stock-critico-table table {

@@ -111,7 +111,9 @@ export default function CortarModal({
         medidaSobrante: cortesCalculados.medidaSobrante,
       };
 
-      // Verificar si ya existen cortes con el mismo prefijo de código, largo, categoría y color
+      // Verificar si ya existen cortes para reutilizar (el backend genera el código automáticamente)
+      // NOTA: El backend genera el código con formato CODIGO_ORIGINAL-MEDIDA (ej: "192-150")
+      // El frontend NO envía el código, solo verifica si existe uno para reutilizar
       // Buscar tanto el SOLICITADO (el que se vende) como el SOBRANTE
       try {
         // Usar el mismo endpoint que la tabla para garantizar formato consistente
@@ -125,8 +127,14 @@ export default function CortarModal({
         const largoSolicitado = Number(cortesCalculados.medidaCorte);
         const largoSobrante = Number(cortesCalculados.medidaSobrante);
         
-        // Función auxiliar para buscar coincidencias
-        const buscarCoincidencia = (largoObjetivo, tipoCorte) => {
+        // Construir el código que el backend generaría (solo para buscar coincidencias, NO se envía)
+        // Formato del backend: CODIGO_ORIGINAL-MEDIDA (ej: "192-150")
+        const codigoEsperadoSolicitado = `${productoCodigo}-${largoSolicitado}`;
+        const codigoEsperadoSobrante = `${productoCodigo}-${largoSobrante}`;
+        
+        // Función auxiliar para buscar coincidencias por código exacto
+        // El backend verifica: código exacto + medida + categoría + color
+        const buscarCoincidencia = (codigoEsperado, largoObjetivo) => {
           return (existentes || []).find((c) => {
             const codigo = (c.codigo || "").toString();
             const categoriaRaw = c.categoria?.nombre || c.categoria || "";
@@ -134,7 +142,8 @@ export default function CortarModal({
             const color = (c.color || "").toString().toLowerCase();
             const largo = Number(c.largoCm || c.largo || 0);
             
-            const coincideCodigo = codigo.startsWith(productoCodigo);
+            // Verificar código exacto (no startsWith, sino igual)
+            const coincideCodigo = codigo === codigoEsperado;
             const coincideLargo = largo === largoObjetivo;
             const coincideCategoria = categoria === productoCategoria;
             const coincideColor = color === productoColor;
@@ -144,20 +153,26 @@ export default function CortarModal({
         };
 
         // Buscar corte SOLICITADO (el que se vende)
-        const coincidenteSolicitado = buscarCoincidencia(largoSolicitado, "solicitado");
+        const coincidenteSolicitado = buscarCoincidencia(codigoEsperadoSolicitado, largoSolicitado);
         if (coincidenteSolicitado?.id) {
           // Guardar el ID para que el backend lo reutilice, incremente stock a 1 y luego lo descuente al vender
           corteParaVender.reutilizarCorteSolicitadoId = coincidenteSolicitado.id;
+          console.log(`✅ Corte solicitado existente encontrado - Reutilizando (ID: ${coincidenteSolicitado.id}, código: ${coincidenteSolicitado.codigo})`);
+        } else {
+          console.log(`📝 Corte solicitado nuevo - El backend generará el código automáticamente`);
         }
 
         // Buscar corte SOBRANTE (el que queda en inventario)
-        const coincidenteSobrante = buscarCoincidencia(largoSobrante, "sobrante");
+        const coincidenteSobrante = buscarCoincidencia(codigoEsperadoSobrante, largoSobrante);
         if (coincidenteSobrante?.id) {
           // Marcar para reutilizar corte sobrante existente
           corteSobrante = {
             ...corteSobrante,
             reutilizarCorteId: coincidenteSobrante.id,
           };
+          console.log(`✅ Corte sobrante existente encontrado - Reutilizando (ID: ${coincidenteSobrante.id}, código: ${coincidenteSobrante.codigo})`);
+        } else {
+          console.log(`📝 Corte sobrante nuevo - El backend generará el código automáticamente`);
         }
       } catch (lookupErr) {
         console.warn("⚠️ No se pudo verificar cortes existentes:", lookupErr);

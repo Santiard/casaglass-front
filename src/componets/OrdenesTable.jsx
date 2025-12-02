@@ -196,8 +196,8 @@ export default function OrdenesTable({
   return (
     <div className="ordenes-table-container">
       {/* 🔍 Buscador y Filtros */}
-      <div className="ordenes-toolbar">
-        <div className="ordenes-filters">
+      <div className="ordenes-toolbar ordenes-toolbar-single-row">
+        <div className="ordenes-filters ordenes-filters-single-row">
           <input
             className="clientes-input ordenes-search"
             type="text"
@@ -287,6 +287,11 @@ export default function OrdenesTable({
                 const id = o.id;
 
                 const yaFacturada = Boolean(o.facturada || o.numeroFactura || (o.factura && (o.factura.id || o.factura.numero)));
+                const yaPagada = Boolean(o.pagada || o.factura?.pagada || (o.factura && o.factura.fechaPago));
+                const estaAnulada = o.estado?.toLowerCase() === 'anulada';
+                // Solo mostrar botón anular si NO está facturada, NO está pagada y NO está anulada
+                const puedeAnular = !yaFacturada && !yaPagada && !estaAnulada;
+                
                 return (
                   <Fragment key={`orden-${id}`}>
                     <tr>
@@ -315,7 +320,7 @@ export default function OrdenesTable({
                         </button>
 
                         {/* Botón para confirmar venta (solo si venta es false y la orden no está anulada) */}
-                        {!o.venta && onConfirmarVenta && o.estado?.toLowerCase() !== 'anulada' && (
+                        {!o.venta && onConfirmarVenta && !estaAnulada && (
                           <button
                             className="btnLink"
                             onClick={() => onConfirmarVenta?.(o)}
@@ -348,20 +353,23 @@ export default function OrdenesTable({
                             setOrdenEditando(o);
                             setIsModalOpen(true);
                           }}
-                          disabled={o.estado?.toLowerCase() === 'anulada'}
-                          title={o.estado?.toLowerCase() === 'anulada' ? 'No se puede editar una orden anulada' : 'Editar orden'}
+                          disabled={estaAnulada || yaFacturada || yaPagada}
+                          title={estaAnulada ? 'No se puede editar una orden anulada' : (yaFacturada || yaPagada) ? 'No se puede editar una orden facturada o pagada' : 'Editar orden'}
                         >
                           <img src={editar} className="iconButton" />
                         </button>
 
-                        <button
-                          className="btnAnular"
-                          onClick={() => onAnular?.(o)}
-                          title="Anular orden"
-                        >
-                          <img className="iconButton" src={eliminar} />
-                          <span className="btnAnular-text">Anular</span>
-                        </button>
+                        {/* Botón Anular solo visible si NO está facturada, NO está pagada y NO está anulada */}
+                        {puedeAnular && onAnular && (
+                          <button
+                            className="btnAnular"
+                            onClick={() => onAnular?.(o)}
+                            title="Anular orden"
+                          >
+                            <img className="iconButton" src={eliminar} />
+                            <span className="btnAnular-text">Anular</span>
+                          </button>
+                        )}
                       </td>
                     </tr>
 

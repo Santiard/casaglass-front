@@ -153,8 +153,9 @@ export default function EntregasTable({
 
   return (
     <div className="entregas-table-container">
-      {/* Tabla principal */}
-      <table className="entregas-table">
+      {/* Wrapper con scroll solo para el contenido */}
+      <div className="entregas-table-wrapper">
+        <table className="entregas-table">
           <thead>
             <tr>
               <th style={{ width: "50px" }}>
@@ -254,6 +255,7 @@ export default function EntregasTable({
             })}
           </tbody>
         </table>
+      </div>
 
       {/* Paginación */}
       <div className="entregas-pagination">

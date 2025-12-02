@@ -43,22 +43,23 @@ const CreditosTable = ({ creditos, onAbrirAbonoModal, rowsPerPage: rowsPerPagePr
 
   return (
     <div className="tabla-creditos">
-      <table>
-        <thead>
-          <tr>
-            <th>#</th>
-            <th>Cliente</th>
-            <th>Orden</th>
-            <th>Fecha Inicio</th>
-            <th>Fecha Cierre</th>
-            <th>Total</th>
-            <th>Abonado</th>
-            <th>Saldo</th>
-            <th>Estado</th>
-            <th>Acciones</th>
-          </tr>
-        </thead>
-        <tbody>
+      <div className="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Cliente</th>
+              <th>Orden</th>
+              <th>Fecha Inicio</th>
+              <th>Fecha Cierre</th>
+              <th>Total</th>
+              <th>Abonado</th>
+              <th>Saldo</th>
+              <th>Estado</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
           {total === 0 ? (
             <tr>
               <td colSpan="10" className="sin-datos">No hay créditos registrados.</td>
@@ -134,7 +135,8 @@ const CreditosTable = ({ creditos, onAbrirAbonoModal, rowsPerPage: rowsPerPagePr
             ))
           )}
         </tbody>
-      </table>
+        </table>
+      </div>
 
       {/* Barra de paginación */}
       {total > 0 && (

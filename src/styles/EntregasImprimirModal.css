@@ -279,6 +279,12 @@
   border-bottom: 2px solid #1e2753;
 }
 
+@media print {
+  .entregas-imprimir-modal-container .orden-header {
+    border-bottom: 2px solid #000 !important;
+  }
+}
+
 .entregas-imprimir-modal-container .orden-header h1 {
   margin: 0 0 5px 0;
   color: #1e2753;
@@ -343,11 +349,20 @@
 
 /* Estilos para impresión */
 @media print {
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+
   .entregas-imprimir-modal-overlay {
     position: fixed;
     inset: 0;
     background: #fff;
     padding: 0;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    color-adjust: exact;
   }
 
   .entregas-imprimir-modal-container {
@@ -355,6 +370,9 @@
     max-height: 100%;
     box-shadow: none;
     padding: 20px;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    color-adjust: exact;
   }
 
   .entregas-imprimir-modal-header,
@@ -364,11 +382,109 @@
 
   .entregas-imprimir-modal-container .entregas-imprimir-table {
     font-size: 0.75rem;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    color-adjust: exact;
+  }
+
+  .entregas-imprimir-modal-container .entregas-imprimir-table thead {
+    background-color: transparent !important;
+    background: transparent !important;
+    color: #000 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    color-adjust: exact;
+  }
+
+  .entregas-imprimir-modal-container .entregas-imprimir-table th {
+    background-color: transparent !important;
+    background: transparent !important;
+    color: #000 !important;
+    border: 1px solid #000 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    color-adjust: exact;
   }
 
   .entregas-imprimir-modal-container .entregas-imprimir-table th,
   .entregas-imprimir-modal-container .entregas-imprimir-table td {
     padding: 4px 6px;
+    color: #000 !important;
+    border: 1px solid #000 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    color-adjust: exact;
+  }
+
+  .entregas-imprimir-modal-container .entregas-imprimir-table tbody tr {
+    background-color: transparent !important;
+    background: transparent !important;
+  }
+
+  .entregas-imprimir-modal-container .printable-content {
+    background: #fff !important;
+    color: #000 !important;
+  }
+
+  .entregas-imprimir-modal-container .orden-header p {
+    color: #000 !important;
+  }
+
+  .entregas-imprimir-modal-container .entrega-header p {
+    color: #000 !important;
+  }
+
+  .entregas-imprimir-modal-container .total p {
+    color: #000 !important;
+  }
+
+  .entregas-imprimir-modal-container .orden-header h1 {
+    color: #000 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    color-adjust: exact;
+  }
+
+  .entregas-imprimir-modal-container .orden-header h2 {
+    color: #000 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    color-adjust: exact;
+  }
+
+  .entregas-imprimir-modal-container .entrega-header {
+    background: transparent !important;
+    border-left: 2px solid #000 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    color-adjust: exact;
+  }
+
+  .entregas-imprimir-modal-container .entrega-header h3 {
+    color: #000 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    color-adjust: exact;
+  }
+
+  .entregas-imprimir-modal-container .total {
+    background: transparent !important;
+    border: 1px solid #000 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    color-adjust: exact;
+  }
+
+  .entregas-imprimir-modal-container .total p strong {
+    color: #000 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    color-adjust: exact;
+  }
+
+  .entregas-imprimir-modal-container .entregas-imprimir-table tbody tr:nth-child(even) {
+    background-color: transparent !important;
+    background: transparent !important;
   }
 }
 
