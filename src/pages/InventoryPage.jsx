@@ -14,7 +14,7 @@ import CorteModal from "../modals/CorteModal.jsx";
 
 // === Servicios ===
 //producto
-import { listarInventarioCompleto, listarInventarioAgrupado, listarCortesInventarioCompleto } from "../services/InventarioService";
+import { listarInventarioCompleto, listarInventarioAgrupado, listarCortesInventarioCompleto, actualizarInventarioPorProducto } from "../services/InventarioService";
 //corte
 import {listarInventarioCortesAgrupado} from "../services/InventarioCorteService.js";
 import { crearCorte, actualizarCorte, eliminarCorte } from "../services/CortesService.js";
@@ -268,8 +268,46 @@ export default function InventoryPage() {
 
       if (esVidrio) {
         // ✅ Producto vidrio: usar endpoint /productos-vidrio
-        if (editando) await actualizarProductoVidrio(editingProduct.id, product);
-        else await crearProductoVidrio(product);
+        if (editando) {
+          // Para productos vidrio, el backend puede retornar productoVidrioId o el id puede ser el del vidrio
+          // Si el backend retorna productoVidrioId, usarlo; si no, intentar usar id
+          // NOTA: El backend puede retornar el ID del producto vidrio en el campo 'id' cuando es vidrio
+          const vidrioId = editingProduct.productoVidrioId || editingProduct.id;
+          console.log("🔍 Actualizando producto vidrio:");
+          console.log("  - editingProduct.id:", editingProduct.id);
+          console.log("  - editingProduct.productoVidrioId:", editingProduct.productoVidrioId);
+          console.log("  - ID a usar para actualizar:", vidrioId);
+          
+          // 1. Actualizar el producto vidrio (campos del producto)
+          // IMPORTANTE: El payload NO debe incluir cantidadInsula, cantidadCentro, cantidadPatios
+          // porque el endpoint PUT /productos-vidrio/{id} las ignora
+          const productoPayload = { ...product };
+          delete productoPayload.cantidadInsula;
+          delete productoPayload.cantidadCentro;
+          delete productoPayload.cantidadPatios;
+          // Si vienen con prefijo _ (guardadas temporalmente), extraerlas
+          const cantidadInsula = product._cantidadInsula !== undefined ? product._cantidadInsula : (product.cantidadInsula || 0);
+          const cantidadCentro = product._cantidadCentro !== undefined ? product._cantidadCentro : (product.cantidadCentro || 0);
+          const cantidadPatios = product._cantidadPatios !== undefined ? product._cantidadPatios : (product.cantidadPatios || 0);
+          
+          await actualizarProductoVidrio(vidrioId, productoPayload);
+          
+          // 2. Actualizar el inventario por sede (siempre, porque el endpoint de producto vidrio NO actualiza inventario)
+          // El endpoint PUT /productos-vidrio/{id} NO actualiza el inventario, necesitamos hacerlo por separado
+          console.log("🔍 Actualizando inventario por sede para producto vidrio:", {
+            productoId: vidrioId,
+            cantidadInsula,
+            cantidadCentro,
+            cantidadPatios
+          });
+          await actualizarInventarioPorProducto(vidrioId, {
+            cantidadInsula,
+            cantidadCentro,
+            cantidadPatios
+          });
+        } else {
+          await crearProductoVidrio(product);
+        }
       } else {
         // ✅ Producto normal: usar endpoint /productos
         if (editando) await actualizarProducto(editingProduct.id, product);

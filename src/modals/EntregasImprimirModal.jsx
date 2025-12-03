@@ -56,13 +56,8 @@ export default function EntregasImprimirModal({ entregas = [], isOpen, onClose }
     };
   }, { totalEfectivo: 0, totalTransferencia: 0, totalCheque: 0, totalDeposito: 0, totalGastos: 0, totalEntregado: 0 });
 
-  // Función para imprimir
-  const handleImprimir = () => {
-    window.print();
-  };
-
-  // Función para guardar como PDF
-  const handleGuardarPDF = () => {
+  // Función para crear ventana de impresión (compartida entre imprimir y PDF)
+  const crearVentanaImpresion = () => {
     const contenido = document.getElementById('printable-entregas-content').innerHTML;
     const ventana = window.open('', '', 'width=800,height=600');
     ventana.document.write(`
@@ -72,31 +67,249 @@ export default function EntregasImprimirModal({ entregas = [], isOpen, onClose }
           <title>Entregas de Dinero</title>
           <style>
             @page {
-              margin: 0;
+              margin: 10mm;
               size: auto;
+            }
+            
+            * {
+              -webkit-print-color-adjust: exact;
+              print-color-adjust: exact;
+              color-adjust: exact;
             }
             
             body { 
               font-family: 'Roboto', sans-serif; 
-              padding: 20px; 
+              padding: 0;
               margin: 0;
+              background: #fff;
+              font-size: 0.8rem;
             }
             
-            .header { text-align: center; margin-bottom: 30px; }
-            .header h1 { margin: 0; color: #333; }
-            table { width: 100%; border-collapse: collapse; margin: 20px 0; }
-            table th, table td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-            table th { background-color: #f2f2f2; }
-            .total { text-align: right; font-size: 18px; font-weight: bold; margin-top: 20px; }
+            .entrega-header {
+              margin-bottom: 8px;
+              padding: 6px 8px;
+              background: #f8f9fa;
+              border-radius: 4px;
+              border-left: 3px solid #000;
+            }
+            
+            .entrega-header h3 {
+              margin: 0 0 2px 0;
+              color: #000;
+              font-size: 0.95rem;
+              font-weight: 600;
+            }
+            
+            .entrega-header p {
+              margin: 1px 0;
+              color: #666;
+              font-size: 0.75rem;
+            }
+            
+            .entregas-imprimir-table {
+              width: 100%;
+              border-collapse: collapse;
+              margin: 6px 0;
+              font-size: 0.75rem;
+              page-break-inside: auto;
+            }
+            
+            .entregas-imprimir-table thead {
+              display: table-header-group;
+              background-color: #1e2753;
+              color: #fff;
+            }
+            
+            .entregas-imprimir-table th {
+              padding: 4px 6px;
+              text-align: left;
+              font-weight: 600;
+              font-size: 0.7rem;
+              border: 1px solid #1e2753;
+            }
+            
+            .entregas-imprimir-table td {
+              padding: 3px 6px;
+              border-bottom: 1px solid #e0e0e0;
+              border-right: 1px solid #f0f0f0;
+              font-size: 0.7rem;
+              color: #333;
+            }
+            
+            .entregas-imprimir-table tbody tr {
+              page-break-inside: avoid;
+            }
+            
+            .entregas-imprimir-table tbody tr:nth-child(even) {
+              background-color: #f8f9fa;
+            }
+            
+            .entregas-imprimir-table .empty {
+              text-align: center;
+              color: #999;
+              padding: 10px;
+              font-style: italic;
+            }
+            
+            .metodos-pago-descripcion {
+              margin-top: 8px;
+              margin-bottom: 8px;
+            }
+            
+            .metodos-pago-titulo {
+              margin-bottom: 4px;
+              color: #1e2753;
+              font-size: 0.8rem;
+              font-weight: 600;
+            }
+            
+            .metodos-pago-descripcion-box {
+              background: #f8f9fa;
+              padding: 6px 8px;
+              border-radius: 4px;
+              border: 1px solid #e0e0e0;
+              white-space: pre-wrap;
+              font-size: 0.7rem;
+              line-height: 1.4;
+              color: #333;
+              font-family: monospace;
+            }
+            
+            .total {
+              margin-top: 8px;
+              padding: 6px 8px;
+              background: #f8f9fa;
+              border-radius: 4px;
+            }
+            
+            .total-horizontal {
+              text-align: left;
+            }
+            
+            .total-row {
+              display: flex;
+              flex-wrap: wrap;
+              gap: 8px;
+              align-items: center;
+              justify-content: flex-start;
+            }
+            
+            .total-row span {
+              font-size: 0.75rem;
+              color: #333;
+              white-space: nowrap;
+            }
+            
+            .total-row span strong {
+              color: #1e2753;
+              font-weight: 600;
+            }
+            
+            .total h3 {
+              margin: 0 0 4px 0;
+              color: #1e2753;
+              width: 100%;
+              font-size: 0.85rem;
+            }
+            
+            @media print {
+              .entregas-imprimir-table thead {
+                background-color: transparent !important;
+                color: #000 !important;
+              }
+              
+              .entregas-imprimir-table th {
+                background-color: transparent !important;
+                color: #000 !important;
+                border: 1px solid #000 !important;
+              }
+              
+              .entregas-imprimir-table td {
+                color: #000 !important;
+                border: 1px solid #000 !important;
+              }
+              
+              .entregas-imprimir-table tbody tr:nth-child(even) {
+                background-color: transparent !important;
+              }
+              
+              .entrega-header {
+                background: transparent !important;
+                border-left: 2px solid #000 !important;
+              }
+              
+              .total {
+                background: transparent !important;
+                border: 1px solid #000 !important;
+              }
+              
+              .metodos-pago-descripcion-box {
+                background: transparent !important;
+                border: 1px solid #000 !important;
+                color: #000 !important;
+              }
+              
+              .entrega-header h3,
+              .metodos-pago-titulo,
+              .total h3 {
+                color: #000 !important;
+              }
+              
+              .total-row span {
+                color: #000 !important;
+              }
+              
+              .total-row span strong {
+                color: #000 !important;
+              }
+            }
           </style>
         </head>
         <body>
           ${contenido}
+          <script>
+            // Cerrar la ventana después de imprimir o cancelar
+            var timeoutId;
+            
+            function cerrarVentana() {
+              if (!window.closed) {
+                window.close();
+              }
+            }
+            
+            // Escuchar el evento afterprint (cuando se completa la impresión o se cancela)
+            window.addEventListener('afterprint', function() {
+              clearTimeout(timeoutId);
+              setTimeout(cerrarVentana, 100);
+            });
+            
+            // Fallback: cerrar después de un tiempo si el evento no se dispara
+            // Esto es necesario porque algunos navegadores no disparan afterprint correctamente
+            timeoutId = setTimeout(cerrarVentana, 5000);
+          </script>
         </body>
       </html>
     `);
     ventana.document.close();
+    return ventana;
+  };
+
+  // Función para imprimir
+  const handleImprimir = () => {
+    const ventana = crearVentanaImpresion();
+    // Esperar a que la ventana cargue antes de imprimir
+    ventana.onload = () => {
+      ventana.print();
+    };
+  };
+
+  // Función para guardar como PDF
+  const handleGuardarPDF = () => {
+    const ventana = crearVentanaImpresion();
+    // Esperar a que la ventana cargue antes de imprimir
+    ventana.onload = () => {
     ventana.print();
+    };
   };
 
   const toggleEntrega = (id) => {
@@ -194,18 +407,11 @@ export default function EntregasImprimirModal({ entregas = [], isOpen, onClose }
 
           {/* Contenido imprimible */}
           <div id="printable-entregas-content" className="printable-content">
-            {/* Encabezado */}
-            <div className="orden-header">
-              <h1>ALUMINIOS CASAGLASS S.A.S</h1>
-              <h2>Reporte de Entregas de Dinero</h2>
-              <p>Fecha de impresión: {new Date().toLocaleDateString("es-CO")}</p>
-            </div>
-
             {/* Listado de entregas */}
             {entregasParaImprimir.map((entrega, idxEntrega) => {
               const { totalOrdenes, totalEntregado } = calcularTotalesPorEntrega(entrega);
               return (
-                <div key={entrega.id} style={{ marginBottom: "40px", pageBreakInside: "avoid" }}>
+                <div key={entrega.id} style={{ marginBottom: "20px", pageBreakInside: "avoid" }}>
                   {/* Encabezado de entrega */}
                   <div className="entrega-header">
                     <h3>
@@ -250,11 +456,91 @@ export default function EntregasImprimirModal({ entregas = [], isOpen, onClose }
                             ? Math.max(0, (Number(detalle.montoOrden) || 0) - valorEntregado)
                             : 0; // Contado siempre tiene saldo 0
                           
-                          // Medio de pago
-                          const medio = entrega.modalidadEntrega || 
-                                       (entrega.montoEfectivo > 0 ? "EFECTIVO" : 
-                                        entrega.montoTransferencia > 0 ? "TRANSFERENCIA" :
-                                        entrega.montoCheque > 0 ? "CHEQUE" : "DEPÓSITO");
+                          // Medio de pago - extraer del detalle individual
+                          let medio = "MIXTO"; // Por defecto
+                          
+                          if (!detalle.ventaCredito) {
+                            // Orden a CONTADO: extraer de detalle.descripcion
+                            const desc = detalle.descripcion || "";
+                            if (desc && desc.trim()) {
+                              // Parsear la descripción para extraer métodos de pago
+                              // Formato típico: "EFECTIVO: 100.000 | TRANSFERENCIA: 50.000"
+                              const partes = desc.toUpperCase().split('|').map(p => p.trim());
+                              const metodosEncontrados = [];
+                              
+                              for (const parte of partes) {
+                                // Ignorar RETEFUENTE (es una deducción, no un método de pago)
+                                if (parte.includes('RETEFUENTE')) continue;
+                                
+                                if (parte.includes('EFECTIVO')) {
+                                  metodosEncontrados.push('EFECTIVO');
+                                } else if (parte.includes('TRANSFERENCIA')) {
+                                  metodosEncontrados.push('TRANSFERENCIA');
+                                } else if (parte.includes('CHEQUE')) {
+                                  metodosEncontrados.push('CHEQUE');
+                                } else if (parte.includes('DEPÓSITO') || parte.includes('DEPOSITO')) {
+                                  metodosEncontrados.push('DEPÓSITO');
+                                }
+                              }
+                              
+                              // Si hay un solo método, usarlo; si hay múltiples, usar MIXTO
+                              if (metodosEncontrados.length === 1) {
+                                medio = metodosEncontrados[0];
+                              } else if (metodosEncontrados.length > 1) {
+                                medio = "MIXTO";
+                              }
+                            }
+                            
+                            // Si no se pudo extraer de la descripción, usar el de la entrega como fallback
+                            if (medio === "MIXTO" && !desc.trim()) {
+                              medio = entrega.modalidadEntrega || 
+                                      (entrega.montoEfectivo > 0 ? "EFECTIVO" : 
+                                       entrega.montoTransferencia > 0 ? "TRANSFERENCIA" :
+                                       entrega.montoCheque > 0 ? "CHEQUE" : "DEPÓSITO");
+                            }
+                          } else {
+                            // Orden a CRÉDITO (abono): usar detalle.metodoPago
+                            // Formato: "EFECTIVO: 100.000 | TRANSFERENCIA: 50.000 (Banco de Bogotá) | RETEFUENTE Orden #1057: 12.500"
+                            const metodoPago = detalle.metodoPago || "";
+                            if (metodoPago && metodoPago.trim()) {
+                              // Parsear el método de pago del abono
+                              const metodoUpper = metodoPago.toUpperCase();
+                              // Dividir por " | " para obtener cada método
+                              const partes = metodoUpper.split('|').map(p => p.trim());
+                              const metodosEncontrados = [];
+                              
+                              for (const parte of partes) {
+                                // Ignorar RETEFUENTE (es una deducción, no un método de pago)
+                                if (parte.includes('RETEFUENTE')) continue;
+                                
+                                if (parte.includes('EFECTIVO')) {
+                                  metodosEncontrados.push('EFECTIVO');
+                                } else if (parte.includes('TRANSFERENCIA')) {
+                                  metodosEncontrados.push('TRANSFERENCIA');
+                                } else if (parte.includes('CHEQUE')) {
+                                  metodosEncontrados.push('CHEQUE');
+                                } else if (parte.includes('DEPÓSITO') || parte.includes('DEPOSITO')) {
+                                  metodosEncontrados.push('DEPÓSITO');
+                                }
+                              }
+                              
+                              // Si hay un solo método, usarlo; si hay múltiples, usar MIXTO
+                              if (metodosEncontrados.length === 1) {
+                                medio = metodosEncontrados[0];
+                              } else if (metodosEncontrados.length > 1) {
+                                medio = "MIXTO";
+                              } else {
+                                // Si no se encontró ningún método reconocido, usar el string completo o fallback
+                                medio = metodoPago.length > 50 ? "MIXTO" : metodoPago;
+                              }
+                            } else {
+                              // Fallback: usar el de la entrega
+                              medio = entrega.modalidadEntrega || 
+                                      (entrega.montoEfectivo > 0 ? "EFECTIVO" : 
+                                       entrega.montoTransferencia > 0 ? "TRANSFERENCIA" :
+                                       entrega.montoCheque > 0 ? "CHEQUE" : "DEPÓSITO");
+                            }
+                          }
 
                           return (
                             <tr key={detalle.id || idx}>
@@ -298,20 +584,20 @@ export default function EntregasImprimirModal({ entregas = [], isOpen, onClose }
                     if (descripciones.length === 0) return null;
                     
                     return (
-                      <div className="metodos-pago-descripcion" style={{ marginTop: "20px", marginBottom: "20px" }}>
-                        <h4 className="metodos-pago-titulo" style={{ marginBottom: "10px", color: "var(--color-dark-blue)", fontSize: "1rem", fontWeight: "600" }}>
+                      <div className="metodos-pago-descripcion" style={{ marginTop: "8px", marginBottom: "8px" }}>
+                        <h4 className="metodos-pago-titulo" style={{ marginBottom: "4px", color: "var(--color-dark-blue)", fontSize: "0.8rem", fontWeight: "600" }}>
                           Descripción de Métodos de Pago
                         </h4>
                         <div 
                           className="metodos-pago-descripcion-box"
                           style={{ 
                           background: "#f8f9fa", 
-                          padding: "12px", 
-                          borderRadius: "6px", 
+                          padding: "6px 8px", 
+                          borderRadius: "4px", 
                           border: "1px solid #e0e0e0",
                           whiteSpace: "pre-wrap",
-                          fontSize: "0.85rem",
-                          lineHeight: "1.6",
+                          fontSize: "0.7rem",
+                          lineHeight: "1.4",
                           color: "#333",
                           fontFamily: "monospace"
                         }}>
@@ -323,8 +609,8 @@ export default function EntregasImprimirModal({ entregas = [], isOpen, onClose }
 
                   {/* Tabla de gastos */}
                   {entrega.gastos && Array.isArray(entrega.gastos) && entrega.gastos.length > 0 && (
-                    <div style={{ marginTop: "30px" }}>
-                      <h4 style={{ marginBottom: "10px", color: "var(--color-dark-blue)" }}>Gastos Asociados</h4>
+                    <div style={{ marginTop: "12px" }}>
+                      <h4 style={{ marginBottom: "4px", color: "var(--color-dark-blue)", fontSize: "0.8rem" }}>Gastos Asociados</h4>
                       <table className="entregas-imprimir-table">
                         <thead>
                           <tr>
@@ -357,14 +643,16 @@ export default function EntregasImprimirModal({ entregas = [], isOpen, onClose }
                   )}
 
                   {/* Subtotal por entrega */}
-                  <div className="total" style={{ marginTop: "15px" }}>
-                    <p><strong>Subtotal Entrega #{entrega.id}:</strong></p>
-                    <p>Efectivo: ${(Number(entrega.montoEfectivo) || 0).toLocaleString("es-CO")}</p>
-                    <p>Transferencia: ${(Number(entrega.montoTransferencia) || 0).toLocaleString("es-CO")}</p>
-                    <p>Cheque: ${(Number(entrega.montoCheque) || 0).toLocaleString("es-CO")}</p>
-                    <p>Depósito: ${(Number(entrega.montoDeposito) || 0).toLocaleString("es-CO")}</p>
-                    <p>Total Gastos: ${(Number(entrega.montoGastos) || 0).toLocaleString("es-CO")}</p>
-                    <p><strong>Total Entregado: ${totalEntregado.toLocaleString("es-CO")}</strong></p>
+                  <div className="total total-horizontal" style={{ marginTop: "8px" }}>
+                    <div className="total-row">
+                      <span><strong>Subtotal Entrega #{entrega.id}:</strong></span>
+                      <span>Efectivo: ${(Number(entrega.montoEfectivo) || 0).toLocaleString("es-CO")}</span>
+                      <span>Transferencia: ${(Number(entrega.montoTransferencia) || 0).toLocaleString("es-CO")}</span>
+                      <span>Cheque: ${(Number(entrega.montoCheque) || 0).toLocaleString("es-CO")}</span>
+                      <span>Depósito: ${(Number(entrega.montoDeposito) || 0).toLocaleString("es-CO")}</span>
+                      <span>Total Gastos: ${(Number(entrega.montoGastos) || 0).toLocaleString("es-CO")}</span>
+                      <span><strong>Total Entregado: ${totalEntregado.toLocaleString("es-CO")}</strong></span>
+                    </div>
                   </div>
                 </div>
               );
@@ -372,83 +660,24 @@ export default function EntregasImprimirModal({ entregas = [], isOpen, onClose }
 
             {/* Totales generales */}
             {entregasParaImprimir.length > 1 && (
-              <div className="total" style={{ marginTop: "30px", borderTop: "2px solid var(--color-dark-blue)", paddingTop: "15px" }}>
-                <h3 style={{ margin: "0 0 10px 0", color: "var(--color-dark-blue)" }}>TOTALES GENERALES</h3>
-                <p><strong>Total Efectivo: ${totalesGenerales.totalEfectivo.toLocaleString("es-CO")}</strong></p>
-                <p><strong>Total Transferencia: ${totalesGenerales.totalTransferencia.toLocaleString("es-CO")}</strong></p>
-                <p><strong>Total Cheque: ${totalesGenerales.totalCheque.toLocaleString("es-CO")}</strong></p>
-                <p><strong>Total Depósito: ${totalesGenerales.totalDeposito.toLocaleString("es-CO")}</strong></p>
-                <p><strong>Total Gastos: ${totalesGenerales.totalGastos.toLocaleString("es-CO")}</strong></p>
-                <p style={{ fontSize: "20px", marginTop: "10px" }}>
-                  <strong>TOTAL A ENTREGAR: ${totalesGenerales.totalEntregado.toLocaleString("es-CO")}</strong>
-                </p>
+              <div className="total total-horizontal" style={{ marginTop: "15px", borderTop: "2px solid var(--color-dark-blue)", paddingTop: "8px" }}>
+                <h3 style={{ margin: "0 0 4px 0", color: "var(--color-dark-blue)", width: "100%", fontSize: "0.85rem" }}>TOTALES GENERALES</h3>
+                <div className="total-row">
+                  <span><strong>Total Efectivo: ${totalesGenerales.totalEfectivo.toLocaleString("es-CO")}</strong></span>
+                  <span><strong>Total Transferencia: ${totalesGenerales.totalTransferencia.toLocaleString("es-CO")}</strong></span>
+                  <span><strong>Total Cheque: ${totalesGenerales.totalCheque.toLocaleString("es-CO")}</strong></span>
+                  <span><strong>Total Depósito: ${totalesGenerales.totalDeposito.toLocaleString("es-CO")}</strong></span>
+                  <span><strong>Total Gastos: ${totalesGenerales.totalGastos.toLocaleString("es-CO")}</strong></span>
+                  <span style={{ fontSize: "0.85rem", fontWeight: "bold" }}>
+                    <strong>TOTAL A ENTREGAR: ${totalesGenerales.totalEntregado.toLocaleString("es-CO")}</strong>
+                  </span>
+                </div>
               </div>
             )}
           </div>
         </div>
       </div>
 
-      {/* Estilos para impresión */}
-      <style>{`
-        @media print {
-          @page {
-            margin: 0;
-            size: auto;
-          }
-          
-          body {
-            margin: 0;
-            padding: 0;
-            -webkit-print-color-adjust: exact;
-            print-color-adjust: exact;
-            color-adjust: exact;
-          }
-          
-          body * {
-            visibility: hidden;
-            -webkit-print-color-adjust: exact;
-            print-color-adjust: exact;
-            color-adjust: exact;
-          }
-          
-          #printable-entregas-content,
-          #printable-entregas-content * {
-            visibility: visible;
-            -webkit-print-color-adjust: exact;
-            print-color-adjust: exact;
-            color-adjust: exact;
-          }
-          
-          #printable-entregas-content {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100%;
-            min-height: 100%;
-            -webkit-print-color-adjust: exact;
-            print-color-adjust: exact;
-            color-adjust: exact;
-          }
-          
-          .entregas-imprimir-modal-header,
-          .entregas-seleccion-section,
-          .entregas-imprimir-buttons,
-          .btn-imprimir,
-          .btn-cerrar {
-            display: none !important;
-          }
-
-          .metodos-pago-descripcion-box {
-            background: transparent !important;
-            border: 1px solid #000 !important;
-            color: #000 !important;
-          }
-
-          .metodos-pago-titulo {
-            color: #000 !important;
-          }
-        }
-      `}</style>
     </>
   );
 }

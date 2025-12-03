@@ -42,6 +42,12 @@ function transformarInventarioDTO(productos, isAdmin = true, userSedeId = null, 
     const esVidrio = producto.esVidrio === true || 
                      (producto.mm != null && producto.mm !== undefined) || 
                      (producto.m1 != null && producto.m1 !== undefined);
+    
+    // 🔍 DEBUG: Log completo de productos vidrio para identificar el ID correcto
+    if (esVidrio) {
+      console.log("🔍 Producto VIDRIO detectado - OBJETO COMPLETO del backend:", producto);
+      console.log("🔍 Todos los campos disponibles:", Object.keys(producto));
+    }
 
     // Normalizar categoría: ahora TODOS los productos (normales y vidrios) vienen con objeto {id, nombre}
     // ✅ Backend unificado: categoria siempre es { id: X, nombre: "..." }
@@ -66,6 +72,9 @@ function transformarInventarioDTO(productos, isAdmin = true, userSedeId = null, 
     
     return {
       id: producto.productoId || producto.id,
+      // Para productos vidrio, guardar también el productoVidrioId si existe
+      // El backend puede retornar productoVidrioId para vidrios, o el id puede ser el del vidrio directamente
+      productoVidrioId: producto.productoVidrioId || (esVidrio ? (producto.id || producto.productoId) : null),
       codigo: producto.codigo,
       nombre: producto.nombre,
       posicion: producto.posicion,
@@ -246,5 +255,36 @@ export async function listarInventarioPorSede(sedeId) {
  */
 export async function actualizarInventario(id, payload) {
   const { data } = await api.put(`/inventario/${id}`, payload);
+  return data;
+}
+
+/**
+ * Actualizar inventario de un producto por productoId y sedeId
+ * PUT /api/inventario/{productoId}/{sedeId}
+ * @param {number} productoId - ID del producto
+ * @param {number} sedeId - ID de la sede (1: Ínsula, 2: Centro, 3: Patios)
+ * @param {number} cantidad - Nueva cantidad
+ */
+export async function actualizarInventarioPorSede(productoId, sedeId, cantidad) {
+  const { data } = await api.put(`/inventario/${productoId}/${sedeId}`, { cantidad });
+  return data;
+}
+
+/**
+ * Actualizar inventario de un producto para múltiples sedes
+ * PUT /api/inventario/producto/{productoId}
+ * @param {number} productoId - ID del producto
+ * @param {Object} inventario - Objeto con cantidades por sede
+ * @param {number} inventario.cantidadInsula - Cantidad para sede Ínsula (ID: 1)
+ * @param {number} inventario.cantidadCentro - Cantidad para sede Centro (ID: 2)
+ * @param {number} inventario.cantidadPatios - Cantidad para sede Patios (ID: 3)
+ */
+export async function actualizarInventarioPorProducto(productoId, inventario) {
+  const payload = {
+    cantidadInsula: inventario.cantidadInsula || 0,
+    cantidadCentro: inventario.cantidadCentro || 0,
+    cantidadPatios: inventario.cantidadPatios || 0
+  };
+  const { data } = await api.put(`/inventario/producto/${productoId}`, payload);
   return data;
 }

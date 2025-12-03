@@ -216,9 +216,10 @@ export default function ProductModal({ isOpen, onClose, onSave, product }) {
     
     if (esVidrio) {
       // IMPORTANTE: Limpiar y preparar m1, m2 y mm como strings primero
-      const m1Str = (formData.m1?.trim() || "").replace(/[^0-9.]/g, "") || "0";
-      const m2Str = (formData.m2?.trim() || "").replace(/[^0-9.]/g, "") || "0";
-      const mmStr = (formData.mm?.trim() || "").replace(/[^0-9.]/g, "") || "0";
+      // Convertir a string si es número, luego limpiar
+      const m1Str = (typeof formData.m1 === 'number' ? String(formData.m1) : (formData.m1?.toString() || "")).replace(/[^0-9.]/g, "") || "0";
+      const m2Str = (typeof formData.m2 === 'number' ? String(formData.m2) : (formData.m2?.toString() || "")).replace(/[^0-9.]/g, "") || "0";
+      const mmStr = (typeof formData.mm === 'number' ? String(formData.mm) : (formData.mm?.toString() || "")).replace(/[^0-9.]/g, "") || "0";
       
       // Guardar como strings en toSave (se convertirán a números en backendPayload)
       toSave.m1 = m1Str;
@@ -314,6 +315,24 @@ export default function ProductModal({ isOpen, onClose, onSave, product }) {
         };
       }
       
+      // IMPORTANTE: Para vidrios, NO incluir cantidades por sede en el payload del producto
+      // El endpoint PUT /productos-vidrio/{id} NO acepta cantidadInsula, cantidadCentro, cantidadPatios
+      // Estas se actualizarán por separado usando PUT /inventario/producto/{productoId}
+      // Pero SÍ guardarlas con prefijo _ para que InventoryPage las use después
+      if (isEditing && toSave.id) {
+        backendPayload.id = toSave.id;
+        backendPayload.version = toSave.version !== undefined ? toSave.version : 0;
+        // Guardar cantidades con prefijo _ para que InventoryPage las use después
+        backendPayload._cantidadInsula = toSave.cantidadInsula || 0;
+        backendPayload._cantidadCentro = toSave.cantidadCentro || 0;
+        backendPayload._cantidadPatios = toSave.cantidadPatios || 0;
+        console.log("🔍 Cantidades por sede para vidrio (guardadas con _ para actualizar inventario después):", {
+          _cantidadInsula: backendPayload._cantidadInsula,
+          _cantidadCentro: backendPayload._cantidadCentro,
+          _cantidadPatios: backendPayload._cantidadPatios
+        });
+      }
+      
       console.log("🔍 DEBUG: Creando producto VIDRIO");
       console.log("🔍 mm:", backendPayload.mm, "(número)");
       console.log("🔍 m1:", backendPayload.m1, "(número)");
@@ -323,12 +342,12 @@ export default function ProductModal({ isOpen, onClose, onSave, product }) {
       console.log("🔍 DEBUG: NO es vidrio, no se incluyen campos de vidrio");
     }
 
-    // Para edición, incluir campos requeridos del producto original
-    if (isEditing && toSave.id) {
+    // Para edición, incluir campos requeridos del producto original (solo para productos normales)
+    if (isEditing && toSave.id && !esVidrioFinal) {
       backendPayload.id = toSave.id;
       backendPayload.version = toSave.version !== undefined ? toSave.version : 0;
       
-      // Incluir cantidades por sede (siempre se envían en edición)
+      // Incluir cantidades por sede (solo para productos normales, vidrios ya las tienen arriba)
       backendPayload.cantidadInsula = toSave.cantidadInsula || 0;
       backendPayload.cantidadCentro = toSave.cantidadCentro || 0;
       backendPayload.cantidadPatios = toSave.cantidadPatios || 0;
