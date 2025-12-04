@@ -82,6 +82,7 @@ export async function crearOrdenVenta(payload) {
 
     // 🔍 LOG: Verificar payload antes de enviar
     console.log("📤 Payload completo para crear orden:", {
+      fecha: payload.fecha,
       clienteId: payload.clienteId,
       sedeId: payload.sedeId,
       totalItems: payload.items?.length || 0,
@@ -95,11 +96,13 @@ export async function crearOrdenVenta(payload) {
     
     // Formato correcto para el backend actualizado
     const ordenData = {
+      fecha: payload.fecha, // Incluir fecha en el payload (formato YYYY-MM-DD)
       obra: payload.obra || "",
       descripcion: payload.descripcion || null,
       venta: Boolean(payload.venta ?? false),
       credito: Boolean(payload.credito),
       incluidaEntrega: Boolean(payload.incluidaEntrega || false),
+      tieneRetencionFuente: Boolean(payload.tieneRetencionFuente ?? false),
       descuentos: parseFloat(payload.descuentos || 0),
       clienteId: parseInt(payload.clienteId), // OBLIGATORIO
       sedeId: parseInt(payload.sedeId), // OBLIGATORIO
@@ -164,7 +167,22 @@ export async function crearOrdenVenta(payload) {
       }) : []
     };
     
+    console.log("📤 Enviando ordenData al backend:", {
+      fecha: ordenData.fecha,
+      tipoFecha: typeof ordenData.fecha,
+      clienteId: ordenData.clienteId,
+      totalItems: ordenData.items?.length
+    });
+    
     const { data } = await api.post("ordenes/venta", ordenData);
+    
+    console.log("✅ Respuesta del backend:", {
+      id: data?.id,
+      numero: data?.numero,
+      fecha: data?.fecha,
+      fechaRecibida: data?.fecha
+    });
+    
     return data;
   } catch (error) {
     // Solo hacer fallback si es 404 (endpoint no existe), no en otros errores
@@ -195,26 +213,100 @@ export async function actualizarOrden(id, payload) {
 export async function confirmarVenta(id, ordenCompleta) {
   if (!id) throw new Error("ID de la orden no proporcionado");
   
-  // Construir payload con todos los campos necesarios, cambiando solo venta a true
+  // Si la orden era una cotización (venta === false), al confirmarla como venta
+  // automáticamente se convierte en crédito ya que no se pueden agregar métodos de pago
+  const eraCotizacion = Boolean(ordenCompleta.venta === false);
+  
+  // Validar y filtrar items con productoId válido
+  const itemsValidos = (Array.isArray(ordenCompleta.items) ? ordenCompleta.items : [])
+    .map(item => {
+      // Intentar obtener productoId de diferentes fuentes:
+      // 1. item.productoId (directo)
+      // 2. item.producto.id (del objeto producto - común cuando viene de /ordenes/tabla)
+      let productoId = item.productoId;
+      
+      // Si productoId es null, undefined o 0, intentar desde el objeto producto
+      if (productoId === null || productoId === undefined || productoId === 0) {
+        productoId = item.producto?.id;
+        // Log para debug
+        if (item.producto && !productoId) {
+          console.log("🔍 Debug producto en confirmarVenta:", {
+            itemId: item.id,
+            producto: item.producto,
+            keysProducto: Object.keys(item.producto || {}),
+            productoIdDesdeProducto: item.producto?.id
+          });
+        }
+      }
+      
+      // Convertir a número y validar (solo si productoId tiene un valor válido)
+      let productoIdNum = 0;
+      if (productoId !== null && productoId !== undefined && productoId !== '' && productoId !== 0) {
+        productoIdNum = Number(productoId);
+        // Si la conversión falla, intentar de nuevo
+        if (isNaN(productoIdNum)) {
+          productoIdNum = 0;
+        }
+      }
+      
+      // Si no hay productoId válido, retornar null para filtrarlo después
+      if (!productoIdNum || productoIdNum === 0 || isNaN(productoIdNum)) {
+        console.warn("⚠️ Item sin productoId válido en confirmarVenta:", {
+          itemId: item.id,
+          productoIdOriginal: item.productoId,
+          producto: item.producto,
+          productoIdDesdeProducto: item.producto?.id,
+          productoIdFinal: productoIdNum,
+          nombre: item.nombre || item.descripcion,
+          itemCompleto: item // Para debug completo
+        });
+        return null;
+      }
+      
+      return {
+        id: item.id ?? null,
+        productoId: productoIdNum,
+        descripcion: item.descripcion ?? "",
+        cantidad: Number(item.cantidad ?? 1),
+        precioUnitario: Number(item.precioUnitario ?? 0),
+        totalLinea: Number(item.totalLinea ?? 0),
+        ...(item.reutilizarCorteSolicitadoId ? { reutilizarCorteSolicitadoId: Number(item.reutilizarCorteSolicitadoId) } : {})
+      };
+    })
+    .filter(item => item !== null); // Filtrar items inválidos
+  
+  // Validar que haya al menos un item válido
+  if (itemsValidos.length === 0) {
+    throw new Error("La orden no tiene items válidos con productoId. No se puede confirmar la venta.");
+  }
+  
+  // Validar IDs requeridos
+  const clienteId = ordenCompleta.clienteId || ordenCompleta.cliente?.id;
+  const sedeId = ordenCompleta.sedeId || ordenCompleta.sede?.id;
+  
+  if (!clienteId) {
+    throw new Error("La orden no tiene clienteId. No se puede confirmar la venta.");
+  }
+  
+  if (!sedeId) {
+    throw new Error("La orden no tiene sedeId. No se puede confirmar la venta.");
+  }
+  
+  // Construir payload con todos los campos necesarios
   const payload = {
     fecha: ordenCompleta.fecha,
     obra: ordenCompleta.obra || "",
     descripcion: ordenCompleta.descripcion || null,
-    venta: true, // Cambiar a true
-    credito: Boolean(ordenCompleta.credito),
+    venta: true, // Cambiar a true (confirmar como venta)
+    // Si era cotización, automáticamente se convierte en crédito
+    // Si ya era venta, mantener el valor de crédito que tenía
+    credito: eraCotizacion ? true : Boolean(ordenCompleta.credito),
+    tieneRetencionFuente: Boolean(ordenCompleta.tieneRetencionFuente ?? false),
     descuentos: Number(ordenCompleta.descuentos ?? 0),
-    clienteId: ordenCompleta.clienteId || ordenCompleta.cliente?.id ? Number(ordenCompleta.clienteId || ordenCompleta.cliente?.id) : null,
-    sedeId: ordenCompleta.sedeId || ordenCompleta.sede?.id ? Number(ordenCompleta.sedeId || ordenCompleta.sede?.id) : null,
-    trabajadorId: ordenCompleta.trabajadorId || ordenCompleta.trabajador?.id ? Number(ordenCompleta.trabajadorId || ordenCompleta.trabajador?.id) : null,
-    items: (Array.isArray(ordenCompleta.items) ? ordenCompleta.items : []).map(item => ({
-      id: item.id ?? null,
-      productoId: Number(item.productoId || item.producto?.id),
-      descripcion: item.descripcion ?? "",
-      cantidad: Number(item.cantidad ?? 1),
-      precioUnitario: Number(item.precioUnitario ?? 0),
-      totalLinea: Number(item.totalLinea ?? 0),
-      ...(item.reutilizarCorteSolicitadoId ? { reutilizarCorteSolicitadoId: Number(item.reutilizarCorteSolicitadoId) } : {})
-    }))
+    clienteId: Number(clienteId),
+    sedeId: Number(sedeId),
+    ...(ordenCompleta.trabajadorId || ordenCompleta.trabajador?.id ? { trabajadorId: Number(ordenCompleta.trabajadorId || ordenCompleta.trabajador?.id) } : {}),
+    items: itemsValidos
   };
   
   const { data } = await api.put(`ordenes/tabla/${id}`, payload);
@@ -249,6 +341,7 @@ export async function actualizarOrdenVenta(id, payload) {
       venta: Boolean(payload.venta ?? false),
       credito: Boolean(payload.credito),
       incluidaEntrega: Boolean(payload.incluidaEntrega || false),
+      tieneRetencionFuente: Boolean(payload.tieneRetencionFuente ?? false),
       descuentos: parseFloat(payload.descuentos || 0),
       clienteId: parseInt(payload.clienteId), // OBLIGATORIO
       sedeId: parseInt(payload.sedeId), // OBLIGATORIO

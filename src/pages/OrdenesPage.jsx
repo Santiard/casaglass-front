@@ -9,6 +9,7 @@ import {
   anularOrden,
   marcarOrdenComoFacturada,
   confirmarVenta,
+  obtenerOrden,
 } from "../services/OrdenesService";
 import { crearFactura, marcarFacturaComoPagada, obtenerFacturaPorOrden } from "../services/FacturasService";
 import { useConfirm } from "../hooks/useConfirm.jsx";
@@ -74,9 +75,14 @@ export default function OrdenesPage() {
 
   // 🔹 Confirmar venta (cambiar venta de false a true)
   const handleConfirmarVenta = async (orden) => {
+    const esCotizacion = Boolean(orden.venta === false);
+    const mensaje = esCotizacion
+      ? `¿Estás seguro de que deseas confirmar la cotización #${orden.numero} como venta?\n\nEsta acción marcará la orden como vendida y la convertirá automáticamente en CRÉDITO (ya que no se pueden agregar métodos de pago al confirmar). Luego podrás hacer abonos para pagarla.`
+      : `¿Estás seguro de que deseas confirmar la venta de la orden #${orden.numero}?\n\nEsta acción marcará la orden como vendida y permitirá manejarla en contabilidad.`;
+    
     const confirmacion = await confirm({
       title: "Confirmar Venta",
-      message: `¿Estás seguro de que deseas confirmar la venta de la orden #${orden.numero}?\n\nEsta acción marcará la orden como vendida y permitirá manejarla en contabilidad.`,
+      message: mensaje,
       confirmText: "Confirmar",
       cancelText: "Cancelar",
       type: "info"
@@ -85,9 +91,24 @@ export default function OrdenesPage() {
     if (!confirmacion) return;
     
     try {
-      const response = await confirmarVenta(orden.id, orden);
+      // Obtener la orden completa antes de confirmarla para asegurar que tenemos todos los datos
+      // La orden de la tabla puede no tener todos los campos necesarios (como productoId en items)
+      let ordenCompleta = orden;
+      try {
+        ordenCompleta = await obtenerOrden(orden.id);
+        console.log("✅ Orden completa obtenida para confirmar:", ordenCompleta);
+      } catch (err) {
+        console.warn("⚠️ No se pudo obtener la orden completa, usando la de la tabla:", err);
+        // Continuar con la orden de la tabla si falla
+      }
       
-      showSuccess(`Orden #${response.numero || orden.numero} confirmada como venta exitosamente.`);
+      const response = await confirmarVenta(orden.id, ordenCompleta);
+      
+      if (esCotizacion) {
+        showSuccess(`Cotización #${response.numero || orden.numero} confirmada como venta y convertida a CRÉDITO exitosamente. Ahora puedes hacer abonos para pagarla.`);
+      } else {
+        showSuccess(`Orden #${response.numero || orden.numero} confirmada como venta exitosamente.`);
+      }
       
       await fetchData(); // Refrescar tabla
     } catch (e) {

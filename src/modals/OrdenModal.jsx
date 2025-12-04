@@ -12,15 +12,40 @@ import { useConfirm } from "../hooks/useConfirm.jsx";
 import eliminar from "../assets/eliminar.png";
 
 import { api } from "../lib/api";
+// Utilidad para obtener la fecha de hoy en formato YYYY-MM-DD (zona horaria local)
+const getTodayLocalDate = () => {
+  const hoy = new Date();
+  const año = hoy.getFullYear();
+  const mes = String(hoy.getMonth() + 1).padStart(2, '0');
+  const dia = String(hoy.getDate()).padStart(2, '0');
+  return `${año}-${mes}-${dia}`;
+};
+
 // Utilidad para formato de fecha
+// Asegura que la fecha se envíe en formato YYYY-MM-DD sin conversión de zona horaria
 const toLocalDateOnly = (val) => {
-  if (!val) return new Date().toISOString().slice(0, 10);
-  if (/^\d{4}-\d{2}-\d{2}$/.test(val)) return val;
+  if (!val) {
+    // Si no hay valor, usar la fecha de hoy en formato local
+    return getTodayLocalDate();
+  }
+  
+  // Si ya está en formato YYYY-MM-DD, devolverlo directamente (sin conversión)
+  if (/^\d{4}-\d{2}-\d{2}$/.test(val)) {
+    return val;
+  }
+  
+  // Si es un objeto Date u otro formato, convertir a fecha local sin zona horaria
   const d = new Date(val);
-  if (isNaN(d)) return new Date().toISOString().slice(0, 10);
-  return new Date(d.getTime() - d.getTimezoneOffset() * 60000)
-    .toISOString()
-    .slice(0, 10);
+  if (isNaN(d.getTime())) {
+    // Si la conversión falla, usar la fecha de hoy
+    return getTodayLocalDate();
+  }
+  
+  // Usar métodos de fecha local para evitar problemas de zona horaria
+  const año = d.getFullYear();
+  const mes = String(d.getMonth() + 1).padStart(2, '0');
+  const dia = String(d.getDate()).padStart(2, '0');
+  return `${año}-${mes}-${dia}`;
 };
 
 export default function OrdenEditarModal({
@@ -280,11 +305,12 @@ export default function OrdenEditarModal({
         // Inicializar formulario con productos del carrito
         const base = {
           id: null,
-          fecha: new Date().toISOString().split('T')[0],
+          fecha: getTodayLocalDate(),
           obra: "",
           descripcion: "",
           venta: true,
           credito: false,
+          tieneRetencionFuente: false, // Siempre false al crear
           descuentos: 0,
           clienteNombre: "",
           trabajadorNombre: defaultTrabajadorNombre || "",
@@ -321,11 +347,12 @@ export default function OrdenEditarModal({
         // Modo creación vacío (sin productos del carrito)
         const base = {
           id: null,
-          fecha: new Date().toISOString().split('T')[0],
+          fecha: getTodayLocalDate(),
           obra: "",
           descripcion: "",
           venta: true,
           credito: false,
+          tieneRetencionFuente: false, // Siempre false al crear
           descuentos: 0,
           clienteNombre: "",
           trabajadorNombre: defaultTrabajadorNombre || "",
@@ -349,11 +376,12 @@ export default function OrdenEditarModal({
       // Inicializar formulario vacío si no hay ID válido
       setForm({
         id: null,
-        fecha: new Date().toISOString().split('T')[0],
+        fecha: getTodayLocalDate(),
         obra: orden?.obra ?? "",
         descripcion: orden?.descripcion ?? "",
         venta: orden?.venta ?? false,
         credito: orden?.credito ?? false,
+        tieneRetencionFuente: Boolean(orden?.tieneRetencionFuente ?? false),
         descuentos: Number(orden?.descuentos ?? 0),
         clienteNombre: orden?.cliente?.nombre ?? "",
         trabajadorNombre: orden?.trabajador?.nombre ?? "",
@@ -400,6 +428,7 @@ export default function OrdenEditarModal({
       descripcion: orden.descripcion ?? "",
       venta: Boolean(orden.venta ?? false),
       credito: Boolean(orden.credito),
+      tieneRetencionFuente: Boolean(orden.tieneRetencionFuente ?? false),
       descuentos: Number(orden.descuentos ?? 0),
       clienteNombre: orden.cliente?.nombre ?? "",
       trabajadorNombre: orden.trabajador?.nombre ?? "",
@@ -905,42 +934,65 @@ export default function OrdenEditarModal({
       const subtotal = itemsActivos.reduce((sum, item) => sum + (item.totalLinea || 0), 0);
       const totalOrden = subtotal - (form.descuentos || 0);
 
-      // Mostrar diálogo de confirmación para determinar si es crédito o contado
-      const deseaAbonar = await confirm({
-        title: "Confirmar tipo de venta",
-        message: `¿Deseas abonar $${totalOrden.toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} a la orden en el proceso?`,
-        confirmText: "Sí, abonar (Contado)",
-        cancelText: "No, no abonar (Crédito)",
-        type: "info"
-      });
+      // Determinar si es venta o cotización
+      const esVenta = Boolean(form.venta === true);
+      let esCredito = false;
+      let descripcionFinal = null;
 
-      // Si responde "Sí" → credito = false (contado)
-      // Si responde "No" → credito = true (crédito)
-      const esCredito = !deseaAbonar;
+      // Solo mostrar diálogo de contado/crédito si ES VENTA (no si es cotización)
+      if (esVenta) {
+        // Mostrar diálogo de confirmación para determinar si es crédito o contado
+        const deseaAbonar = await confirm({
+          title: "Confirmar tipo de venta",
+          message: `¿Deseas abonar $${totalOrden.toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} a la orden en el proceso?`,
+          confirmText: "Sí, abonar (Contado)",
+          cancelText: "No, no abonar (Crédito)",
+          type: "info"
+        });
 
-      // Si es crédito, la descripción (método de pago) debe ser null
-      // Si es contado, construir la descripción desde los métodos de pago
-      let metodosPagoParaDescripcion = metodosPago.filter(m => m.tipo).map(m => ({ ...m })); // Crear copia para no modificar el estado original
-      
-      // Si NO es crédito y hay un solo método de pago con monto vacío, asignar el total de la orden
-      if (!esCredito && metodosPagoParaDescripcion.length === 1) {
-        const metodo = metodosPagoParaDescripcion[0];
-        // Si el monto está vacío o es 0, asignar el total de la orden
-        if (!metodo.monto || metodo.monto === 0 || metodo.monto === '') {
-          metodo.monto = totalOrden;
+        // Si responde "Sí" → credito = false (contado)
+        // Si responde "No" → credito = true (crédito)
+        esCredito = !deseaAbonar;
+
+        // Si es crédito, la descripción (método de pago) debe ser null
+        // Si es contado, construir la descripción desde los métodos de pago
+        if (!esCredito) {
+          let metodosPagoParaDescripcion = metodosPago.filter(m => m.tipo).map(m => ({ ...m })); // Crear copia para no modificar el estado original
+          
+          // Si hay un solo método de pago con monto vacío, asignar el total de la orden
+          if (metodosPagoParaDescripcion.length === 1) {
+            const metodo = metodosPagoParaDescripcion[0];
+            // Si el monto está vacío o es 0, asignar el total de la orden
+            if (!metodo.monto || metodo.monto === 0 || metodo.monto === '') {
+              metodo.monto = totalOrden;
+            }
+          }
+          
+          // Filtrar solo métodos con monto > 0 para construir la descripción
+          descripcionFinal = construirDescripcion(metodosPagoParaDescripcion.filter(m => m.monto > 0), observacionesAdicionales);
         }
+        // Si es crédito, descripcionFinal ya es null
+      } else {
+        // Si es COTIZACIÓN (venta === false):
+        // - No mostrar diálogo de contado/crédito
+        // - No enviar métodos de pago (descripcionFinal = null)
+        // - credito = false (las cotizaciones no son crédito)
+        esCredito = false;
+        descripcionFinal = null; // Las cotizaciones no tienen métodos de pago
       }
-      
-      // Filtrar solo métodos con monto > 0 para construir la descripción
-      const descripcionFinal = esCredito ? null : construirDescripcion(metodosPagoParaDescripcion.filter(m => m.monto > 0), observacionesAdicionales);
 
       // Crear nueva orden
+      const fechaFormateada = toLocalDateOnly(form.fecha);
+      console.log("📅 [OrdenModal] Fecha del formulario:", form.fecha);
+      console.log("📅 [OrdenModal] Fecha formateada para enviar:", fechaFormateada);
+      
       const payload = {
-        fecha: toLocalDateOnly(form.fecha),
+        fecha: fechaFormateada,
         obra: isJairoVelandia ? (form.obra || null) : null, // Enviar obra solo si es Jairo Velandia
         descripcion: descripcionFinal,
         venta: form.venta,
         credito: esCredito,
+        tieneRetencionFuente: false, // Siempre false al crear (se marca al facturar)
         descuentos: Number(form.descuentos || 0),
         clienteId: Number(form.clienteId),
         sedeId: Number(form.sedeId),
@@ -1041,18 +1093,29 @@ export default function OrdenEditarModal({
     const subtotalEditar = itemsActivos.reduce((sum, item) => sum + (item.totalLinea || 0), 0);
     const totalOrdenEditar = subtotalEditar - (form.descuentos || 0);
     
-    // Si NO es crédito y hay un solo método de pago con monto vacío, asignar el total de la orden
-    let metodosPagoParaDescripcionEditar = metodosPago.filter(m => m.tipo).map(m => ({ ...m })); // Crear copia para no modificar el estado original
-    if (!form.credito && metodosPagoParaDescripcionEditar.length === 1) {
-      const metodo = metodosPagoParaDescripcionEditar[0];
-      // Si el monto está vacío o es 0, asignar el total de la orden
-      if (!metodo.monto || metodo.monto === 0 || metodo.monto === '') {
-        metodo.monto = totalOrdenEditar;
-      }
-    }
+    // Determinar si es venta o cotización
+    const esVentaEditar = Boolean(form.venta === true);
+    let descripcionFinalEditar = null;
     
-    // Construir descripción desde los métodos de pago (solo si no es crédito)
-    const descripcionFinalEditar = form.credito ? null : construirDescripcion(metodosPagoParaDescripcionEditar.filter(m => m.monto > 0), observacionesAdicionales);
+    // Solo construir descripción con métodos de pago si ES VENTA y NO es crédito
+    if (esVentaEditar && !form.credito) {
+      let metodosPagoParaDescripcionEditar = metodosPago.filter(m => m.tipo).map(m => ({ ...m })); // Crear copia para no modificar el estado original
+      
+      // Si hay un solo método de pago con monto vacío, asignar el total de la orden
+      if (metodosPagoParaDescripcionEditar.length === 1) {
+        const metodo = metodosPagoParaDescripcionEditar[0];
+        // Si el monto está vacío o es 0, asignar el total de la orden
+        if (!metodo.monto || metodo.monto === 0 || metodo.monto === '') {
+          metodo.monto = totalOrdenEditar;
+        }
+      }
+      
+      // Construir descripción desde los métodos de pago
+      descripcionFinalEditar = construirDescripcion(metodosPagoParaDescripcionEditar.filter(m => m.monto > 0), observacionesAdicionales);
+    } else {
+      // Si es cotización (venta === false) o es crédito, descripción = null
+      descripcionFinalEditar = null;
+    }
     
     const payload = {
     id: form.id,
@@ -1061,6 +1124,7 @@ export default function OrdenEditarModal({
     descripcion: descripcionFinalEditar,
     venta: form.venta,
     credito: form.credito,
+    tieneRetencionFuente: Boolean(form.tieneRetencionFuente ?? false),
     descuentos: Number(form.descuentos || 0),
     clienteId: form.clienteId ? Number(form.clienteId) : null,
     trabajadorId: form.trabajadorId ? Number(form.trabajadorId) : null,

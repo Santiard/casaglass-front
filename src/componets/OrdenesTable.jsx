@@ -7,8 +7,10 @@ import add from "../assets/add.png";
 import OrdenModal from "../modals/OrdenModal.jsx";
 import OrdenImprimirModal from "../modals/OrdenImprimirModal.jsx";
 import FacturarOrdenModal from "../modals/FacturarOrdenModal.jsx";
+import FacturarMultiplesOrdenesModal from "../modals/FacturarMultiplesOrdenesModal.jsx";
 import HistoricoClienteModal from "../modals/HistoricoClienteModal.jsx";
 import HistoricoGeneralModal from "../modals/HistoricoGeneralModal.jsx";
+import FacturarOpcionesModal from "../componets/FacturarOpcionesModal.jsx";
 import { useToast } from "../context/ToastContext.jsx";
 
 export default function OrdenesTable({
@@ -33,6 +35,8 @@ export default function OrdenesTable({
   const [ordenImprimir, setOrdenImprimir] = useState(null);
   const [isFacturarModalOpen, setIsFacturarModalOpen] = useState(false);
   const [ordenFacturar, setOrdenFacturar] = useState(null);
+  const [isFacturarOpcionesModalOpen, setIsFacturarOpcionesModalOpen] = useState(false);
+  const [isFacturarMultiplesModalOpen, setIsFacturarMultiplesModalOpen] = useState(false);
   const [isHistoricoModalOpen, setIsHistoricoModalOpen] = useState(false);
   const [isHistoricoGeneralModalOpen, setIsHistoricoGeneralModalOpen] = useState(false);
 
@@ -41,15 +45,27 @@ export default function OrdenesTable({
     setExpanded((prev) => ({ ...prev, [ordenId]: !prev[ordenId] }));
   };
 
-  // 🔹 Formatear fecha local
-  const fmtFecha = (iso) =>
-    iso
-      ? new Date(iso).toLocaleDateString("es-CO", {
-          year: "numeric",
-          month: "2-digit",
-          day: "2-digit",
-        })
-      : "-";
+  // 🔹 Formatear fecha local (sin conversión de zona horaria)
+  const fmtFecha = (iso) => {
+    if (!iso) return "-";
+    
+    // Si ya está en formato YYYY-MM-DD, mostrarlo directamente
+    if (/^\d{4}-\d{2}-\d{2}$/.test(iso)) {
+      // Formatear como DD/MM/YYYY
+      const [año, mes, dia] = iso.split('-');
+      return `${dia}/${mes}/${año}`;
+    }
+    
+    // Si es un objeto Date u otro formato ISO, usar métodos locales
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return "-";
+    
+    // Usar métodos de fecha local para evitar problemas de zona horaria
+    const año = d.getFullYear();
+    const mes = String(d.getMonth() + 1).padStart(2, '0');
+    const dia = String(d.getDate()).padStart(2, '0');
+    return `${dia}/${mes}/${año}`;
+  };
 
   // 🔹 Calcular total de orden (usar total del backend si existe, sino calcular desde items)
   const calcularTotal = (orden) => {
@@ -365,7 +381,7 @@ export default function OrdenesTable({
                             onClick={() => {
                               if (yaFacturada) return;
                               setOrdenFacturar(o);
-                              setIsFacturarModalOpen(true);
+                              setIsFacturarOpcionesModalOpen(true);
                             }}
                             title={yaFacturada ? "Orden ya facturada" : "Facturar orden"}
                             disabled={yaFacturada}
@@ -491,15 +507,56 @@ export default function OrdenesTable({
         }}
       />
 
-      {/* Modal de facturación */}
+      {/* Modal de opciones de facturación */}
+      <FacturarOpcionesModal
+        isOpen={isFacturarOpcionesModalOpen}
+        ordenNumero={ordenFacturar?.numero || ''}
+        onClose={() => {
+          setIsFacturarOpcionesModalOpen(false);
+          // NO limpiar ordenFacturar aquí, se limpiará cuando se cierre el modal de facturación
+        }}
+        onSoloEstaOrden={() => {
+          setIsFacturarOpcionesModalOpen(false);
+          // NO limpiar ordenFacturar aquí, se necesita para el modal de facturación
+          setIsFacturarModalOpen(true);
+        }}
+        onTodasLasOrdenes={() => {
+          setIsFacturarOpcionesModalOpen(false);
+          // NO limpiar ordenFacturar aquí, se necesita para el modal de facturación múltiple
+          setIsFacturarMultiplesModalOpen(true);
+        }}
+      />
+
+      {/* Modal de facturación simple */}
       <FacturarOrdenModal
         isOpen={isFacturarModalOpen}
         orden={ordenFacturar}
         onClose={() => {
           setIsFacturarModalOpen(false);
-          setOrdenFacturar(null);
+          setOrdenFacturar(null); // Limpiar aquí cuando se cierre el modal de facturación
         }}
         onSave={onFacturar}
+      />
+      
+      <FacturarMultiplesOrdenesModal
+        isOpen={isFacturarMultiplesModalOpen}
+        ordenInicial={ordenFacturar}
+        onClose={() => {
+          setIsFacturarMultiplesModalOpen(false);
+          setOrdenFacturar(null);
+        }}
+        onSuccess={async () => {
+          // Refrescar datos después de facturar
+          // onFacturar puede recibir null y un flag para refrescar
+          if (onFacturar) {
+            try {
+              // Simular una llamada para refrescar (onFacturar maneja el refresh)
+              await onFacturar(null, true);
+            } catch (e) {
+              console.error("Error refrescando tabla:", e);
+            }
+          }
+        }}
       />
 
       {/* Modal de Histórico por Cliente */}

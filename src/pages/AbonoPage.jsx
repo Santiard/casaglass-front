@@ -2,14 +2,16 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { api } from '../lib/api.js';
 import { listarClientes } from '../services/ClientesService.js';
-import { listarOrdenesCredito } from '../services/OrdenesService.js';
+import { listarOrdenesCredito, actualizarOrdenVenta, actualizarOrden } from '../services/OrdenesService.js';
 import { getBusinessSettings } from '../services/businessSettingsService.js';
+import { useToast } from '../context/ToastContext.jsx';
 import '../styles/CrudModal.css';
 import '../styles/Creditos.css';
 
 const AbonoPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { showError, showSuccess } = useToast();
   
   // Obtener clienteId o creditoId de los query params si vienen de CreditosPage
   const searchParams = new URLSearchParams(location.search);
@@ -149,13 +151,35 @@ const AbonoPage = () => {
     setLoadingOrdenes(true);
     try {
       const ordenes = await listarOrdenesCredito(clienteId);
+      
+      // Filtrar solo órdenes que cumplen estas condiciones:
+      // 1. Son a CRÉDITO (credito === true)
+      // 2. Tienen saldo pendiente > 0 (del creditoDetalle)
+      // Nota: Si es crédito, automáticamente es una venta (las cotizaciones no pueden ser a crédito)
+      // Nota: El endpoint /ordenes/credito puede no devolver el campo 'venta', pero si credito === true, es venta
       const ordenesConSaldo = ordenes.filter(orden => {
-        return orden.creditoDetalle?.saldoPendiente > 0;
+        const esCredito = Boolean(orden.credito === true);
+        
+        // Usar saldo pendiente del creditoDetalle (el backend ahora lo crea correctamente)
+        const saldoPendiente = orden.creditoDetalle?.saldoPendiente ?? 0;
+        const tieneSaldo = saldoPendiente > 0;
+        
+        // Si es crédito y tiene saldo, debe aparecer (las cotizaciones no pueden ser a crédito)
+        return esCredito && tieneSaldo;
       });
       
       setOrdenesCredito(ordenesConSaldo);
       setOrdenesSeleccionadas(new Set());
-      setOrdenesConRetencion(new Set());
+      
+      // Inicializar órdenes con retención basándose en tieneRetencionFuente de cada orden
+      const ordenesConRetencionInicial = new Set();
+      ordenesConSaldo.forEach(orden => {
+        if (orden.tieneRetencionFuente === true) {
+          ordenesConRetencionInicial.add(orden.id);
+        }
+      });
+      setOrdenesConRetencion(ordenesConRetencionInicial);
+      
       setDistribucion([]);
     } catch (err) {
       console.error("Error cargando órdenes a crédito:", err);
@@ -223,11 +247,13 @@ const AbonoPage = () => {
         }
       }
       
-      // Calcular retención solo si la orden está marcada para retención Y el monto abonado >= umbral
+      // Calcular retención sobre el TOTAL de la orden (no sobre el abono parcial)
+      // Solo si la orden está marcada para retención Y el total de la orden >= umbral
       let montoRetencion = 0;
       const tieneRetencion = ordenesConRetencion.has(orden.id);
-      if (tieneRetencion && montoAbono > 0 && montoAbono >= retefuenteThreshold) {
-        montoRetencion = (montoAbono * retefuenteRate) / 100;
+      const totalOrden = orden.total || 0;
+      if (tieneRetencion && totalOrden > 0 && totalOrden >= retefuenteThreshold) {
+        montoRetencion = (totalOrden * retefuenteRate) / 100;
       }
       
       nuevaDistribucion.push({
@@ -267,14 +293,76 @@ const AbonoPage = () => {
     }
   };
 
-  const toggleRetencionOrden = (ordenId) => {
+  const toggleRetencionOrden = async (ordenId) => {
+    const orden = ordenesCredito.find(o => o.id === ordenId);
+    if (!orden) {
+      console.error("No se encontró la orden para actualizar:", ordenId);
+      return;
+    }
+
     const nuevasConRetencion = new Set(ordenesConRetencion);
-    if (nuevasConRetencion.has(ordenId)) {
-      nuevasConRetencion.delete(ordenId);
-    } else {
+    const nuevoValorRetencion = !nuevasConRetencion.has(ordenId);
+    
+    if (nuevoValorRetencion) {
       nuevasConRetencion.add(ordenId);
+    } else {
+      nuevasConRetencion.delete(ordenId);
     }
     setOrdenesConRetencion(nuevasConRetencion);
+
+    // Actualizar la orden en el backend con tieneRetencionFuente
+    try {
+      // Construir payload para actualizar la orden
+      const ordenUpdatePayload = {
+        fecha: orden.fecha,
+        obra: orden.obra || "",
+        descripcion: orden.descripcion || null,
+        venta: Boolean(orden.venta ?? false),
+        credito: Boolean(orden.credito),
+        incluidaEntrega: Boolean(orden.incluidaEntrega || false),
+        tieneRetencionFuente: nuevoValorRetencion, // Actualizar con el nuevo valor
+        descuentos: Number(orden.descuentos || 0),
+        clienteId: Number(orden.clienteId || orden.cliente?.id),
+        sedeId: Number(orden.sedeId || orden.sede?.id),
+        ...(orden.trabajadorId || orden.trabajador?.id ? { trabajadorId: Number(orden.trabajadorId || orden.trabajador?.id) } : {}),
+        items: (Array.isArray(orden.items) ? orden.items : []).map(item => ({
+          id: item.id ?? null,
+          productoId: Number(item.productoId || item.producto?.id),
+          descripcion: item.descripcion ?? "",
+          cantidad: Number(item.cantidad ?? 1),
+          precioUnitario: Number(item.precioUnitario ?? 0),
+          totalLinea: Number(item.totalLinea ?? 0),
+          ...(item.reutilizarCorteSolicitadoId ? { reutilizarCorteSolicitadoId: Number(item.reutilizarCorteSolicitadoId) } : {})
+        }))
+      };
+      
+      // Actualizar la orden usando el endpoint correcto según si es venta o no
+      if (orden.venta) {
+        await actualizarOrdenVenta(orden.id, ordenUpdatePayload);
+      } else {
+        await actualizarOrden(orden.id, ordenUpdatePayload);
+      }
+      
+      // Actualizar el estado local de la orden para reflejar el cambio
+      setOrdenesCredito(prevOrdenes => 
+        prevOrdenes.map(o => 
+          o.id === ordenId 
+            ? { ...o, tieneRetencionFuente: nuevoValorRetencion }
+            : o
+        )
+      );
+    } catch (error) {
+      console.error("Error actualizando tieneRetencionFuente en la orden:", error);
+      // Revertir el cambio local si falla la actualización
+      const revertidasConRetencion = new Set(ordenesConRetencion);
+      if (nuevoValorRetencion) {
+        revertidasConRetencion.delete(ordenId);
+      } else {
+        revertidasConRetencion.add(ordenId);
+      }
+      setOrdenesConRetencion(revertidasConRetencion);
+      showError(`No se pudo actualizar la retención de fuente en la orden #${orden.numero}. Intenta nuevamente.`);
+    }
   };
 
   const construirDescripcion = (metodos, observaciones, distribucionConRetencion) => {
@@ -711,7 +799,11 @@ const AbonoPage = () => {
                     backgroundColor: '#f8f9fa',
                     borderRadius: '8px'
                   }}>
-                    Este cliente no tiene órdenes a crédito con saldo pendiente
+                    Este cliente no tiene órdenes a crédito (ventas confirmadas) con saldo pendiente.
+                    <br />
+                    <small style={{ fontSize: '0.8rem', color: '#999', marginTop: '0.5rem', display: 'block' }}>
+                      Nota: Las cotizaciones no permiten abonos. Deben confirmarse como venta primero.
+                    </small>
                   </div>
                 ) : (
                   <div style={{ 
@@ -761,7 +853,8 @@ const AbonoPage = () => {
                           const montoRetencion = dist?.montoRetencion || 0;
                           const tieneRetencion = dist?.tieneRetencion || false;
                           const estaSeleccionada = ordenesSeleccionadas.has(orden.id);
-                          const puedeAplicarRetencion = estaSeleccionada && montoAbono > 0 && montoAbono >= retefuenteThreshold;
+                          const totalOrden = orden.total || 0;
+                          const puedeAplicarRetencion = estaSeleccionada && totalOrden > 0 && totalOrden >= retefuenteThreshold;
                           
                           return (
                             <tr
@@ -842,7 +935,7 @@ const AbonoPage = () => {
                                   }}
                                   title={puedeAplicarRetencion 
                                     ? "Aplicar retención a esta orden" 
-                                    : `Para aplicar retención: la orden debe estar seleccionada, tener abono > 0 y el abono debe ser >= $${retefuenteThreshold.toLocaleString('es-CO')}`}
+                                    : `Para aplicar retención: la orden debe estar seleccionada y el total de la orden debe ser >= $${retefuenteThreshold.toLocaleString('es-CO')}`}
                                 />
                               </td>
                               <td style={{ 

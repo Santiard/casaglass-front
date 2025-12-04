@@ -1,0 +1,128 @@
+/* Estilos específicos para la tabla de facturación múltiple */
+.facturar-multiples-table-wrapper {
+  overflow-x: auto;
+  overflow-y: auto;
+  max-height: 400px;
+}
+
+.facturar-multiples-table {
+  width: 100%;
+  font-size: 0.9rem;
+  border-collapse: collapse;
+  min-width: 1140px;
+  table-layout: fixed;
+}
+
+.facturar-multiples-table thead {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.facturar-multiples-table thead tr {
+  background-color: #1e2753;
+  color: #fff;
+}
+
+.facturar-multiples-table th {
+  padding: 0.75rem 0.5rem;
+  text-align: left;
+  font-weight: 600;
+  white-space: nowrap;
+  font-size: 0.875rem;
+}
+
+.facturar-multiples-table th:first-child,
+.facturar-multiples-table td:first-child {
+  width: 60px;
+  text-align: center;
+}
+
+.facturar-multiples-table th:nth-child(2),
+.facturar-multiples-table td:nth-child(2) {
+  width: 60px;
+  text-align: center;
+}
+
+.facturar-multiples-table th:nth-child(3),
+.facturar-multiples-table td:nth-child(3) {
+  width: 100px;
+}
+
+.facturar-multiples-table th:nth-child(4),
+.facturar-multiples-table td:nth-child(4) {
+  width: 110px;
+}
+
+.facturar-multiples-table th:nth-child(5),
+.facturar-multiples-table td:nth-child(5) {
+  width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.facturar-multiples-table th:nth-child(6),
+.facturar-multiples-table td:nth-child(6) {
+  width: 140px;
+  text-align: right;
+}
+
+.facturar-multiples-table th:nth-child(7),
+.facturar-multiples-table td:nth-child(7) {
+  width: 130px;
+  text-align: right;
+}
+
+.facturar-multiples-table th:nth-child(8),
+.facturar-multiples-table td:nth-child(8) {
+  width: 140px;
+  text-align: right;
+}
+
+.facturar-multiples-table th:nth-child(9),
+.facturar-multiples-table td:nth-child(9) {
+  width: 150px;
+  text-align: right;
+}
+
+.facturar-multiples-table td {
+  padding: 0.75rem 0.5rem;
+  border-bottom: 1px solid #e0e0e0;
+  white-space: nowrap;
+  font-size: 0.875rem;
+}
+
+.facturar-multiples-table tbody tr {
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.facturar-multiples-table tbody tr:hover {
+  background-color: #f5f5f5;
+}
+
+.facturar-multiples-table tbody tr.selected {
+  background-color: #e3f2fd;
+}
+
+.facturar-multiples-table tbody tr td:nth-child(5) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 180px;
+}
+
+.facturar-multiples-table tbody tr td:nth-child(6),
+.facturar-multiples-table tbody tr td:nth-child(7),
+.facturar-multiples-table tbody tr td:nth-child(8),
+.facturar-multiples-table tbody tr td:nth-child(9) {
+  font-family: 'Courier New', monospace;
+  font-weight: 500;
+}
+
+.facturar-multiples-table tbody tr td:nth-child(9) {
+  font-weight: bold;
+  color: #1e2753;
+}
+

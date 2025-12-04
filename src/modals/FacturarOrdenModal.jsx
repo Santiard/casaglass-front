@@ -5,6 +5,7 @@ import { useToast } from "../context/ToastContext.jsx";
 import { getBusinessSettings } from "../services/businessSettingsService.js";
 import { listarClientes } from "../services/ClientesService.js";
 import { api } from "../lib/api.js";
+import { actualizarOrdenVenta, actualizarOrden, obtenerOrden } from "../services/OrdenesService.js";
 
 export default function FacturarOrdenModal({ isOpen, onClose, onSave, orden }) {
   const { showError } = useToast();
@@ -37,7 +38,17 @@ export default function FacturarOrdenModal({ isOpen, onClose, onSave, orden }) {
 
   // Cargar configuración de impuestos y clientes al abrir el modal
   useEffect(() => {
-    if (isOpen) {
+    console.log("🔍 [FacturarOrdenModal] useEffect ejecutado - isOpen:", isOpen, "orden:", orden ? { id: orden.id, numero: orden.numero } : null);
+    
+    if (isOpen && orden) {
+      console.log("🔍 [FacturarOrdenModal] Modal abierto, orden recibida:", {
+        id: orden.id,
+        numero: orden.numero,
+        tieneCliente: !!orden.cliente,
+        clienteId: orden.clienteId || orden.cliente?.id,
+        ordenCompleta: orden
+      });
+      
       getBusinessSettings().then((settings) => {
         if (settings) {
           setIvaRate(Number(settings.ivaRate) || 19);
@@ -46,31 +57,71 @@ export default function FacturarOrdenModal({ isOpen, onClose, onSave, orden }) {
         }
       });
       
-      // Cargar clientes (solo para el modal de selección cuando se quiere cambiar)
-      listarClientes().then((clientesData) => {
-        const clientesArray = Array.isArray(clientesData) ? clientesData : [];
-        setClientes(clientesArray);
-      }).catch((err) => {
-        console.error("Error cargando clientes:", err);
-        setClientes([]);
-      });
+      // Cargar datos de forma asíncrona
+      const cargarDatos = async () => {
+        try {
+          // 1. Cargar clientes
+          const clientesData = await listarClientes();
+          const clientesArray = Array.isArray(clientesData) ? clientesData : [];
+          setClientes(clientesArray);
+          console.log("✅ [FacturarOrdenModal] Clientes cargados:", clientesArray.length);
+          
+          // 2. Si la orden no tiene cliente completo, obtener la orden completa del backend
+          let ordenCompleta = orden;
+          if (!orden.cliente && orden.id) {
+            try {
+              ordenCompleta = await obtenerOrden(orden.id);
+              console.log("✅ [FacturarOrdenModal] Orden completa obtenida del backend:", ordenCompleta);
+            } catch (err) {
+              console.warn("⚠️ [FacturarOrdenModal] No se pudo obtener orden completa, usando la inicial:", err);
+            }
+          }
+          
+          // 3. Inicializar cliente
+          if (ordenCompleta?.cliente) {
+            // Si la orden tiene el objeto cliente completo, usarlo
+            const clienteCompleto = clientesArray.find(c => c.id === ordenCompleta.cliente.id) || ordenCompleta.cliente;
+            console.log("✅ [FacturarOrdenModal] Cliente seteado:", clienteCompleto);
+            setClienteFactura(clienteCompleto);
+            setClienteFacturaId(String(clienteCompleto.id));
+          } else if (ordenCompleta?.clienteId) {
+            // Si solo tiene clienteId, buscar el cliente en la lista cargada
+            const clienteEncontrado = clientesArray.find(c => c.id === ordenCompleta.clienteId);
+            if (clienteEncontrado) {
+              console.log("✅ [FacturarOrdenModal] Cliente seteado desde clienteId:", clienteEncontrado);
+              setClienteFactura(clienteEncontrado);
+              setClienteFacturaId(String(clienteEncontrado.id));
+            } else {
+              console.warn("⚠️ [FacturarOrdenModal] Cliente no encontrado con ID:", ordenCompleta.clienteId);
+              setClienteFactura(null);
+              setClienteFacturaId("");
+            }
+          } else {
+            console.warn("⚠️ [FacturarOrdenModal] Orden sin cliente ni clienteId");
+            setClienteFactura(null);
+            setClienteFacturaId("");
+          }
+          
+          // 4. Buscar retefuente en los abonos de la orden (solo para órdenes a crédito)
+          if (ordenCompleta?.credito && ordenCompleta?.creditoDetalle?.creditoId) {
+            buscarRetefuenteEnAbonos(ordenCompleta.creditoDetalle.creditoId);
+          } else {
+            setTieneRetencion(false);
+          }
+        } catch (err) {
+          console.error("❌ [FacturarOrdenModal] Error cargando datos:", err);
+          setClientes([]);
+          // Fallback: intentar usar cliente de la orden si existe
+          if (orden?.cliente) {
+            setClienteFactura(orden.cliente);
+            setClienteFacturaId(String(orden.cliente.id));
+          } else if (orden?.clienteId) {
+            setClienteFacturaId(String(orden.clienteId));
+          }
+        }
+      };
       
-      // Inicializar con el cliente de la orden (ahora viene completo desde el backend)
-      if (orden?.cliente) {
-        // El backend ahora retorna todos los datos del cliente en orden.cliente
-        setClienteFactura(orden.cliente);
-        setClienteFacturaId(String(orden.cliente.id));
-      } else {
-        setClienteFactura(null);
-        setClienteFacturaId("");
-      }
-      
-      // Buscar retefuente en los abonos de la orden (solo para órdenes a crédito)
-      if (orden?.credito && orden?.creditoDetalle?.creditoId) {
-        buscarRetefuenteEnAbonos(orden.creditoDetalle.creditoId);
-      } else {
-        setTieneRetencion(false);
-      }
+      cargarDatos();
     }
   }, [isOpen, orden]);
 
@@ -190,6 +241,46 @@ export default function FacturarOrdenModal({ isOpen, onClose, onSave, orden }) {
 
     setLoading(true);
     try {
+      // Primero, actualizar la orden con tieneRetencionFuente si es necesario
+      // Solo actualizar si la orden es a crédito y el valor ha cambiado
+      if (esCredito && orden?.venta) {
+        try {
+          // Construir payload para actualizar la orden con tieneRetencionFuente
+          const ordenUpdatePayload = {
+            fecha: orden.fecha,
+            obra: orden.obra || "",
+            descripcion: orden.descripcion || null,
+            venta: orden.venta,
+            credito: orden.credito,
+            incluidaEntrega: orden.incluidaEntrega || false,
+            tieneRetencionFuente: tieneRetencion, // Actualizar con el valor del checkbox
+            descuentos: Number(orden.descuentos || 0),
+            clienteId: Number(orden.clienteId || orden.cliente?.id),
+            sedeId: Number(orden.sedeId || orden.sede?.id),
+            ...(orden.trabajadorId || orden.trabajador?.id ? { trabajadorId: Number(orden.trabajadorId || orden.trabajador?.id) } : {}),
+            items: (Array.isArray(orden.items) ? orden.items : []).map(item => ({
+              id: item.id ?? null,
+              productoId: Number(item.productoId || item.producto?.id),
+              descripcion: item.descripcion ?? "",
+              cantidad: Number(item.cantidad ?? 1),
+              precioUnitario: Number(item.precioUnitario ?? 0),
+              totalLinea: Number(item.totalLinea ?? 0),
+              ...(item.reutilizarCorteSolicitadoId ? { reutilizarCorteSolicitadoId: Number(item.reutilizarCorteSolicitadoId) } : {})
+            }))
+          };
+          
+          // Actualizar la orden usando el endpoint correcto según si es venta o no
+          if (orden.venta) {
+            await actualizarOrdenVenta(orden.id, ordenUpdatePayload);
+          } else {
+            await actualizarOrden(orden.id, ordenUpdatePayload);
+          }
+        } catch (updateError) {
+          console.warn("⚠️ No se pudo actualizar tieneRetencionFuente en la orden:", updateError?.response?.data || updateError?.message);
+          // Continuar con la facturación aunque falle la actualización del campo
+        }
+      }
+      
       const payloadToSend = {
         ...form,
         descuentos: form.descuentos === "" ? 0 : form.descuentos,

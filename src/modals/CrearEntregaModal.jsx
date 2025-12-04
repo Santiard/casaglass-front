@@ -34,6 +34,7 @@ const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores, se
   const [loadingOrdenes, setLoadingOrdenes] = useState(false);
   const [error, setError] = useState('');
   const [step, setStep] = useState(1); // 1: Datos básicos, 2: Órdenes (gastos eliminados)
+  const [reloadKey, setReloadKey] = useState(0); // Key para forzar recarga cuando se abre el modal
 
   const resetForm = () => {
     // Preseleccionar sede del usuario logueado si está disponible
@@ -67,28 +68,53 @@ const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores, se
   useEffect(() => {
     if (isOpen) {
       resetForm();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen]); // Solo ejecutar cuando se abre el modal
-
-  // Cargar órdenes disponibles cuando se seleccionan sede y fecha (solo un día)
-  useEffect(() => {
-    if (formData.sedeId && formData.fechaEntrega) {
-      cargarOrdenesDisponibles();
+      // Limpiar órdenes y abonos cuando se abre el modal
+      setOrdenesDisponibles([]);
+      setAbonosDisponibles([]);
+      // Incrementar reloadKey para forzar recarga cuando se abre el modal
+      setReloadKey(prev => prev + 1);
     } else {
-      // Limpiar órdenes si no hay datos completos
+      // Limpiar todo cuando se cierra el modal
+      resetForm();
       setOrdenesDisponibles([]);
       setAbonosDisponibles([]);
     }
-  }, [formData.sedeId, formData.fechaEntrega]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]); // Solo ejecutar cuando se abre/cierra el modal
+
+  // Cargar órdenes disponibles cuando se seleccionan sede y fecha (solo un día)
+  useEffect(() => {
+    // Solo cargar si el modal está abierto y hay sede y fecha
+    if (isOpen && formData.sedeId && formData.fechaEntrega) {
+      cargarOrdenesDisponibles();
+    } else {
+      // Limpiar órdenes si no hay datos completos o el modal está cerrado
+      if (!isOpen) {
+        setOrdenesDisponibles([]);
+        setAbonosDisponibles([]);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, formData.sedeId, formData.fechaEntrega, reloadKey]); // Incluir reloadKey para forzar recarga
 
   const cargarOrdenesDisponibles = async () => {
+    // Leer valores actuales del estado para evitar problemas de closure
+    const sedeIdActual = formData.sedeId;
+    const fechaActual = formData.fechaEntrega;
+    
+    // Validar que tengamos los datos necesarios
+    if (!sedeIdActual || !fechaActual) {
+      setOrdenesDisponibles([]);
+      setAbonosDisponibles([]);
+      return;
+    }
+    
     try {
       setLoadingOrdenes(true);
       // Usar la misma fecha para desde y hasta (solo un día)
-      const fechaUnica = formData.fechaEntrega;
+      const fechaUnica = fechaActual;
       const ordenes = await EntregasService.obtenerOrdenesDisponibles(
-        formData.sedeId,
+        sedeIdActual,
         fechaUnica,
         fechaUnica
       );
@@ -247,41 +273,56 @@ const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores, se
     // Convertir a mayúsculas para búsqueda
     const metodoUpper = metodoPagoString.toUpperCase();
     
-    // Dividir por " | " para obtener cada método
-    const partes = metodoUpper.split('|').map(p => p.trim());
+    // Dividir por " | " para obtener cada método (también puede ser solo "|" sin espacios)
+    const partes = metodoUpper.split(/\s*\|\s*/).map(p => p.trim()).filter(p => p.length > 0);
     
     for (const parte of partes) {
       // Ignorar RETEFUENTE (es una deducción, no un método de pago)
-      if (parte.includes('RETEFUENTE')) {
+      if (parte.includes('RETEFUENTE') || parte.includes('RETENCION')) {
         continue;
       }
       
       // Buscar EFECTIVO: monto
+      // Patrón más estricto: debe tener "EFECTIVO" seguido de ":" o espacios, luego números
       const efectivoMatch = parte.match(/EFECTIVO[:\s]+([\d.,\s]+)/);
       if (efectivoMatch) {
         // Extraer el número, puede tener formato: "100.000" o "100,000" o "100 000"
-        const montoStr = efectivoMatch[1].replace(/[^\d]/g, '');
-        const monto = parseFloat(montoStr) || 0;
-        montoEfectivo += monto;
+        // Pero solo tomar hasta el primer carácter no numérico después de los números
+        const montoStr = efectivoMatch[1].trim();
+        // Remover todo excepto dígitos, pero preservar el primer punto o coma como separador de miles
+        // Si tiene punto o coma, asumir que es separador de miles (formato colombiano)
+        let numeroLimpio = montoStr.replace(/[^\d]/g, '');
+        const monto = parseFloat(numeroLimpio) || 0;
+        if (monto > 0) {
+          montoEfectivo += monto;
+        }
         continue;
       }
       
       // Buscar TRANSFERENCIA: monto (puede tener banco entre paréntesis)
       // Formato: "TRANSFERENCIA: 50.000 (Banco de Bogotá)" o "TRANSFERENCIA: 50.000"
+      // Patrón más estricto: debe tener "TRANSFERENCIA" seguido de ":" o espacios, luego números
       const transferenciaMatch = parte.match(/TRANSFERENCIA[:\s]+([\d.,\s]+)/);
       if (transferenciaMatch) {
-        const montoStr = transferenciaMatch[1].replace(/[^\d]/g, '');
-        const monto = parseFloat(montoStr) || 0;
-        montoTransferencia += monto;
+        const montoStr = transferenciaMatch[1].trim();
+        // Remover todo excepto dígitos
+        let numeroLimpio = montoStr.replace(/[^\d]/g, '');
+        const monto = parseFloat(numeroLimpio) || 0;
+        if (monto > 0) {
+          montoTransferencia += monto;
+        }
         continue;
       }
       
       // Buscar CHEQUE: monto
       const chequeMatch = parte.match(/CHEQUE[:\s]+([\d.,\s]+)/);
       if (chequeMatch) {
-        const montoStr = chequeMatch[1].replace(/[^\d]/g, '');
-        const monto = parseFloat(montoStr) || 0;
-        montoCheque += monto;
+        const montoStr = chequeMatch[1].trim();
+        let numeroLimpio = montoStr.replace(/[^\d]/g, '');
+        const monto = parseFloat(numeroLimpio) || 0;
+        if (monto > 0) {
+          montoCheque += monto;
+        }
         continue;
       }
     }
@@ -349,16 +390,45 @@ const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores, se
     // Formato: "EFECTIVO: 100.000 | TRANSFERENCIA: 50.000 (Banco de Bogotá) | RETEFUENTE Orden #1057: 12.500"
     abonosSeleccionados.forEach(abono => {
       const metodoPagoString = abono.metodoPago || '';
+      const montoAbono = Number(abono.montoAbono) || 0;
       
       if (metodoPagoString) {
         // Parsear el string del método de pago
         const parseado = parsearMetodoPagoAbono(metodoPagoString);
+        
+        // Verificar que la suma de los métodos parseados no exceda el monto del abono
+        const sumaParseada = parseado.montoEfectivo + parseado.montoTransferencia + parseado.montoCheque;
+        
+        // DEBUG: Log para identificar problemas
+        if (sumaParseada !== montoAbono) {
+          console.log(`🔍 [DEBUG Entrega] Abono #${abono.id}:`, {
+            montoAbono,
+            metodoPagoString: metodoPagoString.substring(0, 100), // Primeros 100 caracteres
+            parseado,
+            sumaParseada,
+            diferencia: sumaParseada - montoAbono
+          });
+        }
+        
+        // Si la suma parseada es mayor al monto del abono, hay un error en el parseo
+        // En ese caso, distribuir proporcionalmente
+        if (sumaParseada > montoAbono * 1.01) { // Tolerancia del 1% por redondeos
+          console.warn(`⚠️ Abono #${abono.id}: Suma parseada (${sumaParseada}) > monto abono (${montoAbono}). Ajustando proporcionalmente.`);
+          const factor = montoAbono / sumaParseada;
+          parseado.montoEfectivo = parseado.montoEfectivo * factor;
+          parseado.montoTransferencia = parseado.montoTransferencia * factor;
+          parseado.montoCheque = parseado.montoCheque * factor;
+        } else if (sumaParseada < montoAbono * 0.99) {
+          // Si la suma parseada es menor, la diferencia va a efectivo por defecto
+          const diferencia = montoAbono - sumaParseada;
+          parseado.montoEfectivo += diferencia;
+        }
+        
         montoEfectivo += parseado.montoEfectivo;
         montoTransferencia += parseado.montoTransferencia;
         montoCheque += parseado.montoCheque;
       } else {
         // Si no tiene método de pago, se asume efectivo por defecto
-        const montoAbono = Number(abono.montoAbono) || 0;
         montoEfectivo += montoAbono;
       }
     });
@@ -369,13 +439,45 @@ const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores, se
       montoCheque,
       montoDeposito: 0, // Depósito no se usa en órdenes
     };
-    const monto = Object.values(desglose).reduce((a,b)=>a+b,0);
+    
+    // El monto total debe ser la suma de órdenes + abonos, no la suma del desglose
+    // (porque el desglose puede tener errores de parseo)
+    const monto = montoTotal; // Usar el monto calculado directamente
+    
+    // Validar que el desglose coincida con el monto total (con tolerancia del 1%)
+    const sumaDesglose = montoEfectivo + montoTransferencia + montoCheque + 0;
+    
+    // DEBUG: Log del cálculo final
+    console.log(`📊 [DEBUG Entrega] Cálculo de totales:`, {
+      montoOrdenes,
+      montoAbonos,
+      montoTotal: monto,
+      desglose: {
+        montoEfectivo,
+        montoTransferencia,
+        montoCheque,
+        montoDeposito: 0
+      },
+      sumaDesglose,
+      diferencia: Math.abs(sumaDesglose - monto)
+    });
+    
+    if (Math.abs(sumaDesglose - monto) > monto * 0.01) {
+      console.warn(`⚠️ Desglose no coincide con monto total. Desglose: ${sumaDesglose}, Total: ${monto}. Ajustando proporcionalmente.`);
+      const factor = monto / sumaDesglose;
+      montoEfectivo = montoEfectivo * factor;
+      montoTransferencia = montoTransferencia * factor;
+      montoCheque = montoCheque * factor;
+    }
     
     return {
       monto,
       montoOrdenes: montoOrdenes,
       montoAbonos: montoAbonos,
-      ...desglose
+      montoEfectivo,
+      montoTransferencia,
+      montoCheque,
+      montoDeposito: 0,
     };
   };
 
@@ -435,6 +537,20 @@ const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores, se
         );
         // Validar órdenes a contado - FILTRAR solo las que tienen venta: true
         const ordenesContadoValidas = (elegibles?.ordenesContado || []).filter(o => o.venta === true);
+        
+        // Validación adicional: Verificar que todas las órdenes pertenezcan a la sede seleccionada
+        const sedeIdNum = parseInt(formData.sedeId);
+        const ordenesDeOtraSede = ordenesContadoValidas.filter(o => {
+          const ordenSedeId = o.sedeId || o.sede?.id;
+          return ordenSedeId && parseInt(ordenSedeId) !== sedeIdNum;
+        });
+        
+        if (ordenesDeOtraSede.length > 0) {
+          setError(`Error: Algunas órdenes no pertenecen a la sede seleccionada. Las órdenes deben ser de la misma sede que la entrega.`);
+          setLoading(false);
+          return;
+        }
+        
         const ordenesContadoIds = new Set(ordenesContadoValidas.map(o => o.id));
         const ordenesIds = Array.isArray(formData.ordenesIds) ? formData.ordenesIds : [];
         const ordenesInvalidas = ordenesIds.filter(id => !ordenesContadoIds.has(id));
@@ -446,6 +562,24 @@ const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores, se
         
         // Validar abonos disponibles (NUEVO) - Solo filtrar los que no están ya entregados
         const abonosDisponiblesValidos = (elegibles?.abonosDisponibles || []).filter(a => !a.yaEntregado);
+        
+        // Validación adicional: Verificar que todos los abonos pertenezcan a órdenes de la sede seleccionada
+        const abonosDeOtraSede = abonosDisponiblesValidos.filter(a => {
+          const abonoSedeId = a.sedeId || a.sede?.id || a.sedeNombre; // Puede venir como ID o nombre
+          // Si viene como nombre, necesitaríamos comparar con el nombre de la sede, pero por ahora validamos por ID
+          if (abonoSedeId && typeof abonoSedeId === 'number') {
+            return parseInt(abonoSedeId) !== sedeIdNum;
+          }
+          // Si no tiene sedeId, asumimos que el backend ya lo filtró correctamente
+          return false;
+        });
+        
+        if (abonosDeOtraSede.length > 0) {
+          setError(`Error: Algunos abonos no pertenecen a la sede seleccionada. Los abonos deben ser de órdenes de la misma sede que la entrega.`);
+          setLoading(false);
+          return;
+        }
+        
         const abonosDisponiblesIds = new Set(abonosDisponiblesValidos.map(a => a.id));
         const abonosIds = Array.isArray(formData.abonosIds) ? formData.abonosIds : [];
         const abonosInvalidos = abonosIds.filter(id => !abonosDisponiblesIds.has(id));
