@@ -11,7 +11,8 @@ export default function VentaTable({
   userSede = "",
   onAgregarProducto,
   onCortarProducto,
-  todosLosProductos = [] // Array completo de productos para buscar los del kit
+  todosLosProductos = [], // Array completo de productos para buscar los del kit
+  categoryId = null // ID de la categoría seleccionada (26 = VIDRIO)
 }) {
   const [cantidadesVenta, setCantidadesVenta] = useState({});
   const [preciosSeleccionados, setPreciosSeleccionados] = useState({});
@@ -23,6 +24,8 @@ export default function VentaTable({
   });
 
   const isVidrio = (data || []).some(p => (p.categoria || "").toLowerCase() === "vidrio");
+  // Si la categoría seleccionada es VIDRIO (ID: 26), solo mostrar INSULA
+  const isCategoriaVidrio = categoryId === 26;
 
   // Funciones para manejar la venta
   const handleCantidadChange = (productId, cantidad) => {
@@ -215,10 +218,17 @@ export default function VentaTable({
             {/* Inventario según el rol */}
             {isAdmin ? (
               <>
-                <th>Insula</th>
-                <th>Centro</th>
-                <th>Patios</th>
-                <th>Total</th>
+                {/* Si la categoría es VIDRIO, solo mostrar INSULA */}
+                {isCategoriaVidrio ? (
+                  <th>Insula</th>
+                ) : (
+                  <>
+                    <th>Insula</th>
+                    <th>Centro</th>
+                    <th>Patios</th>
+                    <th>Total</th>
+                  </>
+                )}
               </>
             ) : (
               // Para VENDEDOR: mostrar solo la cantidad de su sede
@@ -240,14 +250,22 @@ export default function VentaTable({
         <tbody>
           {loading && (
             <tr>
-              <td colSpan={isAdmin ? (isVidrio ? 12 : 9) : (isVidrio ? 8 : 5)} className="empty">
+              <td colSpan={
+                isAdmin 
+                  ? (isCategoriaVidrio ? (isVidrio ? 8 : 5) : (isVidrio ? 12 : 9))
+                  : (isVidrio ? 8 : 5)
+              } className="empty">
                 Cargando…
               </td>
             </tr>
           )}
           {!loading && data.length === 0 && (
             <tr>
-              <td colSpan={isAdmin ? (isVidrio ? 12 : 9) : (isVidrio ? 8 : 5)} className="empty">
+              <td colSpan={
+                isAdmin 
+                  ? (isCategoriaVidrio ? (isVidrio ? 8 : 5) : (isVidrio ? 12 : 9))
+                  : (isVidrio ? 8 : 5)
+              } className="empty">
                 Sin resultados
               </td>
             </tr>
@@ -284,22 +302,32 @@ export default function VentaTable({
                 {/* Columnas de inventario según el rol */}
                 {isAdmin ? (
                   <>
-                    <td className={Number(p.cantidadInsula || 0) < 0 ? "stock-negativo" : ""}>
-                      {p.cantidadInsula ?? 0}
-                      {Number(p.cantidadInsula || 0) < 0 && <span className="badge-negativo"> ⚠️</span>}
-                    </td>
-                    <td className={Number(p.cantidadCentro || 0) < 0 ? "stock-negativo" : ""}>
-                      {p.cantidadCentro ?? 0}
-                      {Number(p.cantidadCentro || 0) < 0 && <span className="badge-negativo"> ⚠️</span>}
-                    </td>
-                    <td className={Number(p.cantidadPatios || 0) < 0 ? "stock-negativo" : ""}>
-                      {p.cantidadPatios ?? 0}
-                      {Number(p.cantidadPatios || 0) < 0 && <span className="badge-negativo"> ⚠️</span>}
-                    </td>
-                    <td className={stockNegativo ? "stock-negativo" : ""}>
-                      <strong>{total}</strong>
-                      {stockNegativo && <span className="badge-negativo"> ⚠️ Faltan {Math.abs(total)}</span>}
-                    </td>
+                    {/* Si la categoría es VIDRIO, solo mostrar INSULA */}
+                    {isCategoriaVidrio ? (
+                      <td className={Number(p.cantidadInsula || 0) < 0 ? "stock-negativo" : ""}>
+                        <strong>{p.cantidadInsula ?? 0}</strong>
+                        {Number(p.cantidadInsula || 0) < 0 && <span className="badge-negativo"> ⚠️</span>}
+                      </td>
+                    ) : (
+                      <>
+                        <td className={Number(p.cantidadInsula || 0) < 0 ? "stock-negativo" : ""}>
+                          {p.cantidadInsula ?? 0}
+                          {Number(p.cantidadInsula || 0) < 0 && <span className="badge-negativo"> ⚠️</span>}
+                        </td>
+                        <td className={Number(p.cantidadCentro || 0) < 0 ? "stock-negativo" : ""}>
+                          {p.cantidadCentro ?? 0}
+                          {Number(p.cantidadCentro || 0) < 0 && <span className="badge-negativo"> ⚠️</span>}
+                        </td>
+                        <td className={Number(p.cantidadPatios || 0) < 0 ? "stock-negativo" : ""}>
+                          {p.cantidadPatios ?? 0}
+                          {Number(p.cantidadPatios || 0) < 0 && <span className="badge-negativo"> ⚠️</span>}
+                        </td>
+                        <td className={stockNegativo ? "stock-negativo" : ""}>
+                          <strong>{total}</strong>
+                          {stockNegativo && <span className="badge-negativo"> ⚠️ Faltan {Math.abs(total)}</span>}
+                        </td>
+                      </>
+                    )}
                   </>
                 ) : (
                   // Para VENDEDOR: mostrar solo la cantidad de su sede

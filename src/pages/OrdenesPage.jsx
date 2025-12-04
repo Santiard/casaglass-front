@@ -13,18 +13,22 @@ import {
 import { crearFactura, marcarFacturaComoPagada, obtenerFacturaPorOrden } from "../services/FacturasService";
 import { useConfirm } from "../hooks/useConfirm.jsx";
 import { useToast } from "../context/ToastContext.jsx";
+import { useAuth } from "../context/AuthContext.jsx";
 
 export default function OrdenesPage() {
   const { confirm, ConfirmDialog } = useConfirm();
   const { showSuccess, showError } = useToast();
+  const { isAdmin, sedeId } = useAuth(); // Obtener info del usuario logueado
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
+      // Si no es admin, filtrar por sede del usuario
+      const params = isAdmin ? {} : { sedeId };
       // Usar SIEMPRE el endpoint de tabla
-      const arr = await listarOrdenesTabla();
+      const arr = await listarOrdenesTabla(params);
       const norm = Array.isArray(arr)
         ? arr.map((o) => ({
             ...o,
@@ -37,7 +41,7 @@ export default function OrdenesPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [isAdmin, sedeId]);
 
   useEffect(() => {
     fetchData();

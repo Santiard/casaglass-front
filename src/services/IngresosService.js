@@ -88,8 +88,9 @@ function mapFormAIngresoAPI(form = {}) {
 }
 
 // === API CRUD ===
-export async function listarIngresos() {
-  const { data } = await api.get("/ingresos");
+// @param {Object} params - Parámetros de consulta (puede incluir sedeId para filtrar por sede)
+export async function listarIngresos(params = {}) {
+  const { data } = await api.get("/ingresos", { params });
   return data;
 }
 

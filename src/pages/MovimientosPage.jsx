@@ -16,10 +16,12 @@ import {
 } from "../services/TrasladosService.js";
 import { useConfirm } from "../hooks/useConfirm.jsx";
 import { useToast } from "../context/ToastContext.jsx";
+import { useAuth } from "../context/AuthContext.jsx";
 
 export default function MovimientosPage() {
   const { confirm, ConfirmDialog } = useConfirm();
   const { showError } = useToast();
+  const { isAdmin, sedeId } = useAuth(); // Obtener info del usuario logueado
   const [traslados, setTraslados] = useState([]);
   const [sedes, setSedes] = useState([]);
   const [catalogoProductos, setCatalogoProductos] = useState([]);
@@ -29,10 +31,12 @@ export default function MovimientosPage() {
     (async () => {
       try {
         setLoading(true);
+        // Si no es admin, filtrar por sede del usuario
+        const params = isAdmin ? {} : { sedeId };
         const [sedesRes, prodsRes, trasladosRes] = await Promise.all([
           listarSedes(),       // GET /api/sedes  => [{id, nombre, ...}]
           listarProductos(),   // GET /api/productos => [{id, nombre, codigo}]
-          listarTraslados(),   // GET /api/traslados
+          listarTraslados(params),   // GET /api/traslados-movimientos?sedeId=X
         ]);
         setSedes(Array.isArray(sedesRes) ? sedesRes : []);
         // Filtrar cortes: excluir productos que tengan largoCm (son cortes)
@@ -55,12 +59,14 @@ export default function MovimientosPage() {
         setLoading(false);
       }
     })();
-  }, []);
+  }, [isAdmin, sedeId, showError]);
 
   const reloadTraslados = async () => {
     try {
       setLoading(true);
-      const res = await listarTraslados();
+      // Si no es admin, filtrar por sede del usuario
+      const params = isAdmin ? {} : { sedeId };
+      const res = await listarTraslados(params);
       setTraslados(Array.isArray(res) ? res : []);
     } catch (e) {
       console.error("Error recargando traslados:", e);

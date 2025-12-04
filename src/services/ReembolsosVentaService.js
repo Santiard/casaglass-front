@@ -3,9 +3,10 @@ import { api } from "../lib/api.js";
 
 const ReembolsosVentaService = {
   // GET /api/reembolsos-venta
-  listarReembolsos: async () => {
+  // @param {Object} params - Parámetros de consulta (puede incluir sedeId para filtrar por sede)
+  listarReembolsos: async (params = {}) => {
     try {
-      const { data } = await api.get("reembolsos-venta");
+      const { data } = await api.get("reembolsos-venta", { params });
       return Array.isArray(data) ? data : [];
     } catch (error) {
       console.error("Error listando reembolsos de venta:", error);

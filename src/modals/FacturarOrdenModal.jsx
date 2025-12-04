@@ -4,6 +4,7 @@ import "../styles/Table.css";
 import { useToast } from "../context/ToastContext.jsx";
 import { getBusinessSettings } from "../services/businessSettingsService.js";
 import { listarClientes } from "../services/ClientesService.js";
+import { api } from "../lib/api.js";
 
 export default function FacturarOrdenModal({ isOpen, onClose, onSave, orden }) {
   const { showError } = useToast();
@@ -29,8 +30,10 @@ export default function FacturarOrdenModal({ isOpen, onClose, onSave, orden }) {
   const [clienteFactura, setClienteFactura] = useState(null); // Objeto completo del cliente seleccionado
   const [showClienteModal, setShowClienteModal] = useState(false);
   const [clienteSearchModal, setClienteSearchModal] = useState("");
+  const [tieneRetencion, setTieneRetencion] = useState(false); // Checkbox para marcar si la orden tiene retefuente
   const creditoPendiente = Boolean(orden?.credito) && Number(orden?.creditoDetalle?.saldoPendiente || 0) > 0;
   const isAnulada = String(orden?.estado || "").toUpperCase() === "ANULADA";
+  const esCredito = Boolean(orden?.credito); // Verificar si la orden es a crédito
 
   // Cargar configuración de impuestos y clientes al abrir el modal
   useEffect(() => {
@@ -61,8 +64,36 @@ export default function FacturarOrdenModal({ isOpen, onClose, onSave, orden }) {
         setClienteFactura(null);
         setClienteFacturaId("");
       }
+      
+      // Buscar retefuente en los abonos de la orden (solo para órdenes a crédito)
+      if (orden?.credito && orden?.creditoDetalle?.creditoId) {
+        buscarRetefuenteEnAbonos(orden.creditoDetalle.creditoId);
+      } else {
+        setTieneRetencion(false);
+      }
     }
   }, [isOpen, orden]);
+
+  // Función para buscar si hay retefuente en los abonos del crédito
+  const buscarRetefuenteEnAbonos = async (creditoId) => {
+    try {
+      // Obtener los abonos del crédito
+      const response = await api.get(`/creditos/${creditoId}/abonos`);
+      const abonos = Array.isArray(response.data) ? response.data : [];
+      
+      // Buscar en el campo metodoPago de cada abono si contiene "RETEFUENTE" o "RETENCION EN LA FUENTE"
+      const tieneRetefuente = abonos.some(abono => {
+        const metodoPago = String(abono.metodoPago || "").toUpperCase();
+        return metodoPago.includes("RETEFUENTE") || metodoPago.includes("RETENCION EN LA FUENTE");
+      });
+      
+      setTieneRetencion(tieneRetefuente);
+    } catch (error) {
+      console.error("Error buscando abonos para verificar retefuente:", error);
+      // Si hay error, dejar el checkbox desmarcado
+      setTieneRetencion(false);
+    }
+  };
 
   useEffect(() => {
     if (isOpen && orden) {
@@ -93,9 +124,13 @@ export default function FacturarOrdenModal({ isOpen, onClose, onSave, orden }) {
         ? (baseInicial * ivaRate) / (100 + ivaRate) 
         : 0;
       
-      // Calcular retención: Solo si la base (sin IVA) supera el umbral
+      // Calcular retención: Solo si está marcada la orden para retención Y la base (sin IVA) supera el umbral
       const subtotalSinIva = baseInicial - ivaCalculado;
-      const aplicaRetencion = subtotalSinIva >= (retefuenteThreshold || 0);
+      // Para órdenes a crédito, solo aplicar si está marcado el checkbox
+      // Para órdenes a contado, aplicar automáticamente si supera el umbral (comportamiento actual)
+      const debeAplicarRetencion = esCredito 
+        ? (tieneRetencion && subtotalSinIva >= (retefuenteThreshold || 0))
+        : (subtotalSinIva >= (retefuenteThreshold || 0));
 
       setForm({
         ordenId: orden.id,
@@ -103,7 +138,7 @@ export default function FacturarOrdenModal({ isOpen, onClose, onSave, orden }) {
         subtotal,
         descuentos: descuentosOrden || "",
         iva: ivaRate || 0, // Usar el porcentaje de IVA desde configuración
-        retencionFuente: aplicaRetencion ? (retefuenteRate || 0) : 0, // Usar el porcentaje de retención si aplica
+        retencionFuente: debeAplicarRetencion ? (retefuenteRate || 0) : 0, // Usar el porcentaje de retención si aplica
         formaPago: "EFECTIVO",
         observaciones: `Factura generada desde orden #${orden.numero}`,
       });
@@ -111,7 +146,7 @@ export default function FacturarOrdenModal({ isOpen, onClose, onSave, orden }) {
       // La inicialización del cliente se hace en el useEffect anterior
       // después de cargar la lista de clientes para tener todos los datos
     }
-  }, [isOpen, orden, ivaRate, retefuenteRate, retefuenteThreshold]);
+  }, [isOpen, orden, ivaRate, retefuenteRate, retefuenteThreshold, tieneRetencion, esCredito]);
 
   const handleChange = (e) => {
     const { name, value, type } = e.target;
@@ -463,6 +498,61 @@ export default function FacturarOrdenModal({ isOpen, onClose, onSave, orden }) {
                 </small>
               </div>
             </div>
+            
+            {/* Checkbox para marcar si la orden tiene retefuente (solo para órdenes a crédito) */}
+            {(() => {
+              // Calcular subtotal sin IVA para el mensaje del checkbox
+              const baseTemp = Math.max(0, subtotalOrden - (parseFloat(form.descuentos) || 0));
+              const ivaPorcentajeTemp = Number(form.iva) || 0;
+              const ivaValTemp = (ivaPorcentajeTemp && ivaPorcentajeTemp > 0) 
+                ? (baseTemp * ivaPorcentajeTemp) / (100 + ivaPorcentajeTemp) 
+                : 0;
+              const subtotalSinIvaTemp = baseTemp - ivaValTemp;
+              
+              return esCredito ? (
+                <div style={{ 
+                  marginTop: '1rem', 
+                  padding: '1rem', 
+                  backgroundColor: '#f8f9fa', 
+                  borderRadius: '8px', 
+                  border: '1px solid #e0e0e0' 
+                }}>
+                  <label style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '0.5rem', 
+                    cursor: 'pointer',
+                    fontWeight: '500'
+                  }}>
+                    <input
+                      type="checkbox"
+                      checked={tieneRetencion}
+                      onChange={(e) => setTieneRetencion(e.target.checked)}
+                      style={{
+                        width: '18px',
+                        height: '18px',
+                        cursor: 'pointer'
+                      }}
+                    />
+                    <span>Esta orden tiene retención en la fuente (retefuente)</span>
+                  </label>
+                  <small style={{ 
+                    display: 'block', 
+                    color: '#666', 
+                    fontSize: '0.75rem', 
+                    marginTop: '0.5rem',
+                    marginLeft: '28px'
+                  }}>
+                    Marque esta opción si el cliente es autoretenedor y debe aplicarse retención en la fuente.
+                    {subtotalSinIvaTemp < retefuenteThreshold && (
+                      <span style={{ display: 'block', color: '#dc3545', marginTop: '0.25rem' }}>
+                        ⚠️ El subtotal sin IVA (${subtotalSinIvaTemp.toLocaleString('es-CO')}) no supera el umbral (${retefuenteThreshold.toLocaleString('es-CO')}), por lo que no se aplicará retención aunque esté marcado.
+                      </span>
+                    )}
+                  </small>
+                </div>
+              ) : null;
+            })()}
             {(() => {
               const base = Math.max(0, subtotalOrden - (parseFloat(form.descuentos) || 0));
               
@@ -476,10 +566,15 @@ export default function FacturarOrdenModal({ isOpen, onClose, onSave, orden }) {
               // Calcular subtotal sin IVA
               const subtotalSinIva = base - ivaVal;
               
-              // Calcular retención: Solo si la base (sin IVA) supera el umbral
-              const aplicaRetencion = subtotalSinIva >= (retefuenteThreshold || 0);
-              const retencionPorcentaje = aplicaRetencion ? (Number(form.retencionFuente) || 0) : 0;
-              const reteVal = aplicaRetencion 
+              // Calcular retención: 
+              // - Para órdenes a crédito: solo si está marcado el checkbox Y supera el umbral
+              // - Para órdenes a contado: solo si supera el umbral (comportamiento automático)
+              const debeAplicarRetencion = esCredito
+                ? (tieneRetencion && subtotalSinIva >= (retefuenteThreshold || 0))
+                : (subtotalSinIva >= (retefuenteThreshold || 0));
+              
+              const retencionPorcentaje = debeAplicarRetencion ? (Number(form.retencionFuente) || 0) : 0;
+              const reteVal = debeAplicarRetencion 
                 ? (subtotalSinIva * retencionPorcentaje) / 100 
                 : 0;
               
@@ -510,9 +605,13 @@ export default function FacturarOrdenModal({ isOpen, onClose, onSave, orden }) {
                     <div>
                       <label>Retención (valor):</label>
                       <input type="text" value={money(reteVal)} disabled />
-                      {!aplicaRetencion && (
+                      {!debeAplicarRetencion && (
                         <small style={{ display: 'block', color: '#666', fontSize: '0.75rem', marginTop: '0.25rem' }}>
-                          No aplica (umbral: ${retefuenteThreshold.toLocaleString('es-CO')})
+                          {esCredito 
+                            ? (!tieneRetencion 
+                                ? "No aplica (no marcada para retención)" 
+                                : `No aplica (umbral: ${retefuenteThreshold.toLocaleString('es-CO')})`)
+                            : `No aplica (umbral: ${retefuenteThreshold.toLocaleString('es-CO')})`}
                         </small>
                       )}
                     </div>

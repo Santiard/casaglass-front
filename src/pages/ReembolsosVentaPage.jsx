@@ -4,10 +4,12 @@ import ReembolsosVentaTable from "../componets/ReembolsosVentaTable.jsx";
 import CrearReembolsoVentaModal from "../modals/CrearReembolsoVentaModal.jsx";
 import ReembolsosVentaService from "../services/ReembolsosVentaService.js";
 import { useToast } from "../context/ToastContext.jsx";
+import { useAuth } from "../context/AuthContext.jsx";
 import add from "../assets/add.png";
 
 export default function ReembolsosVentaPage() {
   const { showSuccess, showError } = useToast();
+  const { isAdmin, sedeId } = useAuth(); // Obtener info del usuario logueado
   const [reembolsos, setReembolsos] = useState([]);
   const [loading, setLoading] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -16,7 +18,9 @@ export default function ReembolsosVentaPage() {
   const cargarReembolsos = async () => {
     setLoading(true);
     try {
-      const lista = await ReembolsosVentaService.listarReembolsos();
+      // Si no es admin, filtrar por sede del usuario
+      const params = isAdmin ? {} : { sedeId };
+      const lista = await ReembolsosVentaService.listarReembolsos(params);
       setReembolsos(lista || []);
     } catch (error) {
       console.error("Error cargando reembolsos:", error);
@@ -28,7 +32,7 @@ export default function ReembolsosVentaPage() {
 
   useEffect(() => {
     cargarReembolsos();
-  }, []);
+  }, [isAdmin, sedeId]);
 
   const handleCrear = async (payload) => {
     try {

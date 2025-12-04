@@ -11,6 +11,7 @@ export async function listarOrdenes(params = {}) {
 }
 
 // GET /api/ordenes/tabla → datos optimizados
+// @param {Object} params - Parámetros de consulta (puede incluir sedeId para filtrar por sede)
 export async function listarOrdenesTabla(params = {}) {
   const { data } = await api.get("ordenes/tabla", { params });
   return data || [];

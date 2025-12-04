@@ -250,7 +250,8 @@ export default function VenderPage() {
     const currentFilters = view === "producto" ? filters : cortesFilters;
 
     const search = (currentFilters.search || "").toLowerCase().trim();
-    const selectedCat = categories.find((cat) => cat.id === currentFilters.categoryId);
+    const categoryId = currentFilters.categoryId;
+    const selectedCat = categories.find((cat) => cat.id === categoryId);
     const categoryName = selectedCat?.nombre || "";
     const sede = currentFilters.sede || "";
     const color = currentFilters.color || "";
@@ -258,44 +259,190 @@ export default function VenderPage() {
     const min = currentFilters.priceMin !== "" ? Number(currentFilters.priceMin) : -Infinity;
     const max = currentFilters.priceMax !== "" ? Number(currentFilters.priceMax) : Infinity;
 
-    return currentData
-      .filter((item) => !search || item.nombre.toLowerCase().includes(search))
-      .filter((item) => !categoryName || item.categoria === categoryName)
-      .filter((item) => {
-        if (!color) return true;
-        return (item.color || "").toUpperCase() === color.toUpperCase();
-      })
-      .filter((item) => {
-        if (!sede) return true;
-        const map = {
-          Insula: Number(item.cantidadInsula || 0),
-          Centro: Number(item.cantidadCentro || 0),
-          Patios: Number(item.cantidadPatios || 0),
-        };
-        return (map[sede] ?? 0) > 0;
-      })
-      .filter((item) => {
-        const precio = Number(item.precio1 || item.precio || 0);
-        return precio >= min && precio <= max;
-      })
-      // Filtro adicional para cortes: solo mostrar cortes con inventario > 0
-      .filter((item) => {
-        // Solo aplicar este filtro cuando estamos en la vista de cortes
-        if (view !== "corte") return true;
-        
-        if (isAdmin) {
-          // Admin: mostrar solo cortes con cantidadTotal > 0 (suma de las 3 sedes)
-          const total = Number(item.cantidadTotal || 0) || 
-                       (Number(item.cantidadInsula || 0) + Number(item.cantidadCentro || 0) + Number(item.cantidadPatios || 0));
-          return total > 0;
-        } else {
-          // Vendedor: mostrar solo cortes con cantidad de su sede > 0
-          const cantidadSede = sedeId === 1 ? Number(item.cantidadInsula || 0) :
-                              sedeId === 2 ? Number(item.cantidadCentro || 0) :
-                              sedeId === 3 ? Number(item.cantidadPatios || 0) : 0;
-          return cantidadSede > 0;
+    // Debug: mostrar qué categoría está seleccionada
+    if (view === "producto" && categoryId) {
+      console.log(`🔍 [VENDER] Filtro activo - Categoría seleccionada:`, {
+        categoryId,
+        categoryNombre: categoryName,
+        totalProductos: currentData?.length || 0,
+        productosVidrio: currentData?.filter(p => p.esVidrio).length || 0
+      });
+    }
+
+    let filtered = currentData;
+    
+    // Filtro 1: Búsqueda
+    filtered = filtered.filter((item) => !search || item.nombre.toLowerCase().includes(search));
+    if (view === "producto" && categoryId === 26) {
+      console.log(`📊 [VENDER] Después de filtro búsqueda:`, {
+        total: filtered.length,
+        vidrios: filtered.filter(p => p.esVidrio).length
+      });
+    }
+    
+    // Filtro 2: Categoría
+    filtered = filtered.filter((item) => {
+      // Si no hay categoría seleccionada, mostrar todos los productos
+      if (!categoryId) return true;
+      
+      // IMPORTANTE: Ahora TODOS los productos (normales y vidrios) tienen categoria como objeto {id, nombre}
+      // ✅ Backend unificado: categoria siempre es { id: X, nombre: "..." }
+      const itemCategoriaNombre = typeof item.categoria === 'string' 
+        ? item.categoria  // Compatibilidad: si aún llega como string
+        : item.categoriaObj?.nombre || item.categoria?.nombre || item.categoria;
+      
+      // Comparar por ID (más confiable) o por nombre de categoría
+      const coincidePorId = item.categoriaId === categoryId || 
+                           item.categoria_id === categoryId ||
+                           item.categoriaObj?.id === categoryId ||
+                           item.categoria?.id === categoryId;
+      const coincidePorNombre = (itemCategoriaNombre || "").toLowerCase() === categoryName.toLowerCase();
+      
+      const coincide = coincidePorId || coincidePorNombre;
+      
+      // Debug detallado para vidrios en VENDER
+      if (view === "producto" && item.esVidrio && categoryId) {
+        console.log(`🔍 [VENDER] Filtro categoría - Vidrio (${coincide ? '✅' : '❌'}):`, {
+          itemId: item.id,
+          itemNombre: item.nombre,
+          itemCategoria: item.categoria,
+          itemCategoriaObj: item.categoriaObj,
+          itemCategoriaId: item.categoriaId,
+          itemCategoriaNombre,
+          selectedCategoryId: categoryId,
+          selectedCategoryNombre: categoryName,
+          coincidePorId,
+          coincidePorNombre,
+          coincide,
+          tipoCategoria: typeof item.categoria,
+          tieneCategoriaObj: !!item.categoriaObj,
+          categoriaObjId: item.categoriaObj?.id,
+          categoriaObjNombre: item.categoriaObj?.nombre
+        });
+      }
+      
+      return coincide;
+    });
+    if (view === "producto" && categoryId === 26) {
+      console.log(`📊 [VENDER] Después de filtro categoría:`, {
+        total: filtered.length,
+        vidrios: filtered.filter(p => p.esVidrio).length
+      });
+    }
+    
+    // Filtro 3: Color
+    filtered = filtered.filter((item) => {
+      if (!color) return true;
+      const pasa = (item.color || "").toUpperCase() === color.toUpperCase();
+      if (view === "producto" && item.esVidrio && !pasa && categoryId === 26) {
+        console.log(`🔍 [VENDER] Filtro color - Vidrio filtrado:`, {
+          itemId: item.id,
+          itemNombre: item.nombre,
+          itemColor: item.color,
+          colorFiltro: color
+        });
+      }
+      return pasa;
+    });
+    if (view === "producto" && categoryId === 26) {
+      console.log(`📊 [VENDER] Después de filtro color:`, {
+        total: filtered.length,
+        vidrios: filtered.filter(p => p.esVidrio).length
+      });
+    }
+    
+    // Filtro 4: Sede
+    filtered = filtered.filter((item) => {
+      if (!sede) return true;
+      
+      // Para productos vidrio, mostrar siempre (incluso con inventario 0)
+      // Esto permite que los productos vidrio aparezcan independientemente del inventario por sede
+      if (item.esVidrio) {
+        return true;
+      }
+      
+      // Para productos normales, aplicar el filtro de sede
+      const map = {
+        Insula: Number(item.cantidadInsula || 0),
+        Centro: Number(item.cantidadCentro || 0),
+        Patios: Number(item.cantidadPatios || 0),
+      };
+      const cantidadSede = map[sede] ?? 0;
+      // Permitir inventario positivo o negativo (ventas anticipadas), pero no exactamente 0
+      return cantidadSede > 0 || cantidadSede < 0;
+    });
+    if (view === "producto" && categoryId === 26) {
+      console.log(`📊 [VENDER] Después de filtro sede:`, {
+        total: filtered.length,
+        vidrios: filtered.filter(p => p.esVidrio).length,
+        sedeSeleccionada: sede
+      });
+    }
+    
+    // Filtro 5: Precio
+    filtered = filtered.filter((item) => {
+      const precio = Number(item.precio1 || item.precio || 0);
+      const pasa = precio >= min && precio <= max;
+      if (view === "producto" && item.esVidrio && !pasa && categoryId === 26) {
+        console.log(`🔍 [VENDER] Filtro precio - Vidrio filtrado:`, {
+          itemId: item.id,
+          itemNombre: item.nombre,
+          precio,
+          min,
+          max
+        });
+      }
+      return pasa;
+    });
+    if (view === "producto" && categoryId === 26) {
+      console.log(`📊 [VENDER] Después de filtro precio:`, {
+        total: filtered.length,
+        vidrios: filtered.filter(p => p.esVidrio).length,
+        min,
+        max
+      });
+    }
+    
+    // Filtro 6: Cortes (solo para vista de cortes)
+    filtered = filtered.filter((item) => {
+      // Solo aplicar este filtro cuando estamos en la vista de cortes
+      if (view !== "corte") return true;
+      
+      if (isAdmin) {
+        // Admin: mostrar solo cortes con cantidadTotal > 0 (suma de las 3 sedes)
+        const total = Number(item.cantidadTotal || 0) || 
+                     (Number(item.cantidadInsula || 0) + Number(item.cantidadCentro || 0) + Number(item.cantidadPatios || 0));
+        return total > 0;
+      } else {
+        // Vendedor: mostrar solo cortes con cantidad de su sede > 0
+        const cantidadSede = sedeId === 1 ? Number(item.cantidadInsula || 0) :
+                            sedeId === 2 ? Number(item.cantidadCentro || 0) :
+                            sedeId === 3 ? Number(item.cantidadPatios || 0) : 0;
+        return cantidadSede > 0;
+      }
+    });
+    
+    // Debug: mostrar resultado final del filtro
+    if (view === "producto") {
+      const vidriosFiltrados = filtered.filter(p => p.esVidrio).length;
+      console.log(`📊 [VENDER] Resultado final del filtro:`, {
+        totalProductos: currentData?.length || 0,
+        productosFiltrados: filtered.length,
+        vidriosFiltrados,
+        filtrosActivos: {
+          categoryId,
+          categoryName,
+          search,
+          sede,
+          color,
+          priceMin: min !== -Infinity ? min : null,
+          priceMax: max !== Infinity ? max : null
         }
       });
+      console.log(`✅ [VENDER] Productos que pasaron todos los filtros:`, filtered);
+    }
+    
+    return filtered;
   }, [data, cortesData, filters, cortesFilters, categories, view, isAdmin, sedeId]);
 
   // ======= Cálculos del carrito =======
@@ -311,10 +458,49 @@ export default function VenderPage() {
 
   // === Función para manejar selección de categoría en productos ===
   const handleSelectCategory = (catId) => {
-    setFilters((prev) => ({
-      ...prev,
-      categoryId: prev.categoryId === catId ? null : catId,
-    }));
+    setFilters((prev) => {
+      const newCategoryId = prev.categoryId === catId ? null : catId;
+      
+      // Si se selecciona la categoría VIDRIO (ID: 26), establecer color a "NA"
+      // Si se deselecciona o se selecciona otra categoría, mantener o resetear el color
+      let newColor = prev.color;
+      
+      if (newCategoryId === 26) {
+        // Categoría VIDRIO: establecer color a "NA"
+        newColor = "NA";
+      } else if (newCategoryId !== null) {
+        // Otra categoría seleccionada: establecer color según la categoría (similar a InventoryPage)
+        const selectedCategory = categories.find(cat => cat.id === newCategoryId);
+        const categoriaNombre = selectedCategory?.nombre?.toUpperCase().trim() || "";
+        
+        // Categorías que deben tener color "MATE" por defecto
+        const categoriasConMate = [
+          "5020",
+          "744",
+          "8025",
+          "7038",
+          "3831",
+          "BAÑO",
+          "TUBOS CUARTO CIRCULOS",
+          "CANALES"
+        ];
+        
+        const tieneMate = categoriasConMate.some(cat => 
+          cat.toUpperCase().trim() === categoriaNombre
+        );
+        
+        newColor = tieneMate ? "MATE" : "";
+      } else {
+        // No hay categoría seleccionada: mantener el color actual o establecer "MATE" por defecto
+        newColor = prev.color || "MATE";
+      }
+      
+      return {
+        ...prev,
+        categoryId: newCategoryId,
+        color: newColor,
+      };
+    });
   };
 
   // === Función para manejar selección de categoría en cortes ===
@@ -365,6 +551,7 @@ export default function VenderPage() {
               onAgregarProducto={agregarProducto}
               onCortarProducto={manejarCorte}
               todosLosProductos={data} // data contiene TODOS los productos sin filtrar
+              categoryId={filters.categoryId} // Pasar el categoryId para detectar VIDRIO
             />
           </>
         ) : (

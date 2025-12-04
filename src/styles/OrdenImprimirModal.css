@@ -1,286 +1,360 @@
-.modal-overlay {
+/* Estilos específicos para el modal de imprimir órdenes */
+.orden-imprimir-modal-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(10, 6, 11, 0.7); /* --color-black con opacidad */
+  inset: 0;
+  background: rgba(30, 39, 83, 0.6);
+  display: grid;
+  place-items: center;
+  z-index: 10000;
+}
+
+.orden-imprimir-modal-container {
+  background: #fff;
+  padding: 1.5rem;
+  border-radius: 8px;
+  width: 95vw;
+  max-width: 1200px;
+  max-height: 95vh;
+  overflow-y: auto;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.orden-imprimir-modal-header {
   display: flex;
-  justify-content: center;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid #1e2753;
+}
+
+.orden-imprimir-modal-header h2 {
+  margin: 0;
+  color: #1e2753;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.orden-imprimir-modal-actions {
+  display: flex;
+  gap: 0.75rem;
   align-items: center;
-  z-index: 10000 !important; /* Por encima de todo */
+}
+
+.orden-imprimir-formato-select {
+  padding: 0.625rem 1rem;
+  border: 1px solid #1e2753;
+  background: #fff;
+  color: #1e2753;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.orden-imprimir-formato-select:hover {
+  background: #f0f4ff;
+}
+
+.orden-imprimir-btn-guardar,
+.orden-imprimir-btn-imprimir {
+  padding: 0.625rem 1.5rem;
+  background-color: #1e2753;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.orden-imprimir-btn-guardar:hover,
+.orden-imprimir-btn-imprimir:hover {
+  background-color: #2a3569;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.orden-imprimir-btn-cerrar {
+  padding: 0.625rem 1.5rem;
+  background-color: #dc3545;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.orden-imprimir-btn-cerrar:hover {
+  background-color: #c82333;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Contenido imprimible */
+.orden-imprimir-printable-content {
+  background: #fff;
   padding: 20px;
 }
 
-.modal-print {
-  max-width: 900px;
-  width: 90%;
-  z-index: 10001 !important; /* Superior al header */
-  background: var(--color-white);
-  border-radius: 8px;
-  padding: 10px 20px 20px 20px;
-  max-height: 90vh;
-  overflow-y: auto;
-}
-
-.modal-print .modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: 0;
-  margin-bottom: 15px;
-  padding-top: 0;
-  padding-bottom: 10px;
-  border-bottom: 2px solid var(--color-light-gray);
-  background: var(--color-white) !important;
-}
-
-.modal-print .modal-header h2 {
-  margin: 0;
-  color: var(--color-dark-blue) !important;
-  font-size: 20px;
-}
-
-.modal-print .modal-actions {
-  display: flex;
-  gap: 10px;
-}
-
-.modal-print .modal-actions button {
-  background: var(--color-dark-blue) !important;
-  color: var(--color-white) !important;
-  border: none !important;
-}
-
-.modal-print .printable-content {
-  background: var(--color-white);
-  padding: 15px;
-  border-radius: 8px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-}
-
-/* Header de la orden - Compacto */
-.modal-print .orden-header {
+.orden-imprimir-header {
   text-align: center;
-  margin-bottom: 10px;
+  margin-bottom: 15px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid #1e2753;
 }
 
-.modal-print .orden-header h1 {
-  margin: 0;
-  color: var(--color-dark-blue);
-  font-size: 18px;
-  line-height: 1.2;
+.orden-imprimir-header h1 {
+  margin: 0 0 5px 0;
+  color: #1e2753;
+  font-size: 1.5rem;
+  font-weight: 700;
 }
 
-.modal-print .orden-header h2 {
-  margin: 3px 0;
-  color: var(--color-light-blue);
-  font-size: 14px;
-  line-height: 1.2;
+.orden-imprimir-header h2 {
+  margin: 5px 0;
+  color: #333;
+  font-size: 1.2rem;
+  font-weight: 600;
 }
 
-.modal-print .orden-header p {
-  margin: 2px 0;
-  color: var(--color-dark-gray);
-  font-size: 11px;
+.orden-imprimir-header p {
+  margin: 5px 0;
+  color: #666;
+  font-size: 0.9rem;
 }
 
-/* Información general - Compacta */
-.modal-print .info {
+.orden-imprimir-info {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
-  margin-bottom: 10px;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 15px;
+  margin-bottom: 15px;
 }
 
-.modal-print .info-section h3 {
-  margin: 0 0 3px 0;
-  color: var(--color-dark-blue);
-  font-size: 11px;
-  font-weight: bold;
+.orden-imprimir-info-section h3 {
+  margin: 0 0 5px 0;
+  color: #1e2753;
+  font-size: 0.95rem;
+  font-weight: 600;
 }
 
-.modal-print .info-section p {
-  margin: 2px 0;
-  color: var(--color-dark-gray);
-  font-size: 10px;
+.orden-imprimir-info-section p {
+  margin: 0;
+  color: #333;
+  font-size: 0.9rem;
 }
 
-/* Obra - Compacta */
-.modal-print .obra {
-  margin-bottom: 8px;
-  padding: 5px 8px;
-  background: var(--color-light-gray);
-  border-radius: 4px;
-}
-
-.modal-print .obra h3 {
-  margin: 0 0 2px 0;
-  color: var(--color-dark-blue);
-  font-size: 11px;
-}
-
-/* Tabla de items - Compacta para impresión */
-.modal-print .items-table {
+.orden-imprimir-table {
   width: 100%;
   border-collapse: collapse;
-  margin: 5px 0;
-  font-size: 11px;
+  margin: 15px 0;
+  font-size: 0.9rem;
+  background: #fff;
 }
 
-.modal-print .items-table th {
-  background-color: var(--color-dark-blue);
-  color: var(--color-white);
-  padding: 4px 6px;
+.orden-imprimir-table thead {
+  background-color: #1e2753;
+  color: #fff;
+}
+
+.orden-imprimir-table th {
+  padding: 10px 12px;
   text-align: left;
-  font-weight: bold;
-  font-size: 10px;
-  border: 1px solid var(--color-dark-blue);
+  font-weight: 600;
+  font-size: 0.85rem;
+  border: 1px solid #1e2753;
 }
 
-.modal-print .items-table td {
-  padding: 3px 6px;
-  border-bottom: 1px solid #ddd;
-  border-right: 1px solid #eee;
-  color: var(--color-dark-gray);
-  font-size: 10px;
-  line-height: 1.2;
+.orden-imprimir-table td {
+  padding: 8px 12px;
+  border-bottom: 1px solid #e0e0e0;
+  border-right: 1px solid #f0f0f0;
+  font-size: 0.85rem;
+  color: #333;
 }
 
-.modal-print .items-table tbody tr:hover {
-  background-color: transparent; /* Sin hover en impresión */
+.orden-imprimir-table tbody tr:nth-child(even) {
+  background-color: #f8f9fa;
 }
 
-.modal-print .items-table .text-center {
+.orden-imprimir-table tbody tr:hover {
+  background-color: #f0f4ff;
+}
+
+.orden-imprimir-table .text-center {
   text-align: center;
 }
 
-.modal-print .items-table .empty {
+.orden-imprimir-table .empty {
   text-align: center;
-  color: var(--color-gray);
-  padding: 10px;
-  font-size: 10px;
+  color: #999;
+  padding: 20px;
+  font-style: italic;
 }
 
-/* Totales - Compacto */
-.modal-print .total {
+.orden-imprimir-total {
+  margin-top: 15px;
+  padding: 12px;
+  background: #f8f9fa;
+  border-radius: 6px;
   text-align: right;
-  margin-top: 8px;
-  padding: 6px 10px;
-  background: var(--color-light-gray);
-  border-radius: 4px;
 }
 
-.modal-print .total p {
-  margin: 2px 0;
-  font-size: 12px;
-  color: var(--color-dark-gray);
+.orden-imprimir-total p {
+  margin: 4px 0;
+  font-size: 0.9rem;
+  color: #333;
 }
 
-.modal-print .total p:last-child {
-  font-size: 14px;
-  font-weight: bold;
-  color: var(--color-dark-blue);
+.orden-imprimir-total p strong {
+  color: #1e2753;
+  font-weight: 600;
+  font-size: 1rem;
 }
 
-.modal-print .total .credito {
-  color: var(--color-danger);
-  font-weight: bold;
-  margin-top: 10px;
-}
-
-/* Estado - Compacto */
-.modal-print .estado {
-  margin-top: 8px;
-  text-align: center;
-  padding: 5px;
-  background: var(--color-light-gray);
-  border-radius: 4px;
-}
-
-.modal-print .estado p {
-  margin: 0;
-  font-weight: bold;
-  color: var(--color-dark-blue);
-  font-size: 11px;
-}
-
-/* Footer - Compacto */
-.modal-print .footer {
-  margin-top: 10px;
-  text-align: center;
-  color: var(--color-gray);
-  font-size: 9px;
+.orden-imprimir-separador {
+  margin-top: 15px;
+  padding-top: 10px;
+  border-top: 2px solid #1e2753;
 }
 
 /* Estilos para impresión */
 @media print {
-  @page {
-    margin: 0;
-    size: auto;
+  /* Ocultar todo excepto el contenido imprimible */
+  body > *:not(.orden-imprimir-modal-overlay) {
+    display: none !important;
   }
-
+  
   body {
-    margin: 0;
-    padding: 0;
+    background: #fff !important;
   }
 
-  /* Ocultar encabezados y pies de página del navegador */
-  @page {
-    margin: 0;
+  .orden-imprimir-modal-overlay {
+    position: static !important;
+    background: #fff !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    inset: auto !important;
+    display: block !important;
+    width: 100% !important;
+    height: auto !important;
   }
 
-  .modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: white;
-    padding: 20px;
+  .orden-imprimir-modal-container {
+    position: static !important;
+    max-width: 100% !important;
+    max-height: none !important;
+    height: auto !important;
+    overflow: visible !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    display: block !important;
   }
-
-  .modal-print .modal-header,
-  .modal-print .modal-actions {
-    display: none;
+  
+  .orden-imprimir-modal-header,
+  .orden-imprimir-modal-actions {
+    display: none !important;
   }
-
-  .modal-print .printable-content {
-    padding: 10px;
-    box-shadow: none;
+  
+  .orden-imprimir-printable-content {
+    position: relative !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
   }
-
-  .modal-print .items-table {
+  
+  #printable-orden-content {
+    position: relative !important;
+    left: auto !important;
+    top: auto !important;
+    width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  
+  /* Reglas de page-break para tablas largas */
+  .orden-imprimir-table {
     page-break-inside: auto;
-    font-size: 9px;
+    font-size: 0.75rem;
   }
-
-  .modal-print .items-table th {
-    padding: 3px 4px;
-    font-size: 9px;
+  
+  .orden-imprimir-table thead {
+    display: table-header-group;
   }
-
-  .modal-print .items-table td {
-    padding: 2px 4px;
-    font-size: 9px;
+  
+  .orden-imprimir-table tbody {
+    display: table-row-group;
   }
-
-  .modal-print .items-table tbody tr {
+  
+  .orden-imprimir-table tr {
     page-break-inside: avoid;
-    height: auto;
+  }
+  
+  .orden-imprimir-separador {
+    margin-top: 10px;
+    padding-top: 8px;
+    border-top: 2px solid #000 !important;
   }
 
-  /* Minimizar espacios en impresión */
-  .modal-print .orden-header {
-    margin-bottom: 5px;
+  .orden-imprimir-table thead {
+    background-color: transparent !important;
+    color: #000 !important;
   }
 
-  .modal-print .info {
-    margin-bottom: 5px;
+  .orden-imprimir-table th {
+    background-color: transparent !important;
+    color: #000 !important;
+    border: 1px solid #000 !important;
   }
 
-  .modal-print .total {
-    margin-top: 5px;
-    padding: 4px 8px;
+  .orden-imprimir-table td {
+    color: #000 !important;
+    border: 1px solid #000 !important;
+  }
+
+  .orden-imprimir-table tbody tr:nth-child(even) {
+    background-color: transparent !important;
+  }
+
+  .orden-imprimir-printable-content {
+    background: #fff !important;
+    color: #000 !important;
+  }
+
+  .orden-imprimir-header {
+    border-bottom: 2px solid #000 !important;
+  }
+
+  .orden-imprimir-header h1,
+  .orden-imprimir-header h2,
+  .orden-imprimir-header p {
+    color: #000 !important;
+  }
+
+  .orden-imprimir-info-section h3,
+  .orden-imprimir-info-section p {
+    color: #000 !important;
+  }
+
+  .orden-imprimir-total {
+    background: transparent !important;
+    border: 1px solid #000 !important;
+  }
+
+  .orden-imprimir-total p {
+    color: #000 !important;
+  }
+
+  .orden-imprimir-total p strong {
+    color: #000 !important;
   }
 }

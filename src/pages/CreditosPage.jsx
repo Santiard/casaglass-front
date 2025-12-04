@@ -3,6 +3,8 @@ import { useNavigate, useLocation } from "react-router-dom";
 import CreditosTable from "../componets/CreditosTable";
 import { api } from "../lib/api.js";
 import { listarClientes } from "../services/ClientesService.js";
+import HistoricoAbonosClienteModal from "../modals/HistoricoAbonosClienteModal.jsx";
+import HistoricoAbonosGeneralModal from "../modals/HistoricoAbonosGeneralModal.jsx";
 import addIcon from "../assets/add.png";
 import "../styles/Creditos.css";
 
@@ -17,6 +19,8 @@ const CreditosPage = () => {
   const [filtroCliente, setFiltroCliente] = useState("");
   const [filtroEstado, setFiltroEstado] = useState("");
   const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [isHistoricoClienteModalOpen, setIsHistoricoClienteModalOpen] = useState(false);
+  const [isHistoricoGeneralModalOpen, setIsHistoricoGeneralModalOpen] = useState(false);
 
   const loadData = async () => {
     setIsLoading(true);
@@ -156,6 +160,58 @@ const CreditosPage = () => {
           Agregar Abono
         </button>
 
+        <button
+          onClick={() => setIsHistoricoClienteModalOpen(true)}
+          style={{
+            padding: '0.5rem 1rem',
+            fontSize: '0.9rem',
+            whiteSpace: 'nowrap',
+            background: '#fff',
+            color: '#1e2753',
+            border: '2px solid #1e2753',
+            borderRadius: '9999px',
+            cursor: 'pointer',
+            fontWeight: '600',
+            transition: 'all 0.2s ease'
+          }}
+          onMouseEnter={(e) => {
+            e.target.style.background = '#1e2753';
+            e.target.style.color = '#fff';
+          }}
+          onMouseLeave={(e) => {
+            e.target.style.background = '#fff';
+            e.target.style.color = '#1e2753';
+          }}
+        >
+          Histórico por Cliente
+        </button>
+
+        <button
+          onClick={() => setIsHistoricoGeneralModalOpen(true)}
+          style={{
+            padding: '0.5rem 1rem',
+            fontSize: '0.9rem',
+            whiteSpace: 'nowrap',
+            background: '#fff',
+            color: '#1e2753',
+            border: '2px solid #1e2753',
+            borderRadius: '9999px',
+            cursor: 'pointer',
+            fontWeight: '600',
+            transition: 'all 0.2s ease'
+          }}
+          onMouseEnter={(e) => {
+            e.target.style.background = '#1e2753';
+            e.target.style.color = '#fff';
+          }}
+          onMouseLeave={(e) => {
+            e.target.style.background = '#fff';
+            e.target.style.color = '#1e2753';
+          }}
+        >
+          Histórico General
+        </button>
+
         <select value={filtroCliente} onChange={(e) => setFiltroCliente(e.target.value)}>
           <option value="">Todos los clientes</option>
           {clientes.map((cli) => (
@@ -201,6 +257,17 @@ const CreditosPage = () => {
           />
         </>
       )}
+
+      {/* Modales de Histórico */}
+      <HistoricoAbonosClienteModal
+        isOpen={isHistoricoClienteModalOpen}
+        onClose={() => setIsHistoricoClienteModalOpen(false)}
+      />
+      
+      <HistoricoAbonosGeneralModal
+        isOpen={isHistoricoGeneralModalOpen}
+        onClose={() => setIsHistoricoGeneralModalOpen(false)}
+      />
     </div>
   );
 };

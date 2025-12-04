@@ -7,10 +7,12 @@ import { listarProveedores } from "../services/ProveedoresService.js";
 import { listarTodosLosProductos } from "../services/ProductosService.js";
 import { useConfirm } from "../hooks/useConfirm.jsx";
 import { useToast } from "../context/ToastContext.jsx";
+import { useAuth } from "../context/AuthContext.jsx";
 
 export default function IngresosPage() {
   const { confirm, ConfirmDialog } = useConfirm();
   const { showSuccess, showError } = useToast();
+  const { isAdmin, sedeId } = useAuth(); // Obtener info del usuario logueado
   const [seleccionado, setSeleccionado] = useState(null);
   const [ingresos, setIngresos] = useState([]);
   const [proveedores, setProveedores] = useState([]);
@@ -20,7 +22,9 @@ export default function IngresosPage() {
   const loadIngresos = async () => {
     setLoading(true);
     try {
-      const list = await listarIngresos();
+      // Si no es admin, filtrar por sede del usuario
+      const params = isAdmin ? {} : { sedeId };
+      const list = await listarIngresos(params);
       setIngresos(list || []);
     } catch (e) {
       console.error("Error listar ingresos:", {
@@ -77,7 +81,7 @@ export default function IngresosPage() {
   useEffect(() => {
     loadIngresos();
     loadAux();
-  }, []);
+  }, [isAdmin, sedeId]);
 
   const onCrear = async (payload) => {
     try {

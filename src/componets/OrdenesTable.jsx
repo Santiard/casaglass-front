@@ -7,6 +7,8 @@ import add from "../assets/add.png";
 import OrdenModal from "../modals/OrdenModal.jsx";
 import OrdenImprimirModal from "../modals/OrdenImprimirModal.jsx";
 import FacturarOrdenModal from "../modals/FacturarOrdenModal.jsx";
+import HistoricoClienteModal from "../modals/HistoricoClienteModal.jsx";
+import HistoricoGeneralModal from "../modals/HistoricoGeneralModal.jsx";
 import { useToast } from "../context/ToastContext.jsx";
 
 export default function OrdenesTable({
@@ -31,6 +33,8 @@ export default function OrdenesTable({
   const [ordenImprimir, setOrdenImprimir] = useState(null);
   const [isFacturarModalOpen, setIsFacturarModalOpen] = useState(false);
   const [ordenFacturar, setOrdenFacturar] = useState(null);
+  const [isHistoricoModalOpen, setIsHistoricoModalOpen] = useState(false);
+  const [isHistoricoGeneralModalOpen, setIsHistoricoGeneralModalOpen] = useState(false);
 
   // 🔹 Alternar expandir/ocultar items
   const toggleExpand = (ordenId) => {
@@ -239,6 +243,30 @@ export default function OrdenesTable({
         </div>
 
         <div className="ordenes-actions">
+          <button
+            onClick={() => setIsHistoricoModalOpen(true)}
+            className="btn-guardar"
+            style={{
+              marginRight: '0.5rem',
+              padding: '0.5rem 1rem',
+              fontSize: '0.9rem',
+              whiteSpace: 'nowrap'
+            }}
+          >
+            Histórico por Cliente
+          </button>
+          <button
+            onClick={() => setIsHistoricoGeneralModalOpen(true)}
+            className="btn-guardar"
+            style={{
+              marginRight: '1rem',
+              padding: '0.5rem 1rem',
+              fontSize: '0.9rem',
+              whiteSpace: 'nowrap'
+            }}
+          >
+            Histórico General
+          </button>
           <div className="rows-per-page">
             <span>Filas:</span>
             <select
@@ -473,6 +501,22 @@ export default function OrdenesTable({
         }}
         onSave={onFacturar}
       />
+
+      {/* Modal de Histórico por Cliente */}
+      {isHistoricoModalOpen && (
+        <HistoricoClienteModal
+          isOpen={isHistoricoModalOpen}
+          onClose={() => setIsHistoricoModalOpen(false)}
+        />
+      )}
+      
+      {/* Modal de Histórico General */}
+      {isHistoricoGeneralModalOpen && (
+        <HistoricoGeneralModal
+          isOpen={isHistoricoGeneralModalOpen}
+          onClose={() => setIsHistoricoGeneralModalOpen(false)}
+        />
+      )}
     </div>
   );
 }

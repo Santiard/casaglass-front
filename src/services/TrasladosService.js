@@ -5,6 +5,8 @@ const base = "/traslados";
 
 /* ========= CABECERA ========= */
 
+// @param {Object} params - Parámetros de consulta (puede incluir sedeId para filtrar por sede)
+// Si sedeId se envía, retorna traslados donde el usuario esté en sedeOrigen o sedeDestino
 export async function listarTraslados(params = {}) {
   const { data } = await api.get("/traslados-movimientos", { params });
   return data;

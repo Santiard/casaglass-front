@@ -16,7 +16,7 @@ import "../styles/EntregaPage.css";
 export default function EntregasPage() {
   const { confirm, ConfirmDialog } = useConfirm();
   const { showError: showToastError } = useToast();
-  const { sedeId: sedeIdUsuario, user } = useAuth();
+  const { isAdmin, sedeId: sedeIdUsuario, user } = useAuth();
   const userId = user?.id || null;
   
   // Estados principales
@@ -57,9 +57,11 @@ export default function EntregasPage() {
     setError("");
     
     try {
+      // Si no es admin, filtrar por sede del usuario
+      const filtrosEntregas = isAdmin ? {} : { sedeId: sedeIdUsuario };
       // Cargar datos en paralelo
       const [entregasData, sedesData, trabajadoresData, proveedoresData] = await Promise.all([
-        EntregasService.obtenerEntregas(),
+        EntregasService.obtenerEntregas(filtrosEntregas),
         SedesService.listarSedes(),
         TrabajadoresService.listarTrabajadores(),
         ProveedoresService.listarProveedores()
@@ -88,7 +90,7 @@ export default function EntregasPage() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [isAdmin, sedeIdUsuario]);
 
   // Cargar datos iniciales
   useEffect(() => {
@@ -98,10 +100,12 @@ export default function EntregasPage() {
 
 
   // Función para cargar entregas (mantener para compatibilidad con otros handlers)
-  // Esta función recarga los datos sin filtros (para usar después de crear/actualizar/eliminar)
+  // Esta función recarga los datos con filtros según el rol del usuario
   const cargarEntregas = useCallback(async () => {
     try {
-      const data = await EntregasService.obtenerEntregas();
+      // Si no es admin, filtrar por sede del usuario
+      const filtros = isAdmin ? {} : { sedeId: sedeIdUsuario };
+      const data = await EntregasService.obtenerEntregas(filtros);
       
       // Ordenar entregas de más recientes a más antiguas por fechaEntrega
       const entregasOrdenadas = (data || []).sort((a, b) => {
@@ -120,7 +124,7 @@ export default function EntregasPage() {
       const errorMessage = err.response?.data?.message || err.message || 'Error desconocido';
       setError(`Error cargando entregas: ${errorMessage}`);
     }
-  }, []); // Sin dependencias - siempre recarga sin filtros
+  }, [isAdmin, sedeIdUsuario]); // Recarga con filtros según el rol del usuario
 
   const handleFiltroChange = async (campo, valor) => {
     const nuevosFiltros = {

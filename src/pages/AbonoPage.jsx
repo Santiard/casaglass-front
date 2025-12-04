@@ -477,7 +477,6 @@ const AbonoPage = () => {
         boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
         minHeight: '100%'
       }}>
-
         {error && (
           <div className="modal-error" role="alert" style={{ marginBottom: '1rem' }}>
             {error}
@@ -1298,6 +1297,7 @@ const AbonoPage = () => {
           </div>
         )}
       </div>
+
     </div>
   );
 };

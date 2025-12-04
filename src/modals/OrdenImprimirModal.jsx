@@ -4,7 +4,7 @@ import { obtenerOrden, obtenerOrdenDetalle } from "../services/OrdenesService.js
 
 export default function OrdenImprimirModal({ orden, isOpen, onClose }) {
   const [form, setForm] = useState(null);
-  const [formato, setFormato] = useState("orden"); // "orden" | "trabajadores" | "ambos"
+  const [formato, setFormato] = useState("ambos"); // "orden" | "trabajadores" | "ambos"
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -94,9 +94,9 @@ export default function OrdenImprimirModal({ orden, isOpen, onClose }) {
 
   if (loading) {
     return (
-      <div className="modal-overlay">
-        <div className="modal-container modal-print">
-          <div className="modal-header">
+      <div className="orden-imprimir-modal-overlay">
+        <div className="orden-imprimir-modal-container">
+          <div className="orden-imprimir-modal-header">
             <h2>Cargando orden...</h2>
           </div>
           <div style={{ padding: "2rem", textAlign: "center" }}>
@@ -117,7 +117,6 @@ export default function OrdenImprimirModal({ orden, isOpen, onClose }) {
   const totalOrden = form.total !== null 
     ? form.total 
     : subtotal - descuentos;
-  const totalProductos = form.items.length;
 
   // Formatear fecha
   const fmtFecha = (iso) =>
@@ -129,26 +128,9 @@ export default function OrdenImprimirModal({ orden, isOpen, onClose }) {
         })
       : "-";
 
-  // Formatear estado
-  const formatearEstado = (estado) => {
-    const estadoLimpio = estado?.toLowerCase() || 'activa';
-    const textos = {
-      'activa': 'Activa',
-      'anulada': 'Anulada',
-      'pendiente': 'Pendiente',
-      'completada': 'Completada'
-    };
-    return textos[estadoLimpio] || estado || 'Activa';
-  };
-
-  // Función para imprimir
-  const handleImprimir = () => {
-    window.print();
-  };
-
-  // Función para guardar como PDF
-  const handleGuardarPDF = () => {
-    const contenido = document.getElementById('printable-content').innerHTML;
+  // Función para crear ventana de impresión (compartida entre imprimir y PDF)
+  const crearVentanaImpresion = () => {
+    const contenido = document.getElementById('printable-orden-content').innerHTML;
     const ventana = window.open('', '', 'width=800,height=600');
     ventana.document.write(`
       <!DOCTYPE html>
@@ -157,103 +139,291 @@ export default function OrdenImprimirModal({ orden, isOpen, onClose }) {
           <title>Orden #${form.numero}</title>
           <style>
             @page {
-              margin: 0;
+              margin: 10mm;
               size: auto;
+            }
+            
+            * {
+              -webkit-print-color-adjust: exact;
+              print-color-adjust: exact;
+              color-adjust: exact;
             }
             
             body { 
               font-family: 'Roboto', sans-serif; 
-              padding: 20px; 
+              padding: 0;
               margin: 0;
+              background: #fff;
+              font-size: 0.8rem;
             }
             
-            .header { text-align: center; margin-bottom: 30px; }
-            .header h1 { margin: 0; color: #333; }
-            .info { display: flex; justify-content: space-between; margin-bottom: 20px; }
-            .info-section { flex: 1; }
-            .info-section h3 { margin: 0 0 10px 0; color: #555; }
-            .info-section p { margin: 5px 0; }
-            table { width: 100%; border-collapse: collapse; margin: 20px 0; }
-            table th, table td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-            table th { background-color: #f2f2f2; }
-            .total { text-align: right; font-size: 18px; font-weight: bold; margin-top: 20px; }
-            .footer { margin-top: 30px; text-align: center; color: #666; }
+            .orden-imprimir-header {
+              text-align: center;
+              margin-bottom: 10px;
+              padding-bottom: 8px;
+              border-bottom: 2px solid #000;
+            }
+            
+            .orden-imprimir-header h1 {
+              margin: 0 0 4px 0;
+              color: #000;
+              font-size: 1.1rem;
+              font-weight: 700;
+            }
+            
+            .orden-imprimir-header h2 {
+              margin: 2px 0;
+              color: #000;
+              font-size: 0.95rem;
+              font-weight: 600;
+            }
+            
+            .orden-imprimir-header p {
+              margin: 2px 0;
+              color: #000;
+              font-size: 0.75rem;
+            }
+            
+            .orden-imprimir-info {
+              display: grid;
+              grid-template-columns: repeat(2, 1fr);
+              gap: 8px;
+              margin-bottom: 10px;
+            }
+            
+            .orden-imprimir-info-section h3 {
+              margin: 0 0 2px 0;
+              color: #000;
+              font-size: 0.75rem;
+              font-weight: 600;
+            }
+            
+            .orden-imprimir-info-section p {
+              margin: 2px 0;
+              color: #000;
+              font-size: 0.7rem;
+            }
+            
+            .orden-imprimir-table {
+              width: 100%;
+              border-collapse: collapse;
+              margin: 8px 0;
+              font-size: 0.7rem;
+              page-break-inside: auto;
+            }
+            
+            .orden-imprimir-table thead {
+              display: table-header-group;
+              background-color: #1e2753;
+              color: #fff;
+            }
+            
+            .orden-imprimir-table th {
+              padding: 4px 6px;
+              text-align: left;
+              font-weight: 600;
+              font-size: 0.65rem;
+              border: 1px solid #1e2753;
+            }
+            
+            .orden-imprimir-table td {
+              padding: 3px 6px;
+              border-bottom: 1px solid #e0e0e0;
+              border-right: 1px solid #f0f0f0;
+              font-size: 0.65rem;
+              color: #333;
+            }
+            
+            .orden-imprimir-table tbody tr {
+              page-break-inside: avoid;
+            }
+            
+            .orden-imprimir-table tbody tr:nth-child(even) {
+              background-color: #f8f9fa;
+            }
+            
+            .orden-imprimir-table .text-center {
+              text-align: center;
+            }
+            
+            .orden-imprimir-table .empty {
+              text-align: center;
+              color: #999;
+              padding: 10px;
+              font-style: italic;
+            }
+            
+            .orden-imprimir-total {
+              text-align: right;
+              margin-top: 8px;
+              padding: 6px 8px;
+              background: #f8f9fa;
+              border-radius: 4px;
+            }
+            
+            .orden-imprimir-total p {
+              margin: 2px 0;
+              font-size: 0.75rem;
+              color: #333;
+            }
+            
+            .orden-imprimir-total p strong {
+              font-size: 0.85rem;
+              font-weight: 600;
+              color: #000;
+            }
+            
+            .orden-imprimir-separador {
+              margin-top: 15px;
+              padding-top: 10px;
+              border-top: 2px solid #000;
+            }
+            
+            @media print {
+              .orden-imprimir-table thead {
+                background-color: transparent !important;
+                color: #000 !important;
+              }
+              
+              .orden-imprimir-table th {
+                background-color: transparent !important;
+                color: #000 !important;
+                border: 1px solid #000 !important;
+              }
+              
+              .orden-imprimir-table td {
+                color: #000 !important;
+                border: 1px solid #000 !important;
+              }
+              
+              .orden-imprimir-table tbody tr:nth-child(even) {
+                background-color: transparent !important;
+              }
+              
+              .orden-imprimir-header {
+                border-bottom: 2px solid #000 !important;
+              }
+              
+              .orden-imprimir-header h1,
+              .orden-imprimir-header h2,
+              .orden-imprimir-header p {
+                color: #000 !important;
+              }
+              
+              .orden-imprimir-info-section h3,
+              .orden-imprimir-info-section p {
+                color: #000 !important;
+              }
+              
+              .orden-imprimir-total {
+                background: transparent !important;
+                border: 1px solid #000 !important;
+              }
+              
+              .orden-imprimir-total p {
+                color: #000 !important;
+              }
+              
+              .orden-imprimir-total p strong {
+                color: #000 !important;
+              }
+            }
           </style>
         </head>
         <body>
           ${contenido}
+          <script>
+            // Cerrar la ventana después de imprimir o cancelar
+            window.addEventListener('afterprint', function() {
+              window.close();
+            });
+            
+            // Fallback: cerrar después de un tiempo si el evento no se dispara
+            setTimeout(function() {
+              if (!window.closed) {
+                window.close();
+              }
+            }, 5000);
+          </script>
         </body>
       </html>
     `);
     ventana.document.close();
-    ventana.print();
+    return ventana;
+  };
+
+  // Función para imprimir
+  const handleImprimir = () => {
+    const ventana = crearVentanaImpresion();
+    ventana.onload = () => {
+      ventana.print();
+    };
+  };
+
+  // Función para guardar como PDF
+  const handleGuardarPDF = () => {
+    const ventana = crearVentanaImpresion();
+    ventana.onload = () => {
+      ventana.print();
+    };
   };
 
   return (
     <>
-      <div className="modal-overlay">
-        <div className="modal-container modal-print">
-          <div className="modal-header">
+      <div className="orden-imprimir-modal-overlay" onClick={onClose}>
+        <div className="orden-imprimir-modal-container" onClick={(e) => e.stopPropagation()}>
+          <div className="orden-imprimir-modal-header">
             <h2>Imprimir Orden #{form.numero}</h2>
-            <div className="modal-actions">
+            <div className="orden-imprimir-modal-actions">
               {/* Selector de formato */}
               <select 
                 value={formato} 
                 onChange={(e) => setFormato(e.target.value)}
-                className="formato-select"
-                style={{
-                  padding: "8px 12px",
-                  borderRadius: "4px",
-                  border: "1px solid var(--color-light-gray)",
-                  backgroundColor: "var(--color-white)",
-                  color: "var(--color-dark-blue)",
-                  fontSize: "14px",
-                  marginRight: "10px"
-                }}
+                className="orden-imprimir-formato-select"
               >
                 <option value="orden">Formato: Orden</option>
                 <option value="trabajadores">Formato: Para Trabajadores</option>
                 <option value="ambos">Imprimir Ambos Formatos</option>
               </select>
-              <button onClick={handleGuardarPDF} className="btn-guardar">
+              <button onClick={handleGuardarPDF} className="orden-imprimir-btn-guardar">
                 Guardar como PDF
               </button>
-              <button onClick={handleImprimir} className="btn-guardar">
+              <button onClick={handleImprimir} className="orden-imprimir-btn-imprimir">
                 Imprimir
               </button>
-              <button onClick={onClose} className="btn-cancelar">
+              <button onClick={onClose} className="orden-imprimir-btn-cerrar">
                 Cerrar
               </button>
             </div>
           </div>
 
           {/* Contenido imprimible */}
-          <div id="printable-content" className="printable-content">
+          <div id="printable-orden-content" className="orden-imprimir-printable-content">
             {(formato === "orden" || formato === "ambos") && (
               /* ========== FORMATO 1: ORDEN ========== */
               <>
                 {/* Encabezado */}
-                <div className="orden-header">
+                <div className="orden-imprimir-header">
                   <h1>ALUMINIOS CASAGLASS S.A.S</h1>
                   <h2>Orden de {form.venta ? "Venta" : "Cotización"} #{form.numero}</h2>
                   <p>Fecha: {fmtFecha(form.fecha)}</p>
                 </div>
 
                 {/* Información general */}
-                <div className="info">
-                  <div className="info-section">
+                <div className="orden-imprimir-info">
+                  <div className="orden-imprimir-info-section">
                     <h3>Sede</h3>
                     <p>{form.sede.nombre || "-"}</p>
                   </div>
 
-                  <div className="info-section">
+                  <div className="orden-imprimir-info-section">
                     <h3>Cliente</h3>
                     <p>{form.cliente.nombre || "-"}</p>
                   </div>
                 </div>
 
                 {/* Items con color y tipo */}
-                <table className="items-table">
+                <table className="orden-imprimir-table">
                   <thead>
                     <tr>
                       <th>Cantidad</th>
@@ -285,7 +455,7 @@ export default function OrdenImprimirModal({ orden, isOpen, onClose }) {
                 </table>
 
                 {/* Totales */}
-                <div className="total">
+                <div className="orden-imprimir-total">
                   <p>Subtotal: ${subtotal.toLocaleString("es-CO")}</p>
                   {descuentos > 0 && (
                     <p>Descuentos: ${descuentos.toLocaleString("es-CO")}</p>
@@ -296,12 +466,7 @@ export default function OrdenImprimirModal({ orden, isOpen, onClose }) {
             )}
 
             {formato === "ambos" && (
-              <div style={{ 
-                pageBreakBefore: "always", 
-                marginTop: "50px",
-                borderTop: "3px solid var(--color-dark-blue)",
-                paddingTop: "30px"
-              }}>
+              <div className="orden-imprimir-separador">
                 {/* Separador visual entre formatos */}
               </div>
             )}
@@ -310,22 +475,22 @@ export default function OrdenImprimirModal({ orden, isOpen, onClose }) {
               /* ========== FORMATO 2: PARA TRABAJADORES ========== */
               <>
                 {/* Encabezado */}
-                <div className="orden-header">
+                <div className="orden-imprimir-header">
                   <h1>ALUMINIOS CASAGLASS S.A.S</h1>
                   <h2>Orden de Producción #{form.numero}</h2>
                   <p>Fecha: {fmtFecha(form.fecha)}</p>
                 </div>
 
                 {/* Información general */}
-                <div className="info">
-                  <div className="info-section">
+                <div className="orden-imprimir-info">
+                  <div className="orden-imprimir-info-section">
                     <h3>Sede</h3>
                     <p>{form.sede.nombre || "-"}</p>
                   </div>
                 </div>
 
                 {/* Items sin valores monetarios */}
-                <table className="items-table">
+                <table className="orden-imprimir-table">
                   <thead>
                     <tr>
                       <th>Cantidad</th>
@@ -356,43 +521,6 @@ export default function OrdenImprimirModal({ orden, isOpen, onClose }) {
           </div>
         </div>
       </div>
-
-      {/* Estilos para impresión */}
-      <style>{`
-        @media print {
-          @page {
-            margin: 0;
-            size: auto;
-          }
-          
-          body {
-            margin: 0;
-            padding: 0;
-          }
-          
-          body * {
-            visibility: hidden;
-          }
-          
-          #printable-content,
-          #printable-content * {
-            visibility: visible;
-          }
-          
-          #printable-content {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100%;
-          }
-          
-          .modal-actions,
-          .modal-header button,
-          .modal-header select {
-            display: none;
-          }
-        }
-      `}</style>
     </>
   );
 }

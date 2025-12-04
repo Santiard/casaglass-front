@@ -11,10 +11,12 @@ import {
 import { listarClientes } from "../services/ClientesService";
 import { useConfirm } from "../hooks/useConfirm.jsx";
 import { useToast } from "../context/ToastContext.jsx";
+import { useAuth } from "../context/AuthContext.jsx";
 
 export default function FacturasPage() {
   const { confirm, ConfirmDialog } = useConfirm();
   const { showSuccess, showError } = useToast();
+  const { isAdmin, sedeId } = useAuth(); // Obtener info del usuario logueado
   const [data, setData] = useState([]);
   const [clientes, setClientes] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -22,9 +24,11 @@ export default function FacturasPage() {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
+      // Si no es admin, filtrar por sede del usuario
+      const params = isAdmin ? {} : { sedeId };
       // Intentar primero con tabla optimizada, fallback a básico
       try {
-        const arr = await listarFacturasTabla();
+        const arr = await listarFacturasTabla(params);
         setData(arr);
       } catch (tablaError) {
         console.warn("Endpoint /facturas/tabla no disponible, usando /facturas básico:", tablaError);
@@ -36,7 +40,7 @@ export default function FacturasPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [isAdmin, sedeId]);
 
   const fetchClientes = useCallback(async () => {
     try {

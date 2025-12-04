@@ -6,8 +6,9 @@ export async function listarFacturas() {
   return Array.isArray(data) ? data : [];
 }
 
-export async function listarFacturasTabla() {
-  const { data } = await api.get("facturas/tabla");
+// @param {Object} params - Parámetros de consulta (puede incluir sedeId para filtrar por sede)
+export async function listarFacturasTabla(params = {}) {
+  const { data } = await api.get("facturas/tabla", { params });
   return Array.isArray(data) ? data : [];
 }
 
