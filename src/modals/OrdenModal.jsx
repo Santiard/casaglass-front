@@ -372,7 +372,7 @@ export default function OrdenEditarModal({
     }
     
     if (!orden?.id) {
-      console.warn("⚠️ Orden sin ID, no se puede cargar:", orden);
+      console.warn(" Orden sin ID, no se puede cargar:", orden);
       // Inicializar formulario vacío si no hay ID válido
       setForm({
         id: null,
@@ -509,10 +509,10 @@ export default function OrdenEditarModal({
         }
         
         try {
-          prods = await listarTodosLosProductos(); // ✅ Incluye productos normales + vidrios
+          prods = await listarTodosLosProductos(); //  Incluye productos normales + vidrios
           
-          // 🔍 LOG: Verificar estructura de productos cargados
-          console.log("📦 Productos cargados para órdenes:", {
+          //  LOG: Verificar estructura de productos cargados
+          console.log(" Productos cargados para órdenes:", {
             total: prods?.length || 0,
             primeros3: prods?.slice(0, 3).map(p => ({
               id: p.id,
@@ -527,7 +527,7 @@ export default function OrdenEditarModal({
           // Verificar si hay productos sin ID
           const productosSinId = prods?.filter(p => !p.id && !p.productoId) || [];
           if (productosSinId.length > 0) {
-            console.warn("⚠️ Productos sin ID encontrados:", productosSinId.map(p => ({
+            console.warn(" Productos sin ID encontrados:", productosSinId.map(p => ({
               codigo: p.codigo,
               nombre: p.nombre
             })));
@@ -804,9 +804,9 @@ export default function OrdenEditarModal({
         return prev; // evitar duplicados
       }
       
-      // 🔍 LOG: Verificar datos del producto antes de agregar
+      //  LOG: Verificar datos del producto antes de agregar
       const productoId = item.id || item.productoId;
-      console.log("➕ Agregando producto a la orden:", {
+      console.log(" Agregando producto a la orden:", {
         id: item.id,
         productoId: item.productoId,
         idFinal: productoId,
@@ -817,7 +817,7 @@ export default function OrdenEditarModal({
       });
       
       if (!productoId) {
-        console.error("❌ ERROR: Producto sin ID:", {
+        console.error(" ERROR: Producto sin ID:", {
           codigo: item.codigo,
           nombre: item.nombre,
           itemCompleto: item
@@ -842,7 +842,7 @@ export default function OrdenEditarModal({
         color: item.color, // Incluir el color del producto
       };
       
-      console.log("✅ Producto agregado al formulario:", {
+      console.log(" Producto agregado al formulario:", {
         productoId: nuevo.productoId,
         codigo: nuevo.codigo,
         nombre: nuevo.nombre
@@ -896,7 +896,7 @@ export default function OrdenEditarModal({
       // Validar que todos los items tengan productoId válido
       const itemsInvalidos = itemsActivos.filter(i => !i.productoId || i.productoId === 0 || i.productoId === null);
       if (itemsInvalidos.length > 0) {
-        console.error("❌ ERROR: Items sin productoId válido:", itemsInvalidos.map(i => ({
+        console.error(" ERROR: Items sin productoId válido:", itemsInvalidos.map(i => ({
           codigo: i.codigo,
           nombre: i.nombre,
           productoId: i.productoId
@@ -905,8 +905,8 @@ export default function OrdenEditarModal({
         return;
       }
       
-      // 🔍 LOG: Verificar items antes de crear la orden
-      console.log("📋 Items validados para crear orden:", itemsActivos.map(i => ({
+      //  LOG: Verificar items antes de crear la orden
+      console.log(" Items validados para crear orden:", itemsActivos.map(i => ({
         productoId: i.productoId,
         codigo: i.codigo,
         nombre: i.nombre,
@@ -1001,10 +1001,10 @@ export default function OrdenEditarModal({
         // trabajadorId es opcional según la documentación
         ...(form.trabajadorId ? { trabajadorId: Number(form.trabajadorId) } : {}),
         items: itemsActivos.map((i) => {
-          // 🔍 LOG: Verificar cada item antes de enviar
+          //  LOG: Verificar cada item antes de enviar
           const productoId = Number(i.productoId);
           if (!productoId || productoId === 0) {
-            console.error("❌ ERROR: Item con productoId inválido:", {
+            console.error(" ERROR: Item con productoId inválido:", {
               codigo: i.codigo,
               nombre: i.nombre,
               productoId: i.productoId,
@@ -1023,7 +1023,7 @@ export default function OrdenEditarModal({
             item.reutilizarCorteSolicitadoId = Number(i.reutilizarCorteSolicitadoId);
           }
           
-          console.log("📤 Item preparado para enviar:", {
+          console.log(" Item preparado para enviar:", {
             productoId: item.productoId,
             codigo: i.codigo,
             nombre: i.nombre,
@@ -1138,7 +1138,7 @@ export default function OrdenEditarModal({
         // Validar que productoId sea válido antes de enviar
         const productoId = Number(i.productoId);
         if (!productoId || productoId === 0) {
-          console.error("❌ ERROR: Producto sin ID válido en edición:", {
+          console.error(" ERROR: Producto sin ID válido en edición:", {
             codigo: i.codigo,
             nombre: i.nombre,
             productoId: i.productoId,
@@ -1147,7 +1147,7 @@ export default function OrdenEditarModal({
           throw new Error(`El producto "${i.nombre || i.codigo}" no tiene un ID válido. Por favor, recarga la página e intenta nuevamente.`);
         }
         
-        console.log("📤 Item preparado para actualizar orden:", {
+        console.log(" Item preparado para actualizar orden:", {
           productoId: productoId,
           codigo: i.codigo,
           nombre: i.nombre,
@@ -1420,7 +1420,7 @@ export default function OrdenEditarModal({
                         <span style={{ display: 'block', marginTop: '0.25rem', fontSize: '0.8rem' }}>
                           {coincide 
                             ? '✓ Coincide con el total de la orden' 
-                            : `⚠ Diferencia: $${Math.abs(totalMetodos - totalOrden).toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                            : `Diferencia: $${Math.abs(totalMetodos - totalOrden).toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                         </span>
                       </div>
                     );

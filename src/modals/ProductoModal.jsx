@@ -209,7 +209,7 @@ export default function ProductModal({ isOpen, onClose, onSave, product }) {
       : toSave.categoria?.nombre?.toLowerCase() || "";
     const esVidrio = toSave.esVidrio || categoriaNombre.includes('vidrio');
     
-    console.log("🔍 DEBUG handleSubmit:");
+    console.log(" DEBUG handleSubmit:");
     console.log("  - formData.esVidrio:", formData.esVidrio);
     console.log("  - categoriaNombre:", categoriaNombre);
     console.log("  - esVidrio calculado:", esVidrio);
@@ -232,7 +232,7 @@ export default function ProductModal({ isOpen, onClose, onSave, product }) {
       // Asegurar que esVidrio esté en true
       toSave.esVidrio = true;
       
-      console.log("  ✅ Es vidrio - m1:", toSave.m1, "m2:", toSave.m2, "mm:", toSave.mm);
+      console.log("   Es vidrio - m1:", toSave.m1, "m2:", toSave.m2, "mm:", toSave.mm);
     } else {
       // Si no es vidrio, no incluir campos de vidrio
       delete toSave.mm;
@@ -326,20 +326,20 @@ export default function ProductModal({ isOpen, onClose, onSave, product }) {
         backendPayload._cantidadInsula = toSave.cantidadInsula || 0;
         backendPayload._cantidadCentro = toSave.cantidadCentro || 0;
         backendPayload._cantidadPatios = toSave.cantidadPatios || 0;
-        console.log("🔍 Cantidades por sede para vidrio (guardadas con _ para actualizar inventario después):", {
+        console.log(" Cantidades por sede para vidrio (guardadas con _ para actualizar inventario después):", {
           _cantidadInsula: backendPayload._cantidadInsula,
           _cantidadCentro: backendPayload._cantidadCentro,
           _cantidadPatios: backendPayload._cantidadPatios
         });
       }
       
-      console.log("🔍 DEBUG: Creando producto VIDRIO");
-      console.log("🔍 mm:", backendPayload.mm, "(número)");
-      console.log("🔍 m1:", backendPayload.m1, "(número)");
-      console.log("🔍 m2:", backendPayload.m2, "(número)");
-      console.log("🔍 Payload completo para vidrio:", JSON.stringify(backendPayload, null, 2));
+      console.log(" DEBUG: Creando producto VIDRIO");
+      console.log(" mm:", backendPayload.mm, "(número)");
+      console.log(" m1:", backendPayload.m1, "(número)");
+      console.log(" m2:", backendPayload.m2, "(número)");
+      console.log(" Payload completo para vidrio:", JSON.stringify(backendPayload, null, 2));
     } else {
-      console.log("🔍 DEBUG: NO es vidrio, no se incluyen campos de vidrio");
+      console.log(" DEBUG: NO es vidrio, no se incluyen campos de vidrio");
     }
 
     // Para edición, incluir campos requeridos del producto original (solo para productos normales)

@@ -48,7 +48,7 @@ export default function OrdenesPage() {
     fetchData();
   }, [fetchData]);
 
-  // 🔹 Guardar (editar o crear)
+  //  Guardar (editar o crear)
   const handleGuardar = async (orden, isEdit) => {
     try {
       // Si orden es null, solo refrescar (modal ya guardó)
@@ -73,7 +73,7 @@ export default function OrdenesPage() {
     }
   };
 
-  // 🔹 Confirmar venta (cambiar venta de false a true)
+  //  Confirmar venta (cambiar venta de false a true)
   const handleConfirmarVenta = async (orden) => {
     const esCotizacion = Boolean(orden.venta === false);
     const mensaje = esCotizacion
@@ -96,9 +96,9 @@ export default function OrdenesPage() {
       let ordenCompleta = orden;
       try {
         ordenCompleta = await obtenerOrden(orden.id);
-        console.log("✅ Orden completa obtenida para confirmar:", ordenCompleta);
+        console.log(" Orden completa obtenida para confirmar:", ordenCompleta);
       } catch (err) {
-        console.warn("⚠️ No se pudo obtener la orden completa, usando la de la tabla:", err);
+        console.warn(" No se pudo obtener la orden completa, usando la de la tabla:", err);
         // Continuar con la orden de la tabla si falla
       }
       
@@ -118,7 +118,7 @@ export default function OrdenesPage() {
     }
   };
 
-  // 🔹 Anular orden
+  //  Anular orden
   const handleAnular = async (orden) => {
     const confirmacion = await confirm({
       title: "Anular Orden",
@@ -144,7 +144,7 @@ export default function OrdenesPage() {
     }
   };
 
-  // 🔹 Facturar orden
+  //  Facturar orden
   const handleFacturar = async (facturaPayload, isModal = false) => {
     try {
       // Si facturaPayload es null, solo refrescar los datos (caso de facturación múltiple)
@@ -166,7 +166,7 @@ export default function OrdenesPage() {
             await marcarFacturaComoPagada(facturaResponse.id, hoy);
           }
         } catch (pagoErr) {
-          console.warn("⚠️ No se pudo marcar como pagada inmediatamente:", pagoErr?.response?.data || pagoErr?.message);
+          console.warn(" No se pudo marcar como pagada inmediatamente:", pagoErr?.response?.data || pagoErr?.message);
         }
       } catch (err) {
         const status = err?.response?.status;
@@ -181,7 +181,7 @@ export default function OrdenesPage() {
               await marcarFacturaComoPagada(facturaExistente.id, hoy);
             }
           } catch (lookupErr) {
-            console.warn("⚠️ No se pudo marcar como pagada la factura existente:", lookupErr?.response?.data || lookupErr?.message);
+            console.warn(" No se pudo marcar como pagada la factura existente:", lookupErr?.response?.data || lookupErr?.message);
           }
         } else {
           throw err;
@@ -198,7 +198,7 @@ export default function OrdenesPage() {
       } catch (err) {
         // Si ya tenía factura, podemos ignorar este error; de lo contrario, reportar
         if (!yaTeniaFactura) {
-          console.warn("⚠️ Error al marcar como facturada:", err?.response?.data || err?.message);
+          console.warn(" Error al marcar como facturada:", err?.response?.data || err?.message);
         }
       }
 

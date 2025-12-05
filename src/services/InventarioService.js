@@ -43,14 +43,14 @@ function transformarInventarioDTO(productos, isAdmin = true, userSedeId = null, 
                      (producto.mm != null && producto.mm !== undefined) || 
                      (producto.m1 != null && producto.m1 !== undefined);
     
-    // 🔍 DEBUG: Log completo de productos vidrio para identificar el ID correcto
+    //  DEBUG: Log completo de productos vidrio para identificar el ID correcto
     if (esVidrio) {
-      console.log("🔍 Producto VIDRIO detectado - OBJETO COMPLETO del backend:", producto);
-      console.log("🔍 Todos los campos disponibles:", Object.keys(producto));
+      console.log(" Producto VIDRIO detectado - OBJETO COMPLETO del backend:", producto);
+      console.log(" Todos los campos disponibles:", Object.keys(producto));
     }
 
     // Normalizar categoría: ahora TODOS los productos (normales y vidrios) vienen con objeto {id, nombre}
-    // ✅ Backend unificado: categoria siempre es { id: X, nombre: "..." }
+    //  Backend unificado: categoria siempre es { id: X, nombre: "..." }
     let categoriaId = null;
     let categoriaNombre = null;
     
@@ -120,7 +120,7 @@ export async function listarInventarioCompleto(params = {}, isAdmin = true, user
     // El endpoint /inventario-completo retorna todos los productos (normales y vidrios)
     const { data } = await api.get("/inventario-completo", { params });
     
-    console.log(`📦 Inventario completo - Productos obtenidos: ${data?.length || 0}`);
+    console.log(` Inventario completo - Productos obtenidos: ${data?.length || 0}`);
     
     const transformados = transformarInventarioDTO(data || [], isAdmin, userSedeId, categoriasMap);
     

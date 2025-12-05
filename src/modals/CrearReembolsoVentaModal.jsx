@@ -73,7 +73,7 @@ export default function CrearReembolsoVentaModal({
       
       // Si la orden no tiene items o los items no tienen información del producto, usar el endpoint de detalle
       if (!orden.items || orden.items.length === 0 || !orden.items[0]?.producto) {
-        console.log("⚠️ Orden sin items completos, usando endpoint de detalle...");
+        console.log(" Orden sin items completos, usando endpoint de detalle...");
         try {
           const ordenDetalle = await obtenerOrdenDetalle(ordenId);
           // Combinar información de ambos endpoints
@@ -82,7 +82,7 @@ export default function CrearReembolsoVentaModal({
             items: ordenDetalle.items || orden.items || []
           };
         } catch (detalleError) {
-          console.warn("⚠️ No se pudo obtener detalle, usando orden básica:", detalleError);
+          console.warn(" No se pudo obtener detalle, usando orden básica:", detalleError);
         }
       }
       
@@ -100,10 +100,10 @@ export default function CrearReembolsoVentaModal({
       const detallesIniciales = orden.items.map((item) => {
         // Validar que el item tenga la información necesaria
         if (!item.id) {
-          console.warn("⚠️ Item sin ID:", item);
+          console.warn(" Item sin ID:", item);
         }
         if (!item.producto) {
-          console.warn("⚠️ Item sin información de producto:", item);
+          console.warn(" Item sin información de producto:", item);
         }
         
         return {
@@ -457,7 +457,7 @@ export default function CrearReembolsoVentaModal({
                 </tbody>
               </table>
               <p style={{ marginTop: "0.5rem", fontSize: "0.875rem", color: "#666" }}>
-                💡 Marca los productos que deseas incluir en la devolución
+ Marca los productos que deseas incluir en la devolución
               </p>
             </div>
           )}

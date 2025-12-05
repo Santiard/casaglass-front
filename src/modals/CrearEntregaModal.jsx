@@ -401,7 +401,7 @@ const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores, se
         
         // DEBUG: Log para identificar problemas
         if (sumaParseada !== montoAbono) {
-          console.log(`🔍 [DEBUG Entrega] Abono #${abono.id}:`, {
+          console.log(` [DEBUG Entrega] Abono #${abono.id}:`, {
             montoAbono,
             metodoPagoString: metodoPagoString.substring(0, 100), // Primeros 100 caracteres
             parseado,
@@ -413,7 +413,7 @@ const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores, se
         // Si la suma parseada es mayor al monto del abono, hay un error en el parseo
         // En ese caso, distribuir proporcionalmente
         if (sumaParseada > montoAbono * 1.01) { // Tolerancia del 1% por redondeos
-          console.warn(`⚠️ Abono #${abono.id}: Suma parseada (${sumaParseada}) > monto abono (${montoAbono}). Ajustando proporcionalmente.`);
+          console.warn(` Abono #${abono.id}: Suma parseada (${sumaParseada}) > monto abono (${montoAbono}). Ajustando proporcionalmente.`);
           const factor = montoAbono / sumaParseada;
           parseado.montoEfectivo = parseado.montoEfectivo * factor;
           parseado.montoTransferencia = parseado.montoTransferencia * factor;
@@ -448,7 +448,7 @@ const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores, se
     const sumaDesglose = montoEfectivo + montoTransferencia + montoCheque + 0;
     
     // DEBUG: Log del cálculo final
-    console.log(`📊 [DEBUG Entrega] Cálculo de totales:`, {
+    console.log(` [DEBUG Entrega] Cálculo de totales:`, {
       montoOrdenes,
       montoAbonos,
       montoTotal: monto,
@@ -463,7 +463,7 @@ const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores, se
     });
     
     if (Math.abs(sumaDesglose - monto) > monto * 0.01) {
-      console.warn(`⚠️ Desglose no coincide con monto total. Desglose: ${sumaDesglose}, Total: ${monto}. Ajustando proporcionalmente.`);
+      console.warn(` Desglose no coincide con monto total. Desglose: ${sumaDesglose}, Total: ${monto}. Ajustando proporcionalmente.`);
       const factor = monto / sumaDesglose;
       montoEfectivo = montoEfectivo * factor;
       montoTransferencia = montoTransferencia * factor;
@@ -856,7 +856,7 @@ const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores, se
                       color: '#1976d2',
                       textAlign: 'center'
                     }}>
-                      ℹ️ Se incluirán automáticamente todas las órdenes a contado y abonos del día seleccionado. 
+                      Se incluirán automáticamente todas las órdenes a contado y abonos del día seleccionado. 
                       Solo se muestran órdenes y abonos de órdenes confirmadas (venta: true).
                     </div>
                   </div>

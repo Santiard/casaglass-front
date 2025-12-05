@@ -157,9 +157,9 @@ export default function CortarModal({
         if (coincidenteSolicitado?.id) {
           // Guardar el ID para que el backend lo reutilice, incremente stock a 1 y luego lo descuente al vender
           corteParaVender.reutilizarCorteSolicitadoId = coincidenteSolicitado.id;
-          console.log(`✅ Corte solicitado existente encontrado - Reutilizando (ID: ${coincidenteSolicitado.id}, código: ${coincidenteSolicitado.codigo})`);
+          console.log(` Corte solicitado existente encontrado - Reutilizando (ID: ${coincidenteSolicitado.id}, código: ${coincidenteSolicitado.codigo})`);
         } else {
-          console.log(`📝 Corte solicitado nuevo - El backend generará el código automáticamente`);
+          console.log(` Corte solicitado nuevo - El backend generará el código automáticamente`);
         }
 
         // Buscar corte SOBRANTE (el que queda en inventario)
@@ -170,12 +170,12 @@ export default function CortarModal({
             ...corteSobrante,
             reutilizarCorteId: coincidenteSobrante.id,
           };
-          console.log(`✅ Corte sobrante existente encontrado - Reutilizando (ID: ${coincidenteSobrante.id}, código: ${coincidenteSobrante.codigo})`);
+          console.log(` Corte sobrante existente encontrado - Reutilizando (ID: ${coincidenteSobrante.id}, código: ${coincidenteSobrante.codigo})`);
         } else {
-          console.log(`📝 Corte sobrante nuevo - El backend generará el código automáticamente`);
+          console.log(` Corte sobrante nuevo - El backend generará el código automáticamente`);
         }
       } catch (lookupErr) {
-        console.warn("⚠️ No se pudo verificar cortes existentes:", lookupErr);
+        console.warn(" No se pudo verificar cortes existentes:", lookupErr);
       }
 
       // Llamar a la función de corte
@@ -204,7 +204,7 @@ export default function CortarModal({
   return (
     <div className="modal-overlay">
       <div className="modal-container">
-        <h2>✂️ Cortar Perfil</h2>
+        <h2> Cortar Perfil</h2>
         
         <form onSubmit={handleSubmit} className="form">
           <label>
@@ -230,7 +230,7 @@ export default function CortarModal({
               marginTop: '1rem'
             }}>
               <h4 style={{ margin: '0 0 0.8rem 0', color: '#495057' }}>
-                📊 Resumen del Corte
+ Resumen del Corte
               </h4>
               
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
@@ -242,7 +242,7 @@ export default function CortarModal({
                 </div>
                 
                 <div>
-                  <strong>📦 Corte Sobrante:</strong>
+                  <strong> Corte Sobrante:</strong>
                   <div>Medida: {cortesCalculados.medidaSobrante} cm</div>
                   <div>Precio: ${cortesCalculados.precioSobrante.toLocaleString('es-CO')}</div>
                   <div>Porcentaje: {cortesCalculados.porcentajeSobrante}%</div>
@@ -250,7 +250,7 @@ export default function CortarModal({
               </div>
               
               <div style={{ marginTop: '0.8rem', padding: '0.5rem', backgroundColor: '#e8f5e8', borderRadius: '0.25rem' }}>
-                <strong>💰 Total Original:</strong> ${(producto.precioUsado || producto.precio || 0).toLocaleString('es-CO')}
+                <strong> Total Original:</strong> ${(producto.precioUsado || producto.precio || 0).toLocaleString('es-CO')}
               </div>
             </div>
           )}
@@ -269,7 +269,7 @@ export default function CortarModal({
               className="btn-guardar"
               disabled={loading || !cortesCalculados}
             >
-              {loading ? "Procesando..." : "✂️ Cortar"}
+              {loading ? "Procesando..." : " Cortar"}
             </button>
           </div>
         </form>

@@ -31,7 +31,7 @@ export default function Login() {
     try {
       const user = await login(form); // 👈 llamado al backend
       saveSession(user); // guarda usuario en localStorage
-      updateUser(user); // 🔥 ACTUALIZA EL ESTADO REACTIVO
+      updateUser(user); //  ACTUALIZA EL ESTADO REACTIVO
 
       // Redirección por rol
       if (user.rol === "ADMINISTRADOR") {

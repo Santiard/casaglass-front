@@ -146,7 +146,7 @@ export default function VenderPage() {
       const cortes = await listarCortesInventarioCompleto({}, isAdmin, sedeId);
       setCortesData(cortes || []);
     } catch (e) {
-      console.error("❌ Error cargando inventario de cortes", e);
+      console.error(" Error cargando inventario de cortes", e);
       showError(e?.response?.data?.message || "No se pudo cargar el inventario de cortes.");
     } finally {
       if (actualizarEstado) {
@@ -161,7 +161,7 @@ export default function VenderPage() {
   const agregarProducto = (producto, cantidad, precioUsado) => {
     if (cantidad <= 0) return; // No agregar si la cantidad es 0 o negativa
 
-    console.log(`🛒 agregarProducto llamado: ${producto.codigo} - ${producto.nombre}, Cantidad: ${cantidad}, Precio: ${precioUsado}`);
+    console.log(` agregarProducto llamado: ${producto.codigo} - ${producto.nombre}, Cantidad: ${cantidad}, Precio: ${precioUsado}`);
 
     // Usar función de actualización de estado para asegurar que siempre use el estado más reciente
     setProductosCarrito((prevCarrito) => {
@@ -179,7 +179,7 @@ export default function VenderPage() {
           if (i === index) {
             const cantidadAnterior = item.cantidadVender;
             const cantidadNueva = cantidadAnterior + cantidad;
-            console.log(`  ✅ Producto existente: ${producto.codigo} - Cantidad anterior: ${cantidadAnterior}, Cantidad a sumar: ${cantidad}, Cantidad nueva: ${cantidadNueva}`);
+            console.log(`   Producto existente: ${producto.codigo} - Cantidad anterior: ${cantidadAnterior}, Cantidad a sumar: ${cantidad}, Cantidad nueva: ${cantidadNueva}`);
             return {
               ...item,
               cantidadVender: cantidadNueva
@@ -190,7 +190,7 @@ export default function VenderPage() {
         return newCarrito;
       } else {
         // Si el producto no existe, agregarlo
-        console.log(`  ✅ Producto nuevo: ${producto.codigo} - Agregando con cantidad: ${cantidad}`);
+        console.log(`   Producto nuevo: ${producto.codigo} - Agregando con cantidad: ${cantidad}`);
         return [
           ...prevCarrito, 
           { 
@@ -234,7 +234,7 @@ export default function VenderPage() {
       
       
     } catch (error) {
-      console.error("❌ Error al procesar corte:", error);
+      console.error(" Error al procesar corte:", error);
       showError("Error al procesar el corte. Intente nuevamente.");
     }
   };
@@ -261,7 +261,7 @@ export default function VenderPage() {
 
     // Debug: mostrar qué categoría está seleccionada
     if (view === "producto" && categoryId) {
-      console.log(`🔍 [VENDER] Filtro activo - Categoría seleccionada:`, {
+      console.log(` [VENDER] Filtro activo - Categoría seleccionada:`, {
         categoryId,
         categoryNombre: categoryName,
         totalProductos: currentData?.length || 0,
@@ -274,7 +274,7 @@ export default function VenderPage() {
     // Filtro 1: Búsqueda
     filtered = filtered.filter((item) => !search || item.nombre.toLowerCase().includes(search));
     if (view === "producto" && categoryId === 26) {
-      console.log(`📊 [VENDER] Después de filtro búsqueda:`, {
+      console.log(` [VENDER] Después de filtro búsqueda:`, {
         total: filtered.length,
         vidrios: filtered.filter(p => p.esVidrio).length
       });
@@ -286,7 +286,7 @@ export default function VenderPage() {
       if (!categoryId) return true;
       
       // IMPORTANTE: Ahora TODOS los productos (normales y vidrios) tienen categoria como objeto {id, nombre}
-      // ✅ Backend unificado: categoria siempre es { id: X, nombre: "..." }
+      //  Backend unificado: categoria siempre es { id: X, nombre: "..." }
       const itemCategoriaNombre = typeof item.categoria === 'string' 
         ? item.categoria  // Compatibilidad: si aún llega como string
         : item.categoriaObj?.nombre || item.categoria?.nombre || item.categoria;
@@ -302,7 +302,7 @@ export default function VenderPage() {
       
       // Debug detallado para vidrios en VENDER
       if (view === "producto" && item.esVidrio && categoryId) {
-        console.log(`🔍 [VENDER] Filtro categoría - Vidrio (${coincide ? '✅' : '❌'}):`, {
+        console.log(` [VENDER] Filtro categoría - Vidrio (${coincide ? '' : ''}):`, {
           itemId: item.id,
           itemNombre: item.nombre,
           itemCategoria: item.categoria,
@@ -324,7 +324,7 @@ export default function VenderPage() {
       return coincide;
     });
     if (view === "producto" && categoryId === 26) {
-      console.log(`📊 [VENDER] Después de filtro categoría:`, {
+      console.log(` [VENDER] Después de filtro categoría:`, {
         total: filtered.length,
         vidrios: filtered.filter(p => p.esVidrio).length
       });
@@ -335,7 +335,7 @@ export default function VenderPage() {
       if (!color) return true;
       const pasa = (item.color || "").toUpperCase() === color.toUpperCase();
       if (view === "producto" && item.esVidrio && !pasa && categoryId === 26) {
-        console.log(`🔍 [VENDER] Filtro color - Vidrio filtrado:`, {
+        console.log(` [VENDER] Filtro color - Vidrio filtrado:`, {
           itemId: item.id,
           itemNombre: item.nombre,
           itemColor: item.color,
@@ -345,7 +345,7 @@ export default function VenderPage() {
       return pasa;
     });
     if (view === "producto" && categoryId === 26) {
-      console.log(`📊 [VENDER] Después de filtro color:`, {
+      console.log(` [VENDER] Después de filtro color:`, {
         total: filtered.length,
         vidrios: filtered.filter(p => p.esVidrio).length
       });
@@ -372,7 +372,7 @@ export default function VenderPage() {
       return cantidadSede > 0 || cantidadSede < 0;
     });
     if (view === "producto" && categoryId === 26) {
-      console.log(`📊 [VENDER] Después de filtro sede:`, {
+      console.log(` [VENDER] Después de filtro sede:`, {
         total: filtered.length,
         vidrios: filtered.filter(p => p.esVidrio).length,
         sedeSeleccionada: sede
@@ -384,7 +384,7 @@ export default function VenderPage() {
       const precio = Number(item.precio1 || item.precio || 0);
       const pasa = precio >= min && precio <= max;
       if (view === "producto" && item.esVidrio && !pasa && categoryId === 26) {
-        console.log(`🔍 [VENDER] Filtro precio - Vidrio filtrado:`, {
+        console.log(` [VENDER] Filtro precio - Vidrio filtrado:`, {
           itemId: item.id,
           itemNombre: item.nombre,
           precio,
@@ -395,7 +395,7 @@ export default function VenderPage() {
       return pasa;
     });
     if (view === "producto" && categoryId === 26) {
-      console.log(`📊 [VENDER] Después de filtro precio:`, {
+      console.log(` [VENDER] Después de filtro precio:`, {
         total: filtered.length,
         vidrios: filtered.filter(p => p.esVidrio).length,
         min,
@@ -425,7 +425,7 @@ export default function VenderPage() {
     // Debug: mostrar resultado final del filtro
     if (view === "producto") {
       const vidriosFiltrados = filtered.filter(p => p.esVidrio).length;
-      console.log(`📊 [VENDER] Resultado final del filtro:`, {
+      console.log(` [VENDER] Resultado final del filtro:`, {
         totalProductos: currentData?.length || 0,
         productosFiltrados: filtered.length,
         vidriosFiltrados,
@@ -439,7 +439,7 @@ export default function VenderPage() {
           priceMax: max !== Infinity ? max : null
         }
       });
-      console.log(`✅ [VENDER] Productos que pasaron todos los filtros:`, filtered);
+      console.log(` [VENDER] Productos que pasaron todos los filtros:`, filtered);
     }
     
     return filtered;

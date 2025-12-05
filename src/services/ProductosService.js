@@ -25,12 +25,12 @@ export async function listarTodosLosProductos(params = {}) {
     // El endpoint /inventario-completo retorna todos los productos (normales y vidrios)
     const { data } = await api.get("/inventario-completo", { params });
     
-    console.log(`📦 listarTodosLosProductos: ${data?.length || 0} productos totales (normales + vidrios)`);
+    console.log(` listarTodosLosProductos: ${data?.length || 0} productos totales (normales + vidrios)`);
     
-    // 🔍 LOG: Verificar estructura de productos retornados
+    //  LOG: Verificar estructura de productos retornados
     if (data && data.length > 0) {
       const primeros3 = data.slice(0, 3);
-      console.log("🔍 Estructura de productos del endpoint /inventario-completo:", primeros3.map(p => ({
+      console.log(" Estructura de productos del endpoint /inventario-completo:", primeros3.map(p => ({
         id: p.id,
         productoId: p.productoId,
         codigo: p.codigo,
@@ -43,7 +43,7 @@ export async function listarTodosLosProductos(params = {}) {
       // Verificar productos sin ID
       const sinId = data.filter(p => !p.id && !p.productoId);
       if (sinId.length > 0) {
-        console.warn(`⚠️ ${sinId.length} productos sin ID encontrados en /inventario-completo:`, sinId.map(p => ({
+        console.warn(` ${sinId.length} productos sin ID encontrados en /inventario-completo:`, sinId.map(p => ({
           codigo: p.codigo,
           nombre: p.nombre
         })));
@@ -56,7 +56,7 @@ export async function listarTodosLosProductos(params = {}) {
     // Si falla, intentar solo con productos normales (comportamiento anterior)
     try {
       const { data } = await api.get("/productos", { params });
-      console.log("⚠️ Fallback a /productos:", data?.length || 0, "productos");
+      console.log(" Fallback a /productos:", data?.length || 0, "productos");
       return data || [];
     } catch (fallbackError) {
       console.error("Error en fallback:", fallbackError);

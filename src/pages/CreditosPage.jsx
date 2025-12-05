@@ -99,7 +99,7 @@ const CreditosPage = () => {
       setCreditos(data);
       
     } catch (err) {
-      console.error("❌ Error recargando créditos:", err.message);
+      console.error(" Error recargando créditos:", err.message);
       setError(`Error al recargar: ${err.message}`);
       // Mantener estado actual en lugar de array vacío
     } finally {

@@ -48,10 +48,10 @@ export default function ReembolsosVentaTable({
 
   const getFormaReembolsoBadge = (forma) => {
     const formas = {
-      EFECTIVO: "💵 EFECTIVO",
-      TRANSFERENCIA: "🏦 TRANSFERENCIA",
-      NOTA_CREDITO: "📄 NOTA CRÉDITO",
-      AJUSTE_CREDITO: "💳 AJUSTE CRÉDITO"
+      EFECTIVO: "EFECTIVO",
+      TRANSFERENCIA: "TRANSFERENCIA",
+      NOTA_CREDITO: "NOTA CRÉDITO",
+      AJUSTE_CREDITO: "AJUSTE CRÉDITO"
     };
     return formas[forma] || forma || "-";
   };

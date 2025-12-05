@@ -28,9 +28,9 @@ export default function ConfirmModal({
       <div className="confirm-modal-container" onClick={(e) => e.stopPropagation()}>
         {showIcon && (
           <div className={`confirm-modal-icon confirm-modal-icon-${type}`}>
-            {type === "danger" && "⚠️"}
-            {type === "warning" && "⚠️"}
-            {type === "info" && "ℹ️"}
+            {type === "danger" && ""}
+            {type === "warning" && ""}
+            {type === "info" && ""}
           </div>
         )}
         <h2 className="confirm-modal-title">{title}</h2>

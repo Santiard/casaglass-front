@@ -160,20 +160,20 @@ export default function InventoryPage() {
       // Buscar la categoría "VIDRIO" específicamente
       const categoriaVidrio = categories.find(c => c.nombre?.toLowerCase() === 'vidrio');
       if (categoriaVidrio) {
-        console.log("🔍 Categoría VIDRIO encontrada:", categoriaVidrio);
+        console.log(" Categoría VIDRIO encontrada:", categoriaVidrio);
       } else {
-        console.warn("⚠️ Categoría VIDRIO NO encontrada en la lista de categorías");
+        console.warn(" Categoría VIDRIO NO encontrada en la lista de categorías");
       }
       
       // Pasar información de autenticación para filtrar según rol
       // Pasar también el mapa de categorías para mapear nombres a IDs
       const productos = await listarInventarioCompleto({}, isAdmin, sedeId, categoriasMap);
-      console.log("📦 Productos obtenidos de /inventario-completo:", productos?.length || 0);
+      console.log(" Productos obtenidos de /inventario-completo:", productos?.length || 0);
       
       const vidrios = productos?.filter(p => p.esVidrio || (typeof p.categoria === 'string' && p.categoria.toLowerCase().includes('vidrio'))) || [];
-      console.log("📦 Productos vidrio encontrados:", vidrios.length);
+      console.log(" Productos vidrio encontrados:", vidrios.length);
       if (vidrios.length > 0) {
-        console.log("📦 Vidrios:", vidrios.map(v => ({ 
+        console.log(" Vidrios:", vidrios.map(v => ({ 
           id: v.id, 
           nombre: v.nombre, 
           categoria: v.categoria, 
@@ -182,7 +182,7 @@ export default function InventoryPage() {
         })));
       }
       
-      console.log("📦 Primeros 3 productos:", productos?.slice(0, 3).map(p => ({ 
+      console.log(" Primeros 3 productos:", productos?.slice(0, 3).map(p => ({ 
         id: p.id, 
         nombre: p.nombre, 
         categoria: p.categoria, 
@@ -259,7 +259,7 @@ export default function InventoryPage() {
                        tieneCamposVidrio;
       const editando = !!editingProduct?.id;
 
-      console.log("🔍 handleSaveProduct - Verificando si es vidrio:");
+      console.log(" handleSaveProduct - Verificando si es vidrio:");
       console.log("  - categoriaNombre:", categoriaNombre);
       console.log("  - product.esVidrio:", product.esVidrio);
       console.log("  - tieneCamposVidrio (mm/m1/m2):", tieneCamposVidrio);
@@ -267,13 +267,13 @@ export default function InventoryPage() {
       console.log("  - Endpoint a usar:", esVidrio ? "POST /productos-vidrio" : "POST /productos");
 
       if (esVidrio) {
-        // ✅ Producto vidrio: usar endpoint /productos-vidrio
+        //  Producto vidrio: usar endpoint /productos-vidrio
         if (editando) {
           // Para productos vidrio, el backend puede retornar productoVidrioId o el id puede ser el del vidrio
           // Si el backend retorna productoVidrioId, usarlo; si no, intentar usar id
           // NOTA: El backend puede retornar el ID del producto vidrio en el campo 'id' cuando es vidrio
           const vidrioId = editingProduct.productoVidrioId || editingProduct.id;
-          console.log("🔍 Actualizando producto vidrio:");
+          console.log(" Actualizando producto vidrio:");
           console.log("  - editingProduct.id:", editingProduct.id);
           console.log("  - editingProduct.productoVidrioId:", editingProduct.productoVidrioId);
           console.log("  - ID a usar para actualizar:", vidrioId);
@@ -294,7 +294,7 @@ export default function InventoryPage() {
           
           // 2. Actualizar el inventario por sede (siempre, porque el endpoint de producto vidrio NO actualiza inventario)
           // El endpoint PUT /productos-vidrio/{id} NO actualiza el inventario, necesitamos hacerlo por separado
-          console.log("🔍 Actualizando inventario por sede para producto vidrio:", {
+          console.log(" Actualizando inventario por sede para producto vidrio:", {
             productoId: vidrioId,
             cantidadInsula,
             cantidadCentro,
@@ -309,7 +309,7 @@ export default function InventoryPage() {
           await crearProductoVidrio(product);
         }
       } else {
-        // ✅ Producto normal: usar endpoint /productos
+        //  Producto normal: usar endpoint /productos
         if (editando) await actualizarProducto(editingProduct.id, product);
         else await crearProducto(product);
       }
@@ -366,7 +366,7 @@ export default function InventoryPage() {
     // Debug: mostrar qué categoría está seleccionada
     if (categoryId) {
       const selectedCategory = categories.find(cat => cat.id === categoryId);
-      console.log(`🔍 Filtro activo - Categoría seleccionada:`, {
+      console.log(` Filtro activo - Categoría seleccionada:`, {
         categoryId,
         categoryNombre: selectedCategory?.nombre,
         totalProductos: data?.length || 0,
@@ -382,7 +382,7 @@ export default function InventoryPage() {
       if (selectedCategory) {
         productosDespuesCategoria = productosDespuesCategoria.filter((item) => {
           // IMPORTANTE: Ahora TODOS los productos (normales y vidrios) tienen categoria como objeto {id, nombre}
-          // ✅ Backend unificado: categoria siempre es { id: X, nombre: "..." }
+          //  Backend unificado: categoria siempre es { id: X, nombre: "..." }
           const itemCategoriaNombre = typeof item.categoria === 'string' 
             ? item.categoria  // Compatibilidad: si aún llega como string
             : item.categoriaObj?.nombre || item.categoria?.nombre || item.categoria;
@@ -398,7 +398,7 @@ export default function InventoryPage() {
           
           // Debug detallado para vidrios
           if (item.esVidrio) {
-            console.log(`🔍 Filtro categoría - Vidrio (${coincide ? '✅' : '❌'}):`, {
+            console.log(` Filtro categoría - Vidrio (${coincide ? '' : ''}):`, {
               itemId: item.id,
               itemNombre: item.nombre,
               itemCategoria: item.categoria,
@@ -420,7 +420,7 @@ export default function InventoryPage() {
           return coincide;
         });
         
-        console.log(`📊 Después del filtro de categoría (ID: ${categoryId}):`, {
+        console.log(` Después del filtro de categoría (ID: ${categoryId}):`, {
           totalAntes: data?.length || 0,
           totalDespues: productosDespuesCategoria.length,
           vidriosDespues: productosDespuesCategoria.filter(p => p.esVidrio).length
@@ -436,7 +436,7 @@ export default function InventoryPage() {
         const codigo = (item.codigo || "").toLowerCase();
         const pasa = nombre.includes(search) || codigo.includes(search);
         if (item.esVidrio && !pasa && categoryId === 26) {
-          console.log(`🔍 Filtro búsqueda - Vidrio filtrado:`, {
+          console.log(` Filtro búsqueda - Vidrio filtrado:`, {
             itemId: item.id,
             itemNombre: item.nombre,
             search,
@@ -460,7 +460,7 @@ export default function InventoryPage() {
         const estado = total !== 0 ? "Disponible" : "Agotado";
         const pasa = estado === status;
         if (item.esVidrio && !pasa && categoryId === 26) {
-          console.log(`🔍 Filtro status - Vidrio filtrado:`, {
+          console.log(` Filtro status - Vidrio filtrado:`, {
             itemId: item.id,
             itemNombre: item.nombre,
             total,
@@ -475,7 +475,7 @@ export default function InventoryPage() {
         if (!color) return true;
         const pasa = (item.color || "").toUpperCase() === color.toUpperCase();
         if (item.esVidrio && !pasa && categoryId === 26) {
-          console.log(`🔍 Filtro color - Vidrio filtrado:`, {
+          console.log(` Filtro color - Vidrio filtrado:`, {
             itemId: item.id,
             itemNombre: item.nombre,
             itemColor: item.color,
@@ -489,7 +489,7 @@ export default function InventoryPage() {
         const precio = Number(item.precio1 || 0);
         const pasa = precio >= min && precio <= max;
         if (item.esVidrio && !pasa && categoryId === 26) {
-          console.log(`🔍 Filtro precio - Vidrio filtrado:`, {
+          console.log(` Filtro precio - Vidrio filtrado:`, {
             itemId: item.id,
             itemNombre: item.nombre,
             precio,
@@ -504,7 +504,7 @@ export default function InventoryPage() {
   // Log del resultado final del filtro
   useEffect(() => {
     if (view === "producto" && filters.categoryId === 26) {
-      console.log(`📊 Resultado final del filtro (VIDRIO):`, {
+      console.log(` Resultado final del filtro (VIDRIO):`, {
         totalProductos: data?.length || 0,
         productosFiltrados: filteredData.length,
         vidriosFiltrados: filteredData.filter(p => p.esVidrio).length,
@@ -518,7 +518,7 @@ export default function InventoryPage() {
         }
       });
       if (filteredData.length > 0) {
-        console.log(`✅ Productos que pasaron todos los filtros:`, filteredData.map(p => ({
+        console.log(` Productos que pasaron todos los filtros:`, filteredData.map(p => ({
           id: p.id,
           nombre: p.nombre,
           categoria: p.categoria,
@@ -526,7 +526,7 @@ export default function InventoryPage() {
           esVidrio: p.esVidrio
         })));
       } else {
-        console.warn(`⚠️ NO HAY PRODUCTOS DESPUÉS DE TODOS LOS FILTROS`);
+        console.warn(` NO HAY PRODUCTOS DESPUÉS DE TODOS LOS FILTROS`);
       }
     }
   }, [view, filteredData, filters, data]);

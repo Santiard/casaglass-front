@@ -91,7 +91,7 @@ const ConfirmarEntregaModal = ({ isOpen, entrega, onClose, onSuccess }) => {
             </div>
             {suma !== monto && (
               <div className="info-item" style={{ gridColumn: "1 / -1", color: "red" }}>
-                ⚠️ Advertencia: La suma del desglose (${suma.toLocaleString()}) no coincide con el monto total (${monto.toLocaleString()})
+                Advertencia: La suma del desglose (${suma.toLocaleString()}) no coincide con el monto total (${monto.toLocaleString()})
               </div>
             )}
             <div className="info-item">

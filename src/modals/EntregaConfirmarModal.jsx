@@ -36,7 +36,7 @@ export default function EntregaConfirmarModal({ isOpen, onClose, entrega, onConf
           <div className="alert info"><strong>Depósito:</strong> {fmtCOP(montoDeposito)}</div>
           {sumaDesglose !== monto && (
             <div className="alert error">
-              ⚠️ Advertencia: La suma del desglose (${sumaDesglose.toLocaleString()}) no coincide con el monto total (${monto.toLocaleString()})
+              Advertencia: La suma del desglose (${sumaDesglose.toLocaleString()}) no coincide con el monto total (${monto.toLocaleString()})
             </div>
           )}
         </div>

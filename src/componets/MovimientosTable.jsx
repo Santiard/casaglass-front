@@ -128,7 +128,7 @@ export default function MovimientosTable({
         )
       : data;
 
-    // 🔹 Ordenar por fecha descendente (más recientes primero)
+    //  Ordenar por fecha descendente (más recientes primero)
     arr = arr.sort((a, b) => {
       const fechaA = new Date(a.fecha);
       const fechaB = new Date(b.fecha);

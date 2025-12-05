@@ -40,12 +40,12 @@ export default function OrdenesTable({
   const [isHistoricoModalOpen, setIsHistoricoModalOpen] = useState(false);
   const [isHistoricoGeneralModalOpen, setIsHistoricoGeneralModalOpen] = useState(false);
 
-  // 🔹 Alternar expandir/ocultar items
+  //  Alternar expandir/ocultar items
   const toggleExpand = (ordenId) => {
     setExpanded((prev) => ({ ...prev, [ordenId]: !prev[ordenId] }));
   };
 
-  // 🔹 Formatear fecha local (sin conversión de zona horaria)
+  //  Formatear fecha local (sin conversión de zona horaria)
   const fmtFecha = (iso) => {
     if (!iso) return "-";
     
@@ -67,7 +67,7 @@ export default function OrdenesTable({
     return `${dia}/${mes}/${año}`;
   };
 
-  // 🔹 Calcular total de orden (usar total del backend si existe, sino calcular desde items)
+  //  Calcular total de orden (usar total del backend si existe, sino calcular desde items)
   const calcularTotal = (orden) => {
     // Si el backend ya calculó el total (incluye descuentos), usarlo
     if (orden?.total !== undefined && orden?.total !== null) {
@@ -78,7 +78,7 @@ export default function OrdenesTable({
     return orden.items.reduce((sum, item) => sum + (item.totalLinea || 0), 0);
   };
 
-  // 🔹 Formatear estado de la orden
+  //  Formatear estado de la orden
   const formatearEstado = (estado) => {
     const estadoLimpio = estado?.toLowerCase() || 'activa';
     const textos = {
@@ -131,13 +131,13 @@ export default function OrdenesTable({
     );
   };
 
-  // 🔹 Imprimir orden
+  //  Imprimir orden
   const handleImprimir = (orden) => {
     setOrdenImprimir(orden);
     setIsImprimirModalOpen(true);
   };
 
-  // 🔹 Filtrar y paginar
+  //  Filtrar y paginar
   const filtrados = useMemo(() => {
     const q = query.trim().toLowerCase();
     
@@ -164,8 +164,8 @@ export default function OrdenesTable({
       arr = arr.filter((o) => o.estado === filtroEstado);
     }
     
-    // 🔹 Ordenar por fecha descendente (más recientes primero)
-    // ⚠️ Clonar array para evitar mutar el original
+    //  Ordenar por fecha descendente (más recientes primero)
+    // Clonar array para evitar mutar el original
     arr = [...arr].sort((a, b) => {
       const fechaA = new Date(a.fecha);
       const fechaB = new Date(b.fecha);
@@ -200,7 +200,7 @@ export default function OrdenesTable({
   const showingFrom = total === 0 ? 0 : start + 1;
   const showingTo   = Math.min(start + rowsPerPageState, total);
 
-  // 🔹 Guardar orden (actualizar)
+  //  Guardar orden (actualizar)
   const handleGuardar = async (form, isEdit) => {
     try {
       await onEditar(form, isEdit);
@@ -215,7 +215,7 @@ export default function OrdenesTable({
 
   return (
     <div className="ordenes-table-container">
-      {/* 🔍 Buscador y Filtros */}
+      {/* Buscador y Filtros */}
       <div className="ordenes-toolbar ordenes-toolbar-single-row">
         <div className="ordenes-filters ordenes-filters-single-row">
           <input
@@ -297,7 +297,7 @@ export default function OrdenesTable({
         </div>
       </div>
 
-      {/* 📋 Tabla principal */}
+      {/* Tabla principal */}
       <div className="ordenes-table-wrapper">
         <table className="ordenes-table">
           <thead>

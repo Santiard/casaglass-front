@@ -1,6 +1,6 @@
 # Validación de NITs Duplicados - Clientes
 
-## ✅ **Sistema Implementado**
+## **Sistema Implementado**
 
 ### 🔄 **Flujo de Validación Completo**
 
@@ -10,7 +10,7 @@
 - **Condición**: Solo al crear (no al editar) y cuando NIT tiene ≥ 1 dígito
 - **Acción**: 
   - Campo se marca en rojo
-  - Muestra mensaje "⚠️ Este NIT ya está registrado"
+  - Muestra mensaje "Este NIT ya está registrado"
   - Deshabilita botón de guardar
 
 ```javascript
@@ -58,7 +58,7 @@ if (!isEdit && cliente.nit) {
 }
 ```
 
-### 📊 **Flujo de Datos**
+### **Flujo de Datos**
 
 ```
 ClientesPage
@@ -72,7 +72,7 @@ ClientesPage.handleGuardar()
 ClientesService.crearCliente()
 ```
 
-### 🛡️ **Capas de Protección**
+### **Capas de Protección**
 
 | Capa | Ubicación | Momento | Feedback |
 |------|-----------|---------|----------|
@@ -81,14 +81,14 @@ ClientesService.crearCliente()
 | **3. Página** | `ClientesPage` | Antes de API | Alert + cancelación |
 | **4. Backend** | Servidor | En base de datos | Response error |
 
-### 🎯 **Casos de Uso Cubiertos**
+### **Casos de Uso Cubiertos**
 
-#### ✅ **Escenarios Válidos**
+#### **Escenarios Válidos**
 - Crear cliente con NIT nuevo único
 - Editar cliente existente (NIT no cambia)
 - Campo NIT vacío y luego completado correctamente
 
-#### ❌ **Escenarios Bloqueados**
+#### **Escenarios Bloqueados**
 - Escribir NIT que ya existe → Campo rojo + botón deshabilitado
 - Enviar formulario con NIT duplicado → Error en modal
 - Intentar crear desde página con NIT existente → Alert + cancelación
@@ -99,7 +99,7 @@ ClientesService.crearCliente()
 2. **Escribe NIT**: `123456789`
 3. **Si NIT existe**:
    - Campo se pone rojo inmediatamente
-   - Aparece mensaje "⚠️ Este NIT ya está registrado"
+   - Aparece mensaje "Este NIT ya está registrado"
    - Botón "Agregar" se deshabilita
    - Usuario no puede continuar
 4. **Si NIT es único**:
@@ -124,11 +124,11 @@ ClientesService.crearCliente()
 - **Único**: No puede repetirse entre clientes existentes
 - **Inmutable**: No se puede cambiar al editar
 
-## 🚀 **Resultado Final**
+## **Resultado Final**
 
 El sistema garantiza que **NUNCA** se podrá crear un cliente con un NIT duplicado, proporcionando feedback inmediato al usuario y múltiples capas de validación para máxima seguridad.
 
-### 📱 **Experiencia de Usuario**
+### **Experiencia de Usuario**
 - **Feedback inmediato**: Ve el error mientras escribe
 - **Prevención proactiva**: No puede enviar datos inválidos  
 - **Mensajes claros**: Sabe exactamente qué está mal

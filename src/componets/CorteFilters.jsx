@@ -12,10 +12,10 @@ export default function CorteFilters({
 }) {
   return (
     <div className="filters-toolbar">
-      {/* 🔹 Switch Producto / Corte dentro de la barra */}
+      {/*  Switch Producto / Corte dentro de la barra */}
       <ViewSwitcher value={view} onChange={setView} />
 
-      {/* 🔹 Búsqueda */}
+      {/*  Búsqueda */}
       <input
         className="filter-input"
         type="text"
@@ -24,7 +24,7 @@ export default function CorteFilters({
         onChange={(e) => setFilters({ ...filters, search: e.target.value })}
       />
 
-      {/* 🔹 Color */}
+      {/*  Color */}
       <select
         className="filter-select"
         value={filters.color || ""}
@@ -38,7 +38,7 @@ export default function CorteFilters({
         <option value="NA">NA</option>
       </select>
 
-      {/* 🔹 Rangos (largo y precio) */}
+      {/*  Rangos (largo y precio) */}
       <input
         className="filter-input"
         style={{ maxWidth: 120 }}
@@ -80,7 +80,7 @@ export default function CorteFilters({
         onChange={(e) => setFilters({ ...filters, priceMax: e.target.value })}
       />
 
-      {/* 🔹 Botón agregar - Solo para administradores */}
+      {/*  Botón agregar - Solo para administradores */}
       {onAdd && (
         <button className="btn-add" onClick={onAdd}>
           <img src={add} className="iconButton" />

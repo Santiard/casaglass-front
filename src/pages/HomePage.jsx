@@ -26,7 +26,7 @@ export default function HomePage(){
   useEffect(() => {
     const loadDashboardData = async () => {
       if (!sedeId) {
-        console.warn('⚠️ No sedeId available, skipping dashboard load');
+        console.warn(' No sedeId available, skipping dashboard load');
         setLoading(false);
         return;
       }
@@ -38,7 +38,7 @@ export default function HomePage(){
         setDashboardData(data);
         
       } catch (err) {
-        console.error('❌ Error loading dashboard data:', err);
+        console.error(' Error loading dashboard data:', err);
         setError(err.message);
         
         // Mantener estructura vacía en caso de error para evitar crashes
@@ -66,7 +66,7 @@ export default function HomePage(){
     return (
       <div className="home-page">
         <div className="error-container">
-          <h2>⚠️ Error cargando dashboard</h2>
+          <h2> Error cargando dashboard</h2>
           <p>{error}</p>
           <button onClick={() => window.location.reload()} className="button">
             Recargar página

@@ -30,7 +30,7 @@ export async function crearTraslado(payload) {
     const { data } = await api.post("/traslados", payload);
     return data;
   } catch (error) {
-    console.error("❌ Error completo al crear traslado:", {
+    console.error(" Error completo al crear traslado:", {
       message: error.message,
       status: error.response?.status,
       statusText: error.response?.statusText,

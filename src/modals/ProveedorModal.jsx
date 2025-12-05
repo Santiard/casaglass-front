@@ -165,7 +165,7 @@ export default function ProveedorModal({
                 marginTop: '0.25rem',
                 fontWeight: '500'
               }}>
-                ⚠️ Este NIT ya está registrado
+                Este NIT ya está registrado
               </div>
             )}
           </label>

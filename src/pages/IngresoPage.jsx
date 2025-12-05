@@ -43,7 +43,7 @@ export default function IngresosPage() {
     try {
       const [prov, prods] = await Promise.all([
         listarProveedores(),
-        listarTodosLosProductos(), // ✅ Incluye productos normales + vidrios
+        listarTodosLosProductos(), //  Incluye productos normales + vidrios
       ]);
       
 
@@ -63,11 +63,11 @@ export default function IngresosPage() {
             id: p.id,
             nombre: p.nombre,
             codigo: p.codigo ?? "",
-            categoria: p.categoria?.nombre ?? p.categoria ?? "", // ✅ Extraemos el nombre si es objeto
-            color: p.color, // ✅ Incluir el color del producto
+            categoria: p.categoria?.nombre ?? p.categoria ?? "", //  Extraemos el nombre si es objeto
+            color: p.color, //  Incluir el color del producto
             largoCm: p.largoCm, // Incluir para que el filtro del modal funcione
-            esVidrio: p.esVidrio || false, // ✅ Incluir flag de vidrio
-            m1: p.m1, // ✅ Campos de vidrio
+            esVidrio: p.esVidrio || false, //  Incluir flag de vidrio
+            m1: p.m1, //  Campos de vidrio
             m2: p.m2,
             mm: p.mm,
           }))
@@ -123,7 +123,7 @@ export default function IngresosPage() {
       showSuccess(`Ingreso #${id} marcado como procesado correctamente`);
     } catch (e) {
       console.error("Error al procesar ingreso:", e);
-      console.error("📋 Detalle del error:", e?.response?.data);
+      console.error(" Detalle del error:", e?.response?.data);
       
       let errorMsg = "Error desconocido";
       if (e?.response?.data) {

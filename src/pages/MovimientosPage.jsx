@@ -48,7 +48,7 @@ export default function MovimientosPage() {
               id: p.id,
               nombre: p.nombre,
               codigo: p.codigo ?? "",
-              categoria: p.categoria?.nombre ?? p.categoria ?? "", // ✅ Extraemos el nombre si es objeto
+              categoria: p.categoria?.nombre ?? p.categoria ?? "", //  Extraemos el nombre si es objeto
             }))
         );
         setTraslados(Array.isArray(trasladosRes) ? trasladosRes : []);

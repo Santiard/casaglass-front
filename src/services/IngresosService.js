@@ -116,9 +116,9 @@ export async function crearIngresoDesdeForm(form) {
   let productosAntes = [];
   try {
     productosAntes = await listarInventarioCompleto({}, true, null);
-    console.log("📦 Productos con inventario obtenidos antes de crear el ingreso");
+    console.log(" Productos con inventario obtenidos antes de crear el ingreso");
   } catch (error) {
-    console.warn("⚠️ No se pudieron obtener productos con inventario antes del ingreso");
+    console.warn(" No se pudieron obtener productos con inventario antes del ingreso");
   }
   
   // Calcular el costo ponderado para cada producto ANTES de crear el ingreso

@@ -19,8 +19,8 @@ export default function Toast({ message, type = "info", isVisible, onClose, dura
         <span className="toast-icon">
           {type === "success" && "✓"}
           {type === "error" && "✕"}
-          {type === "warning" && "⚠"}
-          {type === "info" && "ℹ"}
+          {type === "warning" && ""}
+          {type === "info" && ""}
         </span>
         <span className="toast-message">{message}</span>
         <button className="toast-close" onClick={onClose}>×</button>

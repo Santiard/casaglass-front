@@ -126,26 +126,26 @@ export default function VentaCortesTable({
                   <>
                     <td className={Number(c.cantidadInsula || 0) < 0 ? "stock-negativo" : ""}>
                       {c.cantidadInsula ?? 0}
-                      {Number(c.cantidadInsula || 0) < 0 && <span className="badge-negativo"> ⚠️</span>}
+                      {Number(c.cantidadInsula || 0) < 0 && <span className="badge-negativo"> </span>}
                     </td>
                     <td className={Number(c.cantidadCentro || 0) < 0 ? "stock-negativo" : ""}>
                       {c.cantidadCentro ?? 0}
-                      {Number(c.cantidadCentro || 0) < 0 && <span className="badge-negativo"> ⚠️</span>}
+                      {Number(c.cantidadCentro || 0) < 0 && <span className="badge-negativo"> </span>}
                     </td>
                     <td className={Number(c.cantidadPatios || 0) < 0 ? "stock-negativo" : ""}>
                       {c.cantidadPatios ?? 0}
-                      {Number(c.cantidadPatios || 0) < 0 && <span className="badge-negativo"> ⚠️</span>}
+                      {Number(c.cantidadPatios || 0) < 0 && <span className="badge-negativo"> </span>}
                     </td>
                     <td className={stockNegativo ? "stock-negativo" : ""}>
                       <strong>{total}</strong>
-                      {stockNegativo && <span className="badge-negativo"> ⚠️ Faltan {Math.abs(total)}</span>}
+                      {stockNegativo && <span className="badge-negativo">  Faltan {Math.abs(total)}</span>}
                     </td>
                   </>
                 ) : (
                   // Para VENDEDOR: mostrar solo la cantidad de su sede
                   <td className={stockNegativo ? "stock-negativo" : ""}>
                     <strong>{cantidadDisponible}</strong>
-                    {stockNegativo && <span className="badge-negativo"> ⚠️ Faltan {Math.abs(cantidadDisponible)}</span>}
+                    {stockNegativo && <span className="badge-negativo">  Faltan {Math.abs(cantidadDisponible)}</span>}
                   </td>
                 )}
                 
@@ -172,11 +172,11 @@ export default function VentaCortesTable({
                     onChange={(e) => handleCantidadChange(uniqueKey, e.target.value)}
                     className="cantidad-input"
                     style={{ width: '60px', textAlign: 'center' }}
-                    title={stockNegativo ? `⚠️ Stock negativo: Faltan ${Math.abs(cantidadDisponible)} unidades. Puedes vender anticipadamente.` : ""}
+                    title={stockNegativo ? ` Stock negativo: Faltan ${Math.abs(cantidadDisponible)} unidades. Puedes vender anticipadamente.` : ""}
                   />
                   {stockNegativo && (
                     <small style={{ display: 'block', color: '#ff9800', fontSize: '10px', marginTop: '2px' }}>
-                      ⚠️ Faltan {Math.abs(cantidadDisponible)}
+ Faltan {Math.abs(cantidadDisponible)}
                     </small>
                   )}
                 </td>
@@ -197,7 +197,7 @@ export default function VentaCortesTable({
                       fontSize: '12px',
                       opacity: (!cantidadesVenta[uniqueKey] || cantidadesVenta[uniqueKey] <= 0) ? 0.5 : 1
                     }}
-                    title={stockNegativo ? "⚠️ Venta anticipada permitida" : ""}
+                    title={stockNegativo ? " Venta anticipada permitida" : ""}
                   >
                     Agregar
                   </button>

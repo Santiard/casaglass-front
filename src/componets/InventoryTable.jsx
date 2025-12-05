@@ -98,7 +98,7 @@ export default function InventoryTable({ data = [], filters, loading, onEditar, 
                         <td>{p.precio1 ? new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(p.precio1) : "-"}</td>
                         <td className={Number(p.cantidadInsula || 0) < 0 ? "stock-negativo" : ""}>
                           {p.cantidadInsula ?? 0}
-                          {Number(p.cantidadInsula || 0) < 0 && <span className="badge-negativo"> ⚠️</span>}
+                          {Number(p.cantidadInsula || 0) < 0 && <span className="badge-negativo"> </span>}
                         </td>
                       </>
                     )}
@@ -111,26 +111,26 @@ export default function InventoryTable({ data = [], filters, loading, onEditar, 
                       <>
                         <td className={Number(p.cantidadInsula || 0) < 0 ? "stock-negativo" : ""}>
                           {p.cantidadInsula ?? 0}
-                          {Number(p.cantidadInsula || 0) < 0 && <span className="badge-negativo"> ⚠️</span>}
+                          {Number(p.cantidadInsula || 0) < 0 && <span className="badge-negativo"> </span>}
                         </td>
                         <td className={Number(p.cantidadCentro || 0) < 0 ? "stock-negativo" : ""}>
                           {p.cantidadCentro ?? 0}
-                          {Number(p.cantidadCentro || 0) < 0 && <span className="badge-negativo"> ⚠️</span>}
+                          {Number(p.cantidadCentro || 0) < 0 && <span className="badge-negativo"> </span>}
                         </td>
                         <td className={Number(p.cantidadPatios || 0) < 0 ? "stock-negativo" : ""}>
                           {p.cantidadPatios ?? 0}
-                          {Number(p.cantidadPatios || 0) < 0 && <span className="badge-negativo"> ⚠️</span>}
+                          {Number(p.cantidadPatios || 0) < 0 && <span className="badge-negativo"> </span>}
                         </td>
                         <td className={stockNegativo ? "stock-negativo" : ""}>
                           <strong>{total}</strong>
-                          {stockNegativo && <span className="badge-negativo"> ⚠️ Faltan {Math.abs(total)}</span>}
+                          {stockNegativo && <span className="badge-negativo">  Faltan {Math.abs(total)}</span>}
                         </td>
                       </>
                     ) : (
                       // Para VENDEDOR: mostrar solo la cantidad de su sede
                       <td className={stockNegativo ? "stock-negativo" : ""}>
                         <strong>{cantidadVendedor}</strong>
-                        {stockNegativo && <span className="badge-negativo"> ⚠️ Faltan {Math.abs(cantidadVendedor)}</span>}
+                        {stockNegativo && <span className="badge-negativo">  Faltan {Math.abs(cantidadVendedor)}</span>}
                       </td>
                     )}
                     

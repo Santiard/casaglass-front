@@ -154,7 +154,7 @@ export default function EntregaDetalleModal({ entrega, isOpen, onClose }) {
           </div>
           {sumaDesglose !== monto && (
             <div className="entrega-detalle-warning">
-              ⚠️ Advertencia: La suma del desglose (${sumaDesglose.toLocaleString()}) no coincide con el monto total (${monto.toLocaleString()})
+              Advertencia: La suma del desglose (${sumaDesglose.toLocaleString()}) no coincide con el monto total (${monto.toLocaleString()})
             </div>
           )}
         </div>

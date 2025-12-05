@@ -161,7 +161,7 @@ export default function FacturasTable({
 
   return (
     <div className="table-container facturas">
-      {/* 🔍 Buscador y Filtros */}
+      {/* Buscador y Filtros */}
       <div className="ordenes-toolbar">
         <div className="ordenes-filters">
           <input
@@ -306,7 +306,7 @@ export default function FacturasTable({
         </div>
       </div>
 
-      {/* 📋 Tabla principal */}
+      {/* Tabla principal */}
       <div className="table-wrapper">
         <table className="table">
           <thead>

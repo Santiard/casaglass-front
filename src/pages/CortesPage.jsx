@@ -6,7 +6,7 @@ import { useConfirm } from "../hooks/useConfirm.jsx";
 import "../styles/InventoryPage.css";      // reutilizamos layout
 import "../styles/InventaryFilters.css";   // reutilizamos toolbar
 
-// 🔹 Datos estáticos de ejemplo (puedes cambiarlos cuando conectes al backend)
+//  Datos estáticos de ejemplo (puedes cambiarlos cuando conectes al backend)
 const CORTES_MOCK = [
   {
     id: 1,

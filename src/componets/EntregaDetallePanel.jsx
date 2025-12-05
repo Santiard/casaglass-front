@@ -94,7 +94,7 @@ export default function EntregaDetallePanel({ entrega, onClose }){
         <div><strong>Depósito:</strong> {fmtCOP(montoDeposito)}</div>
         {sumaDesglose !== monto && (
           <div style={{ gridColumn: "1 / -1", color: "red", fontWeight: "bold" }}>
-            ⚠️ Advertencia: La suma del desglose (${sumaDesglose.toLocaleString()}) no coincide con el monto total (${monto.toLocaleString()})
+            Advertencia: La suma del desglose (${sumaDesglose.toLocaleString()}) no coincide con el monto total (${monto.toLocaleString()})
           </div>
         )}
       </div>

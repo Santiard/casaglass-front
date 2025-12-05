@@ -38,10 +38,10 @@ export default function FacturarOrdenModal({ isOpen, onClose, onSave, orden }) {
 
   // Cargar configuración de impuestos y clientes al abrir el modal
   useEffect(() => {
-    console.log("🔍 [FacturarOrdenModal] useEffect ejecutado - isOpen:", isOpen, "orden:", orden ? { id: orden.id, numero: orden.numero } : null);
+    console.log(" [FacturarOrdenModal] useEffect ejecutado - isOpen:", isOpen, "orden:", orden ? { id: orden.id, numero: orden.numero } : null);
     
     if (isOpen && orden) {
-      console.log("🔍 [FacturarOrdenModal] Modal abierto, orden recibida:", {
+      console.log(" [FacturarOrdenModal] Modal abierto, orden recibida:", {
         id: orden.id,
         numero: orden.numero,
         tieneCliente: !!orden.cliente,
@@ -64,16 +64,16 @@ export default function FacturarOrdenModal({ isOpen, onClose, onSave, orden }) {
           const clientesData = await listarClientes();
           const clientesArray = Array.isArray(clientesData) ? clientesData : [];
           setClientes(clientesArray);
-          console.log("✅ [FacturarOrdenModal] Clientes cargados:", clientesArray.length);
+          console.log(" [FacturarOrdenModal] Clientes cargados:", clientesArray.length);
           
           // 2. Si la orden no tiene cliente completo, obtener la orden completa del backend
           let ordenCompleta = orden;
           if (!orden.cliente && orden.id) {
             try {
               ordenCompleta = await obtenerOrden(orden.id);
-              console.log("✅ [FacturarOrdenModal] Orden completa obtenida del backend:", ordenCompleta);
+              console.log(" [FacturarOrdenModal] Orden completa obtenida del backend:", ordenCompleta);
             } catch (err) {
-              console.warn("⚠️ [FacturarOrdenModal] No se pudo obtener orden completa, usando la inicial:", err);
+              console.warn(" [FacturarOrdenModal] No se pudo obtener orden completa, usando la inicial:", err);
             }
           }
           
@@ -81,23 +81,23 @@ export default function FacturarOrdenModal({ isOpen, onClose, onSave, orden }) {
           if (ordenCompleta?.cliente) {
             // Si la orden tiene el objeto cliente completo, usarlo
             const clienteCompleto = clientesArray.find(c => c.id === ordenCompleta.cliente.id) || ordenCompleta.cliente;
-            console.log("✅ [FacturarOrdenModal] Cliente seteado:", clienteCompleto);
+            console.log(" [FacturarOrdenModal] Cliente seteado:", clienteCompleto);
             setClienteFactura(clienteCompleto);
             setClienteFacturaId(String(clienteCompleto.id));
           } else if (ordenCompleta?.clienteId) {
             // Si solo tiene clienteId, buscar el cliente en la lista cargada
             const clienteEncontrado = clientesArray.find(c => c.id === ordenCompleta.clienteId);
             if (clienteEncontrado) {
-              console.log("✅ [FacturarOrdenModal] Cliente seteado desde clienteId:", clienteEncontrado);
+              console.log(" [FacturarOrdenModal] Cliente seteado desde clienteId:", clienteEncontrado);
               setClienteFactura(clienteEncontrado);
               setClienteFacturaId(String(clienteEncontrado.id));
             } else {
-              console.warn("⚠️ [FacturarOrdenModal] Cliente no encontrado con ID:", ordenCompleta.clienteId);
+              console.warn(" [FacturarOrdenModal] Cliente no encontrado con ID:", ordenCompleta.clienteId);
               setClienteFactura(null);
               setClienteFacturaId("");
             }
           } else {
-            console.warn("⚠️ [FacturarOrdenModal] Orden sin cliente ni clienteId");
+            console.warn(" [FacturarOrdenModal] Orden sin cliente ni clienteId");
             setClienteFactura(null);
             setClienteFacturaId("");
           }
@@ -109,7 +109,7 @@ export default function FacturarOrdenModal({ isOpen, onClose, onSave, orden }) {
             setTieneRetencion(false);
           }
         } catch (err) {
-          console.error("❌ [FacturarOrdenModal] Error cargando datos:", err);
+          console.error(" [FacturarOrdenModal] Error cargando datos:", err);
           setClientes([]);
           // Fallback: intentar usar cliente de la orden si existe
           if (orden?.cliente) {
@@ -271,7 +271,7 @@ export default function FacturarOrdenModal({ isOpen, onClose, onSave, orden }) {
             await actualizarOrden(orden.id, ordenUpdatePayload);
           }
         } catch (updateError) {
-          console.warn("⚠️ No se pudo actualizar tieneRetencionFuente en la orden:", updateError?.response?.data || updateError?.message);
+          console.warn(" No se pudo actualizar tieneRetencionFuente en la orden:", updateError?.response?.data || updateError?.message);
           // Continuar con la facturación aunque falle la actualización del campo
         }
       }
@@ -497,7 +497,7 @@ export default function FacturarOrdenModal({ isOpen, onClose, onSave, orden }) {
                 </div>
                 {clienteFactura && clienteFactura.id !== orden?.cliente?.id && (
                   <small style={{ display: "block", color: "#1f2a5c", fontSize: "0.75rem", marginTop: "0.5rem", fontStyle: "italic" }}>
-                    ⚠️ La factura se emitirá a un cliente diferente al de la orden
+                    La factura se emitirá a un cliente diferente al de la orden
                   </small>
                 )}
               </div>
@@ -674,12 +674,12 @@ export default function FacturarOrdenModal({ isOpen, onClose, onSave, orden }) {
                     Marque esta opción si el cliente es autoretenedor y debe aplicarse retención en la fuente.
                     {!superaUmbral && (
                       <span style={{ display: 'block', color: '#dc3545', marginTop: '0.25rem' }}>
-                        ⚠️ El subtotal sin IVA (${subtotalSinIvaTemp.toLocaleString('es-CO')}) no supera el umbral (${retefuenteThreshold.toLocaleString('es-CO')}), por lo que no se aplicará retención aunque esté marcado.
+                        El subtotal sin IVA (${subtotalSinIvaTemp.toLocaleString('es-CO')}) no supera el umbral (${retefuenteThreshold.toLocaleString('es-CO')}), por lo que no se aplicará retención aunque esté marcado.
                       </span>
                     )}
                     {superaUmbral && !tieneRetencion && (
                       <span style={{ display: 'block', color: '#856404', marginTop: '0.25rem' }}>
-                        ℹ️ Esta orden supera el umbral de retefuente. Marque la casilla si desea aplicar retención.
+                        Esta orden supera el umbral de retefuente. Marque la casilla si desea aplicar retención.
                       </span>
                     )}
                   </small>

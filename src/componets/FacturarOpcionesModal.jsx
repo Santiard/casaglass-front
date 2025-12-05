@@ -24,7 +24,6 @@ export default function FacturarOpcionesModal({
     <div className="modal-overlay confirm-modal-overlay" onClick={onClose}>
       <div className="confirm-modal-container" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '500px' }}>
         <div className="confirm-modal-icon confirm-modal-icon-info">
-          📄
         </div>
         <h2 className="confirm-modal-title">Facturar Orden #{ordenNumero}</h2>
         <p className="confirm-modal-message" style={{ marginBottom: '1.5rem' }}>
@@ -51,7 +50,6 @@ export default function FacturarOpcionesModal({
               gap: '0.5rem'
             }}
           >
-            <span>📋</span>
             <span>Solo esta orden</span>
           </button>
           <button
@@ -79,7 +77,6 @@ export default function FacturarOpcionesModal({
               e.target.style.borderColor = '#1e2753';
             }}
           >
-            <span>📚</span>
             <span>Todas las órdenes del cliente</span>
           </button>
         </div>

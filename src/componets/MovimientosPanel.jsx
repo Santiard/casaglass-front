@@ -16,7 +16,7 @@ return (
 {m.tipo} · {m.referencia}
 {m.direccion && (
 <span className={`badge ${m.direccion === 'ENTRADA' ? 'info' : 'warning'}`} style={{marginLeft: '8px'}}>
-{m.direccion === 'ENTRADA' ? '⬇️' : '⬆️'}
+{m.direccion === 'ENTRADA' ? '' : ''}
 </span>
 )}
 </div>

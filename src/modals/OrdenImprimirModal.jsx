@@ -30,7 +30,7 @@ export default function OrdenImprimirModal({ orden, isOpen, onClose }) {
                                   primerItem?.producto?.tipo !== undefined;
           
           if (!tieneColorYTipo) {
-            console.log("⚠️ Orden sin datos completos del producto (color/tipo), usando endpoint de detalle...");
+            console.log(" Orden sin datos completos del producto (color/tipo), usando endpoint de detalle...");
             try {
               const ordenDetalle = await obtenerOrdenDetalle(orden.id);
               // Combinar información de ambos endpoints, priorizando el detalle
@@ -39,7 +39,7 @@ export default function OrdenImprimirModal({ orden, isOpen, onClose }) {
                 items: ordenDetalle.items || ordenCompleta.items || []
               };
             } catch (detalleError) {
-              console.warn("⚠️ No se pudo obtener detalle, usando orden básica:", detalleError);
+              console.warn(" No se pudo obtener detalle, usando orden básica:", detalleError);
             }
           }
         }

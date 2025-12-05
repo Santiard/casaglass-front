@@ -152,13 +152,13 @@ export default function VentaTable({
         });
         
         if (productoEncontrado) {
-          console.log(`  ✅ Encontrado: ${productoEncontrado.codigo} - ${productoEncontrado.nombre} (Color: ${productoEncontrado.color})`);
+          console.log(`   Encontrado: ${productoEncontrado.codigo} - ${productoEncontrado.nombre} (Color: ${productoEncontrado.color})`);
         } else {
-          console.log(`  ❌ No encontrado para código ${codigo} con color ${colorProductoActual}`);
+          console.log(`   No encontrado para código ${codigo} con color ${colorProductoActual}`);
           // Intentar buscar sin filtro de color para debug
           const sinColor = catalogo.find(p => String(p.codigo || '').trim() === String(codigo).trim());
           if (sinColor) {
-            console.log(`  ⚠️  Producto encontrado SIN color: ${sinColor.codigo} - Color del producto: ${sinColor.color}, Color buscado: ${colorProductoActual}`);
+            console.log(`    Producto encontrado SIN color: ${sinColor.codigo} - Color del producto: ${sinColor.color}, Color buscado: ${colorProductoActual}`);
           }
         }
         
@@ -193,11 +193,11 @@ export default function VentaTable({
         console.log(`    → Llamando onAgregarProducto para ${productoKit.codigo} con cantidad ${cantidad}`);
         onAgregarProducto(productoKit, cantidad, precioSeleccionado);
       } else {
-        console.error("❌ onAgregarProducto no está definido!");
+        console.error(" onAgregarProducto no está definido!");
       }
     });
     
-    console.log(`✅ Kit agregado correctamente - ${productosKit.length} productos agregados`);
+    console.log(` Kit agregado correctamente - ${productosKit.length} productos agregados`);
     
     // Limpiar el input de cantidad después de agregar
     setCantidadesVenta(prev => ({ ...prev, [uniqueKey]: "" }));
@@ -306,25 +306,25 @@ export default function VentaTable({
                     {isCategoriaVidrio ? (
                       <td className={Number(p.cantidadInsula || 0) < 0 ? "stock-negativo" : ""}>
                         <strong>{p.cantidadInsula ?? 0}</strong>
-                        {Number(p.cantidadInsula || 0) < 0 && <span className="badge-negativo"> ⚠️</span>}
+                        {Number(p.cantidadInsula || 0) < 0 && <span className="badge-negativo"> </span>}
                       </td>
                     ) : (
                       <>
                         <td className={Number(p.cantidadInsula || 0) < 0 ? "stock-negativo" : ""}>
                           {p.cantidadInsula ?? 0}
-                          {Number(p.cantidadInsula || 0) < 0 && <span className="badge-negativo"> ⚠️</span>}
+                          {Number(p.cantidadInsula || 0) < 0 && <span className="badge-negativo"> </span>}
                         </td>
                         <td className={Number(p.cantidadCentro || 0) < 0 ? "stock-negativo" : ""}>
                           {p.cantidadCentro ?? 0}
-                          {Number(p.cantidadCentro || 0) < 0 && <span className="badge-negativo"> ⚠️</span>}
+                          {Number(p.cantidadCentro || 0) < 0 && <span className="badge-negativo"> </span>}
                         </td>
                         <td className={Number(p.cantidadPatios || 0) < 0 ? "stock-negativo" : ""}>
                           {p.cantidadPatios ?? 0}
-                          {Number(p.cantidadPatios || 0) < 0 && <span className="badge-negativo"> ⚠️</span>}
+                          {Number(p.cantidadPatios || 0) < 0 && <span className="badge-negativo"> </span>}
                         </td>
                         <td className={stockNegativo ? "stock-negativo" : ""}>
                           <strong>{total}</strong>
-                          {stockNegativo && <span className="badge-negativo"> ⚠️ Faltan {Math.abs(total)}</span>}
+                          {stockNegativo && <span className="badge-negativo">  Faltan {Math.abs(total)}</span>}
                         </td>
                       </>
                     )}
@@ -333,7 +333,7 @@ export default function VentaTable({
                   // Para VENDEDOR: mostrar solo la cantidad de su sede
                   <td className={stockNegativo ? "stock-negativo" : ""}>
                     <strong>{cantidadDisponible}</strong>
-                    {stockNegativo && <span className="badge-negativo"> ⚠️ Faltan {Math.abs(cantidadDisponible)}</span>}
+                    {stockNegativo && <span className="badge-negativo">  Faltan {Math.abs(cantidadDisponible)}</span>}
                   </td>
                 )}
                 
@@ -358,11 +358,11 @@ export default function VentaTable({
                     onChange={(e) => handleCantidadChange(uniqueKey, e.target.value)}
                     className="cantidad-input"
                     style={{ width: '60px', textAlign: 'center' }}
-                    title={stockNegativo ? `⚠️ Stock negativo: Faltan ${Math.abs(cantidadDisponible)} unidades. Puedes vender anticipadamente.` : ""}
+                    title={stockNegativo ? ` Stock negativo: Faltan ${Math.abs(cantidadDisponible)} unidades. Puedes vender anticipadamente.` : ""}
                   />
                   {stockNegativo && (
                     <small style={{ display: 'block', color: '#ff9800', fontSize: '10px', marginTop: '2px' }}>
-                      ⚠️ Faltan {Math.abs(cantidadDisponible)}
+ Faltan {Math.abs(cantidadDisponible)}
                     </small>
                   )}
                 </td>
@@ -378,7 +378,7 @@ export default function VentaTable({
                       }}
                       className="btnLink"
                       disabled={!cantidadesVenta[uniqueKey] || cantidadesVenta[uniqueKey] <= 0}
-                      title={stockNegativo ? "⚠️ Venta anticipada permitida" : ""}
+                      title={stockNegativo ? " Venta anticipada permitida" : ""}
                       type="button"
                     >
                       Agregar

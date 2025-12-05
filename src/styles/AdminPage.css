@@ -23,7 +23,7 @@
   grid-template-columns: repeat(auto-fit, minmax(15.625rem, 1fr)); /* 250px - Se ajusta solo */
   gap: 1.25rem;                       /* 20px */
 
-  /* 🔹 Centrar todo el bloque cuando haya menos de las columnas máximas */
+  /* Centrar todo el bloque cuando haya menos de las columnas máximas */
   justify-content: center;  
   justify-items: center;      /* centra cada card en su celda */
   margin-bottom: 2%;

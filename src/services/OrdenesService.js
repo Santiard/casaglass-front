@@ -1,7 +1,7 @@
 import { api } from "../lib/api";
 
 /* ================================================
-   📦 ÓRDENES - CRUD PRINCIPAL
+   ÓRDENES - CRUD PRINCIPAL
    ================================================ */
 
 // GET /api/ordenes → datos básicos  
@@ -33,13 +33,13 @@ export async function obtenerOrden(id) {
     // Asegurar que data sea un objeto, no un string
     let data = response.data;
     if (typeof data === 'string') {
-      console.warn("⚠️ Response.data es string, parseando...");
+      console.warn(" Response.data es string, parseando...");
       data = JSON.parse(data);
     }
     
     return data;
   } catch (error) {
-    console.error("❌ Error en obtenerOrden:", error);
+    console.error(" Error en obtenerOrden:", error);
     throw error;
   }
 }
@@ -80,8 +80,8 @@ export async function crearOrdenVenta(payload) {
       throw new Error("Todos los items deben tener productoId, cantidad y precioUnitario válidos (mayor a 0)");
     }
 
-    // 🔍 LOG: Verificar payload antes de enviar
-    console.log("📤 Payload completo para crear orden:", {
+    //  LOG: Verificar payload antes de enviar
+    console.log(" Payload completo para crear orden:", {
       fecha: payload.fecha,
       clienteId: payload.clienteId,
       sedeId: payload.sedeId,
@@ -111,9 +111,9 @@ export async function crearOrdenVenta(payload) {
       items: payload.items.map(item => {
         const productoId = parseInt(item.productoId);
         
-        // 🔍 LOG: Verificar cada item antes de parsear
+        //  LOG: Verificar cada item antes de parsear
         if (!productoId || productoId === 0 || isNaN(productoId)) {
-          console.error("❌ ERROR: Item con productoId inválido en crearOrdenVenta:", {
+          console.error(" ERROR: Item con productoId inválido en crearOrdenVenta:", {
             productoId: item.productoId,
             productoIdParsed: productoId,
             item: item
@@ -167,7 +167,7 @@ export async function crearOrdenVenta(payload) {
       }) : []
     };
     
-    console.log("📤 Enviando ordenData al backend:", {
+    console.log(" Enviando ordenData al backend:", {
       fecha: ordenData.fecha,
       tipoFecha: typeof ordenData.fecha,
       clienteId: ordenData.clienteId,
@@ -176,7 +176,7 @@ export async function crearOrdenVenta(payload) {
     
     const { data } = await api.post("ordenes/venta", ordenData);
     
-    console.log("✅ Respuesta del backend:", {
+    console.log(" Respuesta del backend:", {
       id: data?.id,
       numero: data?.numero,
       fecha: data?.fecha,
@@ -202,14 +202,14 @@ export async function crearOrdenOriginal(payload) {
   return data;
 }
 
-// ✅ PUT /api/ordenes/tabla/{id} (endpoint correcto del backend)
+//  PUT /api/ordenes/tabla/{id} (endpoint correcto del backend)
 export async function actualizarOrden(id, payload) {
   if (!id) throw new Error("ID de la orden no proporcionado");
   const { data } = await api.put(`ordenes/tabla/${id}`, payload);
   return data;
 }
 
-// ✅ Confirmar venta (cambiar venta de false a true)
+//  Confirmar venta (cambiar venta de false a true)
 export async function confirmarVenta(id, ordenCompleta) {
   if (!id) throw new Error("ID de la orden no proporcionado");
   
@@ -230,7 +230,7 @@ export async function confirmarVenta(id, ordenCompleta) {
         productoId = item.producto?.id;
         // Log para debug
         if (item.producto && !productoId) {
-          console.log("🔍 Debug producto en confirmarVenta:", {
+          console.log(" Debug producto en confirmarVenta:", {
             itemId: item.id,
             producto: item.producto,
             keysProducto: Object.keys(item.producto || {}),
@@ -251,7 +251,7 @@ export async function confirmarVenta(id, ordenCompleta) {
       
       // Si no hay productoId válido, retornar null para filtrarlo después
       if (!productoIdNum || productoIdNum === 0 || isNaN(productoIdNum)) {
-        console.warn("⚠️ Item sin productoId válido en confirmarVenta:", {
+        console.warn(" Item sin productoId válido en confirmarVenta:", {
           itemId: item.id,
           productoIdOriginal: item.productoId,
           producto: item.producto,
@@ -313,7 +313,7 @@ export async function confirmarVenta(id, ordenCompleta) {
   return data;
 }
 
-// ✅ PUT /api/ordenes/venta/{id} - Actualizar orden de venta específica (maneja inventario)
+//  PUT /api/ordenes/venta/{id} - Actualizar orden de venta específica (maneja inventario)
 export async function actualizarOrdenVenta(id, payload) {
   if (!id) throw new Error("ID de la orden no proporcionado");
   
@@ -450,7 +450,7 @@ export async function eliminarItem(ordenId, itemId) {
 }
 
 /* ================================================
-   📄 ORDENES - FACTURACIÓN
+   ORDENES - FACTURACIÓN
    ================================================ */
 
 // PUT /api/ordenes/{id}/facturar

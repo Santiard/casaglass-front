@@ -4,11 +4,11 @@
 Hook personalizado para manejar formularios con conversión automática a mayúsculas y validaciones específicas para campos numéricos.
 
 ## Características
-- ✅ **Conversión automática a mayúsculas** en campos de texto
-- ✅ **Validaciones numéricas** configurables
-- ✅ **Patrones predefinidos** para validaciones comunes
-- ✅ **Estilos automáticos** con helper function
-- ✅ **Reutilizable** en cualquier formulario
+- **Conversión automática a mayúsculas** en campos de texto
+- **Validaciones numéricas** configurables
+- **Patrones predefinidos** para validaciones comunes
+- **Estilos automáticos** con helper function
+- **Reutilizable** en cualquier formulario
 
 ## Importación
 ```javascript
