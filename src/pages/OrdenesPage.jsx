@@ -147,6 +147,11 @@ export default function OrdenesPage() {
   // 🔹 Facturar orden
   const handleFacturar = async (facturaPayload, isModal = false) => {
     try {
+      // Si facturaPayload es null, solo refrescar los datos (caso de facturación múltiple)
+      if (!facturaPayload) {
+        await fetchData();
+        return;
+      }
       
       let facturaResponse;
       let yaTeniaFactura = false;

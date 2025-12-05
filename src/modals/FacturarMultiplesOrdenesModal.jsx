@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../lib/api.js';
 import { listarClientes } from '../services/ClientesService.js';
-import { listarOrdenesTabla, obtenerOrden } from '../services/OrdenesService.js';
+import { listarOrdenesTabla, obtenerOrden, obtenerOrdenDetalle } from '../services/OrdenesService.js';
 import { getBusinessSettings } from '../services/businessSettingsService.js';
 import { useToast } from '../context/ToastContext.jsx';
 import '../styles/CrudModal.css';
@@ -65,8 +65,17 @@ const FacturarMultiplesOrdenesModal = ({ isOpen, onClose, ordenInicial, onSucces
           if (ordenInicial?.id) {
             console.log("🔍 [cargarDatos] Hay ordenInicial con ID:", ordenInicial.id);
             try {
-              const ordenCompleta = await obtenerOrden(ordenInicial.id);
-              console.log("✅ Orden completa obtenida:", ordenCompleta);
+              // Intentar primero con obtenerOrdenDetalle (más ligero y confiable)
+              let ordenCompleta;
+              try {
+                ordenCompleta = await obtenerOrdenDetalle(ordenInicial.id);
+                console.log("✅ Orden completa obtenida (detalle):", ordenCompleta);
+              } catch (detalleErr) {
+                console.warn("⚠️ No se pudo obtener detalle, intentando obtenerOrden completo:", detalleErr);
+                // Fallback: usar obtenerOrden completo
+                ordenCompleta = await obtenerOrden(ordenInicial.id);
+                console.log("✅ Orden completa obtenida (completo):", ordenCompleta);
+              }
               setOrdenInicialCompleta(ordenCompleta); // IMPORTANTE: Guardar la orden completa
               
               // Usar la orden completa (tiene todos los datos del cliente)
@@ -324,22 +333,26 @@ const FacturarMultiplesOrdenesModal = ({ isOpen, onClose, ordenInicial, onSucces
     const descuentos = Number(orden.descuentos || 0);
     const base = Math.max(0, subtotal - descuentos);
     
-    // Calcular IVA
-    const ivaVal = (ivaRate && ivaRate > 0) 
-      ? (base * ivaRate) / (100 + ivaRate) 
-      : 0;
+    // Calcular IVA: monto * porcentaje (ej: 19% = 0.19)
+    const ivaRateDecimal = (ivaRate && ivaRate > 0) ? ivaRate / 100 : 0;
+    const ivaVal = base * ivaRateDecimal;
     
     const subtotalSinIva = base - ivaVal;
     
-    // Calcular retención (solo para contabilidad, NO afecta el total)
+    // Calcular retención
     const tieneRetencion = ordenesConRetencion.has(orden.id);
-    const debeAplicarRetencion = tieneRetencion && subtotalSinIva >= retefuenteThreshold;
-    const reteVal = debeAplicarRetencion 
-      ? (subtotalSinIva * retefuenteRate) / 100 
+    const debeAplicarRetencion = tieneRetencion && subtotalSinIva >= (retefuenteThreshold || 0);
+    
+    // Validar que retefuenteRate esté disponible y sea válido
+    const rateValido = retefuenteRate && retefuenteRate > 0 && retefuenteRate <= 100;
+    const retefuenteRateDecimal = (rateValido && retefuenteRate) ? retefuenteRate / 100 : 0;
+    const reteVal = (debeAplicarRetencion && rateValido)
+      ? subtotalSinIva * retefuenteRateDecimal
       : 0;
     
-    // El total NO se reduce por la retefuente, es solo un dato contable
-    const total = base;
+    // Total final de la factura: base (con IVA incluido) - retención (según contabilidad)
+    // El total a pagar debe mostrarse con la retención ya restada
+    const total = base - reteVal;
     
     return {
       subtotal,
@@ -375,16 +388,65 @@ const FacturarMultiplesOrdenesModal = ({ isOpen, onClose, ordenInicial, onSucces
       setLoading(true);
       
       // Obtener las órdenes completas antes de facturar
+      // Estrategia: Usar /detalle para obtener estructura completa (cliente, items)
+      // y combinar con datos de ordenesFacturables (venta, credito, estado, facturada, etc.)
       const ordenesCompletas = await Promise.all(
-        Array.from(ordenesSeleccionadas).map(ordenId => 
-          api.get(`/ordenes/${ordenId}`).then(res => res.data)
-        )
+        Array.from(ordenesSeleccionadas).map(async (ordenId) => {
+          // Buscar la orden en ordenesFacturables (tiene campos como venta, credito, estado, facturada)
+          const ordenEnLista = ordenesFacturables.find(o => o.id === ordenId);
+          
+          try {
+            // Intentar primero con el endpoint de detalle (más ligero y sin relaciones circulares)
+            const ordenDetalle = await obtenerOrdenDetalle(ordenId);
+            
+            // Combinar datos: usar detalle como base y complementar con datos de ordenesFacturables
+            return {
+              ...ordenDetalle,
+              // Campos adicionales de ordenesFacturables (si existen)
+              ...(ordenEnLista ? {
+                venta: ordenEnLista.venta,
+                credito: ordenEnLista.credito,
+                estado: ordenEnLista.estado,
+                facturada: ordenEnLista.facturada,
+                numeroFactura: ordenEnLista.numeroFactura,
+                factura: ordenEnLista.factura,
+                incluidaEntrega: ordenEnLista.incluidaEntrega,
+                sedeId: ordenEnLista.sedeId || ordenEnLista.sede?.id,
+                trabajadorId: ordenEnLista.trabajadorId || ordenEnLista.trabajador?.id,
+                creditoDetalle: ordenEnLista.creditoDetalle,
+                // Asegurar que clienteId esté disponible
+                clienteId: ordenDetalle.cliente?.id || ordenEnLista?.clienteId || ordenEnLista?.cliente?.id
+              } : {})
+            };
+          } catch (detalleErr) {
+            console.warn(`⚠️ No se pudo obtener detalle de orden ${ordenId}, intentando endpoint completo:`, detalleErr);
+            // Fallback: usar el endpoint completo solo si /detalle falla
+            try {
+              const res = await api.get(`/ordenes/${ordenId}`);
+              return res.data;
+            } catch (fullErr) {
+              // Si ambos fallan, usar la orden de la lista (tiene menos datos pero es mejor que nada)
+              if (ordenEnLista) {
+                console.warn(`⚠️ Usando orden de la lista para ${ordenId} (sin items completos)`);
+                return ordenEnLista;
+              }
+              throw new Error(`No se pudo obtener la orden ${ordenId}`);
+            }
+          }
+        })
       );
 
       // Actualizar tieneRetencionFuente en las órdenes que lo necesiten
       for (const orden of ordenesCompletas) {
         const tieneRetencion = ordenesConRetencion.has(orden.id);
         if (orden.venta && orden.tieneRetencionFuente !== tieneRetencion) {
+          // Validar que tengamos sedeId antes de intentar actualizar
+          const sedeId = Number(orden.sedeId || orden.sede?.id);
+          if (!sedeId) {
+            console.warn(`⚠️ Orden ${orden.numero} no tiene sedeId, saltando actualización de tieneRetencionFuente`);
+            continue;
+          }
+          
           try {
             const ordenUpdatePayload = {
               fecha: orden.fecha,
@@ -396,7 +458,7 @@ const FacturarMultiplesOrdenesModal = ({ isOpen, onClose, ordenInicial, onSucces
               tieneRetencionFuente: tieneRetencion,
               descuentos: Number(orden.descuentos || 0),
               clienteId: Number(orden.clienteId || orden.cliente?.id),
-              sedeId: Number(orden.sedeId || orden.sede?.id),
+              sedeId: sedeId,
               ...(orden.trabajadorId || orden.trabajador?.id ? { trabajadorId: Number(orden.trabajadorId || orden.trabajador?.id) } : {}),
               items: (Array.isArray(orden.items) ? orden.items : []).map(item => ({
                 id: item.id ?? null,
@@ -422,25 +484,110 @@ const FacturarMultiplesOrdenesModal = ({ isOpen, onClose, ordenInicial, onSucces
 
       // Crear facturas para cada orden seleccionada
       const facturasCreadas = [];
+      const ordenesConError = [];
+      
       for (const orden of ordenesCompletas) {
+        // Validar que la orden tenga todos los datos necesarios
+        if (!orden || !orden.id) {
+          console.error(`❌ Orden inválida (sin ID):`, orden);
+          ordenesConError.push({ orden: orden?.numero || 'N/A', error: 'Orden sin ID válido' });
+          continue;
+        }
+        
+        // Verificar nuevamente que la orden no esté ya facturada (doble verificación)
+        if (orden.facturada || orden.numeroFactura || orden.factura) {
+          console.warn(`⚠️ La orden ${orden.numero} ya está facturada, saltando...`);
+          continue;
+        }
+        
+        // Validar que el cliente de factura tenga ID
+        if (!clienteFactura || !clienteFactura.id) {
+          console.error(`❌ Cliente de factura inválido:`, clienteFactura);
+          ordenesConError.push({ orden: orden.numero, error: 'Cliente de factura inválido' });
+          continue;
+        }
+        
         const totales = calcularTotalesOrden(orden);
         
-        // Calcular el porcentaje de retefuente a enviar (solo si se aplicó la retención)
-        // Si reteVal > 0, significa que se aplicó la retefuente (verificó umbral)
-        // Si reteVal === 0, no se aplica (no superó el umbral o no está marcado)
-        const porcentajeRetencionFuente = totales.reteVal > 0 ? retefuenteRate : 0;
+        // Calcular el valor monetario de retención (el backend espera el valor calculado, NO el porcentaje)
+        // Base imponible = subtotal - descuentos
+        const baseImponible = Number(totales.subtotal || 0) - Number(totales.descuentos || 0);
+        const tieneRetencion = ordenesConRetencion.has(orden.id);
+        
+        // Validar que retefuenteRate esté disponible y sea válido antes de usarlo
+        const rateValido = retefuenteRate && retefuenteRate > 0 && retefuenteRate <= 100;
+        
+        // Calcular IVA: monto * porcentaje (ej: 19% = 0.19, 1.25% = 0.0125)
+        const porcentajeIva = Number(ivaRate || 0);
+        const porcentajeIvaDecimal = porcentajeIva / 100; // Convertir 19 a 0.19
+        const valorIva = (porcentajeIva && porcentajeIva > 0)
+          ? baseImponible * porcentajeIvaDecimal
+          : 0;
+        const valorIvaRedondeado = Math.round(valorIva * 100) / 100; // Redondear a 2 decimales
+        
+        // Calcular subtotal sin IVA (base imponible para retención)
+        const subtotalSinIva = baseImponible - valorIvaRedondeado;
+        
+        // Calcular retención como valor monetario sobre el subtotal sin IVA
+        const porcentajeRetencion = (tieneRetencion && totales.reteVal > 0 && rateValido) 
+          ? Number(retefuenteRate) 
+          : 0;
+        const porcentajeRetencionDecimal = porcentajeRetencion / 100; // Convertir 1.25 a 0.0125
+        const valorRetencionFuente = (tieneRetencion && porcentajeRetencion > 0)
+          ? subtotalSinIva * porcentajeRetencionDecimal
+          : 0;
+        const valorRetencionRedondeado = Math.round(valorRetencionFuente * 100) / 100; // Redondear a 2 decimales
+        
+        // Log de depuración
+        console.log(`[FacturarMultiples] Orden ${orden.numero} - Impuestos:`, {
+          tieneRetencion,
+          baseImponible,
+          porcentajeIva,
+          valorIva: valorIvaRedondeado,
+          subtotalSinIva,
+          porcentajeRetencion,
+          valorRetencionFuente: valorRetencionRedondeado,
+          totalCalculado: baseImponible - valorRetencionRedondeado,
+          retefuenteRate,
+          rateValido,
+          retefuenteThreshold
+        });
+        
+        // Validar que retefuenteRate esté definido si se necesita
+        if (tieneRetencion && totales.reteVal > 0 && !rateValido) {
+          console.error(`[FacturarMultiples] retefuenteRate no está definido o es inválido para orden ${orden.numero}:`, retefuenteRate);
+          ordenesConError.push({ orden: orden.numero, error: `retefuenteRate inválido: ${retefuenteRate}` });
+          continue;
+        }
         
         const facturaPayload = {
-          ordenId: orden.id,
+          ordenId: Number(orden.id),
           fecha: formData.fecha,
-          subtotal: totales.subtotal,
-          descuentos: totales.descuentos,
-          iva: ivaRate,
-          retencionFuente: porcentajeRetencionFuente, // Usa el valor calculado que verifica el umbral
-          formaPago: formData.formaPago,
+          subtotal: Number(totales.subtotal || 0),
+          descuentos: Number(totales.descuentos || 0),
+          iva: valorIvaRedondeado, // Valor calculado en dinero, NO porcentaje
+          retencionFuente: Math.max(0, valorRetencionRedondeado), // Valor calculado en dinero, NO porcentaje
+          formaPago: formData.formaPago || 'EFECTIVO',
           observaciones: formData.observaciones || `Factura generada desde orden #${orden.numero}`,
-          clienteId: clienteFactura.id
+          clienteId: Number(clienteFactura.id)
+          // No enviar total: el backend lo calcula automáticamente
         };
+        
+        // Validar que todos los campos requeridos estén presentes
+        if (!facturaPayload.ordenId || !facturaPayload.clienteId || !facturaPayload.fecha) {
+          console.error(`❌ Payload inválido para orden ${orden.numero}:`, facturaPayload);
+          ordenesConError.push({ orden: orden.numero, error: 'Payload inválido (faltan campos requeridos)' });
+          continue;
+        }
+        
+        // Validar que retencionFuente no sea negativo o inválido
+        if (facturaPayload.retencionFuente < 0 || isNaN(facturaPayload.retencionFuente)) {
+          console.error(`❌ retencionFuente inválido para orden ${orden.numero}:`, facturaPayload.retencionFuente);
+          facturaPayload.retencionFuente = 0;
+        }
+        
+        // Log del payload para debugging
+        console.log(`📤 [FacturarMultiples] Enviando factura para orden ${orden.numero}:`, facturaPayload);
 
         try {
           const facturaResponse = await api.post('/facturas', facturaPayload);
@@ -456,29 +603,63 @@ const FacturarMultiplesOrdenesModal = ({ isOpen, onClose, ordenInicial, onSucces
             console.warn(`⚠️ No se pudo marcar como pagada la factura ${facturaResponse.data?.id}:`, pagoErr);
           }
           
-          // Marcar orden como facturada
-          try {
-            await api.put(`/ordenes/${orden.id}/facturar`, { facturada: true });
-          } catch (factErr) {
-            console.warn(`⚠️ No se pudo marcar como facturada la orden ${orden.id}:`, factErr);
-          }
+          // NOTA: El backend automáticamente marca la orden como facturada al crear la factura
+          // No es necesario hacer una llamada adicional para marcarla como facturada
           
           facturasCreadas.push({
             ordenNumero: orden.numero,
             facturaNumero: facturaResponse.data?.numeroFactura || facturaResponse.data?.numero || 'N/A'
           });
         } catch (factErr) {
-          // Si la factura ya existe, continuar con la siguiente
-          if (factErr.response?.status === 400 && /ya tiene una factura/i.test(String(factErr.response?.data?.message || ''))) {
-            console.warn(`⚠️ La orden ${orden.numero} ya tiene factura`);
+          // Si la factura ya existe (400), obtener la factura existente y continuar
+          if (factErr.response?.status === 400) {
+            const errorMsg = String(factErr.response?.data?.error || factErr.response?.data?.message || '');
+            if (/ya tiene una factura/i.test(errorMsg)) {
+              // La orden ya tiene factura, intentar marcar como pagada la factura existente
+              try {
+                const facturaId = factErr.response?.data?.facturaId;
+                if (facturaId) {
+                  await api.put(`/facturas/${facturaId}/pagar`, { 
+                    fechaPago: formData.fecha 
+                  });
+                }
+              } catch (pagoErr) {
+                // Silenciar error si no se puede marcar como pagada (no es crítico)
+              }
+              // No agregar a errores, simplemente continuar
+              continue;
+            }
+          }
+          
+          // Si es un error 500, registrar pero continuar con las demás
+          if (factErr.response?.status === 500) {
+            const errorMsg = String(factErr.response?.data?.error || factErr.response?.data?.message || '');
+            console.error(`❌ Error 500 al facturar orden ${orden.numero}:`, errorMsg);
+            ordenesConError.push({ 
+              orden: orden.numero, 
+              error: `Error del servidor: ${errorMsg}` 
+            });
             continue;
           }
-          throw factErr;
+          
+          // Para otros errores, registrar y continuar
+          console.error(`❌ Error al facturar orden ${orden.numero}:`, factErr);
+          ordenesConError.push({ 
+            orden: orden.numero, 
+            error: factErr.response?.data?.error || factErr.response?.data?.message || 'Error desconocido' 
+          });
         }
       }
 
+      // Mostrar resultados
       if (facturasCreadas.length > 0) {
-        showSuccess(`Se crearon ${facturasCreadas.length} factura(s) exitosamente.`);
+        let mensaje = `Se crearon ${facturasCreadas.length} factura(s) exitosamente.`;
+        if (ordenesConError.length > 0) {
+          mensaje += ` ${ordenesConError.length} orden(es) tuvieron errores.`;
+        }
+        showSuccess(mensaje);
+      } else if (ordenesConError.length > 0) {
+        showError(`No se pudo crear ninguna factura. ${ordenesConError.length} orden(es) tuvieron errores.`);
       }
       
       resetForm();

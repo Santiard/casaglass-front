@@ -930,7 +930,8 @@ export default function OrdenEditarModal({
         : null;
       const isJairoVelandia = clienteSeleccionado?.nombre?.toUpperCase() === "JAIRO JAVIER VELANDIA";
 
-      // Calcular el total de la orden
+      // Calcular el subtotal de la orden (suma de totalLinea de todos los items)
+      // El precio ya incluye IVA, así que el subtotal es el precio completo
       const subtotal = itemsActivos.reduce((sum, item) => sum + (item.totalLinea || 0), 0);
       const totalOrden = subtotal - (form.descuentos || 0);
 
@@ -994,6 +995,7 @@ export default function OrdenEditarModal({
         credito: esCredito,
         tieneRetencionFuente: false, // Siempre false al crear (se marca al facturar)
         descuentos: Number(form.descuentos || 0),
+        subtotal: subtotal, // Enviar subtotal explícitamente (precio completo con IVA incluido)
         clienteId: Number(form.clienteId),
         sedeId: Number(form.sedeId),
         // trabajadorId es opcional según la documentación
@@ -1126,6 +1128,7 @@ export default function OrdenEditarModal({
     credito: form.credito,
     tieneRetencionFuente: Boolean(form.tieneRetencionFuente ?? false),
     descuentos: Number(form.descuentos || 0),
+    subtotal: subtotalEditar, // Enviar subtotal explícitamente (precio completo con IVA incluido)
     clienteId: form.clienteId ? Number(form.clienteId) : null,
     trabajadorId: form.trabajadorId ? Number(form.trabajadorId) : null,
     sedeId: form.sedeId ? Number(form.sedeId) : null,

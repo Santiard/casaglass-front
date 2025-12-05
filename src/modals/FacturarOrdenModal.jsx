@@ -169,19 +169,14 @@ export default function FacturarOrdenModal({ isOpen, onClose, onSave, orden }) {
       // Calcular base (subtotal - descuentos)
       const baseInicial = subtotal - descuentosOrden;
       
-      // Calcular IVA: Si el precio incluye IVA, extraer el IVA del precio
-      // IVA = precio * (tasa / (100 + tasa))
-      const ivaCalculado = (ivaRate && ivaRate > 0) 
-        ? (baseInicial * ivaRate) / (100 + ivaRate) 
-        : 0;
+      // Calcular IVA: monto * porcentaje (ej: 19% = 0.19)
+      const ivaRateDecimal = (ivaRate && ivaRate > 0) ? ivaRate / 100 : 0;
+      const ivaCalculado = baseInicial * ivaRateDecimal;
       
       // Calcular retención: Solo si está marcada la orden para retención Y la base (sin IVA) supera el umbral
       const subtotalSinIva = baseInicial - ivaCalculado;
-      // Para órdenes a crédito, solo aplicar si está marcado el checkbox
-      // Para órdenes a contado, aplicar automáticamente si supera el umbral (comportamiento actual)
-      const debeAplicarRetencion = esCredito 
-        ? (tieneRetencion && subtotalSinIva >= (retefuenteThreshold || 0))
-        : (subtotalSinIva >= (retefuenteThreshold || 0));
+      // Aplicar retención solo si está marcado el checkbox Y supera el umbral (para todas las órdenes)
+      const debeAplicarRetencion = tieneRetencion && subtotalSinIva >= (retefuenteThreshold || 0);
 
       setForm({
         ordenId: orden.id,
@@ -242,8 +237,8 @@ export default function FacturarOrdenModal({ isOpen, onClose, onSave, orden }) {
     setLoading(true);
     try {
       // Primero, actualizar la orden con tieneRetencionFuente si es necesario
-      // Solo actualizar si la orden es a crédito y el valor ha cambiado
-      if (esCredito && orden?.venta) {
+      // Actualizar para todas las órdenes (crédito y contado) si el valor ha cambiado
+      if (orden?.venta) {
         try {
           // Construir payload para actualizar la orden con tieneRetencionFuente
           const ordenUpdatePayload = {
@@ -281,13 +276,52 @@ export default function FacturarOrdenModal({ isOpen, onClose, onSave, orden }) {
         }
       }
       
+      // Calcular los valores monetarios (el backend espera valores calculados, NO porcentajes)
+      // Base imponible = subtotal - descuentos
+      const descuentosNum = form.descuentos === "" ? 0 : Number(form.descuentos || 0);
+      const baseImponible = Number(form.subtotal || 0) - descuentosNum;
+      
+      // Calcular IVA: monto * porcentaje (ej: 19% = 0.19, 1.25% = 0.0125)
+      const porcentajeIva = Number(form.iva || 0);
+      const porcentajeIvaDecimal = porcentajeIva / 100; // Convertir 19 a 0.19
+      const valorIva = (porcentajeIva && porcentajeIva > 0)
+        ? baseImponible * porcentajeIvaDecimal
+        : 0;
+      const valorIvaRedondeado = Math.round(valorIva * 100) / 100; // Redondear a 2 decimales
+      
+      // Calcular subtotal sin IVA (base imponible para retención)
+      const subtotalSinIva = baseImponible - valorIvaRedondeado;
+      
+      // Calcular retención como valor monetario sobre el subtotal sin IVA
+      const porcentajeRetencion = Number(form.retencionFuente || 0);
+      const porcentajeRetencionDecimal = porcentajeRetencion / 100; // Convertir 1.25 a 0.0125
+      const valorRetencionFuente = (tieneRetencion && porcentajeRetencion > 0)
+        ? subtotalSinIva * porcentajeRetencionDecimal
+        : 0;
+      const valorRetencionRedondeado = Math.round(valorRetencionFuente * 100) / 100; // Redondear a 2 decimales
+      
+      console.log(`[FacturarOrden] Cálculo de impuestos:`, {
+        subtotal: form.subtotal,
+        descuentos: descuentosNum,
+        baseImponible,
+        porcentajeIva,
+        valorIva: valorIvaRedondeado,
+        subtotalSinIva,
+        porcentajeRetencion,
+        valorRetencionFuente: valorRetencionRedondeado,
+        totalCalculado: baseImponible - valorRetencionRedondeado
+      });
+      
       const payloadToSend = {
         ...form,
-        descuentos: form.descuentos === "" ? 0 : form.descuentos,
+        descuentos: descuentosNum,
+        iva: valorIvaRedondeado, // Valor calculado en dinero, NO porcentaje
+        retencionFuente: Math.max(0, valorRetencionRedondeado), // Valor calculado en dinero, NO porcentaje
         // Si se seleccionó un cliente diferente, incluir clienteId
         // Si no se seleccionó ninguno (clienteFacturaId === ""), no se envía y el backend usa el cliente de la orden
         ...(clienteFacturaId && clienteFacturaId !== "" ? { clienteId: Number(clienteFacturaId) } : {}),
         // No enviar estado: el backend lo ignora y crea PENDIENTE
+        // No enviar total: el backend lo calcula automáticamente
       };
       await onSave(payloadToSend, false);
       onClose();
@@ -590,7 +624,7 @@ export default function FacturarOrdenModal({ isOpen, onClose, onSave, orden }) {
               </div>
             </div>
             
-            {/* Checkbox para marcar si la orden tiene retefuente (solo para órdenes a crédito) */}
+            {/* Checkbox para marcar si la orden tiene retefuente (para todas las órdenes) */}
             {(() => {
               // Calcular subtotal sin IVA para el mensaje del checkbox
               const baseTemp = Math.max(0, subtotalOrden - (parseFloat(form.descuentos) || 0));
@@ -599,8 +633,9 @@ export default function FacturarOrdenModal({ isOpen, onClose, onSave, orden }) {
                 ? (baseTemp * ivaPorcentajeTemp) / (100 + ivaPorcentajeTemp) 
                 : 0;
               const subtotalSinIvaTemp = baseTemp - ivaValTemp;
+              const superaUmbral = subtotalSinIvaTemp >= (retefuenteThreshold || 0);
               
-              return esCredito ? (
+              return (
                 <div style={{ 
                   marginTop: '1rem', 
                   padding: '1rem', 
@@ -612,17 +647,19 @@ export default function FacturarOrdenModal({ isOpen, onClose, onSave, orden }) {
                     display: 'flex', 
                     alignItems: 'center', 
                     gap: '0.5rem', 
-                    cursor: 'pointer',
-                    fontWeight: '500'
+                    cursor: superaUmbral ? 'pointer' : 'not-allowed',
+                    fontWeight: '500',
+                    opacity: superaUmbral ? 1 : 0.6
                   }}>
                     <input
                       type="checkbox"
                       checked={tieneRetencion}
                       onChange={(e) => setTieneRetencion(e.target.checked)}
+                      disabled={!superaUmbral}
                       style={{
                         width: '18px',
                         height: '18px',
-                        cursor: 'pointer'
+                        cursor: superaUmbral ? 'pointer' : 'not-allowed'
                       }}
                     />
                     <span>Esta orden tiene retención en la fuente (retefuente)</span>
@@ -635,41 +672,44 @@ export default function FacturarOrdenModal({ isOpen, onClose, onSave, orden }) {
                     marginLeft: '28px'
                   }}>
                     Marque esta opción si el cliente es autoretenedor y debe aplicarse retención en la fuente.
-                    {subtotalSinIvaTemp < retefuenteThreshold && (
+                    {!superaUmbral && (
                       <span style={{ display: 'block', color: '#dc3545', marginTop: '0.25rem' }}>
                         ⚠️ El subtotal sin IVA (${subtotalSinIvaTemp.toLocaleString('es-CO')}) no supera el umbral (${retefuenteThreshold.toLocaleString('es-CO')}), por lo que no se aplicará retención aunque esté marcado.
                       </span>
                     )}
+                    {superaUmbral && !tieneRetencion && (
+                      <span style={{ display: 'block', color: '#856404', marginTop: '0.25rem' }}>
+                        ℹ️ Esta orden supera el umbral de retefuente. Marque la casilla si desea aplicar retención.
+                      </span>
+                    )}
                   </small>
                 </div>
-              ) : null;
+              );
             })()}
             {(() => {
               const base = Math.max(0, subtotalOrden - (parseFloat(form.descuentos) || 0));
               
-              // Calcular IVA: Si el precio incluye IVA, extraer el IVA del precio
-              // IVA = precio * (tasa / (100 + tasa))
+              // Calcular IVA: monto * porcentaje (ej: 19% = 0.19)
               const ivaPorcentaje = Number(form.iva) || 0;
+              const ivaPorcentajeDecimal = ivaPorcentaje / 100; // Convertir 19 a 0.19
               const ivaVal = (ivaPorcentaje && ivaPorcentaje > 0) 
-                ? (base * ivaPorcentaje) / (100 + ivaPorcentaje) 
+                ? base * ivaPorcentajeDecimal
                 : 0;
               
               // Calcular subtotal sin IVA
               const subtotalSinIva = base - ivaVal;
               
-              // Calcular retención: 
-              // - Para órdenes a crédito: solo si está marcado el checkbox Y supera el umbral
-              // - Para órdenes a contado: solo si supera el umbral (comportamiento automático)
-              const debeAplicarRetencion = esCredito
-                ? (tieneRetencion && subtotalSinIva >= (retefuenteThreshold || 0))
-                : (subtotalSinIva >= (retefuenteThreshold || 0));
+              // Calcular retención: solo si está marcado el checkbox Y supera el umbral (para todas las órdenes)
+              const debeAplicarRetencion = tieneRetencion && subtotalSinIva >= (retefuenteThreshold || 0);
               
               const retencionPorcentaje = debeAplicarRetencion ? (Number(form.retencionFuente) || 0) : 0;
+              const retencionPorcentajeDecimal = retencionPorcentaje / 100; // Convertir 1.25 a 0.0125
               const reteVal = debeAplicarRetencion 
-                ? (subtotalSinIva * retencionPorcentaje) / 100 
+                ? subtotalSinIva * retencionPorcentajeDecimal
                 : 0;
               
-              // Total final: base (con IVA incluido) - retención
+              // Total final de la factura: base (con IVA incluido) - retención (según contabilidad)
+              // El total a pagar debe mostrarse con la retención ya restada
               const total = base - reteVal;
               
               const invalid = (parseFloat(form.descuentos) || 0) > subtotalOrden || base < 0;
@@ -698,10 +738,8 @@ export default function FacturarOrdenModal({ isOpen, onClose, onSave, orden }) {
                       <input type="text" value={money(reteVal)} disabled />
                       {!debeAplicarRetencion && (
                         <small style={{ display: 'block', color: '#666', fontSize: '0.75rem', marginTop: '0.25rem' }}>
-                          {esCredito 
-                            ? (!tieneRetencion 
-                                ? "No aplica (no marcada para retención)" 
-                                : `No aplica (umbral: ${retefuenteThreshold.toLocaleString('es-CO')})`)
+                          {!tieneRetencion 
+                            ? "No aplica (no marcada para retención)" 
                             : `No aplica (umbral: ${retefuenteThreshold.toLocaleString('es-CO')})`}
                         </small>
                       )}

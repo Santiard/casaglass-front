@@ -2,11 +2,14 @@ import "../styles/Table.css";
 import { useMemo, useState } from "react";
 import eliminar from "../assets/eliminar.png";
 import check from "../assets/check.png";
+import HistoricoFacturasClienteModal from "../modals/HistoricoFacturasClienteModal.jsx";
+import HistoricoFacturasGeneralModal from "../modals/HistoricoFacturasGeneralModal.jsx";
 
 export default function FacturasTable({
   data = [],
   onVerificar,
   onEliminar,
+  onConfirmarTodas,
   clientes = [],
   rowsPerPage = 10,
   loading = false,
@@ -18,6 +21,8 @@ export default function FacturasTable({
   const [clienteSeleccionado, setClienteSeleccionado] = useState(null);
   const [showClienteModal, setShowClienteModal] = useState(false);
   const [clienteSearchModal, setClienteSearchModal] = useState("");
+  const [isHistoricoModalOpen, setIsHistoricoModalOpen] = useState(false);
+  const [isHistoricoGeneralModalOpen, setIsHistoricoGeneralModalOpen] = useState(false);
 
   const fmtFecha = (iso) =>
     iso
@@ -136,6 +141,14 @@ export default function FacturasTable({
 
   const { pageData, total, maxPage, curPage, start } = filtrados;
 
+  // Calcular cantidad de facturas pendientes
+  const facturasPendientes = useMemo(() => {
+    return data.filter(f => {
+      const estado = f.estado?.toLowerCase() || 'pendiente';
+      return estado === 'pendiente';
+    }).length;
+  }, [data]);
+
   const canPrev = curPage > 1;
   const canNext = curPage < maxPage;
   const goFirst = () => setPage(1);
@@ -159,6 +172,10 @@ export default function FacturasTable({
             onChange={(e) => {
               setQuery(e.target.value);
               setPage(1);
+            }}
+            style={{
+              maxWidth: '300px',
+              width: '300px'
             }}
           />
           
@@ -226,9 +243,56 @@ export default function FacturasTable({
               Limpiar filtros
             </button>
           )}
+          
+          {/* Botón Confirmar Todas */}
+          {onConfirmarTodas && facturasPendientes > 0 && (
+            <button
+              onClick={onConfirmarTodas}
+              className="btn-guardar"
+              style={{
+                whiteSpace: 'nowrap',
+                padding: '0.5rem 1rem',
+                fontSize: '0.9rem',
+                marginLeft: '0.5rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem'
+              }}
+              title={`Confirmar ${facturasPendientes} factura(s) pendiente(s)`}
+            >
+              <img src={check} alt="Confirmar" style={{ width: '16px', height: '16px' }} />
+              Confirmar Todas ({facturasPendientes})
+            </button>
+          )}
         </div>
 
         <div className="ordenes-actions">
+          {/* Botones de Histórico */}
+          <button
+            onClick={() => setIsHistoricoModalOpen(true)}
+            className="btn-guardar"
+            style={{
+              marginRight: '0.5rem',
+              padding: '0.5rem 1rem',
+              fontSize: '0.9rem',
+              whiteSpace: 'nowrap'
+            }}
+          >
+            Histórico por Cliente
+          </button>
+          <button
+            onClick={() => setIsHistoricoGeneralModalOpen(true)}
+            className="btn-guardar"
+            style={{
+              marginRight: '1rem',
+              padding: '0.5rem 1rem',
+              fontSize: '0.9rem',
+              whiteSpace: 'nowrap'
+            }}
+          >
+            Histórico General
+          </button>
+          
           <div className="rows-per-page">
             <span>Filas:</span>
             <select
@@ -254,6 +318,7 @@ export default function FacturasTable({
               <th>Orden</th>
               <th>Subtotal</th>
               <th>IVA</th>
+              <th>Retefuente</th>
               <th>Total</th>
               <th>Forma de Pago</th>
               <th>Estado</th>
@@ -265,7 +330,7 @@ export default function FacturasTable({
           <tbody>
             {loading && (
               <tr>
-                <td colSpan={12} className="empty">
+                <td colSpan={13} className="empty">
                   Cargando...
                 </td>
               </tr>
@@ -273,7 +338,7 @@ export default function FacturasTable({
 
             {!loading && pageData.length === 0 && (
               <tr>
-                <td colSpan={12} className="empty">
+                <td colSpan={13} className="empty">
                   No hay facturas registradas
                 </td>
               </tr>
@@ -286,6 +351,7 @@ export default function FacturasTable({
                 const cliente = f.cliente || f.orden?.cliente;
                 const subtotal = f.subtotal || 0;
                 const iva = f.iva || 0;
+                const retencionFuente = f.retencionFuente || 0;
                 const descuentos = f.descuentos || 0;
                 const total = f.total || (subtotal + iva - descuentos);
                 const estado = f.estado?.toLowerCase() || 'pendiente';
@@ -301,6 +367,7 @@ export default function FacturasTable({
                     <td>#{f.orden?.numero ?? f.ordenId ?? "-"}</td>
                     <td>{fmtCOP(subtotal)}</td>
                     <td>{fmtCOP(iva)}</td>
+                    <td>{fmtCOP(retencionFuente)}</td>
                     <td>{fmtCOP(total)}</td>
                     <td>{f.formaPago ?? "-"}</td>
                     <td>{formatearEstado(f.estado)}</td>
@@ -520,6 +587,22 @@ export default function FacturasTable({
             </div>
           </div>
         </div>
+      )}
+
+      {/* Modal de Histórico por Cliente */}
+      {isHistoricoModalOpen && (
+        <HistoricoFacturasClienteModal
+          isOpen={isHistoricoModalOpen}
+          onClose={() => setIsHistoricoModalOpen(false)}
+        />
+      )}
+      
+      {/* Modal de Histórico General */}
+      {isHistoricoGeneralModalOpen && (
+        <HistoricoFacturasGeneralModal
+          isOpen={isHistoricoGeneralModalOpen}
+          onClose={() => setIsHistoricoGeneralModalOpen(false)}
+        />
       )}
     </div>
   );

@@ -1,20 +1,20 @@
 import React, { useState, useEffect, Fragment } from "react";
 import { listarClientes } from "../services/ClientesService.js";
-import { listarOrdenes, listarOrdenesTabla } from "../services/OrdenesService.js";
+import { listarFacturasPorCliente, listarFacturasTabla } from "../services/FacturasService.js";
 import { useToast } from "../context/ToastContext.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import "../styles/Table.css";
 import "../styles/OrdenesTable.css";
 
-export default function HistoricoClienteModal({ isOpen, onClose }) {
+export default function HistoricoFacturasClienteModal({ isOpen, onClose }) {
   const { showError } = useToast();
   const { isAdmin, sedeId } = useAuth();
   const [clientes, setClientes] = useState([]);
   const [clienteSeleccionado, setClienteSeleccionado] = useState(null);
   const [clienteSearchModal, setClienteSearchModal] = useState("");
   const [showClienteModal, setShowClienteModal] = useState(false);
-  const [ordenes, setOrdenes] = useState([]);
-  const [ordenesCompletas, setOrdenesCompletas] = useState([]); // Almacenar todas las órdenes sin filtrar
+  const [facturas, setFacturas] = useState([]);
+  const [facturasCompletas, setFacturasCompletas] = useState([]); // Almacenar todas las facturas sin filtrar
   const [loading, setLoading] = useState(false);
   const [expanded, setExpanded] = useState({});
   const [fechaDesde, setFechaDesde] = useState("");
@@ -36,110 +36,116 @@ export default function HistoricoClienteModal({ isOpen, onClose }) {
     }
   }, [isOpen, showError]);
 
-  // Cargar órdenes cuando se selecciona un cliente
+  // Cargar facturas cuando se selecciona un cliente o cambian las fechas
   useEffect(() => {
     if (clienteSeleccionado?.id) {
-      cargarOrdenesCliente(clienteSeleccionado.id);
+      cargarFacturasCliente(clienteSeleccionado.id);
     } else {
-      setOrdenes([]);
-      setOrdenesCompletas([]);
+      setFacturas([]);
+      setFacturasCompletas([]);
     }
   }, [clienteSeleccionado]);
 
-  // Filtrar órdenes por fecha cuando cambian los filtros
+  // Filtrar facturas por fecha cuando cambian los filtros
   useEffect(() => {
-    if (ordenesCompletas.length === 0) {
-      setOrdenes([]);
+    if (facturasCompletas.length === 0) {
+      setFacturas([]);
       return;
     }
 
-    let ordenesFiltradas = [...ordenesCompletas];
+    let facturasFiltradas = [...facturasCompletas];
 
     // Filtrar por fecha desde
     if (fechaDesde) {
-      ordenesFiltradas = ordenesFiltradas.filter(o => {
-        const fechaOrden = new Date(o.fecha);
+      facturasFiltradas = facturasFiltradas.filter(f => {
+        const fechaFactura = new Date(f.fecha);
         const fechaDesdeDate = new Date(fechaDesde);
         fechaDesdeDate.setHours(0, 0, 0, 0);
-        return fechaOrden >= fechaDesdeDate;
+        return fechaFactura >= fechaDesdeDate;
       });
     }
 
     // Filtrar por fecha hasta
     if (fechaHasta) {
-      ordenesFiltradas = ordenesFiltradas.filter(o => {
-        const fechaOrden = new Date(o.fecha);
+      facturasFiltradas = facturasFiltradas.filter(f => {
+        const fechaFactura = new Date(f.fecha);
         const fechaHastaDate = new Date(fechaHasta);
         fechaHastaDate.setHours(23, 59, 59, 999);
-        return fechaOrden <= fechaHastaDate;
+        return fechaFactura <= fechaHastaDate;
       });
     }
 
-    setOrdenes(ordenesFiltradas);
-  }, [fechaDesde, fechaHasta, ordenesCompletas]);
+    setFacturas(facturasFiltradas);
+  }, [fechaDesde, fechaHasta, facturasCompletas]);
 
-  const cargarOrdenesCliente = async (clienteId) => {
+  const cargarFacturasCliente = async (clienteId) => {
     setLoading(true);
     try {
-      console.log("🔍 [HISTÓRICO] Buscando órdenes para clienteId:", clienteId, "Tipo:", typeof clienteId);
-      
-      // Intentar primero con listarOrdenesTabla (endpoint optimizado)
-      // Si no es admin, también filtrar por sede
-      const params = {
-        clienteId: Number(clienteId)
-      };
-      if (!isAdmin && sedeId) {
-        params.sedeId = sedeId;
-      }
-      
-      console.log("🔍 [HISTÓRICO] Parámetros enviados:", params);
-      
-      let ordenesData;
+      console.log("🔍 [HistoricoFacturasCliente] Buscando facturas para clienteId:", clienteId, "Tipo:", typeof clienteId);
+      let facturasData;
       try {
-        ordenesData = await listarOrdenesTabla(params);
-        console.log("✅ [HISTÓRICO] Órdenes recibidas de listarOrdenesTabla:", ordenesData?.length || 0);
-      } catch (tablaError) {
-        console.warn("⚠️ [HISTÓRICO] Error con listarOrdenesTabla, intentando con listarOrdenes:", tablaError);
-        // Fallback a listarOrdenes
-        ordenesData = await listarOrdenes(params);
-        console.log("✅ [HISTÓRICO] Órdenes recibidas de listarOrdenes:", ordenesData?.length || 0);
-      }
-      
-      // Filtrar por cliente si el backend no lo hace automáticamente
-      let ordenesFiltradas = Array.isArray(ordenesData) ? ordenesData : [];
-      
-      // Si el backend no filtró, hacerlo en el frontend
-      if (ordenesFiltradas.length > 0) {
-        const primeraOrden = ordenesFiltradas[0];
-        const tieneClienteId = primeraOrden.clienteId || primeraOrden.cliente?.id;
-        if (!tieneClienteId || primeraOrden.clienteId !== Number(clienteId)) {
-          console.log("🔍 [HISTÓRICO] Filtrando en frontend por clienteId:", clienteId);
-          ordenesFiltradas = ordenesFiltradas.filter(orden => {
-            const ordenClienteId = orden.clienteId || orden.cliente?.id;
-            return Number(ordenClienteId) === Number(clienteId);
-          });
-          console.log("✅ [HISTÓRICO] Órdenes después de filtrar:", ordenesFiltradas.length);
-        }
+        // Intentar primero con el endpoint específico por cliente
+        facturasData = await listarFacturasPorCliente(clienteId);
+        console.log("✅ [HistoricoFacturasCliente] Facturas recibidas de listarFacturasPorCliente:", facturasData?.length || 0);
+      } catch (error) {
+        // Fallback: obtener todas y filtrar por cliente
+        console.warn("⚠️ [HistoricoFacturasCliente] Error con listarFacturasPorCliente, usando fallback:", error);
+        const params = isAdmin ? {} : { sedeId };
+        const todasFacturas = await listarFacturasTabla(params);
+        console.log("📋 [HistoricoFacturasCliente] Total facturas obtenidas:", todasFacturas?.length || 0);
+        
+        // Filtrar por cliente - comparar tanto por ID como por nombre
+        facturasData = Array.isArray(todasFacturas) ? todasFacturas.filter(f => {
+          const facturaClienteId = f.clienteId || f.cliente?.id || f.orden?.cliente?.id;
+          const facturaClienteNombre = f.cliente?.nombre || f.orden?.cliente?.nombre;
+          const clienteNombre = clienteSeleccionado?.nombre;
+          
+          // Comparar por ID
+          const coincidePorId = facturaClienteId && Number(facturaClienteId) === Number(clienteId);
+          
+          // Comparar por nombre (fallback si no hay ID)
+          const coincidePorNombre = facturaClienteNombre && clienteNombre && 
+            facturaClienteNombre.trim().toUpperCase() === clienteNombre.trim().toUpperCase();
+          
+          const coincide = coincidePorId || coincidePorNombre;
+          
+          if (!coincide) {
+            console.log("❌ [HistoricoFacturasCliente] Factura filtrada:", {
+              facturaId: f.id,
+              facturaNumero: f.numeroFactura || f.numero,
+              facturaClienteId,
+              facturaClienteNombre,
+              clienteIdBuscado: clienteId,
+              clienteNombreBuscado: clienteNombre,
+              coincidePorId,
+              coincidePorNombre
+            });
+          }
+          
+          return coincide;
+        }) : [];
+        
+        console.log("✅ [HistoricoFacturasCliente] Facturas después de filtrar:", facturasData.length);
       }
       
       // Ordenar por fecha descendente (más recientes primero)
-      const ordenesOrdenadas = ordenesFiltradas.sort((a, b) => {
+      const facturasOrdenadas = Array.isArray(facturasData) ? facturasData.sort((a, b) => {
         const fechaA = new Date(a.fecha || 0);
         const fechaB = new Date(b.fecha || 0);
         const diffFechas = fechaB - fechaA;
         if (diffFechas === 0) return (b.id || 0) - (a.id || 0);
         return diffFechas;
-      });
+      }) : [];
       
-      console.log("✅ [HISTÓRICO] Órdenes finales ordenadas:", ordenesOrdenadas.length);
-      setOrdenesCompletas(ordenesOrdenadas);
-      // setOrdenes se actualizará automáticamente por el useEffect de filtrado
+      console.log("✅ [HistoricoFacturasCliente] Facturas finales ordenadas:", facturasOrdenadas.length);
+      setFacturasCompletas(facturasOrdenadas);
+      // setFacturas se actualizará automáticamente por el useEffect de filtrado
     } catch (err) {
-      console.error("❌ [HISTÓRICO] Error cargando órdenes del cliente:", err);
-      console.error("❌ [HISTÓRICO] Error response:", err.response?.data);
-      console.error("❌ [HISTÓRICO] Error status:", err.response?.status);
-      showError("No se pudieron cargar las órdenes del cliente.");
-      setOrdenes([]);
+      console.error("❌ [HistoricoFacturasCliente] Error cargando facturas del cliente:", err);
+      console.error("❌ [HistoricoFacturasCliente] Error response:", err.response?.data);
+      console.error("❌ [HistoricoFacturasCliente] Error status:", err.response?.status);
+      showError("No se pudieron cargar las facturas del cliente.");
+      setFacturas([]);
     } finally {
       setLoading(false);
     }
@@ -165,35 +171,26 @@ export default function HistoricoClienteModal({ isOpen, onClose }) {
         }).format(n)
       : n ?? "-";
 
-  // Calcular total de una orden
-  const calcularTotal = (orden) => {
-    if (orden?.total !== undefined && orden?.total !== null) {
-      return orden.total;
-    }
-    if (!Array.isArray(orden?.items)) return 0;
-    return orden.items.reduce((sum, item) => sum + (item.totalLinea || 0), 0);
-  };
-
   // Formatear estado
   const formatearEstado = (estado) => {
-    const estadoLimpio = estado?.toLowerCase() || 'activa';
+    const estadoLimpio = estado?.toLowerCase() || 'pendiente';
     const textos = {
-      'activa': 'Activa',
-      'anulada': 'Anulada',
       'pendiente': 'Pendiente',
-      'completada': 'Completada'
+      'pagada': 'Pagada',
+      'anulada': 'Anulada',
+      'en_proceso': 'En Proceso'
     };
-    return textos[estadoLimpio] || estado || 'Activa';
+    return textos[estadoLimpio] || estado || 'Pendiente';
   };
 
-  // Alternar expandir/ocultar items
-  const toggleExpand = (ordenId) => {
-    setExpanded((prev) => ({ ...prev, [ordenId]: !prev[ordenId] }));
+  // Alternar expandir/ocultar detalles
+  const toggleExpand = (facturaId) => {
+    setExpanded((prev) => ({ ...prev, [facturaId]: !prev[facturaId] }));
   };
 
   // Función para crear ventana de impresión
   const crearVentanaImpresion = () => {
-    if (!clienteSeleccionado || ordenes.length === 0) return null;
+    if (!clienteSeleccionado || facturas.length === 0) return null;
     
     const contenido = document.getElementById('printable-historico-content').innerHTML;
     const ventana = window.open('', '', 'width=800,height=600');
@@ -201,7 +198,7 @@ export default function HistoricoClienteModal({ isOpen, onClose }) {
       <!DOCTYPE html>
       <html>
         <head>
-          <title>Histórico de Órdenes - ${clienteSeleccionado.nombre}</title>
+          <title>Histórico de Facturas - ${clienteSeleccionado.nombre}</title>
           <style>
             @page {
               margin: 10mm;
@@ -214,7 +211,6 @@ export default function HistoricoClienteModal({ isOpen, onClose }) {
               color-adjust: exact;
             }
             
-            /* Forzar impresión en escala de grises */
             @media print {
               * {
                 -webkit-print-color-adjust: economy;
@@ -259,7 +255,7 @@ export default function HistoricoClienteModal({ isOpen, onClose }) {
               font-size: 0.7rem;
             }
             
-            .orden-print-section {
+            .factura-print-section {
               margin-bottom: 12px;
               page-break-inside: avoid;
               border: 1px solid #ccc;
@@ -268,7 +264,7 @@ export default function HistoricoClienteModal({ isOpen, onClose }) {
               background: transparent;
             }
             
-            .orden-print-header {
+            .factura-print-header {
               display: flex;
               justify-content: space-between;
               align-items: center;
@@ -277,14 +273,14 @@ export default function HistoricoClienteModal({ isOpen, onClose }) {
               border-bottom: 1px solid #999;
             }
             
-            .orden-print-header h3 {
+            .factura-print-header h3 {
               margin: 0;
               color: #000;
               font-size: 0.85rem;
               font-weight: 600;
             }
             
-            .orden-print-info {
+            .factura-print-info {
               display: grid;
               grid-template-columns: 1fr 1fr;
               gap: 4px;
@@ -292,49 +288,12 @@ export default function HistoricoClienteModal({ isOpen, onClose }) {
               font-size: 0.7rem;
             }
             
-            .orden-print-info-row {
+            .factura-print-info-row {
               display: flex;
               justify-content: space-between;
             }
             
-            .orden-print-items {
-              margin-top: 6px;
-            }
-            
-            .orden-print-items-table {
-              width: 100%;
-              border-collapse: collapse;
-              font-size: 0.7rem;
-              margin-top: 4px;
-            }
-            
-            .orden-print-items-table thead {
-              background-color: transparent;
-              color: #000;
-            }
-            
-            .orden-print-items-table th {
-              padding: 3px 4px;
-              text-align: left;
-              font-weight: 600;
-              border: 1px solid #000;
-              border-bottom: 2px solid #000;
-              background-color: transparent;
-              color: #000;
-            }
-            
-            .orden-print-items-table td {
-              padding: 3px 4px;
-              border: 1px solid #ccc;
-              color: #000;
-              background-color: transparent;
-            }
-            
-            .orden-print-items-table tbody tr:nth-child(even) {
-              background-color: transparent;
-            }
-            
-            .orden-print-totals {
+            .factura-print-totals {
               margin-top: 6px;
               padding-top: 4px;
               border-top: 1px solid #999;
@@ -344,11 +303,11 @@ export default function HistoricoClienteModal({ isOpen, onClose }) {
               font-size: 0.75rem;
             }
             
-            .orden-print-totals-row {
+            .factura-print-totals-row {
               text-align: right;
             }
             
-            .orden-print-totals-row strong {
+            .factura-print-totals-row strong {
               font-weight: 600;
             }
             
@@ -398,7 +357,7 @@ export default function HistoricoClienteModal({ isOpen, onClose }) {
                 font-size: 0.7rem;
               }
               
-              .orden-print-section {
+              .factura-print-section {
                 page-break-inside: avoid;
               }
               
@@ -411,7 +370,6 @@ export default function HistoricoClienteModal({ isOpen, onClose }) {
         <body>
           ${contenido}
           <script>
-            // Cerrar la ventana después de imprimir o cancelar
             var timeoutId;
             
             function cerrarVentana() {
@@ -420,13 +378,11 @@ export default function HistoricoClienteModal({ isOpen, onClose }) {
               }
             }
             
-            // Escuchar el evento afterprint
             window.addEventListener('afterprint', function() {
               clearTimeout(timeoutId);
               setTimeout(cerrarVentana, 100);
             });
             
-            // Fallback: cerrar después de un tiempo
             timeoutId = setTimeout(cerrarVentana, 5000);
           </script>
         </body>
@@ -438,8 +394,8 @@ export default function HistoricoClienteModal({ isOpen, onClose }) {
 
   // Función para imprimir
   const handleImprimir = () => {
-    if (!clienteSeleccionado || ordenes.length === 0) {
-      showError("No hay órdenes para imprimir");
+    if (!clienteSeleccionado || facturas.length === 0) {
+      showError("No hay facturas para imprimir");
       return;
     }
     const ventana = crearVentanaImpresion();
@@ -453,12 +409,12 @@ export default function HistoricoClienteModal({ isOpen, onClose }) {
   if (!isOpen) return null;
 
   // Calcular totales
-  const totalOrdenes = ordenes.length;
-  const totalMonto = ordenes.reduce((sum, orden) => sum + calcularTotal(orden), 0);
-  const totalCredito = ordenes.filter(o => o.credito).reduce((sum, orden) => {
-    const saldo = orden.creditoDetalle?.saldoPendiente || 0;
-    return sum + saldo;
-  }, 0);
+  const totalFacturas = facturas.length;
+  const totalMonto = facturas.reduce((sum, f) => sum + (f.total || 0), 0);
+  const totalSubtotal = facturas.reduce((sum, f) => sum + (f.subtotal || 0), 0);
+  const totalDescuentos = facturas.reduce((sum, f) => sum + (f.descuentos || 0), 0);
+  const totalIva = facturas.reduce((sum, f) => sum + (f.iva || 0), 0);
+  const totalRetencion = facturas.reduce((sum, f) => sum + (f.retencionFuente || 0), 0);
 
   return (
     <>
@@ -481,10 +437,10 @@ export default function HistoricoClienteModal({ isOpen, onClose }) {
             borderBottom: '2px solid #1e2753'
           }}>
             <h2 style={{ margin: 0, color: '#fff', fontSize: '1.5rem', fontWeight: '600' }}>
-              Histórico de Órdenes por Cliente
+              Histórico de Facturas por Cliente
             </h2>
             <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-              {clienteSeleccionado && ordenes.length > 0 && (
+              {clienteSeleccionado && facturas.length > 0 && (
                 <button
                   onClick={handleImprimir}
                   style={{
@@ -581,8 +537,8 @@ export default function HistoricoClienteModal({ isOpen, onClose }) {
                     type="button"
                     onClick={() => {
                       setClienteSeleccionado(null);
-                      setOrdenes([]);
-                      setOrdenesCompletas([]);
+                      setFacturas([]);
+                      setFacturasCompletas([]);
                       setFechaDesde("");
                       setFechaHasta("");
                       setExpanded({});
@@ -700,102 +656,76 @@ export default function HistoricoClienteModal({ isOpen, onClose }) {
           </div>
 
           {/* Contenido imprimible (oculto) */}
-          {clienteSeleccionado && ordenes.length > 0 && (
+          {clienteSeleccionado && facturas.length > 0 && (
             <div id="printable-historico-content" style={{ display: 'none' }}>
               <div className="historico-header">
-                <h1>HISTÓRICO DE ÓRDENES</h1>
+                <h1>HISTÓRICO DE FACTURAS</h1>
                 <h2>{clienteSeleccionado.nombre}</h2>
                 <p>NIT: {clienteSeleccionado.nit || 'N/A'} | Fecha de impresión: {new Date().toLocaleDateString('es-CO')}</p>
               </div>
 
-              {ordenes.map((orden) => {
-                const total = calcularTotal(orden);
-                const descuentos = orden.descuentos || 0;
-                const totalFinal = total - descuentos;
-                const esCredito = Boolean(orden.credito);
-                const saldoPendiente = esCredito ? (orden.creditoDetalle?.saldoPendiente || 0) : 0;
-                const detalles = Array.isArray(orden.items) ? orden.items : [];
+              {facturas.map((factura) => {
+                const subtotal = factura.subtotal || 0;
+                const descuentos = factura.descuentos || 0;
+                const iva = factura.iva || 0;
+                const retencionFuente = factura.retencionFuente || 0;
+                const total = factura.total || (subtotal - descuentos + iva - retencionFuente);
 
                 return (
-                  <div key={orden.id} className="orden-print-section">
-                    <div className="orden-print-header">
-                      <h3>Orden #{orden.numero}</h3>
-                              <span style={{ fontSize: '0.7rem', color: '#000' }}>
-                                {fmtFecha(orden.fecha)}
-                              </span>
+                  <div key={factura.id} className="factura-print-section">
+                    <div className="factura-print-header">
+                      <h3>Factura #{factura.numeroFactura || factura.numero || factura.id}</h3>
+                      <span style={{ fontSize: '0.7rem', color: '#000' }}>
+                        {fmtFecha(factura.fecha)}
+                      </span>
                     </div>
                     
-                    <div className="orden-print-info">
-                      <div className="orden-print-info-row">
+                    <div className="factura-print-info">
+                      <div className="factura-print-info-row">
                         <span><strong>Estado:</strong></span>
-                        <span>{formatearEstado(orden.estado)}</span>
+                        <span>{formatearEstado(factura.estado)}</span>
                       </div>
-                      <div className="orden-print-info-row">
-                        <span><strong>Tipo:</strong></span>
-                        <span>{orden.venta ? 'VENTA' : 'COTIZACIÓN'}</span>
+                      <div className="factura-print-info-row">
+                        <span><strong>Forma de Pago:</strong></span>
+                        <span>{factura.formaPago || '-'}</span>
                       </div>
-                      <div className="orden-print-info-row">
-                        <span><strong>Sede:</strong></span>
-                        <span>{orden.sede?.nombre || '-'}</span>
+                      <div className="factura-print-info-row">
+                        <span><strong>Orden:</strong></span>
+                        <span>#{factura.orden?.numero || '-'}</span>
                       </div>
-                      <div className="orden-print-info-row">
-                        <span><strong>Crédito:</strong></span>
-                        <span>{esCredito ? 'SÍ' : 'NO'}</span>
+                      <div className="factura-print-info-row">
+                        <span><strong>Observaciones:</strong></span>
+                        <span>{factura.observaciones || '-'}</span>
                       </div>
                     </div>
 
-                    {detalles.length > 0 && (
-                      <div className="orden-print-items">
-                        <table className="orden-print-items-table">
-                          <thead>
-                            <tr>
-                              <th>Código</th>
-                              <th>Producto</th>
-                              <th>Descripción</th>
-                              <th style={{ textAlign: 'center' }}>Cant.</th>
-                              <th style={{ textAlign: 'right' }}>Precio Unit.</th>
-                              <th style={{ textAlign: 'right' }}>Total</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {detalles.map((d, i) => (
-                              <tr key={d.id || i}>
-                                <td>{d.producto?.codigo ?? "-"}</td>
-                                <td>{d.producto?.nombre ?? "-"}</td>
-                                <td>{d.descripcion ?? "-"}</td>
-                                <td style={{ textAlign: 'center' }}>{d.cantidad}</td>
-                                <td style={{ textAlign: 'right' }}>{fmtCOP(d.precioUnitario)}</td>
-                                <td style={{ textAlign: 'right' }}>{fmtCOP(d.totalLinea)}</td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    )}
-
-                    <div className="orden-print-totals">
-                      <div className="orden-print-totals-row">
+                    <div className="factura-print-totals">
+                      <div className="factura-print-totals-row">
                         <span>Subtotal: </span>
-                        <strong>{fmtCOP(total)}</strong>
+                        <strong>{fmtCOP(subtotal)}</strong>
                       </div>
                       {descuentos > 0 && (
-                        <div className="orden-print-totals-row">
+                        <div className="factura-print-totals-row">
                           <span>Descuentos: </span>
                           <strong style={{ color: '#000' }}>-{fmtCOP(descuentos)}</strong>
                         </div>
                       )}
-                      <div className="orden-print-totals-row">
-                        <span>Total: </span>
-                        <strong>{fmtCOP(totalFinal)}</strong>
-                      </div>
-                      {esCredito && (
-                        <div className="orden-print-totals-row">
-                          <span>Saldo Pendiente: </span>
-                          <strong style={{ color: '#000' }}>
-                            {fmtCOP(saldoPendiente)}
-                          </strong>
+                      {iva > 0 && (
+                        <div className="factura-print-totals-row">
+                          <span>IVA: </span>
+                          <strong>{fmtCOP(iva)}</strong>
                         </div>
                       )}
+                      {retencionFuente > 0 && (
+                        <div className="factura-print-totals-row">
+                          <span>Retención: </span>
+                          <strong style={{ color: '#000' }}>-{fmtCOP(retencionFuente)}</strong>
+                        </div>
+                      )}
+                      <div className="factura-print-totals-row">
+                        <span>Total: </span>
+                        <strong>{fmtCOP(total)}</strong>
+                      </div>
                     </div>
                   </div>
                 );
@@ -812,34 +742,32 @@ export default function HistoricoClienteModal({ isOpen, onClose }) {
                   </thead>
                   <tbody>
                     <tr>
-                      <td><strong>Total de Órdenes</strong></td>
-                      <td>{totalOrdenes}</td>
+                      <td><strong>Total de Facturas</strong></td>
+                      <td>{totalFacturas}</td>
                     </tr>
                     <tr>
-                      <td><strong>Órdenes a Crédito</strong></td>
-                      <td>{ordenes.filter(o => o.credito).length}</td>
+                      <td><strong>Facturas Pagadas</strong></td>
+                      <td>{facturas.filter(f => f.estado?.toLowerCase() === 'pagada').length}</td>
                     </tr>
                     <tr>
                       <td><strong>Subtotal General</strong></td>
-                      <td>{fmtCOP(totalMonto)}</td>
+                      <td>{fmtCOP(totalSubtotal)}</td>
                     </tr>
                     <tr>
                       <td><strong>Descuentos Totales</strong></td>
-                      <td>{fmtCOP(ordenes.reduce((sum, orden) => sum + (orden.descuentos || 0), 0))}</td>
+                      <td>{fmtCOP(totalDescuentos)}</td>
+                    </tr>
+                    <tr>
+                      <td><strong>IVA Total</strong></td>
+                      <td>{fmtCOP(totalIva)}</td>
+                    </tr>
+                    <tr>
+                      <td><strong>Retención Total</strong></td>
+                      <td>{fmtCOP(totalRetencion)}</td>
                     </tr>
                     <tr>
                       <td><strong>Total General</strong></td>
-                      <td>{fmtCOP(ordenes.reduce((sum, orden) => {
-                        const total = calcularTotal(orden);
-                        const descuentos = orden.descuentos || 0;
-                        return sum + (total - descuentos);
-                      }, 0))}</td>
-                    </tr>
-                    <tr>
-                      <td><strong>Saldo Pendiente Total</strong></td>
-                      <td style={{ color: '#000', fontWeight: '600' }}>
-                        {fmtCOP(totalCredito)}
-                      </td>
+                      <td>{fmtCOP(totalMonto)}</td>
                     </tr>
                   </tbody>
                 </table>
@@ -847,7 +775,7 @@ export default function HistoricoClienteModal({ isOpen, onClose }) {
             </div>
           )}
 
-          {/* Tabla de Órdenes */}
+          {/* Tabla de Facturas */}
           <div style={{ 
             flex: 1,
             minHeight: 0,
@@ -863,7 +791,7 @@ export default function HistoricoClienteModal({ isOpen, onClose }) {
                 padding: '3rem',
                 fontStyle: 'italic'
               }}>
-                Seleccione un cliente para ver su histórico de órdenes
+                Seleccione un cliente para ver su histórico de facturas
               </div>
             ) : loading ? (
               <div style={{ 
@@ -871,16 +799,16 @@ export default function HistoricoClienteModal({ isOpen, onClose }) {
                 color: '#666', 
                 padding: '3rem'
               }}>
-                Cargando órdenes...
+                Cargando facturas...
               </div>
-            ) : ordenes.length === 0 ? (
+            ) : facturas.length === 0 ? (
               <div style={{ 
                 textAlign: 'center', 
                 color: '#666', 
                 padding: '3rem',
                 fontStyle: 'italic'
               }}>
-                Este cliente no tiene órdenes registradas
+                Este cliente no tiene facturas registradas
               </div>
             ) : (
               <div style={{ 
@@ -912,31 +840,28 @@ export default function HistoricoClienteModal({ isOpen, onClose }) {
                     }}>
                       <tr>
                         <th style={{ padding: '0.75rem', textAlign: 'left', borderRight: '1px solid #fff' }}>FECHA</th>
-                        <th style={{ padding: '0.75rem', textAlign: 'center', borderRight: '1px solid #fff' }}>ORDEN</th>
+                        <th style={{ padding: '0.75rem', textAlign: 'center', borderRight: '1px solid #fff' }}>FACTURA</th>
                         <th style={{ padding: '0.75rem', textAlign: 'center', borderRight: '1px solid #fff' }}>ESTADO</th>
-                        <th style={{ padding: '0.75rem', textAlign: 'center', borderRight: '1px solid #fff' }}>TIPO</th>
-                        <th style={{ padding: '0.75rem', textAlign: 'center', borderRight: '1px solid #fff' }}>SEDE</th>
+                        <th style={{ padding: '0.75rem', textAlign: 'center', borderRight: '1px solid #fff' }}>ORDEN</th>
                         <th style={{ padding: '0.75rem', textAlign: 'right', borderRight: '1px solid #fff' }}>SUBTOTAL</th>
                         <th style={{ padding: '0.75rem', textAlign: 'right', borderRight: '1px solid #fff' }}>DESCUENTOS</th>
+                        <th style={{ padding: '0.75rem', textAlign: 'right', borderRight: '1px solid #fff' }}>IVA</th>
+                        <th style={{ padding: '0.75rem', textAlign: 'right', borderRight: '1px solid #fff' }}>RETEFUENTE</th>
                         <th style={{ padding: '0.75rem', textAlign: 'right', borderRight: '1px solid #fff' }}>TOTAL</th>
-                        <th style={{ padding: '0.75rem', textAlign: 'center', borderRight: '1px solid #fff' }}>CRÉDITO</th>
-                        <th style={{ padding: '0.75rem', textAlign: 'right', borderRight: '1px solid #fff' }}>SALDO PENDIENTE</th>
                         <th style={{ padding: '0.75rem', textAlign: 'center' }}>ACCIONES</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {ordenes.map((orden, index) => {
-                        const total = calcularTotal(orden);
-                        const descuentos = orden.descuentos || 0;
-                        const totalFinal = total - descuentos;
-                        const esCredito = Boolean(orden.credito);
-                        const saldoPendiente = esCredito ? (orden.creditoDetalle?.saldoPendiente || 0) : 0;
-                        const tieneSaldo = saldoPendiente > 0;
-                        const detalles = Array.isArray(orden.items) ? orden.items : [];
-                        const ordenId = orden.id;
+                      {facturas.map((factura, index) => {
+                        const subtotal = factura.subtotal || 0;
+                        const descuentos = factura.descuentos || 0;
+                        const iva = factura.iva || 0;
+                        const retencionFuente = factura.retencionFuente || 0;
+                        const total = factura.total || (subtotal - descuentos + iva - retencionFuente);
+                        const facturaId = factura.id;
 
                         return (
-                          <Fragment key={`orden-${ordenId}`}>
+                          <Fragment key={`factura-${facturaId}`}>
                             <tr
                               style={{
                                 backgroundColor: index % 2 === 0 ? '#fff' : '#f9f9f9',
@@ -946,10 +871,10 @@ export default function HistoricoClienteModal({ isOpen, onClose }) {
                               onMouseLeave={(e) => e.currentTarget.style.backgroundColor = index % 2 === 0 ? '#fff' : '#f9f9f9'}
                             >
                               <td style={{ padding: '0.75rem', borderRight: '1px solid #e0e0e0' }}>
-                                {fmtFecha(orden.fecha)}
+                                {fmtFecha(factura.fecha)}
                               </td>
                               <td style={{ padding: '0.75rem', textAlign: 'center', borderRight: '1px solid #e0e0e0', fontWeight: '600' }}>
-                                #{orden.numero}
+                                #{factura.numeroFactura || factura.numero || factura.id}
                               </td>
                               <td style={{ padding: '0.75rem', textAlign: 'center', borderRight: '1px solid #e0e0e0' }}>
                                 <span style={{
@@ -957,118 +882,66 @@ export default function HistoricoClienteModal({ isOpen, onClose }) {
                                   borderRadius: '4px',
                                   fontSize: '0.75rem',
                                   fontWeight: '500',
-                                  backgroundColor: orden.estado?.toLowerCase() === 'anulada' ? '#f8d7da' : 
-                                                  orden.estado?.toLowerCase() === 'completada' ? '#d1ecf1' :
-                                                  orden.estado?.toLowerCase() === 'pendiente' ? '#fff3cd' : '#d4edda',
-                                  color: orden.estado?.toLowerCase() === 'anulada' ? '#721c24' :
-                                         orden.estado?.toLowerCase() === 'completada' ? '#0c5460' :
-                                         orden.estado?.toLowerCase() === 'pendiente' ? '#856404' : '#155724'
+                                  backgroundColor: factura.estado?.toLowerCase() === 'anulada' ? '#f8d7da' : 
+                                                  factura.estado?.toLowerCase() === 'pagada' ? '#d4edda' :
+                                                  factura.estado?.toLowerCase() === 'en_proceso' ? '#d1ecf1' : '#fff3cd',
+                                  color: factura.estado?.toLowerCase() === 'anulada' ? '#721c24' :
+                                         factura.estado?.toLowerCase() === 'pagada' ? '#155724' :
+                                         factura.estado?.toLowerCase() === 'en_proceso' ? '#0c5460' : '#856404'
                                 }}>
-                                  {formatearEstado(orden.estado)}
+                                  {formatearEstado(factura.estado)}
                                 </span>
                               </td>
                               <td style={{ padding: '0.75rem', textAlign: 'center', borderRight: '1px solid #e0e0e0' }}>
-                                {orden.venta ? (
-                                  <span style={{ color: '#28a745', fontWeight: '600' }}>VENTA</span>
-                                ) : (
-                                  <span style={{ color: '#666' }}>COTIZACIÓN</span>
-                                )}
-                              </td>
-                              <td style={{ padding: '0.75rem', textAlign: 'center', borderRight: '1px solid #e0e0e0' }}>
-                                {orden.sede?.nombre || '-'}
+                                #{factura.orden?.numero || '-'}
                               </td>
                               <td style={{ padding: '0.75rem', textAlign: 'right', borderRight: '1px solid #e0e0e0' }}>
-                                {fmtCOP(total)}
+                                {fmtCOP(subtotal)}
                               </td>
                               <td style={{ padding: '0.75rem', textAlign: 'right', borderRight: '1px solid #e0e0e0', color: descuentos > 0 ? '#dc3545' : '#666' }}>
                                 {descuentos > 0 ? `-${fmtCOP(descuentos)}` : '-'}
                               </td>
+                              <td style={{ padding: '0.75rem', textAlign: 'right', borderRight: '1px solid #e0e0e0' }}>
+                                {fmtCOP(iva)}
+                              </td>
+                              <td style={{ padding: '0.75rem', textAlign: 'right', borderRight: '1px solid #e0e0e0', color: retencionFuente > 0 ? '#dc3545' : '#666' }}>
+                                {retencionFuente > 0 ? `-${fmtCOP(retencionFuente)}` : '-'}
+                              </td>
                               <td style={{ padding: '0.75rem', textAlign: 'right', borderRight: '1px solid #e0e0e0', fontWeight: '600' }}>
-                                {fmtCOP(totalFinal)}
-                              </td>
-                              <td style={{ padding: '0.75rem', textAlign: 'center', borderRight: '1px solid #e0e0e0' }}>
-                                {esCredito ? (
-                                  <span style={{ color: '#007bff', fontWeight: '600' }}>SÍ</span>
-                                ) : (
-                                  <span style={{ color: '#999' }}>-</span>
-                                )}
-                              </td>
-                              <td style={{ 
-                                padding: '0.75rem', 
-                                textAlign: 'right',
-                                borderRight: '1px solid #e0e0e0',
-                                fontWeight: tieneSaldo ? '600' : 'normal',
-                                color: tieneSaldo ? '#dc3545' : '#28a745'
-                              }}>
-                                {esCredito ? fmtCOP(saldoPendiente) : '-'}
+                                {fmtCOP(total)}
                               </td>
                               <td style={{ padding: '0.75rem', textAlign: 'center' }}>
                                 <button
                                   className="btnLink"
-                                  onClick={() => toggleExpand(ordenId)}
+                                  onClick={() => toggleExpand(facturaId)}
                                   style={{
                                     fontSize: '0.75rem',
                                     padding: '0.3125rem 0.625rem'
                                   }}
                                 >
-                                  {expanded[ordenId] ? "Ocultar" : "Detalles"}
+                                  {expanded[facturaId] ? "Ocultar" : "Detalles"}
                                 </button>
                               </td>
                             </tr>
 
-                            {expanded[ordenId] && (
-                              <tr key={`detalles-${ordenId}`}>
-                                <td colSpan={11} style={{ padding: '0', backgroundColor: '#f8f9fa' }}>
-                                  {detalles.length === 0 ? (
-                                    <div className="empty-sub" style={{ margin: '1rem', textAlign: 'center' }}>
-                                      Sin ítems.
+                            {expanded[facturaId] && (
+                              <tr key={`detalles-${facturaId}`}>
+                                <td colSpan={10} style={{ padding: '1rem', backgroundColor: '#f8f9fa' }}>
+                                  <div style={{ fontSize: '0.85rem' }}>
+                                    <div style={{ marginBottom: '0.5rem' }}>
+                                      <strong>Forma de Pago:</strong> {factura.formaPago || '-'}
                                     </div>
-                                  ) : (
-                                    <div className="orden-detalles-container" style={{ padding: '1rem' }}>
-                                      <table className="orden-detalles-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
-                                        <thead>
-                                          <tr style={{ backgroundColor: '#1e2753', color: '#fff' }}>
-                                            <th style={{ padding: '0.5rem', textAlign: 'left', borderRight: '1px solid #fff' }}>Código</th>
-                                            <th style={{ padding: '0.5rem', textAlign: 'left', borderRight: '1px solid #fff' }}>Producto</th>
-                                            <th style={{ padding: '0.5rem', textAlign: 'left', borderRight: '1px solid #fff' }}>Descripción</th>
-                                            <th style={{ padding: '0.5rem', textAlign: 'center', borderRight: '1px solid #fff' }}>Cantidad</th>
-                                            <th style={{ padding: '0.5rem', textAlign: 'right', borderRight: '1px solid #fff' }}>Precio Unit.</th>
-                                            <th style={{ padding: '0.5rem', textAlign: 'right' }}>Total Línea</th>
-                                          </tr>
-                                        </thead>
-                                        <tbody>
-                                          {detalles.map((d, i) => (
-                                            <tr 
-                                              key={`item-${d.id || i}-${ordenId}`}
-                                              style={{
-                                                backgroundColor: i % 2 === 0 ? '#fff' : '#f9f9f9',
-                                                borderBottom: '1px solid #e0e0e0'
-                                              }}
-                                            >
-                                              <td style={{ padding: '0.5rem', borderRight: '1px solid #e0e0e0' }}>
-                                                {d.producto?.codigo ?? "-"}
-                                              </td>
-                                              <td style={{ padding: '0.5rem', borderRight: '1px solid #e0e0e0' }}>
-                                                {d.producto?.nombre ?? "-"}
-                                              </td>
-                                              <td style={{ padding: '0.5rem', borderRight: '1px solid #e0e0e0' }}>
-                                                {d.descripcion ?? "-"}
-                                              </td>
-                                              <td style={{ padding: '0.5rem', textAlign: 'center', borderRight: '1px solid #e0e0e0' }}>
-                                                {d.cantidad}
-                                              </td>
-                                              <td style={{ padding: '0.5rem', textAlign: 'right', borderRight: '1px solid #e0e0e0' }}>
-                                                {fmtCOP(d.precioUnitario)}
-                                              </td>
-                                              <td style={{ padding: '0.5rem', textAlign: 'right', fontWeight: '500' }}>
-                                                {fmtCOP(d.totalLinea)}
-                                              </td>
-                                            </tr>
-                                          ))}
-                                        </tbody>
-                                      </table>
-                                    </div>
-                                  )}
+                                    {factura.observaciones && (
+                                      <div style={{ marginBottom: '0.5rem' }}>
+                                        <strong>Observaciones:</strong> {factura.observaciones}
+                                      </div>
+                                    )}
+                                    {retencionFuente > 0 && (
+                                      <div style={{ marginBottom: '0.5rem', color: '#dc3545' }}>
+                                        <strong>Retención de Fuente:</strong> -{fmtCOP(retencionFuente)}
+                                      </div>
+                                    )}
+                                  </div>
                                 </td>
                               </tr>
                             )}
@@ -1084,33 +957,25 @@ export default function HistoricoClienteModal({ isOpen, onClose }) {
                       zIndex: 3 
                     }}>
                       <tr>
-                        <td colSpan="6" style={{ padding: '0.75rem', textAlign: 'right', borderTop: '2px solid #1e2753' }}>
+                        <td colSpan="5" style={{ padding: '0.75rem', textAlign: 'right', borderTop: '2px solid #1e2753' }}>
                           TOTALES:
                         </td>
                         <td style={{ padding: '0.75rem', textAlign: 'right', borderTop: '2px solid #1e2753' }}>
-                          {fmtCOP(ordenes.reduce((sum, orden) => sum + calcularTotal(orden), 0))}
+                          {fmtCOP(totalSubtotal)}
                         </td>
                         <td style={{ padding: '0.75rem', textAlign: 'right', borderTop: '2px solid #1e2753' }}>
-                          {fmtCOP(ordenes.reduce((sum, orden) => sum + (orden.descuentos || 0), 0))}
+                          {fmtCOP(totalDescuentos)}
                         </td>
                         <td style={{ padding: '0.75rem', textAlign: 'right', borderTop: '2px solid #1e2753' }}>
-                          {fmtCOP(ordenes.reduce((sum, orden) => {
-                            const total = calcularTotal(orden);
-                            const descuentos = orden.descuentos || 0;
-                            return sum + (total - descuentos);
-                          }, 0))}
+                          {fmtCOP(totalIva)}
                         </td>
-                        <td style={{ padding: '0.75rem', textAlign: 'center', borderTop: '2px solid #1e2753' }}>
-                          {ordenes.filter(o => o.credito).length} / {totalOrdenes}
+                        <td style={{ padding: '0.75rem', textAlign: 'right', borderTop: '2px solid #1e2753', color: totalRetencion > 0 ? '#dc3545' : '#666' }}>
+                          {totalRetencion > 0 ? `-${fmtCOP(totalRetencion)}` : '-'}
                         </td>
-                        <td style={{ 
-                          padding: '0.75rem', 
-                          textAlign: 'right', 
-                          borderTop: '2px solid #1e2753',
-                          color: totalCredito > 0 ? '#dc3545' : '#28a745'
-                        }}>
-                          {fmtCOP(totalCredito)}
+                        <td style={{ padding: '0.75rem', textAlign: 'right', borderTop: '2px solid #1e2753' }}>
+                          {fmtCOP(totalMonto)}
                         </td>
+                        <td style={{ padding: '0.75rem', borderTop: '2px solid #1e2753' }}></td>
                       </tr>
                     </tfoot>
                   </table>
@@ -1203,7 +1068,6 @@ export default function HistoricoClienteModal({ isOpen, onClose }) {
                     )
                   : clientes;
                 
-                // Ordenar alfabéticamente
                 const sorted = [...filtered].sort((a, b) => {
                   const nombreA = (a.nombre || "").toLowerCase();
                   const nombreB = (b.nombre || "").toLowerCase();
