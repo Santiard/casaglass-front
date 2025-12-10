@@ -5,7 +5,7 @@ import "../styles/ListadoOrden.css";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useToast } from "../context/ToastContext.jsx";
 
-export default function ListadoOrden({ productosCarrito, subtotal, total, limpiarCarrito, eliminarProducto, cortesPendientes }) {
+export default function ListadoOrden({ productosCarrito, subtotal, total, limpiarCarrito, eliminarProducto, actualizarCantidad, cortesPendientes }) {
   const { showError } = useToast();
   const [items, setItems] = useState([]);
   const [isFacturarOpen, setIsFacturarOpen] = useState(false);
@@ -78,7 +78,30 @@ export default function ListadoOrden({ productosCarrito, subtotal, total, limpia
                   <h4>{item.nombre}</h4>
                   <p className="codigo">Código: {item.codigo}</p>
                   <div className="cantidad-precio">
-                    <span>Cantidad: {item.cantidadVender}</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <span>Cantidad:</span>
+                      <input
+                        type="number"
+                        min="1"
+                        value={item.cantidadVender || 1}
+                        onChange={(e) => {
+                          const nuevaCantidad = e.target.value;
+                          if (actualizarCantidad) {
+                            actualizarCantidad(index, nuevaCantidad);
+                          }
+                        }}
+                        onFocus={(e) => e.target.select()}
+                        style={{
+                          width: '60px',
+                          padding: '0.25rem',
+                          textAlign: 'center',
+                          border: '1px solid #ddd',
+                          borderRadius: '4px',
+                          fontSize: '0.9rem'
+                        }}
+                        title="Editar cantidad"
+                      />
+                    </div>
                     <span>Precio: ${item.precioUsado?.toLocaleString()}</span>
                   </div>
                   <div className="subtotal-item">

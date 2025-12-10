@@ -14,8 +14,11 @@ export default function HistoricoAbonosClienteModal({ isOpen, onClose }) {
   const [clienteSearchModal, setClienteSearchModal] = useState("");
   const [showClienteModal, setShowClienteModal] = useState(false);
   const [abonos, setAbonos] = useState([]);
+  const [abonosCompletos, setAbonosCompletos] = useState([]); // Almacenar todos los abonos sin filtrar
   const [loading, setLoading] = useState(false);
   const [expanded, setExpanded] = useState({});
+  const [fechaDesde, setFechaDesde] = useState("");
+  const [fechaHasta, setFechaHasta] = useState("");
 
   // Cargar clientes al abrir el modal
   useEffect(() => {
@@ -39,14 +42,37 @@ export default function HistoricoAbonosClienteModal({ isOpen, onClose }) {
       cargarAbonosCliente(clienteSeleccionado.id);
     } else {
       setAbonos([]);
+      setAbonosCompletos([]);
     }
   }, [clienteSeleccionado]);
+
+  // Cargar abonos con filtros de fecha del backend cuando cambian los filtros
+  useEffect(() => {
+    if (!clienteSeleccionado) {
+      setAbonos([]);
+      return;
+    }
+
+    // Recargar abonos con los filtros de fecha aplicados en el backend
+    cargarAbonosCliente(clienteSeleccionado.id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fechaDesde, fechaHasta, clienteSeleccionado]);
 
   const cargarAbonosCliente = async (clienteId) => {
     setLoading(true);
     try {
-      const abonosData = await listarAbonosPorCliente(clienteId);
-      // Ordenar por fecha descendente (más recientes primero)
+      // Construir parámetros con filtros de fecha para el backend
+      const options = {};
+      if (fechaDesde) {
+        options.fechaDesde = fechaDesde;
+      }
+      if (fechaHasta) {
+        options.fechaHasta = fechaHasta;
+      }
+      
+      const abonosData = await listarAbonosPorCliente(clienteId, options);
+      
+      // Ordenar por fecha descendente (más recientes primero) - el backend ya puede ordenar, pero mantenemos ordenamiento local por compatibilidad
       const abonosOrdenados = (Array.isArray(abonosData) ? abonosData : []).sort((a, b) => {
         const fechaA = new Date(a.fecha || 0);
         const fechaB = new Date(b.fecha || 0);
@@ -54,11 +80,14 @@ export default function HistoricoAbonosClienteModal({ isOpen, onClose }) {
         if (diffFechas === 0) return (b.id || 0) - (a.id || 0);
         return diffFechas;
       });
+      
       setAbonos(abonosOrdenados);
+      setAbonosCompletos(abonosOrdenados); // Mantener para compatibilidad con código existente
     } catch (err) {
       console.error("Error cargando abonos del cliente:", err);
       showError("No se pudieron cargar los abonos del cliente.");
       setAbonos([]);
+      setAbonosCompletos([]);
     } finally {
       setLoading(false);
     }
@@ -480,67 +509,157 @@ export default function HistoricoAbonosClienteModal({ isOpen, onClose }) {
             </div>
           )}
 
-          {/* Selección de Cliente */}
+          {/* Selección de Cliente y Filtros de Fecha */}
           <div style={{ 
             padding: '1.5rem', 
             borderBottom: '2px solid #1e2753',
             backgroundColor: '#f8f9fa'
           }}>
-            <label style={{ 
-              display: 'block', 
-              marginBottom: '0.5rem', 
-              fontWeight: '600',
-              color: '#1e2753'
-            }}>
-              Seleccionar Cliente
-            </label>
-            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-              <input
-                type="text"
-                value={clienteSeleccionado?.nombre || ""}
-                readOnly
-                onClick={() => setShowClienteModal(true)}
-                placeholder="Haz clic para buscar cliente..."
-                className="clientes-input"
-                style={{
-                  flex: 1,
-                  cursor: 'pointer',
-                  fontSize: '1rem',
-                  padding: '0.5rem'
-                }}
-              />
-              {clienteSeleccionado && (
+            <div style={{ marginBottom: '1rem' }}>
+              <label style={{ 
+                display: 'block', 
+                marginBottom: '0.5rem', 
+                fontWeight: '600',
+                color: '#1e2753'
+              }}>
+                Seleccionar Cliente
+              </label>
+              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                <input
+                  type="text"
+                  value={clienteSeleccionado?.nombre || ""}
+                  readOnly
+                  onClick={() => setShowClienteModal(true)}
+                  placeholder="Haz clic para buscar cliente..."
+                  className="clientes-input"
+                  style={{
+                    flex: 1,
+                    cursor: 'pointer',
+                    fontSize: '1rem',
+                    padding: '0.5rem'
+                  }}
+                />
+                {clienteSeleccionado && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setClienteSeleccionado(null);
+                      setAbonos([]);
+                      setAbonosCompletos([]);
+                      setFechaDesde("");
+                      setFechaHasta("");
+                      setExpanded({});
+                    }}
+                    className="btn-cancelar"
+                    style={{
+                      padding: '0.5rem 0.75rem',
+                      fontSize: '0.85rem',
+                      minWidth: 'auto'
+                    }}
+                    title="Limpiar selección"
+                  >
+                    ✕
+                  </button>
+                )}
                 <button
                   type="button"
-                  onClick={() => {
-                    setClienteSeleccionado(null);
-                    setAbonos([]);
-                    setExpanded({});
-                  }}
-                  className="btn-cancelar"
+                  onClick={() => setShowClienteModal(true)}
+                  className="btn-guardar"
                   style={{
-                    padding: '0.5rem 0.75rem',
-                    fontSize: '0.85rem',
-                    minWidth: 'auto'
+                    whiteSpace: 'nowrap',
+                    padding: '0.5rem 1rem',
+                    fontSize: '0.9rem'
                   }}
-                  title="Limpiar selección"
                 >
-                  ✕
+                  Buscar Cliente
                 </button>
-              )}
-              <button
-                type="button"
-                onClick={() => setShowClienteModal(true)}
-                className="btn-guardar"
-                style={{
-                  whiteSpace: 'nowrap',
-                  padding: '0.5rem 1rem',
-                  fontSize: '0.9rem'
-                }}
-              >
-                Buscar Cliente
-              </button>
+              </div>
             </div>
+
+            {/* Filtros de Fecha */}
+            {clienteSeleccionado && (
+              <div style={{
+                padding: '1rem',
+                backgroundColor: '#fff',
+                borderRadius: '6px',
+                border: '1px solid #d2d5e2'
+              }}>
+                <label style={{ 
+                  display: 'block', 
+                  marginBottom: '0.5rem', 
+                  fontWeight: '600',
+                  color: '#1e2753',
+                  fontSize: '0.9rem'
+                }}>
+                  Filtrar por Fechas (Opcional)
+                </label>
+                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                  <div style={{ flex: 1, minWidth: '200px' }}>
+                    <label style={{ 
+                      display: 'block', 
+                      marginBottom: '0.25rem', 
+                      fontSize: '0.85rem',
+                      color: '#666'
+                    }}>
+                      Desde:
+                    </label>
+                    <input
+                      type="date"
+                      value={fechaDesde}
+                      onChange={(e) => setFechaDesde(e.target.value)}
+                      className="clientes-input"
+                      style={{
+                        width: '100%',
+                        fontSize: '0.9rem',
+                        padding: '0.5rem'
+                      }}
+                    />
+                  </div>
+                  <div style={{ flex: 1, minWidth: '200px' }}>
+                    <label style={{ 
+                      display: 'block', 
+                      marginBottom: '0.25rem', 
+                      fontSize: '0.85rem',
+                      color: '#666'
+                    }}>
+                      Hasta:
+                    </label>
+                    <input
+                      type="date"
+                      value={fechaHasta}
+                      onChange={(e) => setFechaHasta(e.target.value)}
+                      min={fechaDesde || undefined}
+                      className="clientes-input"
+                      style={{
+                        width: '100%',
+                        fontSize: '0.9rem',
+                        padding: '0.5rem'
+                      }}
+                    />
+                  </div>
+                  {(fechaDesde || fechaHasta) && (
+                    <div style={{ display: 'flex', alignItems: 'flex-end' }}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFechaDesde("");
+                          setFechaHasta("");
+                        }}
+                        className="btn-cancelar"
+                        style={{
+                          padding: '0.5rem 1rem',
+                          fontSize: '0.85rem',
+                          whiteSpace: 'nowrap'
+                        }}
+                        title="Limpiar filtros de fecha"
+                      >
+                        Limpiar Filtros
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Tabla de Abonos */}

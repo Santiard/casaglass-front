@@ -161,7 +161,9 @@ export async function crearOrdenVenta(payload) {
           // Campo opcional para evitar duplicados de cortes
           reutilizarCorteId: corte.reutilizarCorteId ? parseInt(corte.reutilizarCorteId) : undefined,
           medidaSobrante: corte.medidaSobrante ? parseInt(corte.medidaSobrante) : undefined,
-          // Indicar que solo el SOBRANTE debe incrementar stock (el solicitado se vende inmediatamente)
+          // Campo esSobrante se mantiene por compatibilidad pero ya no se usa en el backend
+          // El backend ahora incrementa inventario de AMBOS cortes (+1 cada uno)
+          // Luego, al procesar la venta, decrementa el solicitado (-1)
           esSobrante: corte.esSobrante !== undefined ? Boolean(corte.esSobrante) : true, // Por defecto true para compatibilidad
         };
       }) : []

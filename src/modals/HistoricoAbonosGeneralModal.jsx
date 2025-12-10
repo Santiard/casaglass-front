@@ -13,17 +13,26 @@ export default function HistoricoAbonosGeneralModal({ isOpen, onClose }) {
   const [mesActual, setMesActual] = useState(new Date().getMonth());
   const [añoActual, setAñoActual] = useState(new Date().getFullYear());
 
-  // Cargar abonos al abrir el modal
+  // Cargar abonos al abrir el modal o cuando cambia la fecha seleccionada
   useEffect(() => {
     if (isOpen) {
       cargarAbonos();
     }
-  }, [isOpen, isAdmin, sedeId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, isAdmin, sedeId, fechaSeleccionada]);
 
   const cargarAbonos = async () => {
     setLoading(true);
     try {
+      // Construir parámetros con filtros de sede
       const params = isAdmin ? {} : { sedeId };
+      
+      // Si hay una fecha seleccionada, usar filtros de fecha en el backend
+      if (fechaSeleccionada) {
+        params.fechaDesde = fechaSeleccionada;
+        params.fechaHasta = fechaSeleccionada;
+      }
+      
       const abonosData = await listarAbonos(params);
       setAbonos(Array.isArray(abonosData) ? abonosData : []);
     } catch (err) {
@@ -55,15 +64,11 @@ export default function HistoricoAbonosGeneralModal({ isOpen, onClose }) {
         }).format(n)
       : n ?? "-";
 
-  // Filtrar abonos por fecha seleccionada
+  // Ya no necesitamos filtrar en el frontend, el backend lo hace
+  // Mantenemos abonosFiltrados para compatibilidad con el código existente
   const abonosFiltrados = useMemo(() => {
-    if (!fechaSeleccionada) return abonos;
-    return abonos.filter(abono => {
-      if (!abono.fecha) return false;
-      const fechaAbono = new Date(abono.fecha).toISOString().slice(0, 10);
-      return fechaAbono === fechaSeleccionada;
-    });
-  }, [abonos, fechaSeleccionada]);
+    return abonos; // El backend ya filtra por fecha
+  }, [abonos]);
 
   // Obtener días del mes
   const obtenerDiasDelMes = (mes, año) => {

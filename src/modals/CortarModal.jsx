@@ -93,7 +93,7 @@ export default function CortarModal({
       const corteParaVender = {
         ...producto,
         id: `corte_${producto.id}_${Date.now()}`, // ID único para el corte
-        nombre: `${producto.nombre} - Corte ${cortesCalculados.medidaCorte}cm`,
+        nombre: `${producto.nombre} Corte de ${cortesCalculados.medidaCorte} CMS`,
         cantidadVender: 1,
         precioUsado: precioCorteRedondeado,
         esCorte: true,
@@ -111,39 +111,33 @@ export default function CortarModal({
         medidaSobrante: cortesCalculados.medidaSobrante,
       };
 
-      // Verificar si ya existen cortes para reutilizar (el backend genera el código automáticamente)
-      // NOTA: El backend genera el código con formato CODIGO_ORIGINAL-MEDIDA (ej: "192-150")
-      // El frontend NO envía el código, solo verifica si existe uno para reutilizar
-      // Buscar tanto el SOLICITADO (el que se vende) como el SOBRANTE
+      // Verificar si ya existen cortes para reutilizar
+      // NOTA: El backend ahora usa el código base del producto (sin sufijo de medida)
+      // Se busca por: código base + largoCm + categoría + color
       try {
         // Usar el mismo endpoint que la tabla para garantizar formato consistente
         const existentes = await listarCortesInventarioCompleto({}, true, null);
         
-        const productoCodigo = (producto.codigo || "").toString();
+        const productoCodigo = (producto.codigo || "").toString().trim();
         // El producto puede tener categoria como objeto {nombre: "PERFIL"} o como string "PERFIL"
         const productoCategoriaRaw = producto.categoria?.nombre || producto.categoria || "";
-        const productoCategoria = (typeof productoCategoriaRaw === 'string' ? productoCategoriaRaw : productoCategoriaRaw.toString()).toLowerCase();
-        const productoColor = (producto.color || "").toString().toLowerCase();
+        const productoCategoria = (typeof productoCategoriaRaw === 'string' ? productoCategoriaRaw : productoCategoriaRaw.toString()).toLowerCase().trim();
+        const productoColor = (producto.color || "").toString().toLowerCase().trim();
         const largoSolicitado = Number(cortesCalculados.medidaCorte);
         const largoSobrante = Number(cortesCalculados.medidaSobrante);
         
-        // Construir el código que el backend generaría (solo para buscar coincidencias, NO se envía)
-        // Formato del backend: CODIGO_ORIGINAL-MEDIDA (ej: "192-150")
-        const codigoEsperadoSolicitado = `${productoCodigo}-${largoSolicitado}`;
-        const codigoEsperadoSobrante = `${productoCodigo}-${largoSobrante}`;
-        
-        // Función auxiliar para buscar coincidencias por código exacto
-        // El backend verifica: código exacto + medida + categoría + color
-        const buscarCoincidencia = (codigoEsperado, largoObjetivo) => {
+        // Función auxiliar para buscar coincidencias
+        // El backend verifica: código base (sin sufijo) + largoCm + categoría + color
+        const buscarCoincidencia = (largoObjetivo) => {
           return (existentes || []).find((c) => {
-            const codigo = (c.codigo || "").toString();
+            const codigo = (c.codigo || "").toString().trim();
             const categoriaRaw = c.categoria?.nombre || c.categoria || "";
-            const categoria = (typeof categoriaRaw === 'string' ? categoriaRaw : categoriaRaw.toString()).toLowerCase();
-            const color = (c.color || "").toString().toLowerCase();
+            const categoria = (typeof categoriaRaw === 'string' ? categoriaRaw : categoriaRaw.toString()).toLowerCase().trim();
+            const color = (c.color || "").toString().toLowerCase().trim();
             const largo = Number(c.largoCm || c.largo || 0);
             
-            // Verificar código exacto (no startsWith, sino igual)
-            const coincideCodigo = codigo === codigoEsperado;
+            // Verificar código base (sin sufijo de medida), largo, categoría y color
+            const coincideCodigo = codigo === productoCodigo;
             const coincideLargo = largo === largoObjetivo;
             const coincideCategoria = categoria === productoCategoria;
             const coincideColor = color === productoColor;
@@ -153,26 +147,26 @@ export default function CortarModal({
         };
 
         // Buscar corte SOLICITADO (el que se vende)
-        const coincidenteSolicitado = buscarCoincidencia(codigoEsperadoSolicitado, largoSolicitado);
+        const coincidenteSolicitado = buscarCoincidencia(largoSolicitado);
         if (coincidenteSolicitado?.id) {
-          // Guardar el ID para que el backend lo reutilice, incremente stock a 1 y luego lo descuente al vender
+          // Guardar el ID para que el backend lo reutilice
           corteParaVender.reutilizarCorteSolicitadoId = coincidenteSolicitado.id;
-          console.log(` Corte solicitado existente encontrado - Reutilizando (ID: ${coincidenteSolicitado.id}, código: ${coincidenteSolicitado.codigo})`);
+          console.log(` Corte solicitado existente encontrado - Reutilizando (ID: ${coincidenteSolicitado.id}, código: ${coincidenteSolicitado.codigo}, largo: ${coincidenteSolicitado.largoCm || coincidenteSolicitado.largo}cm)`);
         } else {
-          console.log(` Corte solicitado nuevo - El backend generará el código automáticamente`);
+          console.log(` Corte solicitado nuevo - El backend creará uno nuevo con código base "${productoCodigo}" y largo ${largoSolicitado}cm`);
         }
 
         // Buscar corte SOBRANTE (el que queda en inventario)
-        const coincidenteSobrante = buscarCoincidencia(codigoEsperadoSobrante, largoSobrante);
+        const coincidenteSobrante = buscarCoincidencia(largoSobrante);
         if (coincidenteSobrante?.id) {
           // Marcar para reutilizar corte sobrante existente
           corteSobrante = {
             ...corteSobrante,
             reutilizarCorteId: coincidenteSobrante.id,
           };
-          console.log(` Corte sobrante existente encontrado - Reutilizando (ID: ${coincidenteSobrante.id}, código: ${coincidenteSobrante.codigo})`);
+          console.log(` Corte sobrante existente encontrado - Reutilizando (ID: ${coincidenteSobrante.id}, código: ${coincidenteSobrante.codigo}, largo: ${coincidenteSobrante.largoCm || coincidenteSobrante.largo}cm)`);
         } else {
-          console.log(` Corte sobrante nuevo - El backend generará el código automáticamente`);
+          console.log(` Corte sobrante nuevo - El backend creará uno nuevo con código base "${productoCodigo}" y largo ${largoSobrante}cm`);
         }
       } catch (lookupErr) {
         console.warn(" No se pudo verificar cortes existentes:", lookupErr);

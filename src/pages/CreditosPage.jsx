@@ -27,14 +27,30 @@ const CreditosPage = () => {
     setError("");
     
     try {
+      // Construir parámetros para el backend (usar filtros del backend en lugar de filtrar en frontend)
+      const params = {};
+      if (filtroCliente) {
+        params.clienteId = Number(filtroCliente);
+      }
+      if (filtroEstado) {
+        params.estado = filtroEstado;
+      }
+      
       // Cargar créditos y clientes usando la instancia api centralizada
       const [creditosResponse, clientesData] = await Promise.all([
-        api.get("/creditos"),
+        api.get("/creditos", { params }),
         listarClientes()
       ]);
       
-      const creditosData = creditosResponse.data || [];
-      
+      // Manejar respuesta paginada o array directo
+      let creditosData = [];
+      if (creditosResponse.data) {
+        if (Array.isArray(creditosResponse.data)) {
+          creditosData = creditosResponse.data;
+        } else if (creditosResponse.data.content && Array.isArray(creditosResponse.data.content)) {
+          creditosData = creditosResponse.data.content;
+        }
+      }
       
       setCreditos(creditosData);
       setClientes(clientesData);
@@ -58,21 +74,16 @@ const CreditosPage = () => {
       navigate('/creditos', { replace: true });
     }
     
-    // Cargar datos (siempre se carga al montar o cuando cambia location.search)
+    // Cargar datos (siempre se carga al montar o cuando cambia location.search o los filtros)
     loadData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location.search]);
+  }, [location.search, filtroCliente, filtroEstado]);
 
+  // Ya no necesitamos filtrar en el frontend, el backend lo hace
+  // Solo ordenamos por ID descendente (mayor ID = más nuevos primero)
   const filtrarCreditos = () => {
     return creditos
-      .filter((c) => {
-        const matchCliente = filtroCliente ? c.cliente?.id === Number(filtroCliente) : true;
-        const matchEstado = filtroEstado ? c.estado === filtroEstado : true;
-
-        return matchCliente && matchEstado;
-      })
       .sort((a, b) => {
-        // Ordenar por ID descendente (mayor ID = más nuevos primero)
         const idA = Number(a.id) || 0;
         const idB = Number(b.id) || 0;
         return idB - idA; // Descendente: mayor ID primero
@@ -93,8 +104,26 @@ const CreditosPage = () => {
     setIsReloading(true);
     
     try {
-      const response = await api.get("/creditos");
-      const data = response.data || [];
+      // Usar los mismos filtros que se están aplicando
+      const params = {};
+      if (filtroCliente) {
+        params.clienteId = Number(filtroCliente);
+      }
+      if (filtroEstado) {
+        params.estado = filtroEstado;
+      }
+      
+      const response = await api.get("/creditos", { params });
+      
+      // Manejar respuesta paginada o array directo
+      let data = [];
+      if (response.data) {
+        if (Array.isArray(response.data)) {
+          data = response.data;
+        } else if (response.data.content && Array.isArray(response.data.content)) {
+          data = response.data.content;
+        }
+      }
       
       setCreditos(data);
       

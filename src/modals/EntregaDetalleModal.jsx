@@ -4,7 +4,7 @@ export default function EntregaDetalleModal({ entrega, isOpen, onClose }) {
   if (!isOpen || !entrega) return null;
 
   const dets = Array.isArray(entrega.detalles) ? entrega.detalles : [];
-  const gastos = Array.isArray(entrega.gastos) ? entrega.gastos : [];
+  // gastos eliminado - ya no se usan gastos en entregas
 
   const fmtCOP = (n) => new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(Number(n||0));
   const fmtFecha = (iso) => {
@@ -97,38 +97,7 @@ export default function EntregaDetalleModal({ entrega, isOpen, onClose }) {
           </div>
         </div>
 
-        {/* Tabla de gastos */}
-        {gastos.length > 0 && (
-          <div className="entrega-detalle-section">
-            <h3>Gastos</h3>
-            <div className="entrega-detalle-table-wrapper">
-              <table className="entrega-detalle-table">
-                <thead>
-                  <tr>
-                    <th>ID</th>
-                    <th>Fecha</th>
-                    <th>Concepto</th>
-                    <th>Tipo</th>
-                    <th>Monto</th>
-                    <th>Empleado</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {gastos.map((g) => (
-                    <tr key={g.id}>
-                      <td>#{g.id}</td>
-                      <td>{fmtFecha(g.fechaGasto)}</td>
-                      <td>{g.concepto || g.descripcion || "-"}</td>
-                      <td>{g.tipo || "OPERATIVO"}</td>
-                      <td>{fmtCOP(g.monto)}</td>
-                      <td>{g.empleadoNombre || g.empleado?.nombre || "-"}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
+        {/* Sección de gastos eliminada - ya no se usan gastos en entregas */}
 
         {/* Resumen financiero compacto */}
         <div className="entrega-detalle-resumen">

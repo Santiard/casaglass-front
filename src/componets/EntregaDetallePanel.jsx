@@ -6,7 +6,7 @@ export default function EntregaDetallePanel({ entrega, onClose }){
   if (!entrega) return null;
 
   const dets = Array.isArray(entrega.detalles) ? entrega.detalles : [];
-  const gastos = Array.isArray(entrega.gastos) ? entrega.gastos : [];
+  // gastos eliminado - ya no se usan gastos en entregas
 
   const fmtCOP = (n) => new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(Number(n||0));
   const fmtFecha = (iso) => {
@@ -63,27 +63,7 @@ export default function EntregaDetallePanel({ entrega, onClose }){
           </table>
         </div>
 
-        <h4>Gastos</h4>
-        <div className="table-wrapper">
-          <table className="table subtable">
-            <thead>
-              <tr>
-                <th>Descripción</th>
-                <th>Monto</th>
-              </tr>
-            </thead>
-            <tbody>
-              {gastos.length === 0 ? (
-                <tr><td colSpan={2} className="empty">Sin gastos</td></tr>
-              ) : gastos.map((g) => (
-                <tr key={g.id}>
-                  <td>{g.descripcion}</td>
-                  <td>{fmtCOP(g.monto)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        {/* Sección de gastos eliminada - ya no se usan gastos en entregas */}
       </div>
 
       <div className="ingreso-panel__foot" style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit, minmax(120px, 1fr))", gap:"0.5rem" }}>

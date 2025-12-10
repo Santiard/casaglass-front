@@ -168,20 +168,7 @@ const EntregasService = {
     }
   },
 
-  obtenerTotalGastosPorSede: async (sedeId, fechaDesde, fechaHasta) => {
-    try {
-      const params = new URLSearchParams({
-        desde: fechaDesde,
-        hasta: fechaHasta
-      });
-      
-      const response = await api.get(`entregas-dinero/sede/${sedeId}/total-gastos?${params}`);
-      return response.data;
-    } catch (error) {
-      console.error('Error obteniendo total gastos:', error);
-      throw error;
-    }
-  },
+  // obtenerTotalGastosPorSede eliminado - ya no se usan gastos en entregas
 
   obtenerResumenPorEmpleado: async (sedeId, fechaDesde, fechaHasta) => {
     try {
@@ -195,17 +182,6 @@ const EntregasService = {
       return response.data;
     } catch (error) {
       console.error('Error obteniendo resumen por empleado:', error);
-      throw error;
-    }
-  },
-
-  // Obtener gastos disponibles (aprobados y sin entrega) para una sede
-  obtenerGastosDisponibles: async (sedeId) => {
-    try {
-      const response = await api.get(`gastos-sede/sede/${sedeId}/sin-entrega`);
-      return Array.isArray(response.data) ? response.data : [];
-    } catch (error) {
-      console.error(`Error obteniendo gastos disponibles para sede ${sedeId}:`, error);
       throw error;
     }
   },

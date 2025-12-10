@@ -33,6 +33,7 @@ export default function MovimientoModal({
   const isEdit = Boolean(movimiento?.id);
   const [form, setForm] = useState(VACIO);
   const [search, setSearch] = useState("");
+  const [selectedColor, setSelectedColor] = useState(""); // Filtro de color
   const [selectedCategoryId, setSelectedCategoryId] = useState(null);
   const [categorias, setCategorias] = useState([]);
   const [editableWithin2d, setEditableWithin2d] = useState(true);
@@ -136,6 +137,15 @@ export default function MovimientoModal({
       }
     }
     
+    // Filtrar por color
+    if (selectedColor) {
+      const colorFiltro = selectedColor.toUpperCase().trim();
+      filtered = filtered.filter((p) => {
+        const productoColor = (p.color || "").toUpperCase().trim();
+        return productoColor === colorFiltro;
+      });
+    }
+    
     // Filtrar por búsqueda de texto
     const q = search.trim().toLowerCase();
     if (q) {
@@ -147,7 +157,7 @@ export default function MovimientoModal({
     }
     
     return filtered;
-  }, [catalogoProductos, search, selectedCategoryId, categorias]);
+  }, [catalogoProductos, search, selectedCategoryId, selectedColor, categorias]);
 
   // Validaciones
   const mismaSede =
@@ -447,15 +457,17 @@ export default function MovimientoModal({
 
           {/* Panel derecho: catálogo */}
           <div className="pane pane-right">
-            <div className="inv-header">
-              <h3 style={{ margin: 0 }}>
-                Catálogo de Productos
-                {selectedCategoryId && categorias.find(c => c.id === selectedCategoryId) && (
-                  <span style={{ fontSize: '0.8rem', color: '#666', fontWeight: 'normal' }}>
-                    {' '}• {categorias.find(c => c.id === selectedCategoryId)?.nombre}
-                  </span>
-                )}
-              </h3>
+            <div className="inv-header" style={{ gap: '0.75rem', flexWrap: 'wrap' }}>
+              <div style={{ flex: 1, minWidth: '180px' }}>
+                <h3 style={{ margin: 0 }}>
+                  Catálogo de Productos
+                  {selectedCategoryId && categorias.find(c => c.id === selectedCategoryId) && (
+                    <span style={{ fontSize: '0.8rem', color: '#666', fontWeight: 'normal' }}>
+                      {' '}• {categorias.find(c => c.id === selectedCategoryId)?.nombre}
+                    </span>
+                  )}
+                </h3>
+              </div>
               <input
                 className="inv-search"
                 type="text"
@@ -463,7 +475,27 @@ export default function MovimientoModal({
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 disabled={!canEditProducts}
+                style={{ flex: 1, minWidth: '160px' }}
               />
+              <select
+                className="filter-select"
+                value={selectedColor}
+                onChange={(e) => setSelectedColor(e.target.value)}
+                style={{
+                  padding: "0.5rem",
+                  borderRadius: "4px",
+                  border: "1px solid #ddd",
+                  fontSize: "0.9rem",
+                  minWidth: "140px"
+                }}
+                disabled={!canEditProducts}
+              >
+                <option value="">Todos los colores</option>
+                <option value="BLANCO">BLANCO</option>
+                <option value="NEGRO">NEGRO</option>
+                <option value="BRONCE">BRONCE</option>
+                <option value="NA">NA</option>
+              </select>
             </div>
 
             {catalogoFiltrado.length > 0 && (
@@ -478,7 +510,7 @@ export default function MovimientoModal({
                   <tr>
                     <th style={{ width: "55%" }}>Nombre</th>
                     <th style={{ width: "30%" }}>Código</th>
-                    <th style={{ width: "15%" }}>Agregar</th>
+                    <th style={{ width: "15%" }}>Color</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -505,20 +537,18 @@ export default function MovimientoModal({
                           opacity: canEditProducts ? 1 : 0.6,
                         }}
                       >
-                        <td>{item.nombre}</td>
-                        <td>{item.codigo ?? "-"}</td>
-                        <td>
-                          <button
-                            className="btn-ghost"
-                            type="button"
-                            onClick={() => {
-                              if (canEditProducts) addProducto(item);
-                            }}
-                            disabled={!canEditProducts}
-                          >
-                            +
-                          </button>
-                        </td>
+                        <td onDoubleClick={(e) => { 
+                          e.stopPropagation(); 
+                          if (canEditProducts) addProducto(item); 
+                        }}>{item.nombre}</td>
+                        <td onDoubleClick={(e) => { 
+                          e.stopPropagation(); 
+                          if (canEditProducts) addProducto(item); 
+                        }}>{item.codigo ?? "-"}</td>
+                        <td onDoubleClick={(e) => { 
+                          e.stopPropagation(); 
+                          if (canEditProducts) addProducto(item); 
+                        }}>{item.color ?? "-"}</td>
                       </tr>
                     ))
                   )}

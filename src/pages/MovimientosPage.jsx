@@ -49,6 +49,7 @@ export default function MovimientosPage() {
               nombre: p.nombre,
               codigo: p.codigo ?? "",
               categoria: p.categoria?.nombre ?? p.categoria ?? "", //  Extraemos el nombre si es objeto
+              color: p.color, // Incluir color para filtro
             }))
         );
         setTraslados(Array.isArray(trasladosRes) ? trasladosRes : []);

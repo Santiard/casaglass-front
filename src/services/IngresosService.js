@@ -127,24 +127,31 @@ export async function crearIngresoDesdeForm(form) {
   // Crear el payload base
   const payload = mapFormAIngresoAPI(form);
   
-  // IMPORTANTE: Reemplazar los detalles con los que tienen el costo calculado
-  // El backend usará el costoUnitario para actualizar el costo del producto
-  // Pero necesitamos mantener el costo original del ingreso para calcular el totalCosto correctamente
+  // IMPORTANTE: Los detalles ahora tienen:
+  // - costoUnitario: Costo ORIGINAL del ingreso (para calcular el total del ingreso y trazabilidad)
+  // - costoUnitarioPonderado: Costo calculado con promedio ponderado (para actualizar el producto en inventario)
+  // - totalLinea: Ya está calculado con el costo original (costoUnitario × cantidad)
+  
+  // Calcular totalCosto usando el costoUnitario ORIGINAL (no el ponderado)
+  // Esto asegura que el total del ingreso refleje exactamente lo que se pagó
   let totalCostoOriginal = 0;
-  detallesConCostoCalculado.forEach((detalle, idx) => {
-    // Si tiene costoUnitarioOriginal, usarlo para calcular el totalCosto del ingreso
-    // Si no, usar el costoUnitario (que ya es el calculado)
-    const costoParaTotal = detalle.costoUnitarioOriginal || detalle.costoUnitario;
-    totalCostoOriginal += detalle.cantidad * costoParaTotal;
+  detallesConCostoCalculado.forEach((detalle) => {
+    // Usar costoUnitario que ahora contiene el costo ORIGINAL del ingreso
+    const costoOriginal = Number(detalle.costoUnitario) || 0;
+    const cantidad = Number(detalle.cantidad) || 0;
+    totalCostoOriginal += cantidad * costoOriginal;
   });
   
-  // Actualizar el payload con los detalles modificados y el totalCosto correcto
+  // Actualizar el payload con los detalles que tienen ambos costos
   payload.detalles = detallesConCostoCalculado.map(d => {
-    // Remover costoUnitarioOriginal del payload (solo lo usamos internamente)
-    const { costoUnitarioOriginal, ...detalleSinOriginal } = d;
-    return detalleSinOriginal;
+    // Mantener costoUnitario (original) y costoUnitarioPonderado (para actualizar producto)
+    return {
+      ...d,
+      // Asegurar que totalLinea use el costo original
+      totalLinea: (Number(d.cantidad) || 0) * (Number(d.costoUnitario) || 0)
+    };
   });
-  payload.totalCosto = totalCostoOriginal; // Usar el costo original del ingreso para el total
+  payload.totalCosto = totalCostoOriginal; // Total del ingreso usando costos originales
   payload.procesado = false;
   
   console.log("Payload del ingreso preparado con costos ponderados para actualizar productos");
@@ -240,16 +247,14 @@ function calcularCostosPonderados(detalles, productosAntes = []) {
     console.log(`   Costo calculado (redondeado a entero): ${nuevoCosto}`);
 
     // Crear nuevo detalle con el costo calculado
-    // IMPORTANTE: Reemplazamos costoUnitario con el costo calculado para que el backend lo use
-    // El backend actualizará el costo del producto con este valor
-    // Pero mantenemos el totalLinea original del ingreso
+    // IMPORTANTE: Mantenemos costoUnitario con el costo ORIGINAL del ingreso (para calcular el total del ingreso)
+    // Enviamos costoUnitarioPonderado para que el backend actualice el costo del producto en inventario
     const totalLineaOriginal = detalle.cantidad * costoNuevoIngreso;
     const detalleActualizado = {
       ...detalle,
-      costoUnitario: nuevoCosto, // Reemplazar con el costo calculado (el backend lo usará para actualizar el producto)
-      costoUnitarioOriginal: costoNuevoIngreso, // Guardar el costo original del ingreso
-      totalLinea: totalLineaOriginal, // Mantener el totalLinea original del ingreso
-      totalLineaCalculado: detalle.cantidad * nuevoCosto // Guardar el totalLinea con el costo calculado (por si acaso)
+      costoUnitario: costoNuevoIngreso, // Mantener el costo ORIGINAL del ingreso (para trazabilidad y total del ingreso)
+      costoUnitarioPonderado: nuevoCosto, // Costo calculado con promedio ponderado (para actualizar el producto en inventario)
+      totalLinea: totalLineaOriginal, // Mantener el totalLinea original del ingreso (costoUnitario × cantidad)
     };
 
     return detalleActualizado;

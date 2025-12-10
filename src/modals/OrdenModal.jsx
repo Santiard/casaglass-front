@@ -675,7 +675,8 @@ export default function OrdenEditarModal({
         const tieneMate = categoriasConMate.some(cat => 
           cat.toUpperCase().trim() === categoriaNombre
         );
-        const colorDefault = tieneMate ? "MATE" : "";
+        // Colores permitidos: BLANCO, NEGRO, BRONCE, NA
+        const colorDefault = ""; // sin predeterminado
         
         setSelectedCategoryId(primeraCategoria.id);
         setSelectedColor(colorDefault);
@@ -1036,8 +1037,9 @@ export default function OrdenEditarModal({
       };
       
       // Incluir cortes pendientes SOLO si el item correspondiente NO está eliminado
-      // IMPORTANTE: Solo el corte SOBRANTE debe incrementar stock (queda en inventario)
-      // El corte SOLICITADO se vende inmediatamente, así que NO debe incrementar stock
+      // IMPORTANTE: El backend ahora incrementa inventario de AMBOS cortes (+1 cada uno)
+      // Luego, al procesar la venta, decrementa el solicitado (-1)
+      // Resultado: Solicitado queda en 0, Sobrante queda en +1
       const cortesEnriquecidos = (Array.isArray(cortesPendientes) ? cortesPendientes : [])
         .filter((corteSobrante) => {
           // Verificar si existe un item activo que corresponda a este corte sobrante
@@ -1055,18 +1057,18 @@ export default function OrdenEditarModal({
         })
         .map((c) => {
           const sedeId = Number(payload.sedeId);
-          // Solo el sobrante debe tener cantidadesPorSede > 0
-          // El solicitado se crea pero NO incrementa stock porque se vende de inmediato
+          // Cantidades por sede para el corte sobrante
+          // El backend incrementa el inventario del sobrante según estas cantidades
           const cantidadesPorSede = [
-            { sedeId: 1, cantidad: sedeId === 1 ? Number(c.cantidad || 1) : 0 }, // Insula - SOLO PARA SOBRANTE
-            { sedeId: 2, cantidad: sedeId === 2 ? Number(c.cantidad || 1) : 0 }, // Centro - SOLO PARA SOBRANTE
-            { sedeId: 3, cantidad: sedeId === 3 ? Number(c.cantidad || 1) : 0 }  // Patios - SOLO PARA SOBRANTE
+            { sedeId: 1, cantidad: sedeId === 1 ? Number(c.cantidad || 1) : 0 },
+            { sedeId: 2, cantidad: sedeId === 2 ? Number(c.cantidad || 1) : 0 },
+            { sedeId: 3, cantidad: sedeId === 3 ? Number(c.cantidad || 1) : 0 }
           ];
           return {
             ...c,
             cantidad: Number(c.cantidad || 1),
             cantidadesPorSede: cantidadesPorSede,
-            // Indicar que este es el SOBRANTE que debe incrementar stock
+            // Campo esSobrante se mantiene por compatibilidad pero ya no se usa en el backend
             esSobrante: true,
           };
         });
@@ -1708,7 +1710,7 @@ export default function OrdenEditarModal({
                   cat.toUpperCase().trim() === categoriaNombre
                 );
                 
-                const colorDefault = tieneMate ? "MATE" : "";
+        const colorDefault = ""; // sin predeterminado
                 
                 setSelectedCategoryId(catId);
                 setSelectedColor(colorDefault);
@@ -1742,14 +1744,10 @@ export default function OrdenEditarModal({
                   }}
                 >
                   <option value="">Todos los colores</option>
-                  <option value="MATE">MATE</option>
-                  <option value="NA">NA</option>
-                  <option value="TRANSPARENTE">TRANSPARENTE</option>
                   <option value="BLANCO">BLANCO</option>
+                  <option value="NEGRO">NEGRO</option>
                   <option value="BRONCE">BRONCE</option>
-                  <option value="VERDE">VERDE</option>
-                  <option value="AZUL">AZUL</option>
-                  <option value="GRIS">GRIS</option>
+                  <option value="NA">NA</option>
                 </select>
               </div>
             </div>
@@ -1757,10 +1755,9 @@ export default function OrdenEditarModal({
               <table className="inv-table">
                 <thead>
                   <tr>
-                    <th>Nombre</th>
-                    <th>Código</th>
-                    <th>Color</th>
-                    <th></th>
+                    <th style={{ width: "55%" }}>Nombre</th>
+                    <th style={{ width: "30%" }}>Código</th>
+                    <th style={{ width: "15%" }}>Color</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1769,23 +1766,16 @@ export default function OrdenEditarModal({
                       key={p.id}
                       onDoubleClick={() => addProducto(p)}
                       style={{ cursor: "pointer" }}
+                      title="Doble clic para agregar"
                     >
-                      <td>{p.nombre}</td>
-                      <td>{p.codigo ?? "-"}</td>
-                      <td>{p.color ?? "-"}</td>
-                      <td>
-                        <button
-                          className="btn-ghost"
-                          onClick={() => addProducto(p)}
-                        >
-                          +
-                        </button>
-                      </td>
+                      <td onDoubleClick={(e) => { e.stopPropagation(); addProducto(p); }}>{p.nombre}</td>
+                      <td onDoubleClick={(e) => { e.stopPropagation(); addProducto(p); }}>{p.codigo ?? "-"}</td>
+                      <td onDoubleClick={(e) => { e.stopPropagation(); addProducto(p); }}>{p.color ?? "-"}</td>
                     </tr>
                   ))}
                   {catalogoFiltrado.length === 0 && (
                     <tr>
-                      <td colSpan={4} className="empty">
+                      <td colSpan={3} className="empty">
                         Sin resultados
                       </td>
                     </tr>

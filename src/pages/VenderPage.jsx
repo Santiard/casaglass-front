@@ -212,6 +212,15 @@ export default function VenderPage() {
     }
   };
 
+  const actualizarCantidad = (index, nuevaCantidad) => {
+    const cantidad = parseInt(nuevaCantidad) || 1;
+    if (cantidad > 0) {
+      const newCarrito = [...productosCarrito];
+      newCarrito[index].cantidadVender = cantidad;
+      setProductosCarrito(newCarrito);
+    }
+  };
+
   const limpiarCarrito = () => {
     setProductosCarrito([]);
     setCortesPendientes([]); // Limpiar cortes pendientes también
@@ -582,6 +591,7 @@ export default function VenderPage() {
           total={total} 
           limpiarCarrito={limpiarCarrito}
           eliminarProducto={eliminarProducto}
+          actualizarCantidad={actualizarCantidad}
           cortesPendientes={cortesPendientes}
         />
       </aside>

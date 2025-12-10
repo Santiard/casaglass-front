@@ -51,10 +51,10 @@ export default function EntregasImprimirModal({ entregas = [], isOpen, onClose }
       totalTransferencia: acc.totalTransferencia + (Number(entrega.montoTransferencia) || 0),
       totalCheque: acc.totalCheque + (Number(entrega.montoCheque) || 0),
       totalDeposito: acc.totalDeposito + (Number(entrega.montoDeposito) || 0),
-      totalGastos: acc.totalGastos + (Number(entrega.montoGastos) || 0),
+      // totalGastos eliminado - ya no se usan gastos en entregas
       totalEntregado: acc.totalEntregado + totalEntregado,
     };
-  }, { totalEfectivo: 0, totalTransferencia: 0, totalCheque: 0, totalDeposito: 0, totalGastos: 0, totalEntregado: 0 });
+  }, { totalEfectivo: 0, totalTransferencia: 0, totalCheque: 0, totalDeposito: 0, totalEntregado: 0 });
 
   // Función para crear ventana de impresión (compartida entre imprimir y PDF)
   const crearVentanaImpresion = () => {
@@ -607,40 +607,7 @@ export default function EntregasImprimirModal({ entregas = [], isOpen, onClose }
                     );
                   })()}
 
-                  {/* Tabla de gastos */}
-                  {entrega.gastos && Array.isArray(entrega.gastos) && entrega.gastos.length > 0 && (
-                    <div style={{ marginTop: "12px" }}>
-                      <h4 style={{ marginBottom: "4px", color: "var(--color-dark-blue)", fontSize: "0.8rem" }}>Gastos Asociados</h4>
-                      <table className="entregas-imprimir-table">
-                        <thead>
-                          <tr>
-                            <th>ID</th>
-                            <th>Fecha</th>
-                            <th>Concepto</th>
-                            <th>Tipo</th>
-                            <th>Monto</th>
-                            <th>Empleado</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {entrega.gastos.map((gasto, idx) => (
-                            <tr key={gasto.id || idx}>
-                              <td>#{gasto.id || "-"}</td>
-                              <td>{fmtFecha(gasto.fechaGasto)}</td>
-                              <td>{gasto.concepto || gasto.descripcion || "-"}</td>
-                              <td>{gasto.tipo || "OPERATIVO"}</td>
-                              <td>${(Number(gasto.monto) || 0).toLocaleString("es-CO")}</td>
-                              <td>{gasto.empleadoNombre || gasto.empleado?.nombre || "-"}</td>
-                            </tr>
-                          ))}
-                          <tr style={{ fontWeight: "bold", backgroundColor: "#f5f5f5" }}>
-                            <td colSpan={4} style={{ textAlign: "right" }}>Total Gastos:</td>
-                            <td colSpan={2}>${(Number(entrega.montoGastos) || 0).toLocaleString("es-CO")}</td>
-                          </tr>
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
+                  {/* Sección de gastos eliminada - ya no se usan gastos en entregas */}
 
                   {/* Subtotal por entrega */}
                   <div className="total total-horizontal" style={{ marginTop: "8px" }}>
@@ -650,7 +617,7 @@ export default function EntregasImprimirModal({ entregas = [], isOpen, onClose }
                       <span>Transferencia: ${(Number(entrega.montoTransferencia) || 0).toLocaleString("es-CO")}</span>
                       <span>Cheque: ${(Number(entrega.montoCheque) || 0).toLocaleString("es-CO")}</span>
                       <span>Depósito: ${(Number(entrega.montoDeposito) || 0).toLocaleString("es-CO")}</span>
-                      <span>Total Gastos: ${(Number(entrega.montoGastos) || 0).toLocaleString("es-CO")}</span>
+                      {/* Total Gastos eliminado - ya no se usan gastos en entregas */}
                       <span><strong>Total Entregado: ${totalEntregado.toLocaleString("es-CO")}</strong></span>
                     </div>
                   </div>
@@ -667,7 +634,7 @@ export default function EntregasImprimirModal({ entregas = [], isOpen, onClose }
                   <span><strong>Total Transferencia: ${totalesGenerales.totalTransferencia.toLocaleString("es-CO")}</strong></span>
                   <span><strong>Total Cheque: ${totalesGenerales.totalCheque.toLocaleString("es-CO")}</strong></span>
                   <span><strong>Total Depósito: ${totalesGenerales.totalDeposito.toLocaleString("es-CO")}</strong></span>
-                  <span><strong>Total Gastos: ${totalesGenerales.totalGastos.toLocaleString("es-CO")}</strong></span>
+                  {/* Total Gastos eliminado - ya no se usan gastos en entregas */}
                   <span style={{ fontSize: "0.85rem", fontWeight: "bold" }}>
                     <strong>TOTAL A ENTREGAR: ${totalesGenerales.totalEntregado.toLocaleString("es-CO")}</strong>
                   </span>

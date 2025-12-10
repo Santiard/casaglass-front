@@ -8,14 +8,14 @@ export default function EntregaModal({
   onSave,                     // onSave(payload, isEdit)
   entregaInicial = null,      // si viene => editar
   ordenesDisponibles = [],    // [{id, numero, fecha, total, incluidaEntrega}]
-  gastosDisponibles = [],     // [{id, descripcion, monto, asignadoEntregaId}]
+  // gastosDisponibles eliminado - ya no se usan gastos en entregas
 }) {
   const empty = {
     fechaEntrega: new Date().toISOString().substring(0, 10),
     sede: { id: "sede-1", nombre: "Sede Principal" },
     empleado: { id: "emp-1", nombre: "Cajero (mock)" },
     detalles: [],             // [{ id, orden:{id}, numeroOrden, fechaOrden, montoOrden }]
-    gastos: [],               // [{ id, descripcion, monto }]
+    // gastos eliminado - ya no se usan gastos en entregas
     monto: 0,                 // Monto total (único campo de monto según modelo simplificado)
     montoEfectivo: 0,
     montoTransferencia: 0,
@@ -26,7 +26,7 @@ export default function EntregaModal({
 
   const [form, setForm] = useState(empty);
   const [qOrden, setQOrden] = useState("");
-  const [qGasto, setQGasto] = useState("");
+  // qGasto eliminado - ya no se usan gastos en entregas
 
   const isEdit = Boolean(entregaInicial?.id);
   const editable = entregaInicial ? entregaInicial.estado !== "ENTREGADA" : true;
@@ -41,7 +41,7 @@ export default function EntregaModal({
         sede: entregaInicial.sede ?? empty.sede,
         empleado: entregaInicial.empleado ?? empty.empleado,
         detalles: Array.isArray(entregaInicial.detalles) ? entregaInicial.detalles : [],
-        gastos: Array.isArray(entregaInicial.gastos) ? entregaInicial.gastos : [],
+        // gastos eliminado - ya no se usan gastos en entregas
         monto: Number(entregaInicial.monto ?? 0),
         montoEfectivo: Number(entregaInicial.montoEfectivo ?? 0),
         montoTransferencia: Number(entregaInicial.montoTransferencia ?? 0),
@@ -53,7 +53,7 @@ export default function EntregaModal({
       setForm(empty);
     }
     setQOrden("");
-    setQGasto("");
+    // setQGasto eliminado - ya no se usan gastos en entregas
   }, [isOpen, entregaInicial]);
 
   const setField = (field, value) => setForm(prev => ({ ...prev, [field]: value }));
@@ -65,12 +65,7 @@ export default function EntregaModal({
     return base.filter(o => String(o.numero ?? "").toLowerCase().includes(q));
   }, [ordenesDisponibles, qOrden, form.detalles]);
 
-  const gastosFiltrados = useMemo(() => {
-    const q = qGasto.trim().toLowerCase();
-    const base = gastosDisponibles.filter(g => !g.asignadoEntregaId || form.gastos.some(x => String(x.id) === String(g.id)));
-    if (!q) return base;
-    return base.filter(g => String(g.descripcion ?? "").toLowerCase().includes(q));
-  }, [gastosDisponibles, qGasto, form.gastos]);
+  // gastosFiltrados eliminado - ya no se usan gastos en entregas
 
   // Calcular monto total desde el desglose
   const montoCalculado = useMemo(() => {
@@ -101,17 +96,7 @@ export default function EntregaModal({
     setForm(prev => ({ ...prev, detalles: prev.detalles.filter((_, i) => i !== idx) }));
   };
 
-  const addGasto = (g) => {
-    if (!editable) return;
-    const ya = form.gastos.some(x => String(x.id) === String(g.id));
-    if (ya) return;
-    setForm(prev => ({ ...prev, gastos: [...prev.gastos, { id: g.id, descripcion: g.descripcion, monto: g.monto }] }));
-  };
-
-  const removeGasto = (idx) => {
-    if (!editable) return;
-    setForm(prev => ({ ...prev, gastos: prev.gastos.filter((_, i) => i !== idx) }));
-  };
+  // addGasto y removeGasto eliminados - ya no se usan gastos en entregas
 
   const disabledSubmit = !editable || !form.fechaEntrega || form.detalles.length === 0;
 
@@ -130,7 +115,7 @@ export default function EntregaModal({
         fechaOrden: d.fechaOrden,
         montoOrden: Number(d.montoOrden),
       })),
-      gastos: form.gastos.map(g => ({ id: g.id, descripcion: g.descripcion, monto: Number(g.monto) })),
+      // gastos eliminado - ya no se usan gastos en entregas
       monto: Number(form.monto ?? 0),
       montoEfectivo: Number(form.montoEfectivo ?? 0),
       montoTransferencia: Number(form.montoTransferencia ?? 0),
@@ -236,53 +221,23 @@ export default function EntregaModal({
                     ))}
                     <tr>
                       <td colSpan={2} style={{ textAlign: "right", fontWeight: 600 }}>Total órdenes</td>
-                      <td colSpan={2} style={{ fontWeight: 700 }}>{fmtCOP(esperado)}</td>
+                      <td colSpan={2} style={{ fontWeight: 700 }}>{fmtCOP(form.detalles.reduce((sum, d) => sum + (Number(d.montoOrden) || 0), 0))}</td>
                     </tr>
                   </tbody>
                 </table>
               )}
             </div>
 
-            <h3 style={{ marginTop: 16 }}>Gastos asociados</h3>
-            <div className="selected-products">
-              {form.gastos.length === 0 ? (
-                <div className="empty-sub">Doble clic en la tabla de la derecha para agregar.</div>
-              ) : (
-                <table className="mini-table">
-                  <thead>
-                    <tr>
-                      <th>Descripción</th>
-                      <th style={{ width: 140 }}>Monto</th>
-                      <th style={{ width: 60 }}></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {form.gastos.map((g, idx) => (
-                      <tr key={g.id}>
-                        <td>{g.descripcion}</td>
-                        <td>{fmtCOP(g.monto)}</td>
-                        <td>
-                          <button className="btn-ghost" type="button" onClick={() => removeGasto(idx)} disabled={!editable} title={!editable ? "Edición bloqueada (entregada)" : "Quitar"}>✕</button>
-                        </td>
-                      </tr>
-                    ))}
-                    <tr>
-                      <td style={{ textAlign: "right", fontWeight: 600 }}>Total gastos</td>
-                      <td colSpan={2} style={{ fontWeight: 700 }}>{fmtCOP(totalGastos)}</td>
-                    </tr>
-                  </tbody>
-                </table>
-              )}
-            </div>
+            {/* Sección de gastos eliminada - ya no se usan gastos en entregas */}
           </div>
 
-          {/* Derecha: catálogos (órdenes y gastos) */}
+          {/* Derecha: catálogo de órdenes (gastos eliminados) */}
           <div className="pane pane-right">
             <div className="inv-header">
               <h3 style={{ margin: 0 }}>Órdenes disponibles</h3>
               <input className="inv-search" type="text" placeholder="Buscar # orden…" value={qOrden} onChange={(e) => setQOrden(e.target.value)} disabled={!editable} />
             </div>
-            <div className="inventory-scroll" style={{ marginBottom: 12 }}>
+            <div className="inventory-scroll">
               <table className="inv-table">
                 <thead>
                   <tr>
@@ -314,41 +269,7 @@ export default function EntregaModal({
                 </tbody>
               </table>
             </div>
-
-            <div className="inv-header">
-              <h3 style={{ margin: 0 }}>Gastos disponibles</h3>
-              <input className="inv-search" type="text" placeholder="Buscar por descripción…" value={qGasto} onChange={(e) => setQGasto(e.target.value)} disabled={!editable} />
-            </div>
-            <div className="inventory-scroll">
-              <table className="inv-table">
-                <thead>
-                  <tr>
-                    <th>Descripción</th>
-                    <th style={{ width: 120 }}>Monto</th>
-                    <th style={{ width: 80 }}>Agregar</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {gastosFiltrados.length === 0 ? (
-                    <tr><td colSpan={3} className="empty">Sin resultados</td></tr>
-                  ) : (
-                    gastosFiltrados.map(g => (
-                      <tr key={g.id}
-                          onDoubleClick={() => { if (editable) addGasto(g); }}
-                          title={!editable ? "Edición bloqueada (entregada)" : "Doble clic para agregar"}
-                          style={{ cursor: !editable ? "not-allowed" : "pointer", opacity: g.asignadoEntregaId && !form.gastos.some(x => String(x.id) === String(g.id)) ? 0.4 : 1 }}
-                      >
-                        <td>{g.descripcion}</td>
-                        <td>{fmtCOP(g.monto)}</td>
-                        <td>
-                          <button className="btn-ghost" type="button" onClick={() => addGasto(g)} disabled={!editable || (g.asignadoEntregaId && !form.gastos.some(x => String(x.id) === String(g.id)))} title={!editable ? "Edición bloqueada (entregada)" : (g.asignadoEntregaId ? "Ya asignado a otra entrega" : "Agregar")}>+</button>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
+            {/* Sección de gastos disponibles eliminada - ya no se usan gastos en entregas */}
           </div>
         </div>
 

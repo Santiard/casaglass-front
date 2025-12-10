@@ -88,6 +88,14 @@ export default function VentaTable({
     }
   };
 
+  // Doble clic en la fila: agrega el producto con la cantidad ingresada o 1 por defecto
+  const handleRowDoubleClick = (event, producto, uniqueKey) => {
+    // Evitar disparar cuando el doble clic fue sobre un input o botón
+    const target = event.target;
+    if (target?.closest && target.closest("input, button, select, textarea")) return;
+    handleAgregarCarrito(producto, uniqueKey);
+  };
+
   // Función para agregar todos los productos del kit al carrito
   const handleAgregarKit = (producto, uniqueKey) => {
     console.log("🔧 DEBUG handleAgregarKit - Inicio");
@@ -292,7 +300,13 @@ export default function VentaTable({
             const stockNegativo = isAdmin ? total < 0 : cantidadDisponible < 0;
 
             return (
-              <tr key={uniqueKey} className={sinStock ? "row-sin-stock" : stockNegativo ? "row-stock-negativo" : ""}>
+              <tr
+                key={uniqueKey}
+                className={sinStock ? "row-sin-stock" : stockNegativo ? "row-stock-negativo" : ""}
+                onDoubleClick={(e) => handleRowDoubleClick(e, p, uniqueKey)}
+                title="Doble clic para agregar al carrito"
+                style={{ cursor: "pointer" }}
+              >
                 <td>{p.codigo}</td>
                 <td>{p.nombre}</td>
                 {isVidrio && <td>{p.mm ?? "-"}</td>}
@@ -370,23 +384,13 @@ export default function VentaTable({
                 {/* Botones de acción */}
                 <td>
                   <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                    <button
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        handleAgregarCarrito(p, uniqueKey);
-                      }}
-                      className="btnLink"
-                      disabled={!cantidadesVenta[uniqueKey] || cantidadesVenta[uniqueKey] <= 0}
-                      title={stockNegativo ? " Venta anticipada permitida" : ""}
-                      type="button"
-                    >
-                      Agregar
-                    </button>
                     {p.tipo === "PERFIL" && (
                       <button
                         className="btnLink"
-                        onClick={() => handleAbrirModalCorte(p)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleAbrirModalCorte(p);
+                        }}
                       >
                         Cortar
                       </button>

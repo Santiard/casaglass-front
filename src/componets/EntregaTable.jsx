@@ -283,7 +283,7 @@ export default function EntregasTable({
         onSave={handleGuardarEntrega}
         entregaInicial={entregaEditando}
         ordenesDisponibles={[]}
-        gastosDisponibles={[]}
+        // gastosDisponibles eliminado - ya no se usan gastos en entregas
       />
 
 

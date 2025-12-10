@@ -34,36 +34,22 @@ function extraerAbonosDeCreditos(creditos) {
 
 /**
  * Obtener todos los abonos
- * @param {Object} params - Parámetros de consulta (puede incluir clienteId, fecha, sedeId)
- * @returns {Promise<Array>} Lista de abonos
+ * @param {Object} params - Parámetros de consulta (puede incluir clienteId, creditoId, fechaDesde, fechaHasta, metodoPago, sedeId, page, size)
+ * @returns {Promise<Array|Object>} Lista de abonos o respuesta paginada si se proporcionan page y size
  */
 export async function listarAbonos(params = {}) {
   try {
-    // Obtener todos los créditos (que incluyen sus abonos)
-    const { data: creditos } = await api.get("/creditos", { params });
+    // Usar el nuevo endpoint GET /api/abonos con filtros del backend
+    const { data } = await api.get("/abonos", { params });
     
-    // Extraer y aplanar todos los abonos
-    let abonos = extraerAbonosDeCreditos(creditos || []);
-    
-    // Filtrar por cliente si se especifica
-    if (params.clienteId) {
-      abonos = abonos.filter(abono => 
-        abono.cliente?.id === Number(params.clienteId) || 
-        abono.credito?.cliente?.id === Number(params.clienteId)
-      );
+    // Si viene paginado (tiene content), retornar solo el array de abonos
+    // Si no viene paginado, retornar directamente el array
+    if (data && typeof data === 'object' && Array.isArray(data.content)) {
+      return data.content;
     }
     
-    // Filtrar por fecha si se especifica
-    if (params.fecha) {
-      const fechaStr = typeof params.fecha === 'string' ? params.fecha : new Date(params.fecha).toISOString().slice(0, 10);
-      abonos = abonos.filter(abono => {
-        if (!abono.fecha) return false;
-        const fechaAbono = new Date(abono.fecha).toISOString().slice(0, 10);
-        return fechaAbono === fechaStr;
-      });
-    }
-    
-    return abonos;
+    // Compatibilidad: si viene como array directo
+    return Array.isArray(data) ? data : [];
   } catch (error) {
     console.error("Error listando abonos:", error);
     throw error;
@@ -73,14 +59,15 @@ export async function listarAbonos(params = {}) {
 /**
  * Obtener abonos por cliente
  * @param {number} clienteId - ID del cliente
+ * @param {Object} options - Opciones adicionales (fechaDesde, fechaHasta, page, size)
  * @returns {Promise<Array>} Lista de abonos del cliente
  */
-export async function listarAbonosPorCliente(clienteId) {
+export async function listarAbonosPorCliente(clienteId, options = {}) {
   if (!clienteId) {
     throw new Error("clienteId es obligatorio para listar abonos por cliente");
   }
   try {
-    return await listarAbonos({ clienteId });
+    return await listarAbonos({ clienteId, ...options });
   } catch (error) {
     console.error("Error listando abonos por cliente:", error);
     throw error;
@@ -89,15 +76,17 @@ export async function listarAbonosPorCliente(clienteId) {
 
 /**
  * Obtener abonos por fecha
- * @param {string} fecha - Fecha en formato YYYY-MM-DD
+ * @param {string} fecha - Fecha en formato YYYY-MM-DD (se usa como fechaDesde y fechaHasta)
+ * @param {Object} options - Opciones adicionales (clienteId, page, size)
  * @returns {Promise<Array>} Lista de abonos de la fecha
  */
-export async function listarAbonosPorFecha(fecha) {
+export async function listarAbonosPorFecha(fecha, options = {}) {
   if (!fecha) {
     throw new Error("fecha es obligatoria para listar abonos por fecha");
   }
   try {
-    return await listarAbonos({ fecha });
+    // Convertir fecha única a rango fechaDesde-fechaHasta
+    return await listarAbonos({ fechaDesde: fecha, fechaHasta: fecha, ...options });
   } catch (error) {
     console.error("Error listando abonos por fecha:", error);
     throw error;

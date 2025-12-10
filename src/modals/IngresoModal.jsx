@@ -30,6 +30,7 @@ export default function IngresoModal({
 
   const [form, setForm] = useState(empty);
   const [searchCat, setSearchCat] = useState("");
+  const [selectedColor, setSelectedColor] = useState(""); // Filtro de color
   const [editable, setEditable] = useState(true);
   const [selectedCategoryId, setSelectedCategoryId] = useState(null);
   const [categorias, setCategorias] = useState([]);
@@ -157,6 +158,15 @@ export default function IngresoModal({
       }
     }
     
+    // Filtrar por color
+    if (selectedColor) {
+      const colorFiltro = selectedColor.toUpperCase().trim();
+      filtered = filtered.filter((p) => {
+        const productoColor = (p.color || "").toUpperCase().trim();
+        return productoColor === colorFiltro;
+      });
+    }
+    
     // Filtrar por búsqueda de texto
     const q = searchCat.trim().toLowerCase();
     if (q) {
@@ -168,7 +178,7 @@ export default function IngresoModal({
     }
     
     return filtered;
-  }, [catalogoProductos, searchCat, selectedCategoryId, categorias]);
+  }, [catalogoProductos, searchCat, selectedCategoryId, selectedColor, categorias]);
 
   // Total costo calculado en UI (el back recalcula igual)
   const totalCosto = useMemo(
@@ -593,15 +603,17 @@ export default function IngresoModal({
 
           {/* Derecha - Inventario/Catálogo */}
           <div className="pane pane-right">
-            <div className="inv-header">
-              <h3 style={{ margin: 0 }}>
-                Catálogo de Productos
-                {selectedCategoryId && categorias.find(c => c.id === selectedCategoryId) && (
-                  <span style={{ fontSize: '0.8rem', color: '#666', fontWeight: 'normal' }}>
-                    {' '}• {categorias.find(c => c.id === selectedCategoryId)?.nombre}
-                  </span>
-                )}
-              </h3>
+            <div className="inv-header" style={{ gap: '0.75rem', flexWrap: 'wrap' }}>
+              <div style={{ flex: 1, minWidth: '180px' }}>
+                <h3 style={{ margin: 0 }}>
+                  Catálogo de Productos
+                  {selectedCategoryId && categorias.find(c => c.id === selectedCategoryId) && (
+                    <span style={{ fontSize: '0.8rem', color: '#666', fontWeight: 'normal' }}>
+                      {' '}• {categorias.find(c => c.id === selectedCategoryId)?.nombre}
+                    </span>
+                  )}
+                </h3>
+              </div>
               <input
                 className="inv-search"
                 type="text"
@@ -609,7 +621,27 @@ export default function IngresoModal({
                 value={searchCat}
                 onChange={(e) => setSearchCat(e.target.value)}
                 disabled={!editable && isEdit}
+                style={{ flex: 1, minWidth: '160px' }}
               />
+              <select
+                className="filter-select"
+                value={selectedColor}
+                onChange={(e) => setSelectedColor(e.target.value)}
+                style={{
+                  padding: "0.5rem",
+                  borderRadius: "4px",
+                  border: "1px solid #ddd",
+                  fontSize: "0.9rem",
+                  minWidth: "140px"
+                }}
+                disabled={!editable && isEdit}
+              >
+                <option value="">Todos los colores</option>
+                <option value="BLANCO">BLANCO</option>
+                <option value="NEGRO">NEGRO</option>
+                <option value="BRONCE">BRONCE</option>
+                <option value="NA">NA</option>
+              </select>
             </div>
 
             {catalogoFiltrado.length > 0 && (
@@ -622,16 +654,15 @@ export default function IngresoModal({
               <table className="inv-table">
                 <thead>
                   <tr>
-                    <th style={{ width: "40%" }}>Nombre</th>
-                    <th style={{ width: "25%" }}>Código</th>
-                    <th style={{ width: "20%" }}>Color</th>
-                    <th style={{ width: "15%" }}>Agregar</th>
+                    <th style={{ width: "55%" }}>Nombre</th>
+                    <th style={{ width: "30%" }}>Código</th>
+                    <th style={{ width: "15%" }}>Color</th>
                   </tr>
                 </thead>
                 <tbody>
                   {catalogoFiltrado.length === 0 ? (
                     <tr>
-                      <td colSpan={4} className="empty">
+                      <td colSpan={3} className="empty">
                         Sin resultados
                       </td>
                     </tr>
@@ -651,19 +682,18 @@ export default function IngresoModal({
                           cursor: !editable && isEdit ? "not-allowed" : "pointer",
                         }}
                       >
-                        <td>{item.nombre}</td>
-                        <td>{item.codigo ?? "-"}</td>
-                        <td>{item.color ?? "-"}</td>
-                        <td>
-                          <button
-                            className="btn-ghost"
-                            type="button"
-                            onClick={() => addProducto(item)}
-                            disabled={!editable && isEdit}
-                          >
-                            +
-                          </button>
-                        </td>
+                        <td onDoubleClick={(e) => { 
+                          e.stopPropagation(); 
+                          if (editable || !isEdit) addProducto(item); 
+                        }}>{item.nombre}</td>
+                        <td onDoubleClick={(e) => { 
+                          e.stopPropagation(); 
+                          if (editable || !isEdit) addProducto(item); 
+                        }}>{item.codigo ?? "-"}</td>
+                        <td onDoubleClick={(e) => { 
+                          e.stopPropagation(); 
+                          if (editable || !isEdit) addProducto(item); 
+                        }}>{item.color ?? "-"}</td>
                       </tr>
                     ))
                   )}
