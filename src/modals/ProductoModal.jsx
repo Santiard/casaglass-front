@@ -10,6 +10,7 @@ export default function ProductModal({ isOpen, onClose, onSave, product }) {
     id: null,
     codigo: "",
     nombre: "",
+    descripcion: "",
     categoria: "",
     tipo: "UNID",
     color: "NA", // Por defecto NA para UNID
@@ -77,6 +78,8 @@ export default function ProductModal({ isOpen, onClose, onSave, product }) {
         costo: product.costo !== undefined && product.costo !== null ? String(product.costo) : "",
         // Establecer color por defecto según tipo si no tiene color
         color: product.color || colorPorDefecto,
+        // Asegurar que la descripción se cargue correctamente (puede ser null o undefined)
+        descripcion: product.descripcion || "",
         // Convertir cantidades: si es 0, mostrar vacío; si tiene valor, mostrar el valor
         cantidadInsula: product.cantidadInsula && product.cantidadInsula !== 0 ? String(product.cantidadInsula) : "",
         cantidadCentro: product.cantidadCentro && product.cantidadCentro !== 0 ? String(product.cantidadCentro) : "",
@@ -413,6 +416,27 @@ export default function ProductModal({ isOpen, onClose, onSave, product }) {
                   value={formData.nombre}
                   onChange={handleChange}
                   required
+                />
+              </label>
+
+              <label>
+                Descripción:
+                <textarea
+                  name="descripcion"
+                  placeholder="Descripción del producto (opcional)"
+                  value={formData.descripcion || ""}
+                  onChange={handleChange}
+                  rows={3}
+                  style={{
+                    width: "100%",
+                    padding: "0.5rem",
+                    border: "1px solid #ddd",
+                    borderRadius: "4px",
+                    fontSize: "0.875rem",
+                    fontFamily: "inherit",
+                    resize: "vertical",
+                    minHeight: "60px"
+                  }}
                 />
               </label>
 

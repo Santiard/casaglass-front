@@ -12,6 +12,64 @@
   box-sizing: border-box; /* Incluir padding y border en el ancho */
 }
 
+/* Pie de página para mostrar descripción del producto */
+.table-description-footer {
+  flex: 0 0 auto;
+  padding: 0.75rem 1rem;
+  background-color: #f8f9fa;
+  border-top: 0.0625rem solid #e0e0e0;
+  border-radius: 0 0 0.5rem 0.5rem;
+  min-height: 3rem;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.table-description-content {
+  width: 100%;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.table-description-label {
+  font-weight: 600;
+  color: var(--color-dark-blue, #1e2753);
+  font-size: 0.875rem;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.table-description-text {
+  color: var(--color-dark-gray, #495057);
+  font-size: 0.875rem;
+  line-height: 1.5;
+  flex: 1;
+  word-wrap: break-word;
+  font-style: italic;
+}
+
+/* Estilo para fila seleccionada */
+.table tbody tr.row-selected {
+  background-color: #e3f2fd !important;
+  border-left: 3px solid var(--color-light-blue, #4f67ff);
+}
+
+.table tbody tr.row-selected:hover {
+  background-color: #bbdefb !important;
+}
+
+/* Ajustes para el footer en venta-table */
+.venta-table.table-wrapper {
+  display: flex;
+  flex-direction: column;
+}
+
+.venta-table.table-wrapper .table-description-footer {
+  margin-top: auto;
+}
+
 .items-count {
   color: var(--color-white);
 }
@@ -72,10 +130,17 @@
   padding: 0.375rem 0.625rem; /* 6px 10px */
   text-align: left;
   border-bottom: 0.0625rem solid #ddd;
+  border-right: 0.0625rem solid #e0e0e0; /* Línea vertical entre columnas */
   overflow: hidden; /* Ocultar contenido que excede */
   text-overflow: ellipsis; /* Mostrar "..." si el texto es muy largo */
   white-space: nowrap; /* No hacer wrap por defecto */
   max-width: 0; /* Necesario para que text-overflow funcione con table-layout: fixed */
+}
+
+/* Quitar borde derecho de la última columna */
+.table th:last-child,
+.table td:last-child {
+  border-right: none;
 }
 
 /* Permitir tooltips nativos del navegador para ver texto completo */
@@ -84,7 +149,7 @@
   cursor: default;
 }
 
-/* Estilo para columna Nombre en tablas de inventario */
+/* Estilo para columna Nombre en tablas generales (no inventario) */
 .table th:nth-child(2),
 .table td:nth-child(2) {
   min-width: 8rem; /* Nombre - ancho reducido */
@@ -92,6 +157,85 @@
   white-space: nowrap; /* No hacer wrap */
   overflow: hidden; /* Ocultar overflow */
   text-overflow: ellipsis; /* Mostrar ... si es muy largo */
+}
+
+/* Sobrescribir para tabla de inventario (más específico) */
+.inventory-content .table-container .table th:nth-child(2),
+.inventory-content .table-container .table td:nth-child(2) {
+  min-width: 12rem !important; /* Nombre - ancho aumentado */
+  max-width: none !important; /* Sin límite máximo */
+  white-space: normal !important; /* Permitir wrap */
+  overflow: visible !important; /* Mostrar todo el contenido */
+  text-overflow: clip !important; /* No truncar */
+}
+
+/* ===== ESTILOS ESPECÍFICOS PARA TABLA DE INVENTARIO ===== */
+/* Aumentar ancho de la columna Nombre (columna 2) - Sobrescribir estilo general */
+.inventory-content .table-container .table th:nth-child(2),
+.inventory-content .table-container .table td:nth-child(2) {
+  width: 25% !important;
+  min-width: 12rem !important;
+  max-width: none !important;
+  white-space: normal !important; /* Permitir que el texto se ajuste en múltiples líneas si es necesario */
+  word-wrap: break-word !important;
+  overflow-wrap: break-word !important;
+  overflow: visible !important; /* Mostrar todo el contenido */
+  text-overflow: clip !important; /* No truncar */
+}
+
+/* Reducir ancho de las columnas de cantidades (Insula, Centro, Patios, Total) */
+/* Insula - columna 4 (para admin) */
+.inventory-content .table-container .table th:nth-child(4),
+.inventory-content .table-container .table td:nth-child(4) {
+  width: 5% !important;
+  min-width: 4rem !important;
+  max-width: 5rem !important;
+  text-align: center;
+}
+
+/* Centro - columna 5 */
+.inventory-content .table-container .table th:nth-child(5),
+.inventory-content .table-container .table td:nth-child(5) {
+  width: 5% !important;
+  min-width: 4rem !important;
+  max-width: 5rem !important;
+  text-align: center;
+}
+
+/* Patios - columna 6 */
+.inventory-content .table-container .table th:nth-child(6),
+.inventory-content .table-container .table td:nth-child(6) {
+  width: 5% !important;
+  min-width: 4rem !important;
+  max-width: 5rem !important;
+  text-align: center;
+}
+
+/* Total - columna 7 */
+.inventory-content .table-container .table th:nth-child(7),
+.inventory-content .table-container .table td:nth-child(7) {
+  width: 5% !important;
+  min-width: 4rem !important;
+  max-width: 5rem !important;
+  text-align: center;
+  font-weight: 600;
+}
+
+/* Ajustar otras columnas para mantener proporción */
+/* Código - columna 1 */
+.inventory-content .table-container .table th:nth-child(1),
+.inventory-content .table-container .table td:nth-child(1) {
+  width: 8% !important;
+  min-width: 5rem !important;
+  max-width: 7rem !important;
+}
+
+/* Color - columna 3 */
+.inventory-content .table-container .table th:nth-child(3),
+.inventory-content .table-container .table td:nth-child(3) {
+  width: 8% !important;
+  min-width: 5rem !important;
+  max-width: 8rem !important;
 }
 
 .table tbody tr:nth-child(even) {
@@ -805,12 +949,18 @@ input[type="number"] {
 .mov .table td {
   padding: 0.625rem 0.75rem;
   border-bottom: 0.0625rem solid var(--color-light-gray);
+  border-right: 0.0625rem solid #e0e0e0; /* Línea vertical entre columnas */
   text-align: left;
   vertical-align: middle;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   max-width: 0;
+}
+
+.mov .table th:last-child,
+.mov .table td:last-child {
+  border-right: none;
 }
 
 .mov .table tbody tr:nth-child(even) { background-color: color-mix(in oklab, var(--color-white) 92%, var(--color-light-gray)); }
@@ -986,11 +1136,17 @@ input[type="number"] {
 .clientes .table td {
   padding: 0.625rem 0.75rem;
   border-bottom: 0.0625rem solid var(--color-light-gray);
+  border-right: 0.0625rem solid #e0e0e0; /* Línea vertical entre columnas */
   text-align: left;
   vertical-align: middle;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.clientes .table th:last-child,
+.clientes .table td:last-child {
+  border-right: none;
 }
 
 /* Anchos específicos para columnas de clientes */
@@ -1270,12 +1426,18 @@ input[type="number"] {
 .ingresos .table td {
   padding: 0.75rem;
   border-bottom: 0.0625rem solid var(--color-light-gray);
+  border-right: 0.0625rem solid #e0e0e0; /* Línea vertical entre columnas */
   font-size: 0.875rem;
   color: var(--color-dark-gray);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   max-width: 0;
+}
+
+.ingresos .table th:last-child,
+.ingresos .table td:last-child {
+  border-right: none;
 }
 
 .ingresos .table tbody tr:hover {
@@ -1494,12 +1656,18 @@ input[type="number"] {
 .ordenes .table td {
   padding: 0.75rem;
   border-bottom: 0.0625rem solid var(--color-light-gray);
+  border-right: 0.0625rem solid #e0e0e0; /* Línea vertical entre columnas */
   font-size: 0.875rem;
   color: var(--color-dark-gray);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   max-width: 0;
+}
+
+.ordenes .table th:last-child,
+.ordenes .table td:last-child {
+  border-right: none;
 }
 
 .ordenes .table tbody tr:hover {
@@ -1693,18 +1861,30 @@ input[type="number"] {
   text-align: left;
   font-weight: 600;
   font-size: 0.875rem;
+  color: var(--color-white);
+  border-bottom: 0.0625rem solid var(--color-light-gray);
+  border-right: 0.0625rem solid rgba(255, 255, 255, 0.2); /* Línea vertical entre columnas en header */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 0;
 }
 
-.facturas .table th,
 .facturas .table td {
   padding: 0.75rem;
   border-bottom: 0.0625rem solid var(--color-light-gray);
+  border-right: 0.0625rem solid #e0e0e0; /* Línea vertical entre columnas */
   font-size: 0.875rem;
   color: var(--color-dark-gray);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   max-width: 0;
+}
+
+.facturas .table th:last-child,
+.facturas .table td:last-child {
+  border-right: none;
 }
 
 .facturas .table tbody tr:hover {

@@ -11,7 +11,7 @@ import { useToast } from "../context/ToastContext.jsx";
 
 export default function ProveedoresPage() {
   const { confirm, ConfirmDialog } = useConfirm();
-  const { showError } = useToast();
+  const { showError, showSuccess } = useToast();
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
 
@@ -43,9 +43,23 @@ export default function ProveedoresPage() {
   };
 
   const handleEliminar = async (prov) => {
+    // Mostrar modal de confirmación
+    const confirmacion = await confirm({
+      title: "Eliminar Proveedor",
+      message: `¿Estás seguro de que deseas eliminar al proveedor "${prov.nombre || 'este proveedor'}"?\n\nEsta acción no se puede deshacer.`,
+      confirmText: "Eliminar",
+      cancelText: "Cancelar",
+      type: "danger"
+    });
+
+    // Si el usuario canceló, no hacer nada
+    if (!confirmacion) return;
+
+    // Si confirmó, proceder con la eliminación
     try {
       await eliminarProveedor(prov.id);
       await fetchData();
+      showSuccess(`Proveedor "${prov.nombre || 'el proveedor'}" eliminado correctamente.`);
     } catch (e) {
       console.error("Error eliminando proveedor", e);
       const backendMsg = e?.response?.data?.message;

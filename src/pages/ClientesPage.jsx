@@ -69,24 +69,38 @@ export default function ClientesPage() {
   };
 
   const handleEliminar = async (cli) => {
-  try {
-    await eliminarCliente(cli.id);
-    await fetchData();
-  } catch (e) {
-    console.error("Error eliminando cliente", e);
+    // Mostrar modal de confirmación
+    const confirmacion = await confirm({
+      title: "Eliminar Cliente",
+      message: `¿Estás seguro de que deseas eliminar al cliente "${cli.nombre || 'este cliente'}"?\n\nEsta acción no se puede deshacer.`,
+      confirmText: "Eliminar",
+      cancelText: "Cancelar",
+      type: "danger"
+    });
 
-    // Si el backend devuelve mensaje personalizado (por ejemplo en status 409)
-    const backendMsg = e?.response?.data?.message;
+    // Si el usuario canceló, no hacer nada
+    if (!confirmacion) return;
 
-    if (backendMsg) {
-      showError(backendMsg); // mensaje enviado desde el backend
-    } else if (e?.response?.status === 409) {
-      showError("No se puede eliminar el cliente porque tiene registros asociados (por ejemplo, órdenes o créditos).");
-    } else {
-      showError("No se pudo eliminar el cliente. Revisa consola.");
+    // Si confirmó, proceder con la eliminación
+    try {
+      await eliminarCliente(cli.id);
+      await fetchData();
+      showSuccess(`Cliente "${cli.nombre || 'el cliente'}" eliminado correctamente.`);
+    } catch (e) {
+      console.error("Error eliminando cliente", e);
+
+      // Si el backend devuelve mensaje personalizado (por ejemplo en status 409)
+      const backendMsg = e?.response?.data?.message;
+
+      if (backendMsg) {
+        showError(backendMsg); // mensaje enviado desde el backend
+      } else if (e?.response?.status === 409) {
+        showError("No se puede eliminar el cliente porque tiene registros asociados (por ejemplo, órdenes o créditos).");
+      } else {
+        showError("No se pudo eliminar el cliente. Revisa consola.");
+      }
     }
-  }
-};
+  };
   return (
     <div className="clientes-page">
       <div className="rowInferior fill">

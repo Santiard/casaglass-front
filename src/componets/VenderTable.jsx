@@ -6,6 +6,9 @@ export default function VenderTable({ data = [], onAgregarProducto, onActualizar
   // Guardamos las cantidades locales por producto
   const [cantidades, setCantidades] = useState({});
   
+  // Estado para el producto seleccionado (para mostrar descripción)
+  const [productoSeleccionado, setProductoSeleccionado] = useState(null);
+  
   // Estado para el modal de corte
   const [modalCorte, setModalCorte] = useState({
     isOpen: false,
@@ -75,7 +78,12 @@ export default function VenderTable({ data = [], onAgregarProducto, onActualizar
               if (!item.selectedPriceType) item.selectedPriceType = "precio";
 
               return (
-                <tr key={item.id}>
+                <tr 
+                  key={item.id}
+                  className={productoSeleccionado?.id === item.id ? "row-selected" : ""}
+                  onClick={() => setProductoSeleccionado(item)}
+                  style={{ cursor: 'pointer' }}
+                >
                   <td>{item.nombre}</td>
                   <td>{item.categoria}</td>
                   <td>{cantidadTotal}</td>
@@ -134,6 +142,16 @@ export default function VenderTable({ data = [], onAgregarProducto, onActualizar
           )}
         </tbody>
       </table>
+      
+      {/* Pie de página con descripción */}
+      <div className="table-description-footer">
+        <div className="table-description-content">
+          <span className="table-description-label">Descripción: </span>
+          <span className="table-description-text">
+            {productoSeleccionado?.descripcion || "Seleccione un producto para ver su descripción"}
+          </span>
+        </div>
+      </div>
       
       {/* Modal de Corte */}
       <CortarModal

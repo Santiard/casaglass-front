@@ -1,9 +1,13 @@
 // src/componets/InventoryTable.jsx
 import "../styles/Table.css"
+import { useState } from "react";
 import eliminar from "../assets/eliminar.png";
 import editar from "../assets/editar.png";
 
 export default function InventoryTable({ data = [], filters, loading, onEditar, onEliminar, isAdmin = true, userSede = "", selectedCategoryId = null, categories = [] }) {
+  // Estado para el producto seleccionado (para mostrar descripción)
+  const [productoSeleccionado, setProductoSeleccionado] = useState(null);
+  
   // Detectar si la categoría seleccionada es VIDRIO
   // IMPORTANTE: Solo usar la categoría seleccionada para determinar si mostrar columnas de vidrio
   const selectedCategory = categories.find(cat => cat.id === selectedCategoryId);
@@ -84,7 +88,12 @@ export default function InventoryTable({ data = [], filters, loading, onEditar, 
             const stockNegativo = isAdmin ? total < 0 : cantidadVendedor < 0;
 
             return (
-              <tr key={p.id} className={sinStock ? "row-sin-stock" : stockNegativo ? "row-stock-negativo" : ""}>
+              <tr 
+                key={p.id} 
+                className={`${sinStock ? "row-sin-stock" : stockNegativo ? "row-stock-negativo" : ""} ${productoSeleccionado?.id === p.id ? "row-selected" : ""}`}
+                onClick={() => setProductoSeleccionado(p)}
+                style={{ cursor: 'pointer' }}
+              >
                 <td>{p.codigo}</td>
                 <td>{p.nombre}</td>
                 <td>{p.color ?? "N/A"}</td>
@@ -174,6 +183,16 @@ export default function InventoryTable({ data = [], filters, loading, onEditar, 
           })}
         </tbody>
       </table>
+      </div>
+      
+      {/* Pie de página con descripción */}
+      <div className="table-description-footer">
+        <div className="table-description-content">
+          <span className="table-description-label">Descripción: </span>
+          <span className="table-description-text">
+            {productoSeleccionado?.descripcion || "Seleccione un producto para ver su descripción"}
+          </span>
+        </div>
       </div>
     </div>
   );

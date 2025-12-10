@@ -17,6 +17,9 @@ export default function VentaTable({
   const [cantidadesVenta, setCantidadesVenta] = useState({});
   const [preciosSeleccionados, setPreciosSeleccionados] = useState({});
   
+  // Estado para el producto seleccionado (para mostrar descripción)
+  const [productoSeleccionado, setProductoSeleccionado] = useState(null);
+  
   // Estado para el modal de corte
   const [modalCorte, setModalCorte] = useState({
     isOpen: false,
@@ -302,9 +305,10 @@ export default function VentaTable({
             return (
               <tr
                 key={uniqueKey}
-                className={sinStock ? "row-sin-stock" : stockNegativo ? "row-stock-negativo" : ""}
+                className={`${sinStock ? "row-sin-stock" : stockNegativo ? "row-stock-negativo" : ""} ${productoSeleccionado?.id === p.id ? "row-selected" : ""}`}
+                onClick={() => setProductoSeleccionado(p)}
                 onDoubleClick={(e) => handleRowDoubleClick(e, p, uniqueKey)}
-                title="Doble clic para agregar al carrito"
+                title="Clic para ver descripción | Doble clic para agregar al carrito"
                 style={{ cursor: "pointer" }}
               >
                 <td>{p.codigo}</td>
@@ -432,6 +436,16 @@ export default function VentaTable({
           })}
         </tbody>
       </table>
+      
+      {/* Pie de página con descripción */}
+      <div className="table-description-footer">
+        <div className="table-description-content">
+          <span className="table-description-label">Descripción: </span>
+          <span className="table-description-text">
+            {productoSeleccionado?.descripcion || "Seleccione un producto para ver su descripción"}
+          </span>
+        </div>
+      </div>
       
       {/* Modal de Corte */}
       <CortarModal
