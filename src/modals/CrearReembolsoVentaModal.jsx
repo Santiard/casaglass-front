@@ -4,6 +4,7 @@ import "../styles/CrudModal.css";
 import { obtenerOrden, obtenerOrdenDetalle } from "../services/OrdenesService.js";
 import { listarOrdenesTabla } from "../services/OrdenesService.js";
 import { useToast } from "../context/ToastContext.jsx";
+import { getTodayLocalDate } from "../lib/dateUtils.js";
 
 export default function CrearReembolsoVentaModal({
   isOpen,
@@ -19,7 +20,7 @@ export default function CrearReembolsoVentaModal({
 
   const [form, setForm] = useState({
     ordenId: "",
-    fecha: new Date().toISOString().split("T")[0],
+    fecha: getTodayLocalDate(),
     motivo: "",
     formaReembolso: "EFECTIVO",
     descuentos: 0,
@@ -35,7 +36,7 @@ export default function CrearReembolsoVentaModal({
   const resetForm = () => {
     setForm({
       ordenId: "",
-      fecha: new Date().toISOString().split("T")[0],
+      fecha: getTodayLocalDate(),
       motivo: "",
       formaReembolso: "EFECTIVO",
       descuentos: 0,

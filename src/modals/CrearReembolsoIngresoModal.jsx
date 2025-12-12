@@ -4,6 +4,7 @@ import "../styles/CrudModal.css";
 import { obtenerIngreso } from "../services/IngresosService.js";
 import { listarIngresos } from "../services/IngresosService.js";
 import { useToast } from "../context/ToastContext.jsx";
+import { getTodayLocalDate } from "../lib/dateUtils.js";
 
 export default function CrearReembolsoIngresoModal({
   isOpen,
@@ -19,7 +20,7 @@ export default function CrearReembolsoIngresoModal({
 
   const [form, setForm] = useState({
     ingresoId: "",
-    fecha: new Date().toISOString().split("T")[0],
+    fecha: getTodayLocalDate(),
     numeroFacturaDevolucion: "",
     motivo: "",
     detalles: [], // [{ingresoDetalleId, cantidad, costoUnitario}]
@@ -34,7 +35,7 @@ export default function CrearReembolsoIngresoModal({
   const resetForm = () => {
     setForm({
       ingresoId: "",
-      fecha: new Date().toISOString().split("T")[0],
+      fecha: getTodayLocalDate(),
       numeroFacturaDevolucion: "",
       motivo: "",
       detalles: [],

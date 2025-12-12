@@ -12,6 +12,7 @@ import { listarClientes } from "../services/ClientesService";
 import { useConfirm } from "../hooks/useConfirm.jsx";
 import { useToast } from "../context/ToastContext.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
+import { getTodayLocalDate } from "../lib/dateUtils.js";
 
 export default function FacturasPage() {
   const { confirm, ConfirmDialog } = useConfirm();
@@ -59,7 +60,7 @@ export default function FacturasPage() {
   // Manejar verificación (marcar como pagada)
   const handleVerificar = async (factura) => {
     try {
-      const fechaPago = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+      const fechaPago = getTodayLocalDate(); // YYYY-MM-DD
       await marcarFacturaComoPagada(factura.id, fechaPago);
       showSuccess("Factura marcada como pagada.");
       await fetchData();
@@ -117,7 +118,7 @@ export default function FacturasPage() {
     if (!confirmacion) return;
 
     try {
-      const fechaPago = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+      const fechaPago = getTodayLocalDate(); // YYYY-MM-DD
       let confirmadas = 0;
       let errores = 0;
 

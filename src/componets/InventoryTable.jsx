@@ -93,7 +93,6 @@ export default function InventoryTable({ data = [], filters, loading, onEditar, 
                 className={`${sinStock ? "row-sin-stock" : stockNegativo ? "row-stock-negativo" : ""} ${productoSeleccionado?.id === p.id ? "row-selected" : ""}`}
                 onClick={() => setProductoSeleccionado(p)}
                 style={{ cursor: 'pointer' }}
-                title="Clic para ver descripción del producto"
               >
                 <td>{p.codigo}</td>
                 <td>{p.nombre}</td>
@@ -169,28 +168,15 @@ export default function InventoryTable({ data = [], filters, loading, onEditar, 
                 
                 {/* Solo administradores pueden editar/eliminar */}
                 {isAdmin && (
-                  <td className="acciones" onClick={(e) => e.stopPropagation()}>
-                    <button 
-                      className="btnEdit" 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onEditar?.(p);
-                      }}
-                      title="Editar producto"
-                    >
-                      <img src={editar} className="iconButton" />
+                  <td className="acciones">
+                    <button className="btnEdit" onClick={() => onEditar?.(p)}>
+                    <img src={editar} className="iconButton" />
                     </button>
-                    <button 
-                      className="btnDelete" 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onEliminar?.(p.id);
-                      }}
-                      title="Eliminar producto"
-                    >
-                      <img src={eliminar} className="iconButton" />
+                    <button className="btnDelete" onClick={() => onEliminar?.(p.id)}>
+                    <img src={eliminar} className="iconButton" />
                     </button>
                   </td>
+
                 )}
               </tr>
             );

@@ -9,6 +9,7 @@ import CategorySidebar from "../componets/CategorySidebar.jsx";
 import { listarCategorias } from "../services/CategoriasService.js";
 import { useToast } from "../context/ToastContext.jsx";
 import { listarProveedores } from "../services/ProveedoresService.js";
+import { getTodayLocalDate } from "../lib/dateUtils.js";
 
 export default function IngresoModal({
   isOpen,
@@ -20,7 +21,7 @@ export default function IngresoModal({
 }) {
   const { showError } = useToast();
   const empty = {
-    fecha: new Date().toISOString().substring(0, 10), // input date
+    fecha: getTodayLocalDate(), // input date
     proveedorId: "",
     proveedorNombre: "", // (solo usado si quisieras permitir libre, aquí no lo usamos)
     numeroFactura: "",
@@ -62,7 +63,7 @@ export default function IngresoModal({
 
   if (ingresoInicial) {
     setForm({
-      fecha: ingresoInicial.fecha ?? new Date().toISOString().substring(0, 10),
+      fecha: ingresoInicial.fecha ?? getTodayLocalDate(),
       proveedorId: ingresoInicial.proveedor?.id ?? "",
       proveedorNombre: ingresoInicial.proveedor?.nombre ?? "",
       numeroFactura: ingresoInicial.numeroFactura ?? "",
@@ -90,7 +91,7 @@ export default function IngresoModal({
     setEditable(diffDays <= 2);
   } else {
     setForm({
-      fecha: new Date().toISOString().substring(0, 10),
+      fecha: getTodayLocalDate(),
       proveedorId: "",
       proveedorNombre: "",
       numeroFactura: "",

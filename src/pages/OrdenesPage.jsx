@@ -15,6 +15,7 @@ import { crearFactura, marcarFacturaComoPagada, obtenerFacturaPorOrden } from ".
 import { useConfirm } from "../hooks/useConfirm.jsx";
 import { useToast } from "../context/ToastContext.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
+import { getTodayLocalDate } from "../lib/dateUtils.js";
 
 export default function OrdenesPage() {
   const { confirm, ConfirmDialog } = useConfirm();
@@ -162,7 +163,7 @@ export default function OrdenesPage() {
         // Intentar marcarla como pagada inmediatamente
         try {
           if (facturaResponse?.id) {
-            const hoy = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+            const hoy = getTodayLocalDate(); // YYYY-MM-DD
             await marcarFacturaComoPagada(facturaResponse.id, hoy);
           }
         } catch (pagoErr) {
@@ -177,7 +178,7 @@ export default function OrdenesPage() {
           try {
             const facturaExistente = await obtenerFacturaPorOrden(facturaPayload.ordenId);
             if (facturaExistente?.id) {
-              const hoy = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+              const hoy = getTodayLocalDate(); // YYYY-MM-DD
               await marcarFacturaComoPagada(facturaExistente.id, hoy);
             }
           } catch (lookupErr) {

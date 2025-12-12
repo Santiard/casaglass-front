@@ -4,6 +4,7 @@ import { listarClientes } from '../services/ClientesService.js';
 import { listarOrdenesTabla, obtenerOrden, obtenerOrdenDetalle } from '../services/OrdenesService.js';
 import { getBusinessSettings } from '../services/businessSettingsService.js';
 import { useToast } from '../context/ToastContext.jsx';
+import { getTodayLocalDate } from '../lib/dateUtils.js';
 import '../styles/CrudModal.css';
 import './AbonoModal.css';
 import './FacturarMultiplesOrdenesModal.css';
@@ -24,7 +25,7 @@ const FacturarMultiplesOrdenesModal = ({ isOpen, onClose, ordenInicial, onSucces
   const [ordenInicialCompleta, setOrdenInicialCompleta] = useState(null); // Orden inicial completa con todos los datos
   
   const [formData, setFormData] = useState({
-    fecha: new Date().toISOString().split('T')[0],
+    fecha: getTodayLocalDate(),
     formaPago: 'EFECTIVO',
     observaciones: ''
   });
@@ -276,7 +277,7 @@ const FacturarMultiplesOrdenesModal = ({ isOpen, onClose, ordenInicial, onSucces
 
   const resetForm = () => {
     setFormData({
-      fecha: new Date().toISOString().split('T')[0],
+      fecha: getTodayLocalDate(),
       formaPago: 'EFECTIVO',
       observaciones: ''
     });
@@ -317,12 +318,12 @@ const FacturarMultiplesOrdenesModal = ({ isOpen, onClose, ordenInicial, onSucces
     const descuentos = Number(orden.descuentos || 0);
     const base = Math.max(0, subtotal - descuentos);
     
-    // Calcular IVA como porcentaje del total
-    const ivaRateDecimal = (ivaRate && ivaRate > 0) ? ivaRate / 100 : 0;
-    const ivaVal = base * ivaRateDecimal;
+    // Calcular IVA
+    const ivaVal = (ivaRate && ivaRate > 0) 
+      ? (base * ivaRate) / (100 + ivaRate) 
+      : 0;
     
-    // El subtotal sin IVA es igual a la base (el IVA ya está incluido en el precio)
-    const subtotalSinIva = base;
+    const subtotalSinIva = base - ivaVal;
     
     return subtotalSinIva >= retefuenteThreshold;
   };
@@ -337,8 +338,7 @@ const FacturarMultiplesOrdenesModal = ({ isOpen, onClose, ordenInicial, onSucces
     const ivaRateDecimal = (ivaRate && ivaRate > 0) ? ivaRate / 100 : 0;
     const ivaVal = base * ivaRateDecimal;
     
-    // El subtotal sin IVA es igual a la base (el IVA ya está incluido en el precio)
-    const subtotalSinIva = base;
+    const subtotalSinIva = base - ivaVal;
     
     // Calcular retención
     const tieneRetencion = ordenesConRetencion.has(orden.id);
@@ -527,8 +527,7 @@ const FacturarMultiplesOrdenesModal = ({ isOpen, onClose, ordenInicial, onSucces
         const valorIvaRedondeado = Math.round(valorIva * 100) / 100; // Redondear a 2 decimales
         
         // Calcular subtotal sin IVA (base imponible para retención)
-        // El subtotal es igual a la base imponible (el IVA ya está incluido en el precio)
-        const subtotalSinIva = baseImponible;
+        const subtotalSinIva = baseImponible - valorIvaRedondeado;
         
         // Calcular retención como valor monetario sobre el subtotal sin IVA
         const porcentajeRetencion = (tieneRetencion && totales.reteVal > 0 && rateValido) 

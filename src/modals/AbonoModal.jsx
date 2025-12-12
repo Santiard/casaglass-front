@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { api } from '../lib/api.js';
 import { listarClientes } from '../services/ClientesService.js';
 import { listarOrdenesCredito } from '../services/OrdenesService.js';
+import { getTodayLocalDate } from '../lib/dateUtils.js';
 import '../styles/CrudModal.css';
 import './AbonoModal.css';
 
@@ -17,7 +18,7 @@ const AbonoModal = ({ isOpen, onClose, credito, onSuccess }) => {
   
   const [formData, setFormData] = useState({
     montoTotal: '',
-    fecha: new Date().toISOString().slice(0, 10),
+    fecha: getTodayLocalDate(),
     factura: ''
   });
   
@@ -277,7 +278,7 @@ const AbonoModal = ({ isOpen, onClose, credito, onSuccess }) => {
   const resetForm = () => {
     setFormData({
       montoTotal: '',
-      fecha: new Date().toISOString().slice(0, 10),
+      fecha: getTodayLocalDate(),
       factura: ''
     });
     setMetodosPago([]);
@@ -311,7 +312,7 @@ const AbonoModal = ({ isOpen, onClose, credito, onSuccess }) => {
 
     // Validaciones
     const montoTotal = parseFloat(formData.montoTotal);
-    const hoy = new Date().toISOString().split('T')[0];
+    const hoy = getTodayLocalDate();
     
     if (isNaN(montoTotal) || montoTotal <= 0) {
       setError('El monto total del abono debe ser mayor a 0.');

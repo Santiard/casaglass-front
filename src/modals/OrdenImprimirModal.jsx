@@ -52,10 +52,12 @@ export default function OrdenImprimirModal({ orden, isOpen, onClose }) {
           venta: ordenCompleta.venta ?? false,
           credito: ordenCompleta.credito ?? false,
           estado: ordenCompleta.estado ?? "ACTIVA",
-          subtotal: typeof ordenCompleta.subtotal === "number" ? ordenCompleta.subtotal : null,
+          subtotal: typeof ordenCompleta.subtotal === "number" ? ordenCompleta.subtotal : null, // Base sin IVA
+          iva: typeof ordenCompleta.iva === "number" ? ordenCompleta.iva : null, // IVA calculado
           descuentos: typeof ordenCompleta.descuentos === "number" ? ordenCompleta.descuentos : 0,
           retencionFuente: typeof ordenCompleta.retencionFuente === "number" ? ordenCompleta.retencionFuente : 0,
-          total: typeof ordenCompleta.total === "number" ? ordenCompleta.total : null,
+          tieneRetencionFuente: Boolean(ordenCompleta.tieneRetencionFuente ?? false),
+          total: typeof ordenCompleta.total === "number" ? ordenCompleta.total : null, // Total facturado
           cliente: ordenCompleta.cliente || {},
           sede: ordenCompleta.sede || {},
           trabajador: ordenCompleta.trabajador || {},
@@ -74,10 +76,12 @@ export default function OrdenImprimirModal({ orden, isOpen, onClose }) {
           venta: orden.venta ?? false,
           credito: orden.credito ?? false,
           estado: orden.estado ?? "ACTIVA",
-          subtotal: typeof orden.subtotal === "number" ? orden.subtotal : null,
+          subtotal: typeof orden.subtotal === "number" ? orden.subtotal : null, // Base sin IVA
+          iva: typeof orden.iva === "number" ? orden.iva : null, // IVA calculado
           descuentos: typeof orden.descuentos === "number" ? orden.descuentos : 0,
           retencionFuente: typeof orden.retencionFuente === "number" ? orden.retencionFuente : 0,
-          total: typeof orden.total === "number" ? orden.total : null,
+          tieneRetencionFuente: Boolean(orden.tieneRetencionFuente ?? false),
+          total: typeof orden.total === "number" ? orden.total : null, // Total facturado
           cliente: orden.cliente || {},
           sede: orden.sede || {},
           trabajador: orden.trabajador || {},
@@ -111,15 +115,19 @@ export default function OrdenImprimirModal({ orden, isOpen, onClose }) {
 
   if (!form) return null;
 
-  // Calcular totales
-  const subtotal = form.subtotal !== null 
+  // Usar valores del backend (ya calculados correctamente)
+  // El backend ahora calcula: subtotal = base sin IVA, iva = valor del IVA, total = total facturado
+  const subtotalSinIva = form.subtotal !== null 
     ? form.subtotal 
-    : form.items.reduce((sum, item) => sum + (item.totalLinea || 0), 0);
+    : form.items.reduce((sum, item) => sum + (item.totalLinea || 0), 0) / 1.19; // Fallback: calcular si no viene del backend
+  const iva = form.iva !== null 
+    ? form.iva 
+    : (form.items.reduce((sum, item) => sum + (item.totalLinea || 0), 0) - subtotalSinIva); // Fallback: calcular si no viene del backend
   const descuentos = form.descuentos || 0;
   const retencionFuente = form.retencionFuente || 0;
   const totalOrden = form.total !== null 
     ? form.total 
-    : subtotal - descuentos - retencionFuente;
+    : form.items.reduce((sum, item) => sum + (item.totalLinea || 0), 0) - descuentos; // Fallback: calcular si no viene del backend
 
   // Formatear fecha
   const fmtFecha = (iso) =>
@@ -459,14 +467,20 @@ export default function OrdenImprimirModal({ orden, isOpen, onClose }) {
 
                 {/* Totales */}
                 <div className="orden-imprimir-total">
-                  <p>Subtotal: ${subtotal.toLocaleString("es-CO")}</p>
+                  <p>Subtotal (sin IVA): ${subtotalSinIva.toLocaleString("es-CO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                   {descuentos > 0 && (
-                    <p>Descuentos: -${descuentos.toLocaleString("es-CO")}</p>
+                    <p>Descuentos: ${descuentos.toLocaleString("es-CO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                   )}
+                  <p>IVA (19%): ${iva.toLocaleString("es-CO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                   {retencionFuente > 0 && (
-                    <p>Retención de Fuente: -${retencionFuente.toLocaleString("es-CO")}</p>
+                    <p>Retención en la Fuente: ${retencionFuente.toLocaleString("es-CO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                   )}
-                  <p><strong>Total: ${totalOrden.toLocaleString("es-CO")}</strong></p>
+                  <p><strong>Total: ${totalOrden.toLocaleString("es-CO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong></p>
+                  {retencionFuente > 0 && (
+                    <p style={{ marginTop: '0.5rem', fontSize: '0.9em', color: '#666' }}>
+                      Valor a pagar: ${(totalOrden - retencionFuente).toLocaleString("es-CO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </p>
+                  )}
                 </div>
               </>
             )}

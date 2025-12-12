@@ -3,23 +3,13 @@ import { useEffect, useMemo, useState } from "react";
 import "../styles/MovimientoNuevoModal.css";
 import CategorySidebar from "../componets/CategorySidebar.jsx";
 import { listarCategorias } from "../services/CategoriasService.js";
+import { getTodayLocalDate, toLocalDateOnly } from "../lib/dateUtils.js";
 
 const VACIO = {
   sedeOrigenId: "",
   sedeDestinoId: "",
-  fecha: new Date().toISOString().slice(0, 10),
+  fecha: getTodayLocalDate(),
   productos: [], // { id, nombre, sku?, cantidad }
-};
-
-// Asegura un string YYYY-MM-DD, sin zonas horarias raras
-const toLocalDateOnly = (val) => {
-  if (!val) return new Date().toISOString().slice(0, 10);
-  if (/^\d{4}-\d{2}-\d{2}$/.test(val)) return val;
-  const d = new Date(val);
-  if (isNaN(d)) return new Date().toISOString().slice(0, 10);
-  return new Date(d.getTime() - d.getTimezoneOffset() * 60000)
-    .toISOString()
-    .slice(0, 10);
 };
 
 export default function MovimientoModal({
@@ -71,7 +61,7 @@ export default function MovimientoModal({
         sedeDestinoId: movimiento.sedeDestino?.id ?? "",
         fecha:
           toLocalDateOnly(movimiento.fecha) ??
-          new Date().toISOString().slice(0, 10),
+          getTodayLocalDate(),
         productos: Array.isArray(movimiento.detalles)
           ? movimiento.detalles.map((d) => ({
               id: d.producto?.id ?? "",

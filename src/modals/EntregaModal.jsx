@@ -1,5 +1,6 @@
 // File: src/modals/EntregaModal.jsx
 import { useEffect, useMemo, useState } from "react";
+import { getTodayLocalDate, toLocalDateOnly } from "../lib/dateUtils.js";
 import "../styles/IngresoNuevoModal.css"; // Reutilizamos estilos del modal
 
 export default function EntregaModal({
@@ -11,7 +12,7 @@ export default function EntregaModal({
   // gastosDisponibles eliminado - ya no se usan gastos en entregas
 }) {
   const empty = {
-    fechaEntrega: new Date().toISOString().substring(0, 10),
+    fechaEntrega: getTodayLocalDate(),
     sede: { id: "sede-1", nombre: "Sede Principal" },
     empleado: { id: "emp-1", nombre: "Cajero (mock)" },
     detalles: [],             // [{ id, orden:{id}, numeroOrden, fechaOrden, montoOrden }]
@@ -34,7 +35,7 @@ export default function EntregaModal({
   useEffect(() => {
     if (entregaInicial) {
       const f = new Date(entregaInicial.fechaEntrega ?? Date.now());
-      const fechaLocal = (isNaN(f) ? new Date() : f).toISOString().substring(0, 10);
+      const fechaLocal = isNaN(f) ? getTodayLocalDate() : toLocalDateOnly(entregaInicial.fechaEntrega);
       setForm({
         id: entregaInicial.id,
         fechaEntrega: fechaLocal,
@@ -102,10 +103,11 @@ export default function EntregaModal({
 
   const handleSubmit = () => {
     if (disabledSubmit) return;
-    const isoFecha = form.fechaEntrega.length === 10 ? new Date(form.fechaEntrega).toISOString() : new Date().toISOString();
+    // Usar la fecha directamente en formato YYYY-MM-DD, el backend la procesará correctamente
+    const fechaEntrega = form.fechaEntrega.length === 10 ? form.fechaEntrega : getTodayLocalDate();
     const payload = {
       id: entregaInicial?.id ?? `ent-${Date.now()}`,
-      fechaEntrega: isoFecha,
+      fechaEntrega: fechaEntrega,
       sede: form.sede,
       empleado: form.empleado,
       detalles: form.detalles.map(d => ({

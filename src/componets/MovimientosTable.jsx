@@ -8,17 +8,7 @@ import MovimientoModal from "../modals/MovimientoModal.jsx";
 import { useConfirm } from "../hooks/useConfirm.jsx";
 import { useToast } from "../context/ToastContext.jsx";
 
-// Helper local para asegurar YYYY-MM-DD
-const toLocalDateOnly = (val) => {
-  if (!val) return new Date().toISOString().slice(0, 10);
-  // Si ya viene como YYYY-MM-DD, devolver tal cual
-  if (/^\d{4}-\d{2}-\d{2}$/.test(val)) return val;
-  const d = new Date(val);
-  if (isNaN(d)) return new Date().toISOString().slice(0, 10);
-  return new Date(d.getTime() - d.getTimezoneOffset() * 60000) // normaliza TZ
-    .toISOString()
-    .slice(0, 10);
-};
+import { getTodayLocalDate, toLocalDateOnly } from "../lib/dateUtils.js";
 
 export default function MovimientosTable({
   data = [],

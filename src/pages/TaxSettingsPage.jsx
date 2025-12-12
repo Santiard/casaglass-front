@@ -16,62 +16,38 @@ const [umbral, setUmbral] = useState(1000000);// COP
 
 
 useEffect(()=>{
-  setLoading(true);
-  getBusinessSettings()
-    .then((s) => {
-      if (s) {
-        // Cargar valores desde el backend
-        setIva(Number(s.ivaRate) || 19);
-        setRete(Number(s.retefuenteRate) || 2.5);
-        setUmbral(Number(s.retefuenteThreshold) || 1000000);
-      }
-    })
-    .catch((err) => {
-      console.error("Error cargando configuración:", err);
-      setMessage({ type: 'error', text: 'Error al cargar la configuración. Usando valores por defecto.' });
-      // Mantener valores por defecto si hay error
-    })
-    .finally(() => setLoading(false));
+setLoading(true);
+getBusinessSettings().then((s)=>{
+if (s) {
+setIva(Number(s.ivaRate));
+setRete(Number(s.retefuenteRate));
+setUmbral(Number(s.retefuenteThreshold));
+}
+}).finally(()=> setLoading(false));
 }, []);
 const canSave = iva>=0 && iva<=100 && rete>=0 && rete<=100 && umbral>=0 && !loading;
 
 
 async function onSubmit(e){
-  e.preventDefault();
-  if (!canSave) return;
-  setMessage(null);
-  setLoading(true);
-  try {
-    // Actualizar configuración en el backend
-    const resultado = await updateBusinessSettings({ 
-      ivaRate: Number(iva), 
-      retefuenteRate: Number(rete), 
-      retefuenteThreshold: Number(umbral) 
-    });
-    
-    // Mostrar mensaje de éxito
-    setMessage({ type: 'ok', text: 'Parámetros guardados correctamente en el servidor' });
-    
-    // Opcional: Recargar los valores desde el backend para confirmar
-    console.log("Configuración actualizada:", resultado);
-  } catch (err) {
-    console.error("Error guardando configuración:", err);
-    setMessage({ 
-      type: 'error', 
-      text: err.message || 'No se pudieron guardar los cambios. Verifica tu conexión.' 
-    });
-  } finally { 
-    setLoading(false); 
-  }
+e.preventDefault();
+if (!canSave) return;
+setMessage(null);
+setLoading(true);
+try {
+await updateBusinessSettings({ ivaRate: Number(iva), retefuenteRate: Number(rete), retefuenteThreshold: Number(umbral) });
+setMessage({ type: 'ok', text: 'Parámetros guardados' });
+} catch (err) {
+setMessage({ type: 'error', text: err.message || 'No se pudieron guardar los cambios' });
+} finally { setLoading(false); }
 }
 
 // Vista previa
 const [preSub, setPreSub] = useState(200000);
 const preview = useMemo(()=>{
-// Calcular IVA como porcentaje del precio (el precio ya incluye IVA)
-// IVA = precio * (tasa / 100)
-const ivaVal = (iva && iva > 0) ? (preSub * iva) / 100 : 0;
-const subtotal = preSub; // Subtotal igual al precio (el IVA ya está incluido)
+// Si el precio incluye IVA, extraer el IVA del precio
+// IVA = precio * (tasa / (100 + tasa))
+const ivaVal = (iva && iva > 0) ? (preSub * iva) / (100 + iva) : 0;
+const subtotal = preSub - ivaVal; // Subtotal sin IVA
 const aplicaRete = subtotal >= (umbral||0);
 const reteVal = aplicaRete ? (subtotal * (rete||0))/100 : 0;
 const total = preSub - reteVal; // Total final (precio con IVA - retención)
@@ -114,7 +90,7 @@ onChange={(e)=>setRete(Number(e.target.value))} />
 <label htmlFor="umbral">Umbral retención (COP)</label>
 <div className="input-with-prefix">
 <span className="prefix">$</span>
-<input id="umbral" type="number" step="1" min="0" value={umbral}
+<input id="umbral" type="number" step="1000" min="0" value={umbral}
 onChange={(e)=>setUmbral(Number(e.target.value))} />
 </div>
 <small className="hint">Desde este monto aplica retención</small>
