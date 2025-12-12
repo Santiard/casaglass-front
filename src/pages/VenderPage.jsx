@@ -463,7 +463,7 @@ export default function VenderPage() {
   
   // Calcular IVA como 19% del total
   const iva = total * 0.19; // 19% del total
-  const subtotal = total - iva; // Subtotal sin IVA
+  const subtotal = total; // Subtotal igual al total (el IVA ya está incluido)
 
   // === Función para manejar selección de categoría en productos ===
   const handleSelectCategory = (catId) => {

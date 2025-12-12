@@ -54,6 +54,7 @@ export default function OrdenImprimirModal({ orden, isOpen, onClose }) {
           estado: ordenCompleta.estado ?? "ACTIVA",
           subtotal: typeof ordenCompleta.subtotal === "number" ? ordenCompleta.subtotal : null,
           descuentos: typeof ordenCompleta.descuentos === "number" ? ordenCompleta.descuentos : 0,
+          retencionFuente: typeof ordenCompleta.retencionFuente === "number" ? ordenCompleta.retencionFuente : 0,
           total: typeof ordenCompleta.total === "number" ? ordenCompleta.total : null,
           cliente: ordenCompleta.cliente || {},
           sede: ordenCompleta.sede || {},
@@ -75,6 +76,7 @@ export default function OrdenImprimirModal({ orden, isOpen, onClose }) {
           estado: orden.estado ?? "ACTIVA",
           subtotal: typeof orden.subtotal === "number" ? orden.subtotal : null,
           descuentos: typeof orden.descuentos === "number" ? orden.descuentos : 0,
+          retencionFuente: typeof orden.retencionFuente === "number" ? orden.retencionFuente : 0,
           total: typeof orden.total === "number" ? orden.total : null,
           cliente: orden.cliente || {},
           sede: orden.sede || {},
@@ -114,9 +116,10 @@ export default function OrdenImprimirModal({ orden, isOpen, onClose }) {
     ? form.subtotal 
     : form.items.reduce((sum, item) => sum + (item.totalLinea || 0), 0);
   const descuentos = form.descuentos || 0;
+  const retencionFuente = form.retencionFuente || 0;
   const totalOrden = form.total !== null 
     ? form.total 
-    : subtotal - descuentos;
+    : subtotal - descuentos - retencionFuente;
 
   // Formatear fecha
   const fmtFecha = (iso) =>
@@ -458,7 +461,10 @@ export default function OrdenImprimirModal({ orden, isOpen, onClose }) {
                 <div className="orden-imprimir-total">
                   <p>Subtotal: ${subtotal.toLocaleString("es-CO")}</p>
                   {descuentos > 0 && (
-                    <p>Descuentos: ${descuentos.toLocaleString("es-CO")}</p>
+                    <p>Descuentos: -${descuentos.toLocaleString("es-CO")}</p>
+                  )}
+                  {retencionFuente > 0 && (
+                    <p>Retención de Fuente: -${retencionFuente.toLocaleString("es-CO")}</p>
                   )}
                   <p><strong>Total: ${totalOrden.toLocaleString("es-CO")}</strong></p>
                 </div>

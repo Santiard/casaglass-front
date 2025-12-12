@@ -7,6 +7,7 @@ import { listarTrabajadores } from "../services/TrabajadoresService.js";
 import { listarTodosLosProductos } from "../services/ProductosService.js";
 import { listarCategorias } from "../services/CategoriasService.js";
 import { actualizarOrden, obtenerOrden, actualizarOrdenVenta, crearOrdenVenta } from "../services/OrdenesService.js";
+import { getBusinessSettings } from "../services/businessSettingsService.js";
 import { useToast } from "../context/ToastContext.jsx";
 import { useConfirm } from "../hooks/useConfirm.jsx";
 import eliminar from "../assets/eliminar.png";
@@ -76,6 +77,7 @@ export default function OrdenEditarModal({
   const [metodosPago, setMetodosPago] = useState([]);
   const [observacionesAdicionales, setObservacionesAdicionales] = useState(""); // Observaciones sin método de pago
   const [errorMsg, setErrorMsg] = useState("");
+  const [retefuenteThreshold, setRetefuenteThreshold] = useState(1000000); // Umbral de retención desde configuración
   
   // Lista de bancos
   const bancos = [
@@ -284,6 +286,17 @@ export default function OrdenEditarModal({
   // =============================
   // Cargar datos iniciales
   // =============================
+  // Cargar configuración de retención al abrir el modal
+  useEffect(() => {
+    if (isOpen) {
+      getBusinessSettings().then((settings) => {
+        if (settings) {
+          setRetefuenteThreshold(Number(settings.retefuenteThreshold) || 1000000);
+        }
+      });
+    }
+  }, [isOpen]);
+
   useEffect(() => {
     if (!isOpen) {
       // Resetear formulario cuando se cierra el modal
@@ -1594,6 +1607,59 @@ export default function OrdenEditarModal({
                     placeholder="0.00"
                   />
                 </div>
+                {(() => {
+                  // Calcular base imponible (subtotal - descuentos)
+                  const subtotal = form.items.reduce((sum, item) => sum + (item.totalLinea || 0), 0);
+                  const descuentos = form.descuentos || 0;
+                  const baseImponible = subtotal - descuentos;
+                  const superaUmbral = baseImponible >= retefuenteThreshold;
+                  
+                  return superaUmbral ? (
+                    <div style={{ 
+                      display: 'flex', 
+                      justifyContent: 'space-between', 
+                      alignItems: 'center',
+                      padding: '0.5rem',
+                      backgroundColor: '#fff3cd',
+                      borderRadius: '4px',
+                      border: '1px solid #ffeaa7',
+                      marginTop: '0.5rem'
+                    }}>
+                      <label
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.5rem',
+                          cursor: 'pointer',
+                          color: '#856404',
+                          margin: 0,
+                          fontSize: '0.9rem'
+                        }}>
+                        <input
+                          type="checkbox"
+                          checked={form.tieneRetencionFuente || false}
+                          onChange={(e) =>
+                            handleChange("tieneRetencionFuente", e.target.checked)
+                          }
+                          style={{ 
+                            width: '1.2rem', 
+                            height: '1.2rem', 
+                            cursor: 'pointer', 
+                            margin: 0,
+                            accentColor: '#856404',
+                            flexShrink: 0
+                          }}
+                        />
+                        <span>
+                          <strong>Retención de Fuente</strong>
+                          <small style={{ display: 'block', fontSize: '0.8rem', color: '#856404', marginTop: '0.25rem' }}>
+                            Base imponible: ${baseImponible.toLocaleString('es-CO')} (Umbral: ${retefuenteThreshold.toLocaleString('es-CO')})
+                          </small>
+                        </span>
+                      </label>
+                    </div>
+                  ) : null;
+                })()}
                 <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid #ddd', paddingTop: '0.5rem', marginTop: '0.5rem' }}>
                   <span><strong>Total:</strong></span>
                   <strong style={{ fontSize: '1.1em', color: '#4f67ff' }}>

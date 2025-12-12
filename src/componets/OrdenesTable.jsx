@@ -448,6 +448,81 @@ export default function OrdenesTable({
                                   ))}
                                 </tbody>
                               </table>
+                              
+                              {/* Resumen financiero de la orden */}
+                              <div className="orden-resumen-financiero" style={{
+                                marginTop: '1rem',
+                                padding: '1rem',
+                                backgroundColor: '#f8f9fa',
+                                borderRadius: '8px',
+                                border: '1px solid #e0e0e0'
+                              }}>
+                                <h4 style={{ margin: '0 0 0.75rem 0', fontSize: '0.95rem', fontWeight: '600' }}>Resumen Financiero</h4>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', fontSize: '0.9rem' }}>
+                                  <div>
+                                    <strong>Subtotal:</strong>
+                                  </div>
+                                  <div style={{ textAlign: 'right' }}>
+                                    ${(o.subtotal || 0).toLocaleString("es-CO")}
+                                  </div>
+                                  
+                                  {o.descuentos > 0 && (
+                                    <>
+                                      <div>
+                                        <strong>Descuentos:</strong>
+                                      </div>
+                                      <div style={{ textAlign: 'right', color: '#dc3545' }}>
+                                        -${(o.descuentos || 0).toLocaleString("es-CO")}
+                                      </div>
+                                    </>
+                                  )}
+                                  
+                                  {o.retencionFuente > 0 && (
+                                    <>
+                                      <div>
+                                        <strong>Retención de Fuente:</strong>
+                                      </div>
+                                      <div style={{ textAlign: 'right', color: '#dc3545' }}>
+                                        -${(o.retencionFuente || 0).toLocaleString("es-CO")}
+                                      </div>
+                                    </>
+                                  )}
+                                  
+                                  <div style={{ 
+                                    marginTop: '0.5rem', 
+                                    paddingTop: '0.5rem', 
+                                    borderTop: '2px solid #dee2e6',
+                                    fontWeight: '600',
+                                    fontSize: '1rem'
+                                  }}>
+                                    <strong>Total:</strong>
+                                  </div>
+                                  <div style={{ 
+                                    textAlign: 'right',
+                                    marginTop: '0.5rem', 
+                                    paddingTop: '0.5rem', 
+                                    borderTop: '2px solid #dee2e6',
+                                    fontWeight: '600',
+                                    fontSize: '1rem'
+                                  }}>
+                                    ${totalOrden.toLocaleString("es-CO")}
+                                  </div>
+                                  
+                                  {o.tieneRetencionFuente && o.retencionFuente === 0 && (
+                                    <div style={{ 
+                                      gridColumn: '1 / -1', 
+                                      marginTop: '0.5rem',
+                                      padding: '0.5rem',
+                                      backgroundColor: '#fff3cd',
+                                      borderRadius: '4px',
+                                      fontSize: '0.85rem',
+                                      color: '#856404'
+                                    }}>
+                                      ℹ️ Retención marcada pero no aplica (no supera el umbral configurado)
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
                             </div>
                           )}
                         </td>

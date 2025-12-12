@@ -174,7 +174,8 @@ export default function FacturarOrdenModal({ isOpen, onClose, onSave, orden }) {
       const ivaCalculado = baseInicial * ivaRateDecimal;
       
       // Calcular retención: Solo si está marcada la orden para retención Y la base (sin IVA) supera el umbral
-      const subtotalSinIva = baseInicial - ivaCalculado;
+      // El subtotal sin IVA es igual a la base inicial (el IVA ya está incluido en el precio)
+      const subtotalSinIva = baseInicial;
       // Aplicar retención solo si está marcado el checkbox Y supera el umbral (para todas las órdenes)
       const debeAplicarRetencion = tieneRetencion && subtotalSinIva >= (retefuenteThreshold || 0);
 
@@ -290,7 +291,8 @@ export default function FacturarOrdenModal({ isOpen, onClose, onSave, orden }) {
       const valorIvaRedondeado = Math.round(valorIva * 100) / 100; // Redondear a 2 decimales
       
       // Calcular subtotal sin IVA (base imponible para retención)
-      const subtotalSinIva = baseImponible - valorIvaRedondeado;
+      // El subtotal es igual a la base imponible (el IVA ya está incluido en el precio)
+      const subtotalSinIva = baseImponible;
       
       // Calcular retención como valor monetario sobre el subtotal sin IVA
       const porcentajeRetencion = Number(form.retencionFuente || 0);
@@ -629,10 +631,12 @@ export default function FacturarOrdenModal({ isOpen, onClose, onSave, orden }) {
               // Calcular subtotal sin IVA para el mensaje del checkbox
               const baseTemp = Math.max(0, subtotalOrden - (parseFloat(form.descuentos) || 0));
               const ivaPorcentajeTemp = Number(form.iva) || 0;
+              const ivaPorcentajeDecimalTemp = ivaPorcentajeTemp / 100;
               const ivaValTemp = (ivaPorcentajeTemp && ivaPorcentajeTemp > 0) 
-                ? (baseTemp * ivaPorcentajeTemp) / (100 + ivaPorcentajeTemp) 
+                ? baseTemp * ivaPorcentajeDecimalTemp
                 : 0;
-              const subtotalSinIvaTemp = baseTemp - ivaValTemp;
+              // El subtotal sin IVA es igual a la base (el IVA ya está incluido en el precio)
+              const subtotalSinIvaTemp = baseTemp;
               const superaUmbral = subtotalSinIvaTemp >= (retefuenteThreshold || 0);
               
               return (
@@ -696,8 +700,8 @@ export default function FacturarOrdenModal({ isOpen, onClose, onSave, orden }) {
                 ? base * ivaPorcentajeDecimal
                 : 0;
               
-              // Calcular subtotal sin IVA
-              const subtotalSinIva = base - ivaVal;
+              // Calcular subtotal sin IVA (el subtotal es igual a la base, el IVA ya está incluido)
+              const subtotalSinIva = base;
               
               // Calcular retención: solo si está marcado el checkbox Y supera el umbral (para todas las órdenes)
               const debeAplicarRetencion = tieneRetencion && subtotalSinIva >= (retefuenteThreshold || 0);

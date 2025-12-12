@@ -125,7 +125,7 @@ export default function ListadoOrden({ productosCarrito, subtotal, total, limpia
         <div className="totales">
           <div className="subtotal">
             <span>Subtotal (sin IVA):</span>
-            <span>${total ? ((total * 0.81)?.toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })) : 0}</span>
+            <span>${total ? (total?.toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })) : 0}</span>
           </div>
           <div className="iva">
             <span>IVA (19%):</span>
