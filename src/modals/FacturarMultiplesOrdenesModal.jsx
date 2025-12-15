@@ -336,7 +336,9 @@ const FacturarMultiplesOrdenesModal = ({ isOpen, onClose, ordenInicial, onSucces
   // Verificar si una orden supera el umbral de retefuente
   // Usar la misma fórmula que calcularTotalesOrden para garantizar consistencia
   const ordenSuperaUmbral = (orden) => {
-    const subtotalFacturado = orden.subtotal || orden.items?.reduce((sum, item) => sum + (item.totalLinea || 0), 0) || 0;
+    // ✅ IMPORTANTE: orden.total es el total facturado CON IVA, orden.subtotal es base SIN IVA
+    // Usamos orden.total como base facturada (con IVA incluido)
+    const subtotalFacturado = orden.total || orden.items?.reduce((sum, item) => sum + (item.totalLinea || 0), 0) || 0;
     const descuentos = Number(orden.descuentos || 0);
     const baseConIva = Math.max(0, subtotalFacturado - descuentos);
     
@@ -351,8 +353,9 @@ const FacturarMultiplesOrdenesModal = ({ isOpen, onClose, ordenInicial, onSucces
   // Calcular totales para cada orden seleccionada
   // IMPORTANTE: Usar EXACTAMENTE la misma fórmula que el backend para garantizar precisión contable
   const calcularTotalesOrden = (orden) => {
-    // El subtotal que viene del backend YA incluye IVA (es el total facturado)
-    const subtotalFacturado = orden.subtotal || orden.items?.reduce((sum, item) => sum + (item.totalLinea || 0), 0) || 0;
+    // ✅ IMPORTANTE: orden.total es el total facturado CON IVA, orden.subtotal es base SIN IVA
+    // Usamos orden.total como base facturada (con IVA incluido)
+    const subtotalFacturado = orden.total || orden.items?.reduce((sum, item) => sum + (item.totalLinea || 0), 0) || 0;
     const descuentos = Number(orden.descuentos || 0);
     
     // Base con IVA = subtotal facturado - descuentos
@@ -387,7 +390,7 @@ const FacturarMultiplesOrdenesModal = ({ isOpen, onClose, ordenInicial, onSucces
     const total = baseConIva;
     
     return {
-      subtotal: subtotalFacturado,
+      subtotal: orden.subtotal || 0, // Base SIN IVA (para enviar al backend)
       descuentos,
       base: baseConIva,
       ivaVal: ivaValRedondeado,
@@ -885,6 +888,16 @@ const FacturarMultiplesOrdenesModal = ({ isOpen, onClose, ordenInicial, onSucces
                       const tieneRetencion = ordenesConRetencion.has(orden.id);
                       const superaUmbral = ordenSuperaUmbral(orden);
                       
+                      // Calcular valores en tiempo real si la orden está seleccionada y tiene retención marcada
+                      // Esto permite ver el valor calculado cuando se marca manualmente la checkbox
+                      const totalesCalculados = estaSeleccionada && tieneRetencion ? calcularTotalesOrden(orden) : null;
+                      
+                      // Usar valor calculado si la orden está seleccionada y tiene retención marcada,
+                      // sino usar el valor del backend
+                      const valorRetencion = totalesCalculados 
+                        ? totalesCalculados.reteVal 
+                        : (orden.retencionFuente || 0);
+                      
                       return (
                         <tr
                           key={orden.id}
@@ -939,9 +952,9 @@ const FacturarMultiplesOrdenesModal = ({ isOpen, onClose, ordenInicial, onSucces
                               ? `$${Number(orden.iva).toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
                               : '-'}
                           </td>
-                          <td style={{ textAlign: 'right', color: (orden.retencionFuente || 0) > 0 ? '#1e2753' : '#666', fontWeight: (orden.retencionFuente || 0) > 0 ? '500' : 'normal' }}>
-                            {(orden.retencionFuente || 0) > 0
-                              ? `-$${Number(orden.retencionFuente).toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                          <td style={{ textAlign: 'right', color: valorRetencion > 0 ? '#1e2753' : '#666', fontWeight: valorRetencion > 0 ? '500' : 'normal' }}>
+                            {valorRetencion > 0
+                              ? `-$${Number(valorRetencion).toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
                               : '-'}
                           </td>
                           <td>

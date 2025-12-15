@@ -171,7 +171,9 @@ export default function FacturarOrdenModal({ isOpen, onClose, onSave, orden }) {
         ? orden.retencionFuente 
         : 0;
       
-      // El subtotal para la factura es el total facturado (con IVA incluido) menos descuentos
+      // IMPORTANTE: orden.subtotal es la base SIN IVA (según la especificación del backend)
+      // orden.total es el total facturado CON IVA incluido
+      // Para mostrar en el formulario, usamos el total facturado
       const subtotalFactura = subtotalFacturado - descuentosOrden;
 
       setSubtotalOrden(subtotalFactura);
@@ -182,7 +184,7 @@ export default function FacturarOrdenModal({ isOpen, onClose, onSave, orden }) {
       setForm({
         ordenId: orden.id,
         fecha: getTodayLocalDate(),
-        subtotal: subtotalFactura, // Subtotal para la factura (total facturado - descuentos)
+        subtotal: orden.subtotal || 0, // ✅ Base SIN IVA (lo que el backend espera)
         descuentos: descuentosOrden || "",
         iva: ivaOrden, // Valor del IVA calculado en la orden (en dinero, NO porcentaje)
         retencionFuente: retencionFuenteOrden, // Valor de retención calculado en la orden (en dinero, NO porcentaje)
