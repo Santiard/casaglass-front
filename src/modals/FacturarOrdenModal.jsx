@@ -628,6 +628,11 @@ export default function FacturarOrdenModal({ isOpen, onClose, onSave, orden }) {
               
               // Calcular subtotal sin IVA para mostrar (base - IVA)
               const subtotalSinIva = base - ivaVal;
+
+              // Determinar si, según las reglas, debería aplicar retención
+              // Se usa para mostrar el mensaje de "No aplica" cuando reteVal === 0
+              const debeAplicarRetencion =
+                Boolean(tieneRetencion) && subtotalSinIva >= (retefuenteThreshold || 0);
               
               // IMPORTANTE: Distinguir entre Total Facturado y Valor a Pagar
               // Total Facturado = base (con IVA incluido) - NO se resta la retención

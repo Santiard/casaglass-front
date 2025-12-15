@@ -168,7 +168,14 @@ const FacturarMultiplesOrdenesModal = ({ isOpen, onClose, ordenInicial, onSucces
       });
       
       setOrdenesFacturables(ordenesFacturablesFiltradas);
-      
+
+      // Inicializar el set de órdenes con retención en base a lo que viene del backend
+      const nuevasOrdenesConRetencion = new Set(
+        ordenesFacturablesFiltradas
+          .filter(o => Boolean(o.tieneRetencionFuente))
+          .map(o => o.id)
+      );
+
       // Si hay una orden inicial, preseleccionarla
       // Usar ordenInicialCompleta si está disponible, sino ordenInicial
       const ordenIdInicial = ordenInicialCompleta?.id || ordenInicial?.id;
@@ -177,28 +184,29 @@ const FacturarMultiplesOrdenesModal = ({ isOpen, onClose, ordenInicial, onSucces
         if (ordenInicialEncontrada) {
           // Preseleccionar la orden inicial
           setOrdenesSeleccionadas(new Set([ordenIdInicial]));
-          // Inicializar retefuente basado en tieneRetencionFuente
-          // Priorizar ordenInicialCompleta, luego ordenInicialEncontrada, luego ordenInicial
+
+          // Asegurar que la orden inicial refleje correctamente su estado de retención
           const tieneRetencion = Boolean(
-            ordenInicialCompleta?.tieneRetencionFuente || 
-            ordenInicialEncontrada.tieneRetencionFuente || 
+            ordenInicialCompleta?.tieneRetencionFuente ||
+            ordenInicialEncontrada.tieneRetencionFuente ||
             ordenInicial?.tieneRetencionFuente
           );
+
           if (tieneRetencion) {
-            setOrdenesConRetencion(new Set([ordenIdInicial]));
+            nuevasOrdenesConRetencion.add(ordenIdInicial);
           } else {
-            setOrdenesConRetencion(new Set());
+            nuevasOrdenesConRetencion.delete(ordenIdInicial);
           }
         } else {
           // Si la orden inicial no está en las facturables, no seleccionar nada
           setOrdenesSeleccionadas(new Set());
-          setOrdenesConRetencion(new Set());
         }
       } else {
         // Si no hay orden inicial, no seleccionar nada
         setOrdenesSeleccionadas(new Set());
-        setOrdenesConRetencion(new Set());
       }
+
+      setOrdenesConRetencion(nuevasOrdenesConRetencion);
     } catch (err) {
       console.error("Error cargando órdenes facturables:", err);
       setError('Error cargando órdenes facturables del cliente');
@@ -235,16 +243,22 @@ const FacturarMultiplesOrdenesModal = ({ isOpen, onClose, ordenInicial, onSucces
 
   const toggleOrdenSeleccionada = (ordenId) => {
     const nuevasSeleccionadas = new Set(ordenesSeleccionadas);
+    const nuevasConRetencion = new Set(ordenesConRetencion);
+
     if (nuevasSeleccionadas.has(ordenId)) {
       nuevasSeleccionadas.delete(ordenId);
       // También quitar de retefuente si estaba marcada
-      const nuevasConRetencion = new Set(ordenesConRetencion);
       nuevasConRetencion.delete(ordenId);
-      setOrdenesConRetencion(nuevasConRetencion);
     } else {
       nuevasSeleccionadas.add(ordenId);
+      // Si la orden tiene retefuente=true en el backend, marcar automáticamente al seleccionarla
+      const orden = ordenesFacturables.find(o => o.id === ordenId);
+      if (orden?.tieneRetencionFuente) {
+        nuevasConRetencion.add(ordenId);
+      }
     }
     setOrdenesSeleccionadas(nuevasSeleccionadas);
+    setOrdenesConRetencion(nuevasConRetencion);
   };
 
   const toggleRetencionOrden = (ordenId) => {
@@ -271,7 +285,14 @@ const FacturarMultiplesOrdenesModal = ({ isOpen, onClose, ordenInicial, onSucces
       setOrdenesSeleccionadas(new Set());
       setOrdenesConRetencion(new Set());
     } else {
-      setOrdenesSeleccionadas(new Set(ordenesFacturables.map(o => o.id)));
+      const todasIds = ordenesFacturables.map(o => o.id);
+      setOrdenesSeleccionadas(new Set(todasIds));
+
+      // Marcar retefuente automáticamente para todas las que la tengan en el backend
+      const idsConRetencion = ordenesFacturables
+        .filter(o => Boolean(o.tieneRetencionFuente))
+        .map(o => o.id);
+      setOrdenesConRetencion(new Set(idsConRetencion));
     }
   };
 
@@ -313,55 +334,65 @@ const FacturarMultiplesOrdenesModal = ({ isOpen, onClose, ordenInicial, onSucces
   };
 
   // Verificar si una orden supera el umbral de retefuente
+  // Usar la misma fórmula que calcularTotalesOrden para garantizar consistencia
   const ordenSuperaUmbral = (orden) => {
-    const subtotal = orden.subtotal || orden.items?.reduce((sum, item) => sum + (item.totalLinea || 0), 0) || 0;
+    const subtotalFacturado = orden.subtotal || orden.items?.reduce((sum, item) => sum + (item.totalLinea || 0), 0) || 0;
     const descuentos = Number(orden.descuentos || 0);
-    const base = Math.max(0, subtotal - descuentos);
+    const baseConIva = Math.max(0, subtotalFacturado - descuentos);
     
-    // Calcular IVA
-    const ivaVal = (ivaRate && ivaRate > 0) 
-      ? (base * ivaRate) / (100 + ivaRate) 
-      : 0;
-    
-    const subtotalSinIva = base - ivaVal;
+    // Calcular subtotal sin IVA usando la fórmula EXACTA: dividir por (1 + IVA)
+    const ivaRateDecimal = (ivaRate && ivaRate > 0) ? ivaRate / 100 : 0;
+    const divisorIva = 1 + ivaRateDecimal; // 1.19 para IVA del 19%
+    const subtotalSinIva = baseConIva / divisorIva;
     
     return subtotalSinIva >= retefuenteThreshold;
   };
 
   // Calcular totales para cada orden seleccionada
+  // IMPORTANTE: Usar EXACTAMENTE la misma fórmula que el backend para garantizar precisión contable
   const calcularTotalesOrden = (orden) => {
-    const subtotal = orden.subtotal || orden.items?.reduce((sum, item) => sum + (item.totalLinea || 0), 0) || 0;
+    // El subtotal que viene del backend YA incluye IVA (es el total facturado)
+    const subtotalFacturado = orden.subtotal || orden.items?.reduce((sum, item) => sum + (item.totalLinea || 0), 0) || 0;
     const descuentos = Number(orden.descuentos || 0);
-    const base = Math.max(0, subtotal - descuentos);
     
-    // Calcular IVA: monto * porcentaje (ej: 19% = 0.19)
+    // Base con IVA = subtotal facturado - descuentos
+    const baseConIva = Math.max(0, subtotalFacturado - descuentos);
+    
+    // Calcular subtotal sin IVA usando la fórmula EXACTA del backend: dividir por (1 + IVA)
+    // Ejemplo: si IVA es 19%, dividir por 1.19
     const ivaRateDecimal = (ivaRate && ivaRate > 0) ? ivaRate / 100 : 0;
-    const ivaVal = base * ivaRateDecimal;
+    const divisorIva = 1 + ivaRateDecimal; // 1.19 para IVA del 19%
+    const subtotalSinIva = baseConIva / divisorIva;
+    const subtotalSinIvaRedondeado = Math.round(subtotalSinIva * 100) / 100; // Redondear a 2 decimales
     
-    const subtotalSinIva = base - ivaVal;
+    // Calcular IVA como diferencia (igual que el backend)
+    const ivaVal = baseConIva - subtotalSinIvaRedondeado;
+    const ivaValRedondeado = Math.round(ivaVal * 100) / 100; // Redondear a 2 decimales
     
-    // Calcular retención
+    // Calcular retención usando la fórmula EXACTA del backend
     const tieneRetencion = ordenesConRetencion.has(orden.id);
-    const debeAplicarRetencion = tieneRetencion && subtotalSinIva >= (retefuenteThreshold || 0);
+    const debeAplicarRetencion = tieneRetencion && subtotalSinIvaRedondeado >= (retefuenteThreshold || 0);
     
     // Validar que retefuenteRate esté disponible y sea válido
     const rateValido = retefuenteRate && retefuenteRate > 0 && retefuenteRate <= 100;
     const retefuenteRateDecimal = (rateValido && retefuenteRate) ? retefuenteRate / 100 : 0;
-    const reteVal = (debeAplicarRetencion && rateValido)
-      ? subtotalSinIva * retefuenteRateDecimal
-      : 0;
     
-    // Total final de la factura: base (con IVA incluido) - retención (según contabilidad)
-    // El total a pagar debe mostrarse con la retención ya restada
-    const total = base - reteVal;
+    // Retención = subtotal sin IVA × porcentaje de retefuente (igual que el backend)
+    const reteVal = (debeAplicarRetencion && rateValido)
+      ? subtotalSinIvaRedondeado * retefuenteRateDecimal
+      : 0;
+    const reteValRedondeado = Math.round(reteVal * 100) / 100; // Redondear a 2 decimales
+    
+    // Total facturado = base con IVA (NO se resta la retención del total)
+    const total = baseConIva;
     
     return {
-      subtotal,
+      subtotal: subtotalFacturado,
       descuentos,
-      base,
-      ivaVal,
-      subtotalSinIva,
-      reteVal,
+      base: baseConIva,
+      ivaVal: ivaValRedondeado,
+      subtotalSinIva: subtotalSinIvaRedondeado,
+      reteVal: reteValRedondeado,
       total
     };
   };
@@ -437,7 +468,7 @@ const FacturarMultiplesOrdenesModal = ({ isOpen, onClose, ordenInicial, onSucces
         })
       );
 
-      // Actualizar tieneRetencionFuente en las órdenes que lo necesiten
+      // Actualizar tieneRetencionFuente y retencionFuente en las órdenes que lo necesiten
       for (const orden of ordenesCompletas) {
         const tieneRetencion = ordenesConRetencion.has(orden.id);
         if (orden.venta && orden.tieneRetencionFuente !== tieneRetencion) {
@@ -449,6 +480,10 @@ const FacturarMultiplesOrdenesModal = ({ isOpen, onClose, ordenInicial, onSucces
           }
           
           try {
+            // Calcular retencionFuente usando la misma fórmula exacta del backend
+            const totales = calcularTotalesOrden(orden);
+            const valorRetencionFuente = tieneRetencion ? totales.reteVal : 0;
+            
             const ordenUpdatePayload = {
               fecha: orden.fecha,
               obra: orden.obra || "",
@@ -457,6 +492,7 @@ const FacturarMultiplesOrdenesModal = ({ isOpen, onClose, ordenInicial, onSucces
               credito: orden.credito,
               incluidaEntrega: orden.incluidaEntrega || false,
               tieneRetencionFuente: tieneRetencion,
+              retencionFuente: valorRetencionFuente, // Enviar el valor calculado con la fórmula exacta
               descuentos: Number(orden.descuentos || 0),
               clienteId: Number(orden.clienteId || orden.cliente?.id),
               sedeId: sedeId,
@@ -471,6 +507,8 @@ const FacturarMultiplesOrdenesModal = ({ isOpen, onClose, ordenInicial, onSucces
                 ...(item.reutilizarCorteSolicitadoId ? { reutilizarCorteSolicitadoId: Number(item.reutilizarCorteSolicitadoId) } : {})
               }))
             };
+            
+            console.log(` [FacturarMultiples] Actualizando orden ${orden.numero} con tieneRetencionFuente=${tieneRetencion}, retencionFuente=${valorRetencionFuente}`);
             
             if (orden.venta) {
               await api.put(`/ordenes/venta/${orden.id}`, ordenUpdatePayload);
@@ -508,47 +546,28 @@ const FacturarMultiplesOrdenesModal = ({ isOpen, onClose, ordenInicial, onSucces
           continue;
         }
         
+        // Usar calcularTotalesOrden que ya tiene la fórmula EXACTA del backend
         const totales = calcularTotalesOrden(orden);
         
-        // Calcular el valor monetario de retención (el backend espera el valor calculado, NO el porcentaje)
-        // Base imponible = subtotal - descuentos
-        const baseImponible = Number(totales.subtotal || 0) - Number(totales.descuentos || 0);
+        // Los valores ya están calculados correctamente en calcularTotalesOrden
+        // usando la misma fórmula que el backend (dividir por 1.19 para obtener subtotal sin IVA)
         const tieneRetencion = ordenesConRetencion.has(orden.id);
         
         // Validar que retefuenteRate esté disponible y sea válido antes de usarlo
         const rateValido = retefuenteRate && retefuenteRate > 0 && retefuenteRate <= 100;
         
-        // Calcular IVA: monto * porcentaje (ej: 19% = 0.19, 1.25% = 0.0125)
-        const porcentajeIva = Number(ivaRate || 0);
-        const porcentajeIvaDecimal = porcentajeIva / 100; // Convertir 19 a 0.19
-        const valorIva = (porcentajeIva && porcentajeIva > 0)
-          ? baseImponible * porcentajeIvaDecimal
-          : 0;
-        const valorIvaRedondeado = Math.round(valorIva * 100) / 100; // Redondear a 2 decimales
+        // Usar los valores ya calculados por calcularTotalesOrden (que usa la fórmula exacta del backend)
+        const valorIvaRedondeado = totales.ivaVal;
+        const valorRetencionRedondeado = tieneRetencion ? totales.reteVal : 0;
         
-        // Calcular subtotal sin IVA (base imponible para retención)
-        const subtotalSinIva = baseImponible - valorIvaRedondeado;
-        
-        // Calcular retención como valor monetario sobre el subtotal sin IVA
-        const porcentajeRetencion = (tieneRetencion && totales.reteVal > 0 && rateValido) 
-          ? Number(retefuenteRate) 
-          : 0;
-        const porcentajeRetencionDecimal = porcentajeRetencion / 100; // Convertir 1.25 a 0.0125
-        const valorRetencionFuente = (tieneRetencion && porcentajeRetencion > 0)
-          ? subtotalSinIva * porcentajeRetencionDecimal
-          : 0;
-        const valorRetencionRedondeado = Math.round(valorRetencionFuente * 100) / 100; // Redondear a 2 decimales
-        
-        // Log de depuración
+        // Log de depuración usando los valores ya calculados en totales
         console.log(`[FacturarMultiples] Orden ${orden.numero} - Impuestos:`, {
           tieneRetencion,
-          baseImponible,
-          porcentajeIva,
+          subtotalFacturado: totales.subtotal,
+          baseConIva: totales.base,
+          subtotalSinIva: totales.subtotalSinIva,
           valorIva: valorIvaRedondeado,
-          subtotalSinIva,
-          porcentajeRetencion,
           valorRetencionFuente: valorRetencionRedondeado,
-          totalCalculado: baseImponible - valorRetencionRedondeado,
           retefuenteRate,
           rateValido,
           retefuenteThreshold
@@ -855,6 +874,7 @@ const FacturarMultiplesOrdenesModal = ({ isOpen, onClose, ordenInicial, onSucces
                       <th>Cliente</th>
                       <th>Subtotal</th>
                       <th>Descuentos</th>
+                      <th>IVA</th>
                       <th>Retefuente</th>
                       <th>Total</th>
                     </tr>
@@ -864,7 +884,6 @@ const FacturarMultiplesOrdenesModal = ({ isOpen, onClose, ordenInicial, onSucces
                       const estaSeleccionada = ordenesSeleccionadas.has(orden.id);
                       const tieneRetencion = ordenesConRetencion.has(orden.id);
                       const superaUmbral = ordenSuperaUmbral(orden);
-                      const totales = estaSeleccionada ? calcularTotalesOrden(orden) : null;
                       
                       return (
                         <tr
@@ -915,14 +934,18 @@ const FacturarMultiplesOrdenesModal = ({ isOpen, onClose, ordenInicial, onSucces
                           <td style={{ color: orden.descuentos > 0 ? '#dc3545' : '#666' }}>
                             {orden.descuentos > 0 ? `-${orden.descuentos.toLocaleString('es-CO')}` : '-'}
                           </td>
-                          <td style={{ textAlign: 'right', color: totales?.reteVal > 0 ? '#1e2753' : '#666', fontWeight: totales?.reteVal > 0 ? '500' : 'normal' }}>
-                            {totales && totales.reteVal > 0 
-                              ? `-$${totales.reteVal.toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-                              : '-'
-                            }
+                          <td style={{ textAlign: 'right', color: '#1e2753', fontWeight: '500' }}>
+                            {typeof orden.iva === 'number'
+                              ? `$${Number(orden.iva).toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                              : '-'}
+                          </td>
+                          <td style={{ textAlign: 'right', color: (orden.retencionFuente || 0) > 0 ? '#1e2753' : '#666', fontWeight: (orden.retencionFuente || 0) > 0 ? '500' : 'normal' }}>
+                            {(orden.retencionFuente || 0) > 0
+                              ? `-$${Number(orden.retencionFuente).toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                              : '-'}
                           </td>
                           <td>
-                            {totales ? `$${totales.total.toLocaleString('es-CO')}` : `$${(orden.total || 0).toLocaleString('es-CO')}`}
+                            {`$${Number(orden.total || 0).toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                           </td>
                         </tr>
                       );

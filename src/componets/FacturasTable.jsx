@@ -452,6 +452,7 @@ export default function FacturasTable({
                     <td>{fmtFecha(f.fecha)}</td>
                     <td>{cliente?.nombre ?? "-"}</td>
                     <td>{cliente?.nit ?? "-"}</td>
+                    {/* Columna de orden asociada: muestra el número legible de la orden */}
                     <td>#{f.orden?.numero ?? f.ordenId ?? "-"}</td>
                     <td>{fmtCOP(subtotal)}</td>
                     <td>{fmtCOP(iva)}</td>
@@ -464,7 +465,9 @@ export default function FacturasTable({
                       <button 
                         className="btnLink" 
                         onClick={() => {
-                          const ordenId = f.ordenId || f.orden?.id;
+                          // Usar primero el id que viene dentro de f.orden (nuevo DTO), 
+                          // y mantener compatibilidad con f.ordenId si existiera.
+                          const ordenId = f.orden?.id || f.ordenId;
                           console.log("Factura clickeada:", { facturaId: f.id, ordenId, factura: f });
                           if (ordenId) {
                             setOrdenIdSeleccionada(ordenId);
@@ -479,8 +482,8 @@ export default function FacturasTable({
                           marginRight: '4px',
                           padding: '4px 8px',
                           fontSize: '0.875rem',
-                          cursor: (f.ordenId || f.orden?.id) ? 'pointer' : 'not-allowed',
-                          opacity: (f.ordenId || f.orden?.id) ? 1 : 0.5,
+                          cursor: (f.orden?.id || f.ordenId) ? 'pointer' : 'not-allowed',
+                          opacity: (f.orden?.id || f.ordenId) ? 1 : 0.5,
                           display: 'inline-block',
                           visibility: 'visible',
                           backgroundColor: 'transparent',

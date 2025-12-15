@@ -1,15 +1,25 @@
 // src/modals/OrdenDetalleModal.jsx
 import { useEffect, useState } from "react";
 import { obtenerOrdenDetalle } from "../services/OrdenesService.js";
+import { getBusinessSettings } from "../services/businessSettingsService.js";
 import "../styles/IngresoDetalleModal.css";
 
 export default function OrdenDetalleModal({ ordenId, isOpen, onClose }) {
   const [orden, setOrden] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [ivaRate, setIvaRate] = useState(19);
+  const [retefuenteRate, setRetefuenteRate] = useState(2.5);
 
   useEffect(() => {
     if (isOpen && ordenId) {
+      // Cargar configuración de impuestos
+      getBusinessSettings().then((settings) => {
+        if (settings) {
+          setIvaRate(Number(settings.ivaRate) || 19);
+          setRetefuenteRate(Number(settings.retefuenteRate) || 2.5);
+        }
+      });
       loadOrdenDetalle();
     } else {
       setOrden(null);
@@ -22,6 +32,16 @@ export default function OrdenDetalleModal({ ordenId, isOpen, onClose }) {
     setError(null);
     try {
       const ordenData = await obtenerOrdenDetalle(ordenId);
+      console.log("[OrdenDetalleModal] Datos recibidos del backend:", {
+        id: ordenData?.id,
+        numero: ordenData?.numero,
+        subtotal: ordenData?.subtotal,
+        iva: ordenData?.iva,
+        retencionFuente: ordenData?.retencionFuente,
+        total: ordenData?.total,
+        descuentos: ordenData?.descuentos,
+        tieneRetencionFuente: ordenData?.tieneRetencionFuente
+      });
       setOrden(ordenData);
     } catch (e) {
       console.error("Error cargando detalles de orden:", e);
@@ -57,6 +77,8 @@ export default function OrdenDetalleModal({ ordenId, isOpen, onClose }) {
   const detalles = Array.isArray(orden?.items) ? orden.items : [];
 
   // Valores monetarios de la orden
+  // IMPORTANTE: Usar SOLO los valores que retorna el backend (sin cálculos en frontend)
+  // Estos son datos para facturación electrónica y deben ser exactos del backend
   const subtotal = (typeof orden?.subtotal === 'number' && orden.subtotal !== null && orden.subtotal !== undefined) ? orden.subtotal : 0;
   const descuentos = (typeof orden?.descuentos === 'number' && orden.descuentos !== null && orden.descuentos !== undefined) ? orden.descuentos : 0;
   const iva = (typeof orden?.iva === 'number' && orden.iva !== null && orden.iva !== undefined) ? orden.iva : 0;
@@ -131,7 +153,7 @@ export default function OrdenDetalleModal({ ordenId, isOpen, onClose }) {
               )}
               {orden.tieneRetencionFuente && (
                 <div>
-                  <strong>Retención en la Fuente:</strong> Sí ({retencionFuente > 0 ? fmtCOP(retencionFuente) : "—"})
+                  <strong>Retención en la Fuente:</strong> Sí ({fmtCOP(retencionFuente)})
                 </div>
               )}
             </div>
@@ -184,13 +206,11 @@ export default function OrdenDetalleModal({ ordenId, isOpen, onClose }) {
                   </div>
                 )}
                 <div>
-                  <strong>IVA (19%):</strong> {fmtCOP(iva)}
+                  <strong>IVA:</strong> {fmtCOP(iva)}
                 </div>
-                {retencionFuente > 0 && (
-                  <div>
-                    <strong>Retención en la Fuente:</strong> {fmtCOP(retencionFuente)}
-                  </div>
-                )}
+                <div>
+                  <strong>Retención en la Fuente:</strong> {fmtCOP(retencionFuente)}
+                </div>
                 <div style={{ fontWeight: "bold", fontSize: "1.1rem", gridColumn: "1 / -1", paddingTop: "0.5rem", borderTop: "2px solid #ddd" }}>
                   <strong>Total Facturado:</strong> {fmtCOP(total)}
                 </div>
@@ -207,4 +227,5 @@ export default function OrdenDetalleModal({ ordenId, isOpen, onClose }) {
     </div>
   );
 }
+
 

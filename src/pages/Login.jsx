@@ -94,7 +94,7 @@ export default function Login() {
     <div className="login-container">
       {/* Barra izquierda */}
       <div className="login-left">
-        <h1 className="title">ALUMINIOS CASAGLASS S.A.S</h1>
+        <h1 className="title">ALUMINIOS CASA GLASS S.A.S</h1>
       </div>
 
       {/* Barra derecha */}
@@ -130,10 +130,6 @@ export default function Login() {
             {loading ? "Ingresando..." : "Iniciar Sesión"}
           </button>
         </form>
-
-        <a href="#" className="forgot">
-          ¿Contraseña Olvidada? Click Aquí
-        </a>
       </div>
       </div>
     </div>
