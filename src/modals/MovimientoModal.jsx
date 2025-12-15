@@ -481,6 +481,7 @@ export default function MovimientoModal({
                 disabled={!canEditProducts}
               >
                 <option value="">Todos los colores</option>
+                <option value="MATE">MATE</option>
                 <option value="BLANCO">BLANCO</option>
                 <option value="NEGRO">NEGRO</option>
                 <option value="BRONCE">BRONCE</option>

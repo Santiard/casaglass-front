@@ -22,6 +22,13 @@ export default function OrdenesTable({
   onConfirmarVenta,
   rowsPerPage = 10,
   loading = false,
+  // Paginación del servidor
+  totalElements = 0,
+  totalPages = 1,
+  currentPage = 1,
+  pageSize = 20,
+  onPageChange = null,
+  serverSidePagination = false,
 }) {
   const { showError } = useToast();
   const [query, setQuery] = useState("");
@@ -139,6 +146,40 @@ export default function OrdenesTable({
 
   //  Filtrar y paginar
   const filtrados = useMemo(() => {
+    // Si es paginación del servidor, usar valores del servidor directamente
+    if (serverSidePagination) {
+      const total = totalElements || 0;
+      const maxPage = totalPages || 1;
+      const curPage = currentPage || 1;
+      const start = (curPage - 1) * pageSize;
+      
+      // Aplicar solo filtros del lado del cliente (búsqueda y estado)
+      // Nota: Idealmente estos filtros también deberían ir al servidor
+      let arr = data;
+      const q = query.trim().toLowerCase();
+      
+      if (q) {
+        arr = arr.filter((o) =>
+          [
+            o.numero,
+            o.fecha,
+            o.cliente?.nombre,
+            o.sede?.nombre,
+            o.venta ? "venta" : "cotizacion",
+          ]
+            .filter(Boolean)
+            .some((v) => String(v).toLowerCase().includes(q))
+        );
+      }
+      
+      if (filtroEstado) {
+        arr = arr.filter((o) => o.estado === filtroEstado);
+      }
+      
+      return { pageData: arr, total, maxPage, curPage, start };
+    }
+    
+    // Paginación del lado del cliente (comportamiento anterior)
     const q = query.trim().toLowerCase();
     
     // Aplicar filtros
@@ -185,17 +226,41 @@ export default function OrdenesTable({
     const start = (curPage - 1) * rowsPerPageState;
     const pageData = arr.slice(start, start + rowsPerPageState);
     return { pageData, total, maxPage, curPage, start };
-  }, [data, query, page, rowsPerPageState, filtroEstado]);
+  }, [data, query, page, rowsPerPageState, filtroEstado, serverSidePagination, totalElements, totalPages, currentPage, pageSize]);
 
   const { pageData, total, maxPage, curPage, start } = filtrados;
 
   // Funciones de paginación
   const canPrev = curPage > 1;
   const canNext = curPage < maxPage;
-  const goFirst = () => setPage(1);
-  const goPrev  = () => setPage(p => Math.max(1, p - 1));
-  const goNext  = () => setPage(p => Math.min(maxPage, p + 1));
-  const goLast  = () => setPage(maxPage);
+  const goFirst = () => {
+    if (serverSidePagination && onPageChange) {
+      onPageChange(1, pageSize);
+    } else {
+      setPage(1);
+    }
+  };
+  const goPrev  = () => {
+    if (serverSidePagination && onPageChange) {
+      onPageChange(Math.max(1, curPage - 1), pageSize);
+    } else {
+      setPage(p => Math.max(1, p - 1));
+    }
+  };
+  const goNext  = () => {
+    if (serverSidePagination && onPageChange) {
+      onPageChange(Math.min(maxPage, curPage + 1), pageSize);
+    } else {
+      setPage(p => Math.min(maxPage, p + 1));
+    }
+  };
+  const goLast  = () => {
+    if (serverSidePagination && onPageChange) {
+      onPageChange(maxPage, pageSize);
+    } else {
+      setPage(maxPage);
+    }
+  };
 
   const showingFrom = total === 0 ? 0 : start + 1;
   const showingTo   = Math.min(start + rowsPerPageState, total);
@@ -287,8 +352,16 @@ export default function OrdenesTable({
             <span>Filas:</span>
             <select
               className="clientes-select"
-              value={rowsPerPageState}
-              onChange={(e) => { setRowsPerPageState(Number(e.target.value)); setPage(1); }}
+              value={serverSidePagination ? pageSize : rowsPerPageState}
+              onChange={(e) => {
+                const newSize = Number(e.target.value);
+                if (serverSidePagination && onPageChange) {
+                  onPageChange(1, newSize);
+                } else {
+                  setRowsPerPageState(newSize);
+                  setPage(1);
+                }
+              }}
             >
               {[5,10,20,50].map(n => <option key={n} value={n}>{n}</option>)}
             </select>
@@ -452,34 +525,60 @@ export default function OrdenesTable({
                               {/* Totales de la orden */}
                               <div style={{ marginTop: '1rem', padding: '0.75rem', backgroundColor: '#f5f5f5', borderRadius: '0.375rem' }}>
                                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.5rem', fontSize: '0.9rem' }}>
-                                  {typeof o.subtotal === 'number' && (
-                                    <div>
-                                      <strong>Subtotal (sin IVA):</strong> ${o.subtotal.toLocaleString("es-CO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                    </div>
-                                  )}
-                                  {typeof o.descuentos === 'number' && o.descuentos > 0 && (
-                                    <div>
-                                      <strong>Descuentos:</strong> ${o.descuentos.toLocaleString("es-CO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                    </div>
-                                  )}
-                                  {typeof o.iva === 'number' && (
-                                    <div>
-                                      <strong>IVA (19%):</strong> ${o.iva.toLocaleString("es-CO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                    </div>
-                                  )}
-                                  {typeof o.retencionFuente === 'number' && o.retencionFuente > 0 && (
-                                    <div>
-                                      <strong>Retención en la Fuente:</strong> ${o.retencionFuente.toLocaleString("es-CO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                    </div>
-                                  )}
-                                  <div style={{ fontWeight: 'bold', fontSize: '1rem' }}>
-                                    <strong>Total:</strong> ${totalOrden.toLocaleString("es-CO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                  </div>
-                                  {typeof o.retencionFuente === 'number' && o.retencionFuente > 0 && (
-                                    <div style={{ fontSize: '0.85rem', color: '#666' }}>
-                                      <strong>Valor a pagar:</strong> ${(totalOrden - o.retencionFuente).toLocaleString("es-CO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                    </div>
-                                  )}
+                                  {(() => {
+                                    // USAR DIRECTAMENTE LOS VALORES DEL BACKEND (fuente de verdad)
+                                    // Los valores vienen del OrdenTablaDTO del backend:
+                                    // - subtotal: Base sin IVA
+                                    // - iva: IVA calculado
+                                    // - retencionFuente: Retención en la fuente
+                                    // - total: Total facturado
+                                    // - descuentos: Descuentos aplicados
+                                    
+                                    // Convertir null/undefined a 0 para todos los valores monetarios
+                                    const subtotal = (typeof o.subtotal === 'number' && o.subtotal !== null && o.subtotal !== undefined) ? o.subtotal : 0;
+                                    const descuentos = (typeof o.descuentos === 'number' && o.descuentos !== null && o.descuentos !== undefined) ? o.descuentos : 0;
+                                    const iva = (typeof o.iva === 'number' && o.iva !== null && o.iva !== undefined) ? o.iva : 0;
+                                    const retencionFuente = (typeof o.retencionFuente === 'number' && o.retencionFuente !== null && o.retencionFuente !== undefined) ? o.retencionFuente : 0;
+                                    
+                                    // El total facturado viene del backend (o.total), si no está disponible usar totalOrden calculado
+                                    const totalFacturado = (typeof o.total === 'number' && o.total !== null && o.total !== undefined) ? o.total : totalOrden;
+                                    
+                                    // 🔍 LOG: Valores que se van a mostrar
+                                    console.log(`🔍 [OrdenesTable] Valores calculados para mostrar (orden ${id}):`, {
+                                      subtotal,
+                                      descuentos,
+                                      iva,
+                                      retencionFuente,
+                                      totalFacturado
+                                    });
+                                    
+                                    return (
+                                      <>
+                                        <div>
+                                          <strong>Subtotal (sin IVA):</strong> ${subtotal.toLocaleString("es-CO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                        </div>
+                                        {descuentos > 0 && (
+                                          <div>
+                                            <strong>Descuentos:</strong> ${descuentos.toLocaleString("es-CO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                          </div>
+                                        )}
+                                        <div>
+                                          <strong>IVA (19%):</strong> ${iva.toLocaleString("es-CO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                        </div>
+                                        <div>
+                                          <strong>Retención en la Fuente:</strong> ${retencionFuente.toLocaleString("es-CO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                        </div>
+                                        <div style={{ fontWeight: 'bold', fontSize: '1rem' }}>
+                                          <strong>Total Facturado:</strong> ${totalFacturado.toLocaleString("es-CO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                        </div>
+                                        {retencionFuente > 0 && (
+                                          <div style={{ fontSize: '0.85rem', color: '#666' }}>
+                                            <strong>Valor a Pagar:</strong> ${(totalFacturado - retencionFuente).toLocaleString("es-CO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                          </div>
+                                        )}
+                                      </>
+                                    );
+                                  })()}
                                 </div>
                               </div>
                             </div>
@@ -503,10 +602,22 @@ export default function OrdenesTable({
         <div className="ordenes-pagination-controls">
           <button onClick={goFirst} disabled={!canPrev}>«</button>
           <button onClick={goPrev}  disabled={!canPrev}>‹</button>
-          {Array.from({ length: Math.min(5, maxPage) }, (_, i) => {
+            {Array.from({ length: Math.min(5, maxPage) }, (_, i) => {
             const p = Math.max(1, Math.min(curPage - 2, maxPage - 4)) + i;
             return p <= maxPage ? (
-              <button key={p} className={`page-number ${p === curPage ? "active" : ""}`} onClick={() => setPage(p)}>{p}</button>
+              <button 
+                key={p} 
+                className={`page-number ${p === curPage ? "active" : ""}`} 
+                onClick={() => {
+                  if (serverSidePagination && onPageChange) {
+                    onPageChange(p, pageSize);
+                  } else {
+                    setPage(p);
+                  }
+                }}
+              >
+                {p}
+              </button>
             ) : null;
           })}
           <button onClick={goNext} disabled={!canNext}>›</button>

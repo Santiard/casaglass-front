@@ -2,7 +2,18 @@ import React, { useState, useMemo, Fragment, useEffect } from "react";
 import "../styles/Creditos.css";
 import "../styles/Table.css";
 
-const CreditosTable = ({ creditos, onAbrirAbonoModal, rowsPerPage: rowsPerPageProp = 10 }) => {
+const CreditosTable = ({ 
+  creditos, 
+  onAbrirAbonoModal, 
+  rowsPerPage: rowsPerPageProp = 10,
+  // Paginación del servidor
+  totalElements = 0,
+  totalPages = 1,
+  currentPage = 1,
+  pageSize = 50,
+  onPageChange = null,
+  serverSidePagination = false,
+}) => {
   const [expandido, setExpandido] = useState(null);
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(rowsPerPageProp);
@@ -13,13 +24,24 @@ const CreditosTable = ({ creditos, onAbrirAbonoModal, rowsPerPage: rowsPerPagePr
 
   // Paginación
   const paginados = useMemo(() => {
+    // Si es paginación del servidor, usar valores del servidor directamente
+    if (serverSidePagination) {
+      const total = totalElements || 0;
+      const maxPage = totalPages || 1;
+      const curPage = currentPage || 1;
+      const start = (curPage - 1) * pageSize;
+      
+      return { pageData: creditos, total, maxPage, curPage, start };
+    }
+    
+    // Paginación del lado del cliente (comportamiento anterior)
     const total = creditos.length;
     const maxPage = Math.max(1, Math.ceil(total / rowsPerPage));
     const curPage = Math.min(page, maxPage);
     const start = (curPage - 1) * rowsPerPage;
     const pageData = creditos.slice(start, start + rowsPerPage);
     return { pageData, total, maxPage, curPage, start };
-  }, [creditos, page, rowsPerPage]);
+  }, [creditos, page, rowsPerPage, serverSidePagination, totalElements, totalPages, currentPage, pageSize]);
 
   const { pageData, total, maxPage, curPage, start } = paginados;
 
@@ -27,10 +49,34 @@ const CreditosTable = ({ creditos, onAbrirAbonoModal, rowsPerPage: rowsPerPagePr
   const canPrev = curPage > 1;
   const canNext = curPage < maxPage;
 
-  const goFirst = () => setPage(1);
-  const goPrev = () => setPage((p) => Math.max(1, p - 1));
-  const goNext = () => setPage((p) => Math.min(maxPage, p + 1));
-  const goLast = () => setPage(maxPage);
+  const goFirst = () => {
+    if (serverSidePagination && onPageChange) {
+      onPageChange(1, pageSize);
+    } else {
+      setPage(1);
+    }
+  };
+  const goPrev = () => {
+    if (serverSidePagination && onPageChange) {
+      onPageChange(Math.max(1, curPage - 1), pageSize);
+    } else {
+      setPage((p) => Math.max(1, p - 1));
+    }
+  };
+  const goNext = () => {
+    if (serverSidePagination && onPageChange) {
+      onPageChange(Math.min(maxPage, curPage + 1), pageSize);
+    } else {
+      setPage((p) => Math.min(maxPage, p + 1));
+    }
+  };
+  const goLast = () => {
+    if (serverSidePagination && onPageChange) {
+      onPageChange(maxPage, pageSize);
+    } else {
+      setPage(maxPage);
+    }
+  };
 
   // Cálculo "Mostrando X–Y de Z"
   const showingFrom = total === 0 ? 0 : start + 1;
@@ -151,7 +197,19 @@ const CreditosTable = ({ creditos, onAbrirAbonoModal, rowsPerPage: rowsPerPagePr
             {Array.from({ length: Math.min(5, maxPage) }, (_, i) => {
               const p = Math.max(1, Math.min(curPage - 2, maxPage - 4)) + i;
               return p <= maxPage ? (
-                <button key={p} className={`pg-btn ${p === curPage ? "active" : ""}`} onClick={() => setPage(p)}>{p}</button>
+                <button 
+                  key={p} 
+                  className={`pg-btn ${p === curPage ? "active" : ""}`} 
+                  onClick={() => {
+                    if (serverSidePagination && onPageChange) {
+                      onPageChange(p, pageSize);
+                    } else {
+                      setPage(p);
+                    }
+                  }}
+                >
+                  {p}
+                </button>
               ) : null;
             })}
             <button className="pg-btn" onClick={goNext} disabled={!canNext}>›</button>

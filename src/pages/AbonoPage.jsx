@@ -247,13 +247,22 @@ const AbonoPage = () => {
         }
       }
       
-      // Calcular retención sobre el TOTAL de la orden (no sobre el abono parcial)
-      // Solo si la orden está marcada para retención Y el total de la orden >= umbral
+      // Calcular retención sobre el SUBTOTAL SIN IVA de la orden (no sobre el abono parcial)
+      // Solo si la orden está marcada para retención Y el subtotal sin IVA >= umbral
       let montoRetencion = 0;
       const tieneRetencion = ordenesConRetencion.has(orden.id);
       const totalOrden = orden.total || 0;
-      if (tieneRetencion && totalOrden > 0 && totalOrden >= retefuenteThreshold) {
-        montoRetencion = (totalOrden * retefuenteRate) / 100;
+      
+      if (tieneRetencion && totalOrden > 0) {
+        // Calcular subtotal sin IVA (el total incluye IVA, así que dividimos por 1.19)
+        const subtotalSinIva = totalOrden / 1.19;
+        
+        // Verificar si el subtotal sin IVA supera el umbral
+        if (subtotalSinIva >= retefuenteThreshold) {
+          // Calcular retención sobre el subtotal sin IVA
+          montoRetencion = subtotalSinIva * (retefuenteRate / 100);
+          montoRetencion = Math.round(montoRetencion * 100) / 100; // Redondear a 2 decimales
+        }
       }
       
       nuevaDistribucion.push({
@@ -281,6 +290,13 @@ const AbonoPage = () => {
       setOrdenesConRetencion(nuevasConRetencion);
     } else {
       nuevasSeleccionadas.add(ordenId);
+      // Al seleccionar una orden, si tiene tieneRetencionFuente = true, marcarla automáticamente
+      const orden = ordenesCredito.find(o => o.id === ordenId);
+      if (orden && orden.tieneRetencionFuente === true) {
+        const nuevasConRetencion = new Set(ordenesConRetencion);
+        nuevasConRetencion.add(ordenId);
+        setOrdenesConRetencion(nuevasConRetencion);
+      }
     }
     setOrdenesSeleccionadas(nuevasSeleccionadas);
   };
@@ -851,10 +867,17 @@ const AbonoPage = () => {
                           const saldoPendiente = orden.creditoDetalle?.saldoPendiente || 0;
                           const montoAbono = dist?.montoAbono || 0;
                           const montoRetencion = dist?.montoRetencion || 0;
-                          const tieneRetencion = dist?.tieneRetencion || false;
                           const estaSeleccionada = ordenesSeleccionadas.has(orden.id);
                           const totalOrden = orden.total || 0;
-                          const puedeAplicarRetencion = estaSeleccionada && totalOrden > 0 && totalOrden >= retefuenteThreshold;
+                          // Calcular subtotal sin IVA para verificar umbral
+                          const subtotalSinIva = totalOrden > 0 ? totalOrden / 1.19 : 0;
+                          const puedeAplicarRetencion = estaSeleccionada && totalOrden > 0 && subtotalSinIva >= retefuenteThreshold;
+                          // El checkbox debe mostrar si la orden tiene retención
+                          // Si está seleccionada, usar el estado de ordenesConRetencion (que se inicializa desde tieneRetencionFuente)
+                          // Si no está seleccionada, mostrar directamente el valor de tieneRetencionFuente de la orden
+                          const tieneRetencion = estaSeleccionada 
+                            ? ordenesConRetencion.has(orden.id)
+                            : (orden.tieneRetencionFuente === true);
                           
                           return (
                             <tr

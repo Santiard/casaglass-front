@@ -1,5 +1,5 @@
 // src/pages/IngresosPage.jsx
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import IngresosTable from "../componets/IngresoTable.jsx";
 import IngresoDetalleModal from "../modals/IngresoDetalleModal.jsx";
 import { listarIngresos, crearIngresoDesdeForm, actualizarIngresoDesdeForm, eliminarIngreso, procesarIngreso } from "../services/IngresosService.js";
@@ -18,26 +18,68 @@ export default function IngresosPage() {
   const [proveedores, setProveedores] = useState([]);
   const [catalogo, setCatalogo] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [totalElements, setTotalElements] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
 
-  const loadIngresos = async () => {
+  const loadIngresos = useCallback(async (page = 1, size = 20) => {
     setLoading(true);
     try {
       // Si no es admin, filtrar por sede del usuario
-      const params = isAdmin ? {} : { sedeId };
-      const list = await listarIngresos(params);
-      setIngresos(list || []);
+      const params = {
+        ...(isAdmin ? {} : { sedeId }),
+        page: page,
+        size: size
+      };
+      const response = await listarIngresos(params);
+      
+      // El backend retorna un objeto con paginación si se envían page y size
+      if (response && typeof response === 'object' && 'content' in response) {
+        // Respuesta paginada
+        setIngresos(Array.isArray(response.content) ? response.content : []);
+        setTotalElements(response.totalElements || 0);
+        setTotalPages(response.totalPages || 1);
+        setCurrentPage(response.page || page);
+      } else {
+        // Respuesta sin paginación (fallback)
+        const arr = Array.isArray(response) ? response : [];
+        setIngresos(arr);
+        setTotalElements(arr.length);
+        setTotalPages(1);
+        setCurrentPage(1);
+      }
     } catch (e) {
-      console.error("Error listar ingresos:", {
-        status: e?.response?.status,
-        data: e?.response?.data,
-        url: e?.config?.url,
-        params: e?.config?.params,
-      });
-      showError(e?.response?.data?.message || "No se pudieron cargar los ingresos.");
+      // Evitar múltiples logs del mismo error
+      const errorMessage = e?.response?.data?.message || e?.message || "No se pudieron cargar los ingresos.";
+      
+      // Si es el error de lazy initialization, mostrar mensaje más específico
+      if (errorMessage.includes("lazily initialize") || errorMessage.includes("no Session")) {
+        console.error("Error del backend (lazy initialization):", {
+          status: e?.response?.status,
+          message: errorMessage,
+          url: e?.config?.url,
+        });
+        showError("Error del servidor: El backend no puede cargar los detalles de los ingresos. Por favor, contacte al administrador del sistema.");
+      } else {
+        console.error("Error listar ingresos:", {
+          status: e?.response?.status,
+          data: e?.response?.data,
+          url: e?.config?.url,
+          params: e?.config?.params,
+        });
+        showError(errorMessage);
+      }
+      
+      // En caso de error, establecer valores por defecto para evitar estados inconsistentes
+      setIngresos([]);
+      setTotalElements(0);
+      setTotalPages(1);
+      setCurrentPage(1);
     } finally {
       setLoading(false);
     }
-  };
+  }, [isAdmin, sedeId, showError]);
 
   const loadAux = async () => {
     try {
@@ -78,15 +120,35 @@ export default function IngresosPage() {
     }
   };
 
+  // Cargar datos iniciales
   useEffect(() => {
-    loadIngresos();
+    loadIngresos(1, pageSize);
     loadAux();
-  }, [isAdmin, sedeId]);
+  }, [isAdmin, sedeId]); // Solo recargar si cambian estos valores
+
+  // Recargar cuando cambie la página o el tamaño
+  useEffect(() => {
+    if (currentPage > 0 && pageSize > 0) {
+      loadIngresos(currentPage, pageSize);
+    }
+  }, [currentPage, pageSize, loadIngresos]);
+
+  // Handler para cambios de página desde IngresosTable
+  const handlePageChange = useCallback((newPage, newSize) => {
+    if (newSize !== pageSize) {
+      setPageSize(newSize);
+      setCurrentPage(1);
+      loadIngresos(1, newSize); // Resetear a página 1 si cambia el tamaño
+    } else {
+      setCurrentPage(newPage);
+      loadIngresos(newPage, newSize);
+    }
+  }, [pageSize, loadIngresos]);
 
   const onCrear = async (payload) => {
     try {
       await crearIngresoDesdeForm(payload);
-      await loadIngresos();
+      await loadIngresos(currentPage, pageSize);
     } catch (e) {
       console.error("Error en onCrear:", e);
       throw e; // Re-lanza el error para que lo maneje el componente padre
@@ -95,7 +157,7 @@ export default function IngresosPage() {
   const onActualizar = async (id, payload) => {
     try {
       await actualizarIngresoDesdeForm(id, payload);
-      await loadIngresos();
+      await loadIngresos(currentPage, pageSize);
     } catch (e) {
       console.error("Error en onActualizar:", e);
       throw e; // Re-lanza el error para que lo maneje el componente padre
@@ -103,7 +165,7 @@ export default function IngresosPage() {
   };
   const onEliminar = async (id) => {
     await eliminarIngreso(id);
-    await loadIngresos();
+    await loadIngresos(currentPage, pageSize);
   };
 
   const onProcesar = async (id) => {
@@ -119,7 +181,7 @@ export default function IngresosPage() {
     
     try {
       const resultado = await procesarIngreso(id);
-      await loadIngresos(); // Recargar la tabla
+      await loadIngresos(currentPage, pageSize); // Recargar la tabla
       showSuccess(`Ingreso #${id} marcado como procesado correctamente`);
     } catch (e) {
       console.error("Error al procesar ingreso:", e);
@@ -157,6 +219,13 @@ export default function IngresosPage() {
         onActualizar={onActualizar}
         onEliminar={onEliminar}
         onProcesar={onProcesar}
+        // Paginación del servidor
+        totalElements={totalElements}
+        totalPages={totalPages}
+        currentPage={currentPage}
+        pageSize={pageSize}
+        onPageChange={handlePageChange}
+        serverSidePagination={true}
       />
 
       {/* Modal de detalles */}

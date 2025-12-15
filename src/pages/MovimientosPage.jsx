@@ -1,5 +1,5 @@
 // src/pages/MovimientosPage.jsx
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import MovimientosTable from "../componets/MovimientosTable";
 
 // Estos dos servicios deben existir en tu proyecto.
@@ -26,17 +26,52 @@ export default function MovimientosPage() {
   const [sedes, setSedes] = useState([]);
   const [catalogoProductos, setCatalogoProductos] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [totalElements, setTotalElements] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+
+  const loadTraslados = useCallback(async (page = 1, size = 20) => {
+    try {
+      setLoading(true);
+      // Si no es admin, filtrar por sede del usuario
+      const params = {
+        ...(isAdmin ? {} : { sedeId }),
+        page: page,
+        size: size
+      };
+      const response = await listarTraslados(params);
+      
+      // El backend retorna un objeto con paginación si se envían page y size
+      if (response && typeof response === 'object' && 'content' in response) {
+        // Respuesta paginada
+        setTraslados(Array.isArray(response.content) ? response.content : []);
+        setTotalElements(response.totalElements || 0);
+        setTotalPages(response.totalPages || 1);
+        setCurrentPage(response.page || page);
+      } else {
+        // Respuesta sin paginación (fallback)
+        const arr = Array.isArray(response) ? response : [];
+        setTraslados(arr);
+        setTotalElements(arr.length);
+        setTotalPages(1);
+        setCurrentPage(1);
+      }
+    } catch (e) {
+      console.error("Error cargando traslados:", e);
+      showError("No se pudieron cargar los traslados.");
+    } finally {
+      setLoading(false);
+    }
+  }, [isAdmin, sedeId, showError]);
 
   useEffect(() => {
     (async () => {
       try {
-        setLoading(true);
-        // Si no es admin, filtrar por sede del usuario
-        const params = isAdmin ? {} : { sedeId };
-        const [sedesRes, prodsRes, trasladosRes] = await Promise.all([
+        // Cargar sedes y productos (no necesitan paginación)
+        const [sedesRes, prodsRes] = await Promise.all([
           listarSedes(),       // GET /api/sedes  => [{id, nombre, ...}]
           listarProductos(),   // GET /api/productos => [{id, nombre, codigo}]
-          listarTraslados(params),   // GET /api/traslados-movimientos?sedeId=X
         ]);
         setSedes(Array.isArray(sedesRes) ? sedesRes : []);
         // Filtrar cortes: excluir productos que tengan largoCm (son cortes)
@@ -52,29 +87,24 @@ export default function MovimientosPage() {
               color: p.color, // Incluir color para filtro
             }))
         );
-        setTraslados(Array.isArray(trasladosRes) ? trasladosRes : []);
+        // Cargar traslados con paginación
+        await loadTraslados(1, pageSize);
       } catch (e) {
         console.error("Error cargando datos:", e);
         showError("No se pudieron cargar traslados/sedes/productos.");
-      } finally {
-        setLoading(false);
       }
     })();
-  }, [isAdmin, sedeId, showError]);
+  }, [isAdmin, sedeId]); // Solo recargar si cambian estos valores
+
+  // Recargar cuando cambie la página o el tamaño
+  useEffect(() => {
+    if (currentPage > 0 && pageSize > 0) {
+      loadTraslados(currentPage, pageSize);
+    }
+  }, [currentPage, pageSize, loadTraslados]);
 
   const reloadTraslados = async () => {
-    try {
-      setLoading(true);
-      // Si no es admin, filtrar por sede del usuario
-      const params = isAdmin ? {} : { sedeId };
-      const res = await listarTraslados(params);
-      setTraslados(Array.isArray(res) ? res : []);
-    } catch (e) {
-      console.error("Error recargando traslados:", e);
-      showError("No se pudieron recargar los traslados.");
-    } finally {
-      setLoading(false);
-    }
+    await loadTraslados(currentPage, pageSize);
   };
 
   // Crear
@@ -122,6 +152,18 @@ export default function MovimientosPage() {
     }
   };
 
+  // Handler para cambios de página desde MovimientosTable
+  const handlePageChange = useCallback((newPage, newSize) => {
+    if (newSize !== pageSize) {
+      setPageSize(newSize);
+      setCurrentPage(1);
+      loadTraslados(1, newSize); // Resetear a página 1 si cambia el tamaño
+    } else {
+      setCurrentPage(newPage);
+      loadTraslados(newPage, newSize);
+    }
+  }, [pageSize, loadTraslados]);
+
   return (
     <div>
       <MovimientosTable
@@ -134,6 +176,13 @@ export default function MovimientosPage() {
         onActualizar={onActualizar}
         onEliminar={onEliminar}
         onConfirmar={onConfirmar}
+        // Paginación del servidor
+        totalElements={totalElements}
+        totalPages={totalPages}
+        currentPage={currentPage}
+        pageSize={pageSize}
+        onPageChange={handlePageChange}
+        serverSidePagination={true}
       />
       <ConfirmDialog />
     </div>

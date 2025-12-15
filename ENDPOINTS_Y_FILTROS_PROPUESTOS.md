@@ -442,26 +442,6 @@ GET /api/entregas-dinero/resumen/empleado
     - hasta: YYYY-MM-DD (OBLIGATORIO)
     - sedeId: Integer (opcional)
 
-7. GASTOS (ELIMINADOS DEL FRONTEND)
-------------------------------------
-
-NOTA: Los endpoints de gastos-sede ya NO se usan en el frontend. Los gastos fueron
-eliminados del flujo de entregas. Estos endpoints pueden existir en el backend para
-reportes u otros propósitos, pero el frontend ya no los consume.
-
-Endpoints eliminados del frontend:
-- GET /api/gastos-sede
-- GET /api/gastos-sede/{id}
-- GET /api/gastos-sede/sede/{sedeId}
-- GET /api/gastos-sede/sede/{sedeId}/sin-entrega
-- POST /api/gastos-sede
-- PUT /api/gastos-sede/{id}
-- DELETE /api/gastos-sede/{id}
-
-Archivos eliminados:
-- src/services/GastosService.js
-- src/modals/CrearGastoModal.jsx
-- src/modals/CrearGastoModal.css
 
 8. REEMBOLSOS DE VENTA
 -----------------------

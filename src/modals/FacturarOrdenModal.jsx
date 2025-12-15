@@ -149,43 +149,43 @@ export default function FacturarOrdenModal({ isOpen, onClose, onSave, orden }) {
 
   useEffect(() => {
     if (isOpen && orden) {
-      // Usar subtotal del backend si existe, sino calcular desde items
-      const subtotal =
-        typeof orden.subtotal === "number" && !isNaN(orden.subtotal)
-          ? orden.subtotal
-          : Array.isArray(orden.items)
-          ? orden.items.reduce(
-              (acc, it) => acc + (Number(it.totalLinea) || 0),
-              0
-            )
-          : 0;
+      // Usar valores directamente de la orden (ya calculados por el backend)
+      // El backend ahora calcula y guarda: subtotal (base sin IVA), iva, retencionFuente, total (total facturado)
+      
+      // Calcular subtotal facturado (total con IVA) para mostrar en el formulario
+      // Si la orden tiene total calculado, usarlo; sino calcular desde items
+      const subtotalFacturado = typeof orden.total === "number" && !isNaN(orden.total)
+        ? orden.total
+        : Array.isArray(orden.items)
+        ? orden.items.reduce((acc, it) => acc + (Number(it.totalLinea) || 0), 0)
+        : 0;
 
       // Usar descuentos de la orden si existen
       const descuentosOrden = typeof orden.descuentos === "number" && !isNaN(orden.descuentos)
         ? orden.descuentos
         : 0;
 
-      setSubtotalOrden(subtotal);
+      // Usar valores calculados directamente de la orden
+      const ivaOrden = typeof orden.iva === "number" && !isNaN(orden.iva) ? orden.iva : 0;
+      const retencionFuenteOrden = typeof orden.retencionFuente === "number" && !isNaN(orden.retencionFuente) 
+        ? orden.retencionFuente 
+        : 0;
+      
+      // El subtotal para la factura es el total facturado (con IVA incluido) menos descuentos
+      const subtotalFactura = subtotalFacturado - descuentosOrden;
 
-      // Calcular base (subtotal - descuentos)
-      const baseInicial = subtotal - descuentosOrden;
-      
-      // Calcular IVA: monto * porcentaje (ej: 19% = 0.19)
-      const ivaRateDecimal = (ivaRate && ivaRate > 0) ? ivaRate / 100 : 0;
-      const ivaCalculado = baseInicial * ivaRateDecimal;
-      
-      // Calcular retención: Solo si está marcada la orden para retención Y la base (sin IVA) supera el umbral
-      const subtotalSinIva = baseInicial - ivaCalculado;
-      // Aplicar retención solo si está marcado el checkbox Y supera el umbral (para todas las órdenes)
-      const debeAplicarRetencion = tieneRetencion && subtotalSinIva >= (retefuenteThreshold || 0);
+      setSubtotalOrden(subtotalFactura);
+
+      // Usar el valor de tieneRetencionFuente de la orden
+      setTieneRetencion(Boolean(orden.tieneRetencionFuente ?? false));
 
       setForm({
         ordenId: orden.id,
         fecha: getTodayLocalDate(),
-        subtotal,
+        subtotal: subtotalFactura, // Subtotal para la factura (total facturado - descuentos)
         descuentos: descuentosOrden || "",
-        iva: ivaRate || 0, // Usar el porcentaje de IVA desde configuración
-        retencionFuente: debeAplicarRetencion ? (retefuenteRate || 0) : 0, // Usar el porcentaje de retención si aplica
+        iva: ivaOrden, // Valor del IVA calculado en la orden (en dinero, NO porcentaje)
+        retencionFuente: retencionFuenteOrden, // Valor de retención calculado en la orden (en dinero, NO porcentaje)
         formaPago: "EFECTIVO",
         observaciones: `Factura generada desde orden #${orden.numero}`,
       });
@@ -193,7 +193,7 @@ export default function FacturarOrdenModal({ isOpen, onClose, onSave, orden }) {
       // La inicialización del cliente se hace en el useEffect anterior
       // después de cargar la lista de clientes para tener todos los datos
     }
-  }, [isOpen, orden, ivaRate, retefuenteRate, retefuenteThreshold, tieneRetencion, esCredito]);
+  }, [isOpen, orden, esCredito]);
 
   const handleChange = (e) => {
     const { name, value, type } = e.target;
@@ -237,87 +237,29 @@ export default function FacturarOrdenModal({ isOpen, onClose, onSave, orden }) {
 
     setLoading(true);
     try {
-      // Primero, actualizar la orden con tieneRetencionFuente si es necesario
-      // Actualizar para todas las órdenes (crédito y contado) si el valor ha cambiado
-      if (orden?.venta) {
-        try {
-          // Construir payload para actualizar la orden con tieneRetencionFuente
-          const ordenUpdatePayload = {
-            fecha: orden.fecha,
-            obra: orden.obra || "",
-            descripcion: orden.descripcion || null,
-            venta: orden.venta,
-            credito: orden.credito,
-            incluidaEntrega: orden.incluidaEntrega || false,
-            tieneRetencionFuente: tieneRetencion, // Actualizar con el valor del checkbox
-            descuentos: Number(orden.descuentos || 0),
-            clienteId: Number(orden.clienteId || orden.cliente?.id),
-            sedeId: Number(orden.sedeId || orden.sede?.id),
-            ...(orden.trabajadorId || orden.trabajador?.id ? { trabajadorId: Number(orden.trabajadorId || orden.trabajador?.id) } : {}),
-            items: (Array.isArray(orden.items) ? orden.items : []).map(item => ({
-              id: item.id ?? null,
-              productoId: Number(item.productoId || item.producto?.id),
-              descripcion: item.descripcion ?? "",
-              cantidad: Number(item.cantidad ?? 1),
-              precioUnitario: Number(item.precioUnitario ?? 0),
-              totalLinea: Number(item.totalLinea ?? 0),
-              ...(item.reutilizarCorteSolicitadoId ? { reutilizarCorteSolicitadoId: Number(item.reutilizarCorteSolicitadoId) } : {})
-            }))
-          };
-          
-          // Actualizar la orden usando el endpoint correcto según si es venta o no
-          if (orden.venta) {
-            await actualizarOrdenVenta(orden.id, ordenUpdatePayload);
-          } else {
-            await actualizarOrden(orden.id, ordenUpdatePayload);
-          }
-        } catch (updateError) {
-          console.warn(" No se pudo actualizar tieneRetencionFuente en la orden:", updateError?.response?.data || updateError?.message);
-          // Continuar con la facturación aunque falle la actualización del campo
-        }
-      }
-      
-      // Calcular los valores monetarios (el backend espera valores calculados, NO porcentajes)
-      // Base imponible = subtotal - descuentos
+      // Usar valores directamente de la orden (ya calculados por el backend)
+      // La retención se configura al crear/editar la orden, no al facturar
+      // El backend ya calculó: subtotal (base sin IVA), iva, retencionFuente, total
       const descuentosNum = form.descuentos === "" ? 0 : Number(form.descuentos || 0);
-      const baseImponible = Number(form.subtotal || 0) - descuentosNum;
       
-      // Calcular IVA: monto * porcentaje (ej: 19% = 0.19, 1.25% = 0.0125)
-      const porcentajeIva = Number(form.iva || 0);
-      const porcentajeIvaDecimal = porcentajeIva / 100; // Convertir 19 a 0.19
-      const valorIva = (porcentajeIva && porcentajeIva > 0)
-        ? baseImponible * porcentajeIvaDecimal
-        : 0;
-      const valorIvaRedondeado = Math.round(valorIva * 100) / 100; // Redondear a 2 decimales
+      // Los valores de IVA y retención ya vienen calculados en dinero desde la orden
+      const valorIva = Number(form.iva || 0); // Ya es valor monetario, no porcentaje
+      const valorRetencionFuente = Number(form.retencionFuente || 0); // Ya es valor monetario, no porcentaje
       
-      // Calcular subtotal sin IVA (base imponible para retención)
-      const subtotalSinIva = baseImponible - valorIvaRedondeado;
-      
-      // Calcular retención como valor monetario sobre el subtotal sin IVA
-      const porcentajeRetencion = Number(form.retencionFuente || 0);
-      const porcentajeRetencionDecimal = porcentajeRetencion / 100; // Convertir 1.25 a 0.0125
-      const valorRetencionFuente = (tieneRetencion && porcentajeRetencion > 0)
-        ? subtotalSinIva * porcentajeRetencionDecimal
-        : 0;
-      const valorRetencionRedondeado = Math.round(valorRetencionFuente * 100) / 100; // Redondear a 2 decimales
-      
-      console.log(`[FacturarOrden] Cálculo de impuestos:`, {
+      console.log(`[FacturarOrden] Usando valores de la orden:`, {
         subtotal: form.subtotal,
         descuentos: descuentosNum,
-        baseImponible,
-        porcentajeIva,
-        valorIva: valorIvaRedondeado,
-        subtotalSinIva,
-        porcentajeRetencion,
-        valorRetencionFuente: valorRetencionRedondeado,
-        totalCalculado: baseImponible - valorRetencionRedondeado
+        iva: valorIva,
+        retencionFuente: valorRetencionFuente,
+        totalOrden: orden?.total,
+        tieneRetencionFuente: orden?.tieneRetencionFuente
       });
       
       const payloadToSend = {
         ...form,
         descuentos: descuentosNum,
-        iva: valorIvaRedondeado, // Valor calculado en dinero, NO porcentaje
-        retencionFuente: Math.max(0, valorRetencionRedondeado), // Valor calculado en dinero, NO porcentaje
+        iva: valorIva, // Valor monetario ya calculado en la orden
+        retencionFuente: Math.max(0, valorRetencionFuente), // Valor monetario ya calculado en la orden
         // Si se seleccionó un cliente diferente, incluir clienteId
         // Si no se seleccionó ninguno (clienteFacturaId === ""), no se envía y el backend usa el cliente de la orden
         ...(clienteFacturaId && clienteFacturaId !== "" ? { clienteId: Number(clienteFacturaId) } : {}),
@@ -590,51 +532,49 @@ export default function FacturarOrdenModal({ isOpen, onClose, onSave, orden }) {
                 />
               </div>
               <div>
-                <label>IVA (%):</label>
+                <label>IVA (valor):</label>
                 <input
                   type="number"
                   name="iva"
                   value={form.iva}
                   onChange={handleChange}
                   placeholder="0"
-                  step="0.1"
+                  step="0.01"
                   min="0"
-                  max="100"
                   disabled
                 />
                 <small style={{ display: 'block', color: '#666', fontSize: '0.75rem', marginTop: '0.25rem' }}>
-                  Valor desde configuración: {ivaRate}%
+                  Valor calculado desde la orden
                 </small>
               </div>
               <div>
-                <label>Retención (%):</label>
+                <label>Retención (valor):</label>
                 <input
                   type="number"
                   name="retencionFuente"
                   value={form.retencionFuente}
                   onChange={handleChange}
                   placeholder="0"
-                  step="0.1"
+                  step="0.01"
                   min="0"
-                  max="100"
                   disabled
                 />
                 <small style={{ display: 'block', color: '#666', fontSize: '0.75rem', marginTop: '0.25rem' }}>
-                  Valor desde configuración: {retefuenteRate}% {form.retencionFuente > 0 ? `(umbral: ${retefuenteThreshold.toLocaleString('es-CO')})` : '(no aplica)'}
+                  {form.retencionFuente > 0 ? 'Valor calculado desde la orden' : 'No aplica retención'}
                 </small>
               </div>
             </div>
             
-            {/* Checkbox para marcar si la orden tiene retefuente (para todas las órdenes) */}
+            {/* Información de retención de fuente (solo informativo, ya viene de la orden) */}
             {(() => {
-              // Calcular subtotal sin IVA para el mensaje del checkbox
-              const baseTemp = Math.max(0, subtotalOrden - (parseFloat(form.descuentos) || 0));
-              const ivaPorcentajeTemp = Number(form.iva) || 0;
-              const ivaValTemp = (ivaPorcentajeTemp && ivaPorcentajeTemp > 0) 
-                ? (baseTemp * ivaPorcentajeTemp) / (100 + ivaPorcentajeTemp) 
-                : 0;
-              const subtotalSinIvaTemp = baseTemp - ivaValTemp;
-              const superaUmbral = subtotalSinIvaTemp >= (retefuenteThreshold || 0);
+              // Los valores ya vienen calculados de la orden
+              const tieneRetencionOrden = Boolean(orden?.tieneRetencionFuente ?? false);
+              const retencionValor = Number(form.retencionFuente) || 0;
+              
+              // Solo mostrar si la orden tiene retención configurada
+              if (!tieneRetencionOrden && retencionValor === 0) {
+                return null;
+              }
               
               return (
                 <div style={{ 
@@ -648,19 +588,18 @@ export default function FacturarOrdenModal({ isOpen, onClose, onSave, orden }) {
                     display: 'flex', 
                     alignItems: 'center', 
                     gap: '0.5rem', 
-                    cursor: superaUmbral ? 'pointer' : 'not-allowed',
+                    cursor: 'not-allowed',
                     fontWeight: '500',
-                    opacity: superaUmbral ? 1 : 0.6
+                    opacity: 0.7
                   }}>
                     <input
                       type="checkbox"
-                      checked={tieneRetencion}
-                      onChange={(e) => setTieneRetencion(e.target.checked)}
-                      disabled={!superaUmbral}
+                      checked={tieneRetencionOrden}
+                      disabled={true}
                       style={{
                         width: '18px',
                         height: '18px',
-                        cursor: superaUmbral ? 'pointer' : 'not-allowed'
+                        cursor: 'not-allowed'
                       }}
                     />
                     <span>Esta orden tiene retención en la fuente (retefuente)</span>
@@ -672,46 +611,29 @@ export default function FacturarOrdenModal({ isOpen, onClose, onSave, orden }) {
                     marginTop: '0.5rem',
                     marginLeft: '28px'
                   }}>
-                    Marque esta opción si el cliente es autoretenedor y debe aplicarse retención en la fuente.
-                    {!superaUmbral && (
-                      <span style={{ display: 'block', color: '#dc3545', marginTop: '0.25rem' }}>
-                        El subtotal sin IVA (${subtotalSinIvaTemp.toLocaleString('es-CO')}) no supera el umbral (${retefuenteThreshold.toLocaleString('es-CO')}), por lo que no se aplicará retención aunque esté marcado.
-                      </span>
-                    )}
-                    {superaUmbral && !tieneRetencion && (
-                      <span style={{ display: 'block', color: '#856404', marginTop: '0.25rem' }}>
-                        Esta orden supera el umbral de retefuente. Marque la casilla si desea aplicar retención.
-                      </span>
-                    )}
+                    {retencionValor > 0 
+                      ? `Valor de retención calculado: ${retencionValor.toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}. Este valor se usará en la factura.`
+                      : 'La retención se configura al crear/editar la orden.'}
                   </small>
                 </div>
               );
             })()}
             {(() => {
+              // Usar valores directamente de la orden (ya calculados)
               const base = Math.max(0, subtotalOrden - (parseFloat(form.descuentos) || 0));
               
-              // Calcular IVA: monto * porcentaje (ej: 19% = 0.19)
-              const ivaPorcentaje = Number(form.iva) || 0;
-              const ivaPorcentajeDecimal = ivaPorcentaje / 100; // Convertir 19 a 0.19
-              const ivaVal = (ivaPorcentaje && ivaPorcentaje > 0) 
-                ? base * ivaPorcentajeDecimal
-                : 0;
+              // Los valores de IVA y retención ya vienen calculados en dinero desde la orden
+              const ivaVal = Number(form.iva) || 0; // Valor monetario ya calculado
+              const reteVal = Number(form.retencionFuente) || 0; // Valor monetario ya calculado
               
-              // Calcular subtotal sin IVA
+              // Calcular subtotal sin IVA para mostrar (base - IVA)
               const subtotalSinIva = base - ivaVal;
               
-              // Calcular retención: solo si está marcado el checkbox Y supera el umbral (para todas las órdenes)
-              const debeAplicarRetencion = tieneRetencion && subtotalSinIva >= (retefuenteThreshold || 0);
-              
-              const retencionPorcentaje = debeAplicarRetencion ? (Number(form.retencionFuente) || 0) : 0;
-              const retencionPorcentajeDecimal = retencionPorcentaje / 100; // Convertir 1.25 a 0.0125
-              const reteVal = debeAplicarRetencion 
-                ? subtotalSinIva * retencionPorcentajeDecimal
-                : 0;
-              
-              // Total final de la factura: base (con IVA incluido) - retención (según contabilidad)
-              // El total a pagar debe mostrarse con la retención ya restada
-              const total = base - reteVal;
+              // IMPORTANTE: Distinguir entre Total Facturado y Valor a Pagar
+              // Total Facturado = base (con IVA incluido) - NO se resta la retención
+              // Valor a Pagar = Total Facturado - Retención (lo que realmente se recibe en banco/caja)
+              const totalFacturado = base; // Total que se factura (sin restar retención)
+              const valorAPagar = base - reteVal; // Valor realmente recibido (total - retención)
               
               const invalid = (parseFloat(form.descuentos) || 0) > subtotalOrden || base < 0;
               const money = (n) => `$${Number(n || 0).toLocaleString('es-CO')}`;
@@ -746,9 +668,32 @@ export default function FacturarOrdenModal({ isOpen, onClose, onSave, orden }) {
                       )}
                     </div>
                   </div>
-                  <div className="total-final">
-                    <span>Total a Facturar:</span>
-                    <strong>{money(total)}</strong>
+                  <div className="total-final" style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', padding: '1rem', backgroundColor: '#f8f9fa', borderRadius: '8px', border: '1px solid #e0e0e0' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontWeight: '500' }}>Total a Facturar:</span>
+                      <strong style={{ fontSize: '1.1em', color: '#333' }}>{money(totalFacturado)}</strong>
+                    </div>
+                    {reteVal > 0 && (
+                      <>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '0.5rem', borderTop: '1px solid #ddd' }}>
+                          <span style={{ fontWeight: '500', color: '#666' }}>(-) Retención en la Fuente:</span>
+                          <span style={{ color: '#666' }}>{money(reteVal)}</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '0.5rem', borderTop: '1px solid #ddd' }}>
+                          <span style={{ fontWeight: '600', fontSize: '1.05em' }}>Valor a Pagar (Monto del método de pago):</span>
+                          <strong style={{ fontSize: '1.2em', color: '#4f67ff' }}>{money(valorAPagar)}</strong>
+                        </div>
+                        <small style={{ display: 'block', color: '#666', fontSize: '0.75rem', marginTop: '0.5rem', fontStyle: 'italic' }}>
+                          El monto del método de pago debe ser el valor a pagar (total - retención), ya que el cliente retiene y consigna directamente a la DIAN.
+                        </small>
+                      </>
+                    )}
+                    {reteVal === 0 && (
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '0.5rem', borderTop: '1px solid #ddd' }}>
+                        <span style={{ fontWeight: '600', fontSize: '1.05em' }}>Valor a Pagar:</span>
+                        <strong style={{ fontSize: '1.2em', color: '#4f67ff' }}>{money(valorAPagar)}</strong>
+                      </div>
+                    )}
                   </div>
                 </>
               );

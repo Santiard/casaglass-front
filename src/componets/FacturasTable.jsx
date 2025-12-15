@@ -4,6 +4,7 @@ import eliminar from "../assets/eliminar.png";
 import check from "../assets/check.png";
 import HistoricoFacturasClienteModal from "../modals/HistoricoFacturasClienteModal.jsx";
 import HistoricoFacturasGeneralModal from "../modals/HistoricoFacturasGeneralModal.jsx";
+import OrdenDetalleModal from "../modals/OrdenDetalleModal.jsx";
 
 export default function FacturasTable({
   data = [],
@@ -13,6 +14,13 @@ export default function FacturasTable({
   clientes = [],
   rowsPerPage = 10,
   loading = false,
+  // Paginación del servidor
+  totalElements = 0,
+  totalPages = 1,
+  currentPage = 1,
+  pageSize = 20,
+  onPageChange = null,
+  serverSidePagination = false,
 }) {
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
@@ -23,6 +31,8 @@ export default function FacturasTable({
   const [clienteSearchModal, setClienteSearchModal] = useState("");
   const [isHistoricoModalOpen, setIsHistoricoModalOpen] = useState(false);
   const [isHistoricoGeneralModalOpen, setIsHistoricoGeneralModalOpen] = useState(false);
+  const [ordenDetalleModalOpen, setOrdenDetalleModalOpen] = useState(false);
+  const [ordenIdSeleccionada, setOrdenIdSeleccionada] = useState(null);
 
   const fmtFecha = (iso) =>
     iso
@@ -94,6 +104,52 @@ export default function FacturasTable({
   };
 
   const filtrados = useMemo(() => {
+    // Si es paginación del servidor, usar valores del servidor directamente
+    if (serverSidePagination) {
+      const total = totalElements || 0;
+      const maxPage = totalPages || 1;
+      const curPage = currentPage || 1;
+      const start = (curPage - 1) * pageSize;
+      
+      // Con paginación del servidor, usar los datos tal como vienen del servidor
+      // Los filtros deberían enviarse al servidor, no aplicarse aquí
+      // Solo aplicamos búsqueda local como mejora temporal (opcional)
+      let arr = Array.isArray(data) ? data : [];
+      const q = query.trim().toLowerCase();
+      
+      // Aplicar búsqueda local solo si hay query (opcional, mejora UX)
+      if (q) {
+        arr = arr.filter((f) =>
+          [
+            f.numeroFactura,
+            f.numero,
+            f.fecha,
+            f.cliente?.nombre,
+            f.cliente?.nit,
+            f.observaciones,
+            f.formaPago,
+          ]
+            .filter(Boolean)
+            .some((v) => String(v).toLowerCase().includes(q))
+        );
+      }
+
+      // Filtrar por cliente solo si hay filtro activo (opcional, mejora UX)
+      if (filtroCliente !== null && filtroCliente !== "" && clienteSeleccionado?.nombre) {
+        const nombreClienteBuscado = clienteSeleccionado.nombre.trim().toUpperCase();
+        arr = arr.filter((f) => {
+          const clienteNombre = f.cliente?.nombre || f.orden?.cliente?.nombre;
+          if (!clienteNombre) return false;
+          return clienteNombre.trim().toUpperCase() === nombreClienteBuscado;
+        });
+      }
+      
+      // Si aplicamos filtros locales, ajustar el total mostrado
+      // Pero mantener los valores del servidor para la paginación
+      return { pageData: arr, total, maxPage, curPage, start };
+    }
+    
+    // Paginación del lado del cliente (comportamiento anterior)
     const q = query.trim().toLowerCase();
     let arr = data;
 
@@ -137,7 +193,7 @@ export default function FacturasTable({
     const start = (curPage - 1) * rowsPerPageState;
     const pageData = arr.slice(start, start + rowsPerPageState);
     return { pageData, total, maxPage, curPage, start };
-  }, [data, query, page, rowsPerPageState, filtroCliente]);
+  }, [data, query, page, rowsPerPageState, filtroCliente, serverSidePagination, totalElements, totalPages, currentPage, pageSize, clienteSeleccionado]);
 
   const { pageData, total, maxPage, curPage, start } = filtrados;
 
@@ -151,10 +207,34 @@ export default function FacturasTable({
 
   const canPrev = curPage > 1;
   const canNext = curPage < maxPage;
-  const goFirst = () => setPage(1);
-  const goPrev  = () => setPage(p => Math.max(1, p - 1));
-  const goNext  = () => setPage(p => Math.min(maxPage, p + 1));
-  const goLast  = () => setPage(maxPage);
+  const goFirst = () => {
+    if (serverSidePagination && onPageChange) {
+      onPageChange(1, pageSize);
+    } else {
+      setPage(1);
+    }
+  };
+  const goPrev  = () => {
+    if (serverSidePagination && onPageChange) {
+      onPageChange(Math.max(1, curPage - 1), pageSize);
+    } else {
+      setPage(p => Math.max(1, p - 1));
+    }
+  };
+  const goNext  = () => {
+    if (serverSidePagination && onPageChange) {
+      onPageChange(Math.min(maxPage, curPage + 1), pageSize);
+    } else {
+      setPage(p => Math.min(maxPage, p + 1));
+    }
+  };
+  const goLast  = () => {
+    if (serverSidePagination && onPageChange) {
+      onPageChange(maxPage, pageSize);
+    } else {
+      setPage(maxPage);
+    }
+  };
 
   const showingFrom = total === 0 ? 0 : start + 1;
   const showingTo   = Math.min(start + rowsPerPageState, total);
@@ -297,8 +377,16 @@ export default function FacturasTable({
             <span>Filas:</span>
             <select
               className="clientes-select"
-              value={rowsPerPageState}
-              onChange={(e) => { setRowsPerPageState(Number(e.target.value)); setPage(1); }}
+              value={serverSidePagination ? pageSize : rowsPerPageState}
+              onChange={(e) => {
+                const newSize = Number(e.target.value);
+                if (serverSidePagination && onPageChange) {
+                  onPageChange(1, newSize);
+                } else {
+                  setRowsPerPageState(newSize);
+                  setPage(1);
+                }
+              }}
             >
               {[5,10,20,50].map(n => <option key={n} value={n}>{n}</option>)}
             </select>
@@ -373,6 +461,36 @@ export default function FacturasTable({
                     <td>{formatearEstado(f.estado)}</td>
                     <td className="cut">{f.observaciones ?? "-"}</td>
                     <td className="clientes-actions">
+                      <button 
+                        className="btnLink" 
+                        onClick={() => {
+                          const ordenId = f.ordenId || f.orden?.id;
+                          console.log("Factura clickeada:", { facturaId: f.id, ordenId, factura: f });
+                          if (ordenId) {
+                            setOrdenIdSeleccionada(ordenId);
+                            setOrdenDetalleModalOpen(true);
+                          } else {
+                            console.log("Factura sin ordenId:", f);
+                            alert("Esta factura no tiene una orden asociada.");
+                          }
+                        }} 
+                        title="Ver detalles de la orden"
+                        style={{
+                          marginRight: '4px',
+                          padding: '4px 8px',
+                          fontSize: '0.875rem',
+                          cursor: (f.ordenId || f.orden?.id) ? 'pointer' : 'not-allowed',
+                          opacity: (f.ordenId || f.orden?.id) ? 1 : 0.5,
+                          display: 'inline-block',
+                          visibility: 'visible',
+                          backgroundColor: 'transparent',
+                          border: 'none',
+                          color: '#1e2753',
+                          textDecoration: 'underline'
+                        }}
+                      >
+                        Ver detalles
+                      </button>
                       {puedeVerificar && (
                         <button 
                           className="btnConfirm" 
@@ -419,7 +537,19 @@ export default function FacturasTable({
           {Array.from({ length: Math.min(5, maxPage) }, (_, i) => {
             const p = Math.max(1, Math.min(curPage - 2, maxPage - 4)) + i;
             return p <= maxPage ? (
-              <button key={p} className={`pg-btn ${p === curPage ? "active" : ""}`} onClick={() => setPage(p)}>{p}</button>
+              <button 
+                key={p} 
+                className={`pg-btn ${p === curPage ? "active" : ""}`} 
+                onClick={() => {
+                  if (serverSidePagination && onPageChange) {
+                    onPageChange(p, pageSize);
+                  } else {
+                    setPage(p);
+                  }
+                }}
+              >
+                {p}
+              </button>
             ) : null;
           })}
           <button className="pg-btn" onClick={goNext} disabled={!canNext}>›</button>
@@ -604,6 +734,16 @@ export default function FacturasTable({
           onClose={() => setIsHistoricoGeneralModalOpen(false)}
         />
       )}
+
+      {/* Modal de Detalles de Orden */}
+      <OrdenDetalleModal
+        ordenId={ordenIdSeleccionada}
+        isOpen={ordenDetalleModalOpen}
+        onClose={() => {
+          setOrdenDetalleModalOpen(false);
+          setOrdenIdSeleccionada(null);
+        }}
+      />
     </div>
   );
 }

@@ -103,6 +103,7 @@ export async function crearOrdenVenta(payload) {
       credito: Boolean(payload.credito),
       incluidaEntrega: Boolean(payload.incluidaEntrega || false),
       tieneRetencionFuente: Boolean(payload.tieneRetencionFuente ?? false),
+      retencionFuente: parseFloat(payload.retencionFuente || 0), // Valor calculado de retención en la fuente
       descuentos: parseFloat(payload.descuentos || 0),
       clienteId: parseInt(payload.clienteId), // OBLIGATORIO
       sedeId: parseInt(payload.sedeId), // OBLIGATORIO

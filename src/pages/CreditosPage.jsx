@@ -18,17 +18,24 @@ const CreditosPage = () => {
   const [error, setError] = useState("");
   const [filtroCliente, setFiltroCliente] = useState("");
   const [filtroEstado, setFiltroEstado] = useState("");
-  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [rowsPerPage, setRowsPerPage] = useState(50);
   const [isHistoricoClienteModalOpen, setIsHistoricoClienteModalOpen] = useState(false);
   const [isHistoricoGeneralModalOpen, setIsHistoricoGeneralModalOpen] = useState(false);
+  const [totalElements, setTotalElements] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(50);
 
-  const loadData = async () => {
+  const loadData = async (page = 1, size = 50) => {
     setIsLoading(true);
     setError("");
     
     try {
       // Construir parámetros para el backend (usar filtros del backend en lugar de filtrar en frontend)
-      const params = {};
+      const params = {
+        page: page,
+        size: size
+      };
       if (filtroCliente) {
         params.clienteId = Number(filtroCliente);
       }
@@ -43,16 +50,26 @@ const CreditosPage = () => {
       ]);
       
       // Manejar respuesta paginada o array directo
-      let creditosData = [];
-      if (creditosResponse.data) {
-        if (Array.isArray(creditosResponse.data)) {
-          creditosData = creditosResponse.data;
-        } else if (creditosResponse.data.content && Array.isArray(creditosResponse.data.content)) {
-          creditosData = creditosResponse.data.content;
+      if (creditosResponse.data && typeof creditosResponse.data === 'object' && 'content' in creditosResponse.data) {
+        // Respuesta paginada
+        setCreditos(Array.isArray(creditosResponse.data.content) ? creditosResponse.data.content : []);
+        setTotalElements(creditosResponse.data.totalElements || 0);
+        setTotalPages(creditosResponse.data.totalPages || 1);
+        setCurrentPage(creditosResponse.data.page || page);
+      } else {
+        // Respuesta sin paginación (fallback)
+        let creditosData = [];
+        if (creditosResponse.data) {
+          if (Array.isArray(creditosResponse.data)) {
+            creditosData = creditosResponse.data;
+          }
         }
+        setCreditos(creditosData);
+        setTotalElements(creditosData.length);
+        setTotalPages(1);
+        setCurrentPage(1);
       }
       
-      setCreditos(creditosData);
       setClientes(clientesData);
     } catch (err) {
       console.error("Error loading data:", err);
@@ -64,6 +81,7 @@ const CreditosPage = () => {
     }
   };
 
+  // Cargar datos iniciales
   useEffect(() => {
     // Si viene con parámetro reload=true, limpiar la URL primero
     const searchParams = new URLSearchParams(location.search);
@@ -74,20 +92,30 @@ const CreditosPage = () => {
       navigate('/creditos', { replace: true });
     }
     
-    // Cargar datos (siempre se carga al montar o cuando cambia location.search o los filtros)
-    loadData();
+    // Cargar datos iniciales
+    loadData(1, pageSize);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location.search, filtroCliente, filtroEstado]);
+  }, [location.search, filtroCliente, filtroEstado]); // Solo recargar si cambian estos valores
 
-  // Ya no necesitamos filtrar en el frontend, el backend lo hace
-  // Solo ordenamos por ID descendente (mayor ID = más nuevos primero)
-  const filtrarCreditos = () => {
-    return creditos
-      .sort((a, b) => {
-        const idA = Number(a.id) || 0;
-        const idB = Number(b.id) || 0;
-        return idB - idA; // Descendente: mayor ID primero
-      });
+  // Recargar cuando cambie la página o el tamaño
+  useEffect(() => {
+    if (currentPage > 0 && pageSize > 0) {
+      loadData(currentPage, pageSize);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPage, pageSize]);
+
+  // Handler para cambios de página desde CreditosTable
+  const handlePageChange = (newPage, newSize) => {
+    if (newSize !== pageSize) {
+      setPageSize(newSize);
+      setRowsPerPage(newSize);
+      setCurrentPage(1);
+      loadData(1, newSize); // Resetear a página 1 si cambia el tamaño
+    } else {
+      setCurrentPage(newPage);
+      loadData(newPage, newSize);
+    }
   };
 
   // Función para navegar a la página de abono
@@ -105,7 +133,10 @@ const CreditosPage = () => {
     
     try {
       // Usar los mismos filtros que se están aplicando
-      const params = {};
+      const params = {
+        page: currentPage,
+        size: pageSize
+      };
       if (filtroCliente) {
         params.clienteId = Number(filtroCliente);
       }
@@ -116,16 +147,25 @@ const CreditosPage = () => {
       const response = await api.get("/creditos", { params });
       
       // Manejar respuesta paginada o array directo
-      let data = [];
-      if (response.data) {
-        if (Array.isArray(response.data)) {
-          data = response.data;
-        } else if (response.data.content && Array.isArray(response.data.content)) {
-          data = response.data.content;
+      if (response.data && typeof response.data === 'object' && 'content' in response.data) {
+        // Respuesta paginada
+        setCreditos(Array.isArray(response.data.content) ? response.data.content : []);
+        setTotalElements(response.data.totalElements || 0);
+        setTotalPages(response.data.totalPages || 1);
+        setCurrentPage(response.data.page || currentPage);
+      } else {
+        // Respuesta sin paginación (fallback)
+        let data = [];
+        if (response.data) {
+          if (Array.isArray(response.data)) {
+            data = response.data;
+          }
         }
+        setCreditos(data);
+        setTotalElements(data.length);
+        setTotalPages(1);
+        setCurrentPage(1);
       }
-      
-      setCreditos(data);
       
     } catch (err) {
       console.error(" Error recargando créditos:", err.message);
@@ -262,8 +302,11 @@ const CreditosPage = () => {
           <span style={{ fontSize: '0.875rem', fontWeight: '500', color: 'var(--color-white)' }}>Filas:</span>
           <select
             className="clientes-select"
-            value={rowsPerPage}
-            onChange={(e) => setRowsPerPage(Number(e.target.value))}
+            value={pageSize}
+            onChange={(e) => {
+              const newSize = Number(e.target.value);
+              handlePageChange(1, newSize);
+            }}
             style={{
               padding: '0.5rem 0.75rem',
               border: '1px solid #d1d5db',
@@ -274,15 +317,22 @@ const CreditosPage = () => {
               minWidth: '80px'
             }}
           >
-            {[5, 10, 20, 50].map(n => <option key={n} value={n}>{n}</option>)}
+            {[5, 10, 20, 50, 100, 200].map(n => <option key={n} value={n}>{n}</option>)}
           </select>
         </div>
           </div>
 
           <CreditosTable 
-            creditos={filtrarCreditos()} 
+            creditos={creditos} 
             onAbrirAbonoModal={handleAbrirAbonoPage}
-            rowsPerPage={rowsPerPage}
+            rowsPerPage={pageSize}
+            // Paginación del servidor
+            totalElements={totalElements}
+            totalPages={totalPages}
+            currentPage={currentPage}
+            pageSize={pageSize}
+            onPageChange={handlePageChange}
+            serverSidePagination={true}
           />
         </>
       )}

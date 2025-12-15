@@ -21,20 +21,59 @@ export default function FacturasPage() {
   const [data, setData] = useState([]);
   const [clientes, setClientes] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [totalElements, setTotalElements] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (page = 1, size = 20) => {
     setLoading(true);
     try {
       // Si no es admin, filtrar por sede del usuario
-      const params = isAdmin ? {} : { sedeId };
+      const params = {
+        ...(isAdmin ? {} : { sedeId }),
+        page: page,
+        size: size
+      };
       // Intentar primero con tabla optimizada, fallback a básico
       try {
-        const arr = await listarFacturasTabla(params);
-        setData(arr);
+        const response = await listarFacturasTabla(params);
+        
+        // El backend retorna un objeto con paginación si se envían page y size
+        if (response && typeof response === 'object' && 'content' in response) {
+          // Respuesta paginada
+          const content = Array.isArray(response.content) ? response.content : [];
+          console.log("FacturasPage - Respuesta paginada:", {
+            contentLength: content.length,
+            totalElements: response.totalElements,
+            totalPages: response.totalPages,
+            page: response.page
+          });
+          setData(content);
+          setTotalElements(response.totalElements || 0);
+          setTotalPages(response.totalPages || 1);
+          setCurrentPage(response.page || page);
+        } else if (Array.isArray(response)) {
+          // Respuesta sin paginación (fallback - array directo)
+          setData(response);
+          setTotalElements(response.length);
+          setTotalPages(1);
+          setCurrentPage(1);
+        } else {
+          // Respuesta inesperada
+          console.warn("Respuesta inesperada de listarFacturasTabla:", response);
+          setData([]);
+          setTotalElements(0);
+          setTotalPages(1);
+          setCurrentPage(1);
+        }
       } catch (tablaError) {
         console.warn("Endpoint /facturas/tabla no disponible, usando /facturas básico:", tablaError);
         const arr = await listarFacturas();
-        setData(arr);
+        setData(Array.isArray(arr) ? arr : []);
+        setTotalElements(Array.isArray(arr) ? arr.length : 0);
+        setTotalPages(1);
+        setCurrentPage(1);
       }
     } catch (e) {
       console.error("Error listando facturas", e);
@@ -52,10 +91,30 @@ export default function FacturasPage() {
     }
   }, []);
 
+  // Cargar datos iniciales
   useEffect(() => {
-    fetchData();
+    fetchData(1, pageSize);
     fetchClientes();
-  }, [fetchData, fetchClientes]);
+  }, [isAdmin, sedeId]); // Solo recargar si cambian estos valores
+
+  // Recargar cuando cambie la página o el tamaño
+  useEffect(() => {
+    if (currentPage > 0 && pageSize > 0) {
+      fetchData(currentPage, pageSize);
+    }
+  }, [currentPage, pageSize, fetchData]);
+
+  // Handler para cambios de página desde FacturasTable
+  const handlePageChange = useCallback((newPage, newSize) => {
+    if (newSize !== pageSize) {
+      setPageSize(newSize);
+      setCurrentPage(1);
+      fetchData(1, newSize); // Resetear a página 1 si cambia el tamaño
+    } else {
+      setCurrentPage(newPage);
+      fetchData(newPage, newSize);
+    }
+  }, [pageSize, fetchData]);
 
   // Manejar verificación (marcar como pagada)
   const handleVerificar = async (factura) => {
@@ -63,7 +122,7 @@ export default function FacturasPage() {
       const fechaPago = getTodayLocalDate(); // YYYY-MM-DD
       await marcarFacturaComoPagada(factura.id, fechaPago);
       showSuccess("Factura marcada como pagada.");
-      await fetchData();
+      await fetchData(currentPage, pageSize);
     } catch (e) {
       console.error("Error marcando factura como pagada", e);
       const msg = e?.response?.data?.message || "No se pudo marcar como pagada.";
@@ -86,7 +145,7 @@ export default function FacturasPage() {
     try {
       await eliminarFactura(factura.id);
       showSuccess("Factura eliminada exitosamente.");
-      await fetchData();
+      await fetchData(currentPage, pageSize);
     } catch (e) {
       console.error("Error eliminando factura", e);
       const msg = e?.response?.data?.message || e?.response?.data?.error || "No se pudo eliminar la factura.";
@@ -135,7 +194,7 @@ export default function FacturasPage() {
 
       if (confirmadas > 0) {
         showSuccess(`Se confirmaron ${confirmadas} factura(s) exitosamente.${errores > 0 ? ` ${errores} factura(s) tuvieron errores.` : ''}`);
-        await fetchData();
+        await fetchData(currentPage, pageSize);
       } else {
         showError("No se pudo confirmar ninguna factura.");
       }
@@ -156,6 +215,13 @@ export default function FacturasPage() {
           onVerificar={handleVerificar}
           onEliminar={handleEliminar}
           onConfirmarTodas={handleConfirmarTodas}
+          // Paginación del servidor
+          totalElements={totalElements}
+          totalPages={totalPages}
+          currentPage={currentPage}
+          pageSize={pageSize}
+          onPageChange={handlePageChange}
+          serverSidePagination={true}
         />
       </div>
       <ConfirmDialog />

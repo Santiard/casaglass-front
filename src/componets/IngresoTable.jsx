@@ -19,6 +19,13 @@ export default function IngresosTable({
   onActualizar,
   onEliminar,
   onProcesar,
+  // Paginación del servidor
+  totalElements = 0,
+  totalPages = 1,
+  currentPage = 1,
+  pageSize = 20,
+  onPageChange = null,
+  serverSidePagination = false,
 }) {
   const { confirm, ConfirmDialog } = useConfirm();
   const { showError } = useToast();
@@ -119,6 +126,37 @@ export default function IngresosTable({
   useEffect(() => setRowsPerPageState(rowsPerPage), [rowsPerPage]);
 
   const filtrados = useMemo(() => {
+    // Si es paginación del servidor, usar valores del servidor directamente
+    if (serverSidePagination) {
+      const total = totalElements || 0;
+      const maxPage = totalPages || 1;
+      const curPage = currentPage || 1;
+      const start = (curPage - 1) * pageSize;
+      
+      // Aplicar solo filtros del lado del cliente (búsqueda)
+      // Nota: Idealmente estos filtros también deberían ir al servidor
+      let arr = ingresos;
+      const q = query.trim().toLowerCase();
+      
+      if (q) {
+        arr = arr.filter((ing) =>
+          [
+            ing.numeroFactura,
+            ing.observaciones,
+            ing.proveedor?.nombre,
+            ...((ing.detalles ?? []).map(
+              (d) => `${d.producto?.nombre ?? ""} ${d.producto?.codigo ?? ""}`
+            )),
+          ]
+            .filter(Boolean)
+            .some((v) => String(v).toLowerCase().includes(q))
+        );
+      }
+      
+      return { pageData: arr, total, maxPage, curPage, start };
+    }
+    
+    // Paginación del lado del cliente (comportamiento anterior)
     const q = query.trim().toLowerCase();
     const base = q
       ? ingresos.filter((ing) =>
@@ -141,17 +179,41 @@ export default function IngresosTable({
     const start = (curPage - 1) * rowsPerPageState;
     const pageData = base.slice(start, start + rowsPerPageState);
     return { pageData, total, maxPage, curPage, start };
-  }, [ingresos, query, page, rowsPerPageState]);
+  }, [ingresos, query, page, rowsPerPageState, serverSidePagination, totalElements, totalPages, currentPage, pageSize]);
 
   const { pageData, total, maxPage, curPage, start } = filtrados;
 
   // Funciones de paginación
   const canPrev = curPage > 1;
   const canNext = curPage < maxPage;
-  const goFirst = () => setPage(1);
-  const goPrev  = () => setPage(p => Math.max(1, p - 1));
-  const goNext  = () => setPage(p => Math.min(maxPage, p + 1));
-  const goLast  = () => setPage(maxPage);
+  const goFirst = () => {
+    if (serverSidePagination && onPageChange) {
+      onPageChange(1, pageSize);
+    } else {
+      setPage(1);
+    }
+  };
+  const goPrev  = () => {
+    if (serverSidePagination && onPageChange) {
+      onPageChange(Math.max(1, curPage - 1), pageSize);
+    } else {
+      setPage(p => Math.max(1, p - 1));
+    }
+  };
+  const goNext  = () => {
+    if (serverSidePagination && onPageChange) {
+      onPageChange(Math.min(maxPage, curPage + 1), pageSize);
+    } else {
+      setPage(p => Math.min(maxPage, p + 1));
+    }
+  };
+  const goLast  = () => {
+    if (serverSidePagination && onPageChange) {
+      onPageChange(maxPage, pageSize);
+    } else {
+      setPage(maxPage);
+    }
+  };
 
   const showingFrom = total === 0 ? 0 : start + 1;
   const showingTo   = Math.min(start + rowsPerPageState, total);
@@ -175,8 +237,16 @@ export default function IngresosTable({
           <span>Filas:</span>
           <select
             className="clientes-select"
-            value={rowsPerPageState}
-            onChange={(e) => { setRowsPerPageState(Number(e.target.value)); setPage(1); }}
+            value={serverSidePagination ? pageSize : rowsPerPageState}
+            onChange={(e) => {
+              const newSize = Number(e.target.value);
+              if (serverSidePagination && onPageChange) {
+                onPageChange(1, newSize);
+              } else {
+                setRowsPerPageState(newSize);
+                setPage(1);
+              }
+            }}
           >
             {[5,10,20,50].map(n => <option key={n} value={n}>{n}</option>)}
           </select>
@@ -320,7 +390,19 @@ export default function IngresosTable({
           {Array.from({ length: Math.min(5, maxPage) }, (_, i) => {
             const p = Math.max(1, Math.min(curPage - 2, maxPage - 4)) + i;
             return p <= maxPage ? (
-              <button key={p} className={`pg-btn ${p === curPage ? "active" : ""}`} onClick={() => setPage(p)}>{p}</button>
+              <button 
+                key={p} 
+                className={`pg-btn ${p === curPage ? "active" : ""}`} 
+                onClick={() => {
+                  if (serverSidePagination && onPageChange) {
+                    onPageChange(p, pageSize);
+                  } else {
+                    setPage(p);
+                  }
+                }}
+              >
+                {p}
+              </button>
             ) : null;
           })}
           <button className="pg-btn" onClick={goNext} disabled={!canNext}>›</button>

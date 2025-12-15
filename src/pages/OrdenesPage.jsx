@@ -23,21 +23,48 @@ export default function OrdenesPage() {
   const { isAdmin, sedeId } = useAuth(); // Obtener info del usuario logueado
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [totalElements, setTotalElements] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (page = 1, size = 20) => {
     setLoading(true);
     try {
       // Si no es admin, filtrar por sede del usuario
-      const params = isAdmin ? {} : { sedeId };
-      // Usar SIEMPRE el endpoint de tabla
-      const arr = await listarOrdenesTabla(params);
-      const norm = Array.isArray(arr)
-        ? arr.map((o) => ({
-            ...o,
-            facturada: Boolean(o.facturada ?? o.factura ?? o.facturaId ?? o.numeroFactura),
-          }))
-        : [];
-      setData(norm);
+      const params = {
+        ...(isAdmin ? {} : { sedeId }),
+        page: page,
+        size: size
+      };
+      // Usar SIEMPRE el endpoint de tabla con paginación
+      const response = await listarOrdenesTabla(params);
+      
+      // El backend retorna un objeto con paginación si se envían page y size
+      if (response && typeof response === 'object' && 'content' in response) {
+        // Respuesta paginada
+        const norm = Array.isArray(response.content)
+          ? response.content.map((o) => ({
+              ...o,
+              facturada: Boolean(o.facturada ?? o.factura ?? o.facturaId ?? o.numeroFactura),
+            }))
+          : [];
+        setData(norm);
+        setTotalElements(response.totalElements || 0);
+        setTotalPages(response.totalPages || 1);
+        setCurrentPage(response.page || page);
+      } else {
+        // Respuesta sin paginación (fallback)
+        const arr = Array.isArray(response) ? response : [];
+        const norm = arr.map((o) => ({
+          ...o,
+          facturada: Boolean(o.facturada ?? o.factura ?? o.facturaId ?? o.numeroFactura),
+        }));
+        setData(norm);
+        setTotalElements(arr.length);
+        setTotalPages(1);
+        setCurrentPage(1);
+      }
     } catch (e) {
       console.error("Error listando órdenes", e);
     } finally {
@@ -45,9 +72,10 @@ export default function OrdenesPage() {
     }
   }, [isAdmin, sedeId]);
 
+  // Cargar datos iniciales
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    fetchData(1, pageSize);
+  }, [isAdmin, sedeId]); // Solo recargar si cambian estos valores
 
   //  Guardar (editar o crear)
   const handleGuardar = async (orden, isEdit) => {
@@ -214,6 +242,18 @@ export default function OrdenesPage() {
     }
   };
 
+  // Handler para cambios de página desde OrdenesTable
+  const handlePageChange = useCallback((newPage, newSize) => {
+    if (newSize !== pageSize) {
+      setPageSize(newSize);
+      setCurrentPage(1);
+      fetchData(1, newSize); // Resetear a página 1 si cambia el tamaño
+    } else {
+      setCurrentPage(newPage);
+      fetchData(newPage, newSize);
+    }
+  }, [pageSize, fetchData]);
+
   return (
     <div className="clientes-page">
       <div className="rowInferior fill">
@@ -225,6 +265,13 @@ export default function OrdenesPage() {
           onCrear={(o) => handleGuardar(o, false)}
           onFacturar={handleFacturar}
           onConfirmarVenta={handleConfirmarVenta}
+          // Paginación del servidor
+          totalElements={totalElements}
+          totalPages={totalPages}
+          currentPage={currentPage}
+          pageSize={pageSize}
+          onPageChange={handlePageChange}
+          serverSidePagination={true}
         />
       </div>
       <ConfirmDialog />

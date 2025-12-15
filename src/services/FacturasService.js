@@ -6,9 +6,14 @@ export async function listarFacturas() {
   return Array.isArray(data) ? data : [];
 }
 
-// @param {Object} params - Parámetros de consulta (puede incluir sedeId para filtrar por sede)
+// @param {Object} params - Parámetros de consulta (puede incluir sedeId, page, size para filtrar por sede y paginación)
 export async function listarFacturasTabla(params = {}) {
   const { data } = await api.get("facturas/tabla", { params });
+  // Si el backend retorna un objeto paginado (con 'content'), retornarlo tal cual
+  // Si retorna un array, retornarlo como array
+  if (data && typeof data === 'object' && 'content' in data) {
+    return data; // Retornar objeto paginado completo
+  }
   return Array.isArray(data) ? data : [];
 }
 

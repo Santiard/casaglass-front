@@ -1398,6 +1398,37 @@ input[type="number"] {
   max-width: 100%;
   width: 100%;
   box-sizing: border-box;
+  position: relative;
+}
+
+/* Clase específica para scroll en ingresos */
+.ingresos-scroll {
+  overflow-y: auto !important;
+  overflow-x: auto !important;
+  /* El scroll se activará automáticamente cuando el contenido exceda el espacio disponible */
+  /* Estilos del scrollbar para mejor UX */
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-light-gray) var(--color-white);
+}
+
+.ingresos-scroll::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.ingresos-scroll::-webkit-scrollbar-track {
+  background: var(--color-white);
+  border-radius: 4px;
+}
+
+.ingresos-scroll::-webkit-scrollbar-thumb {
+  background: var(--color-light-gray);
+  border-radius: 4px;
+  transition: background 0.2s ease;
+}
+
+.ingresos-scroll::-webkit-scrollbar-thumb:hover {
+  background: var(--color-gray);
 }
 
 .ingresos .table thead {

@@ -13,6 +13,7 @@ import eliminar from "../assets/eliminar.png";
 
 import { api } from "../lib/api";
 import { getTodayLocalDate, toLocalDateOnly } from "../lib/dateUtils.js";
+import { getBusinessSettings } from "../services/businessSettingsService.js";
 
 export default function OrdenEditarModal({
   orden,
@@ -42,6 +43,8 @@ export default function OrdenEditarModal({
   const [metodosPago, setMetodosPago] = useState([]);
   const [observacionesAdicionales, setObservacionesAdicionales] = useState(""); // Observaciones sin método de pago
   const [errorMsg, setErrorMsg] = useState("");
+  const [retefuenteThreshold, setRetefuenteThreshold] = useState(0); // Umbral de retención de fuente
+  const [retefuenteRate, setRetefuenteRate] = useState(2.5); // Porcentaje de retención de fuente
   
   // Lista de bancos
   const bancos = [
@@ -439,6 +442,21 @@ export default function OrdenEditarModal({
     setMetodosPago(descripcionParseada.metodosPago.length > 0 ? descripcionParseada.metodosPago : []);
     setObservacionesAdicionales(descripcionParseada.observaciones);
   }, [orden, isOpen, clientes]);
+
+  // =============================
+  // Cargar configuración de retención de fuente
+  // =============================
+  useEffect(() => {
+    if (!isOpen) return;
+    getBusinessSettings().then((settings) => {
+      if (settings) {
+        setRetefuenteThreshold(Number(settings.retefuenteThreshold) || 0);
+        setRetefuenteRate(Number(settings.retefuenteRate) || 2.5);
+      }
+    }).catch((error) => {
+      console.error("Error cargando configuración de retención:", error);
+    });
+  }, [isOpen]);
 
   // =============================
   // Cargar catálogos
@@ -954,13 +972,25 @@ export default function OrdenEditarModal({
       console.log("📅 [OrdenModal] Fecha del formulario:", form.fecha);
       console.log("📅 [OrdenModal] Fecha formateada para enviar:", fechaFormateada);
       
+      // Calcular retención de fuente si está marcada
+      let retencionFuenteCrear = 0;
+      if (form.tieneRetencionFuente) {
+        // totalOrden ya es subtotal - descuentos (total facturado con IVA)
+        const subtotalSinIvaCrear = totalOrden / 1.19;
+        if (subtotalSinIvaCrear >= retefuenteThreshold) {
+          retencionFuenteCrear = subtotalSinIvaCrear * (retefuenteRate / 100);
+          retencionFuenteCrear = Math.round(retencionFuenteCrear * 100) / 100;
+        }
+      }
+      
       const payload = {
         fecha: fechaFormateada,
         obra: isJairoVelandia ? (form.obra || null) : null, // Enviar obra solo si es Jairo Velandia
         descripcion: descripcionFinal,
         venta: form.venta,
         credito: esCredito,
-        tieneRetencionFuente: false, // Siempre false al crear (se marca al facturar)
+        tieneRetencionFuente: Boolean(form.tieneRetencionFuente ?? false),
+        retencionFuente: retencionFuenteCrear, // Calcular si está marcado, sino 0
         descuentos: Number(form.descuentos || 0),
         subtotal: subtotal, // Enviar subtotal explícitamente (precio completo con IVA incluido)
         clienteId: Number(form.clienteId),
@@ -1059,8 +1089,11 @@ export default function OrdenEditarModal({
     const isJairoVelandiaActualizar = clienteSeleccionadoActualizar?.nombre?.toUpperCase() === "JAIRO JAVIER VELANDIA";
 
     // Editar orden existente
+    // Filtrar items activos (no eliminados)
+    const itemsActivosEditar = form.items.filter(i => !i.eliminar);
+    
     // Calcular el total de la orden para edición
-    const subtotalEditar = itemsActivos.reduce((sum, item) => sum + (item.totalLinea || 0), 0);
+    const subtotalEditar = itemsActivosEditar.reduce((sum, item) => sum + (item.totalLinea || 0), 0);
     const totalOrdenEditar = subtotalEditar - (form.descuentos || 0);
     
     // Determinar si es venta o cotización
@@ -1087,6 +1120,17 @@ export default function OrdenEditarModal({
       descripcionFinalEditar = null;
     }
     
+    // Calcular retención de fuente si está marcada
+    let retencionFuenteEditar = 0;
+    if (form.tieneRetencionFuente) {
+      const totalFacturadoEditar = subtotalEditar - (form.descuentos || 0);
+      const subtotalSinIvaEditar = totalFacturadoEditar / 1.19;
+      if (subtotalSinIvaEditar >= retefuenteThreshold) {
+        retencionFuenteEditar = subtotalSinIvaEditar * (retefuenteRate / 100);
+        retencionFuenteEditar = Math.round(retencionFuenteEditar * 100) / 100;
+      }
+    }
+    
     const payload = {
     id: form.id,
     fecha: toLocalDateOnly(form.fecha),
@@ -1095,6 +1139,7 @@ export default function OrdenEditarModal({
     venta: form.venta,
     credito: form.credito,
     tieneRetencionFuente: Boolean(form.tieneRetencionFuente ?? false),
+    retencionFuente: retencionFuenteEditar, // Enviar 0 si no está marcado, o el valor calculado si está marcado
     descuentos: Number(form.descuentos || 0),
     subtotal: subtotalEditar, // Enviar subtotal explícitamente (precio completo con IVA incluido)
     clienteId: form.clienteId ? Number(form.clienteId) : null,
@@ -1319,26 +1364,124 @@ export default function OrdenEditarModal({
                                 Monto
                               </label>
                               <input
-                                type="number"
-                                value={metodo.monto || ""}
+                                type="text"
+                                value={(() => {
+                                  // Si hay un valor en formato de texto (mientras escribe), mostrarlo tal cual
+                                  if (metodo.montoTexto !== undefined && metodo.montoTexto !== null) {
+                                    return metodo.montoTexto;
+                                  }
+                                  // Si hay un valor numérico guardado, formatearlo solo al mostrar (cuando no está enfocado)
+                                  if (metodo.monto === "" || metodo.monto === null || metodo.monto === undefined || metodo.monto === 0) return "";
+                                  const num = parseFloat(metodo.monto);
+                                  if (isNaN(num)) return "";
+                                  // Formatear con puntos de miles y coma decimal
+                                  return num.toLocaleString('es-CO', { 
+                                    minimumFractionDigits: 2, 
+                                    maximumFractionDigits: 2 
+                                  });
+                                })()}
                                 onChange={(e) => {
-                                  const valor = parseFloat(e.target.value) || 0;
-                                  actualizarMetodoPago(index, 'monto', valor);
+                                  let valorStr = e.target.value;
+                                  
+                                  // Guardar el texto tal cual mientras escribe (sin formateo)
+                                  const nuevosMetodos = [...metodosPago];
+                                  nuevosMetodos[index] = { ...nuevosMetodos[index], montoTexto: valorStr };
+                                  
+                                  // Permitir campo vacío
+                                  if (valorStr === "") {
+                                    nuevosMetodos[index].monto = "";
+                                    setMetodosPago(nuevosMetodos);
+                                    return;
+                                  }
+                                  
+                                  // Validar: solo números, una coma o punto como separador decimal
+                                  // Permitir escribir: 123456,78 o 123456.78
+                                  // No permitir múltiples comas o puntos
+                                  const comas = (valorStr.match(/,/g) || []).length;
+                                  const puntos = (valorStr.match(/\./g) || []).length;
+                                  
+                                  // Solo permitir una coma O un punto (no ambos)
+                                  if (comas > 1 || puntos > 1 || (comas === 1 && puntos === 1)) {
+                                    return; // Formato inválido, no actualizar
+                                  }
+                                  
+                                  // Validar que solo tenga números, coma o punto
+                                  if (!/^[\d,.]*$/.test(valorStr)) {
+                                    return; // Caracteres inválidos
+                                  }
+                                  
+                                  // Convertir a número: reemplazar coma por punto
+                                  let valorParaCalcular = valorStr.replace(',', '.');
+                                  const valor = parseFloat(valorParaCalcular);
+                                  
+                                  if (!isNaN(valor) && valor >= 0) {
+                                    nuevosMetodos[index].monto = valor;
+                                  } else {
+                                    nuevosMetodos[index].monto = "";
+                                  }
+                                  
+                                  setMetodosPago(nuevosMetodos);
                                 }}
                                 onKeyDown={(e) => {
-                                  if (!/[0-9.]/.test(e.key) && !['Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+                                  // Permitir números, coma, punto, y teclas de control
+                                  const allowedKeys = ['Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Enter', 'Home', 'End'];
+                                  if (!/[0-9,.]/.test(e.key) && !allowedKeys.includes(e.key) && 
+                                      !(e.ctrlKey && ['a', 'c', 'v', 'x'].includes(e.key.toLowerCase()))) {
                                     e.preventDefault();
                                   }
                                 }}
-                                placeholder="0"
-                                min="0"
-                                step="0.01"
+                                onBlur={(e) => {
+                                  // Al perder el foco, convertir el texto a número y formatear
+                                  const nuevosMetodos = [...metodosPago];
+                                  let valorFinal = 0;
+                                  
+                                  if (metodo.montoTexto !== undefined && metodo.montoTexto !== null && metodo.montoTexto !== "") {
+                                    // Convertir el texto a número
+                                    const valorStr = metodo.montoTexto.replace(',', '.');
+                                    valorFinal = parseFloat(valorStr) || 0;
+                                  } else if (metodo.monto) {
+                                    valorFinal = parseFloat(metodo.monto) || 0;
+                                  }
+                                  
+                                  if (valorFinal > 0) {
+                                    nuevosMetodos[index] = { 
+                                      ...nuevosMetodos[index], 
+                                      monto: valorFinal,
+                                      montoTexto: undefined // Limpiar para que muestre el formateado
+                                    };
+                                  } else {
+                                    nuevosMetodos[index] = { 
+                                      ...nuevosMetodos[index], 
+                                      monto: "",
+                                      montoTexto: undefined
+                                    };
+                                  }
+                                  
+                                  setMetodosPago(nuevosMetodos);
+                                }}
+                                onFocus={(e) => {
+                                  // Al enfocar, mostrar el valor sin formato para editar fácilmente
+                                  const nuevosMetodos = [...metodosPago];
+                                  if (metodo.monto && metodo.monto > 0) {
+                                    // Convertir número a string con coma como separador decimal
+                                    const valorStr = metodo.monto.toString().replace('.', ',');
+                                    nuevosMetodos[index] = { 
+                                      ...nuevosMetodos[index], 
+                                      montoTexto: valorStr
+                                    };
+                                    setMetodosPago(nuevosMetodos);
+                                    // Seleccionar todo el texto para reemplazar fácilmente
+                                    setTimeout(() => e.target.select(), 0);
+                                  }
+                                }}
+                                placeholder="0,00"
                                 style={{
                                   width: '100%',
                                   padding: '0.5rem',
                                   border: '1px solid #c2c2c3',
                                   borderRadius: '8px',
-                                  fontSize: '0.9rem'
+                                  fontSize: '0.9rem',
+                                  textAlign: 'right'
                                 }}
                               />
                             </div>
@@ -1368,28 +1511,176 @@ export default function OrdenEditarModal({
 
                   {metodosPago.length > 0 && (() => {
                     const totalMetodos = metodosPago
-                      .filter(m => m.tipo && m.monto > 0)
-                      .reduce((sum, m) => sum + (parseFloat(m.monto) || 0), 0);
-                    const totalOrden = form.items.reduce((sum, item) => sum + (item.totalLinea || 0), 0) - (form.descuentos || 0);
-                    const coincide = Math.abs(totalMetodos - totalOrden) < 0.01;
+                      .filter(m => m.tipo && m.monto !== "" && m.monto !== null && m.monto !== undefined)
+                      .reduce((sum, m) => {
+                        const monto = parseFloat(m.monto) || 0;
+                        return sum + monto;
+                      }, 0);
+                    // Redondear a 2 decimales para consistencia
+                    const totalMetodosRedondeado = Math.round(totalMetodos * 100) / 100;
+                    
+                    // Calcular total facturado (subtotal - descuentos)
+                    const subtotalFacturado = form.items.reduce((sum, item) => sum + (item.totalLinea || 0), 0);
+                    const totalFacturado = subtotalFacturado - (form.descuentos || 0);
+                    
+                    // Calcular retención si está marcada
+                    let retencionFuente = 0;
+                    if (form.tieneRetencionFuente) {
+                      // Calcular subtotal sin IVA (base imponible)
+                      const baseImponible = totalFacturado;
+                      const subtotalSinIva = baseImponible / 1.19;
+                      
+                      // Calcular retención sobre el subtotal sin IVA
+                      if (subtotalSinIva >= retefuenteThreshold) {
+                        retencionFuente = subtotalSinIva * (retefuenteRate / 100);
+                        // Redondear la retención a 2 decimales para evitar problemas de precisión
+                        retencionFuente = Math.round(retencionFuente * 100) / 100;
+                      }
+                    }
+                    
+                    // Valor a pagar = Total facturado - Retención
+                    // Este es el monto que debe ingresarse en los métodos de pago
+                    // Redondear a 2 decimales para consistencia
+                    const valorAPagar = Math.round((totalFacturado - retencionFuente) * 100) / 100;
+                    
+                    // Comparar con el valor a pagar, no con el total facturado
+                    // Usar tolerancia de $1 para diferencias de redondeo (centavos)
+                    const diferencia = Math.abs(totalMetodosRedondeado - valorAPagar);
+                    const coincide = diferencia < 1.00; // Tolerancia de $1 para redondeos
                     
                     return (
-                      <div style={{ 
-                        marginTop: '0.75rem', 
-                        padding: '0.75rem',
-                        backgroundColor: coincide ? '#d4edda' : '#fff3cd',
-                        borderRadius: '4px',
-                        fontSize: '0.85rem',
-                        color: coincide ? '#155724' : '#856404',
-                        border: `1px solid ${coincide ? '#c3e6cb' : '#ffeaa7'}`
-                      }}>
-                        <strong>Total Métodos de Pago: </strong>
-                        ${totalMetodos.toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                        <span style={{ display: 'block', marginTop: '0.25rem', fontSize: '0.8rem' }}>
-                          {coincide 
-                            ? '✓ Coincide con el total de la orden' 
-                            : `Diferencia: $${Math.abs(totalMetodos - totalOrden).toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-                        </span>
+                      <div style={{ marginTop: '0.75rem' }}>
+                        {/* TARJETA PRINCIPAL: VALOR A PAGAR - MUY DESTACADA */}
+                        <div style={{ 
+                          padding: '1rem',
+                          backgroundColor: coincide ? '#e8f5e9' : '#fff3cd',
+                          borderRadius: '8px',
+                          border: `2px solid ${coincide ? '#4caf50' : '#ff9800'}`,
+                          marginBottom: retencionFuente > 0 ? '0.75rem' : '0',
+                          boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                        }}>
+                          <div style={{ 
+                            display: 'flex', 
+                            justifyContent: 'space-between', 
+                            alignItems: 'center',
+                            marginBottom: '0.5rem'
+                          }}>
+                            <div>
+                              <div style={{ 
+                                fontSize: '0.75rem', 
+                                color: '#666', 
+                                marginBottom: '0.25rem',
+                                fontWeight: '500',
+                                textTransform: 'uppercase',
+                                letterSpacing: '0.5px'
+                              }}>
+                                {retencionFuente > 0 ? 'Monto a Ingresar en Métodos de Pago' : 'Total a Pagar'}
+                              </div>
+                              <div style={{ 
+                                fontSize: '1.5rem', 
+                                fontWeight: 'bold', 
+                                color: coincide ? '#2e7d32' : '#e65100'
+                              }}>
+                                ${valorAPagar.toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                              </div>
+                            </div>
+                            <div style={{ 
+                              fontSize: '1.5rem',
+                              color: coincide ? '#4caf50' : '#ff9800'
+                            }}>
+                            </div>
+                          </div>
+                          
+                          <div style={{ 
+                            fontSize: '0.85rem', 
+                            color: coincide ? '#2e7d32' : '#856404',
+                            paddingTop: '0.5rem',
+                            borderTop: `1px solid ${coincide ? '#a5d6a7' : '#ffe082'}`
+                          }}>
+                            {coincide 
+                              ? (
+                                <span>El total de métodos de pago coincide con el valor a pagar</span>
+                              )
+                              : (
+                                <span>Diferencia: <strong>${diferencia.toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong></span>
+                              )}
+                          </div>
+                        </div>
+
+                        {/* DETALLES DE CÁLCULO - SECUNDARIOS */}
+                        {retencionFuente > 0 && (
+                          <div style={{ 
+                            padding: '0.75rem',
+                            backgroundColor: '#f5f5f5',
+                            borderRadius: '6px',
+                            fontSize: '0.85rem',
+                            border: '1px solid #e0e0e0'
+                          }}>
+                            <div style={{ 
+                              fontSize: '0.75rem', 
+                              color: '#666', 
+                              marginBottom: '0.5rem',
+                              fontWeight: '500',
+                              textTransform: 'uppercase',
+                              letterSpacing: '0.5px'
+                            }}>
+                              Desglose del Cálculo
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
+                              <span style={{ color: '#666' }}>Total Facturado:</span>
+                              <strong style={{ color: '#333' }}>
+                                ${totalFacturado.toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                              </strong>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', color: '#666' }}>
+                              <span>(-) Retención en la Fuente:</span>
+                              <span>${retencionFuente.toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                            </div>
+                            <div style={{ 
+                              display: 'flex', 
+                              justifyContent: 'space-between',
+                              paddingTop: '0.5rem',
+                              borderTop: '1px solid #ddd',
+                              marginTop: '0.25rem'
+                            }}>
+                              <span style={{ fontWeight: '600', color: '#333' }}>Total Ingresado:</span>
+                              <strong style={{ color: coincide ? '#2e7d32' : '#e65100' }}>
+                                ${totalMetodosRedondeado.toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                              </strong>
+                            </div>
+                            <div style={{ 
+                              fontSize: '0.75rem', 
+                              color: '#666', 
+                              marginTop: '0.5rem',
+                              fontStyle: 'italic',
+                              padding: '0.5rem',
+                              backgroundColor: '#fff',
+                              borderRadius: '4px',
+                              border: '1px solid #e0e0e0'
+                            }}>
+                              <strong>Nota:</strong> El cliente retiene y consigna directamente a la DIAN. Por eso el monto del método de pago es el total facturado menos la retención.
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Si no hay retención, mostrar solo el total ingresado */}
+                        {retencionFuente === 0 && (
+                          <div style={{ 
+                            padding: '0.75rem',
+                            backgroundColor: '#f5f5f5',
+                            borderRadius: '6px',
+                            fontSize: '0.85rem',
+                            border: '1px solid #e0e0e0',
+                            marginTop: '0.5rem'
+                          }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                              <span style={{ color: '#666' }}>Total Ingresado en Métodos de Pago:</span>
+                              <strong style={{ color: coincide ? '#2e7d32' : '#e65100' }}>
+                                ${totalMetodosRedondeado.toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                              </strong>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     );
                   })()}
@@ -1489,45 +1780,47 @@ export default function OrdenEditarModal({
                 </select>
               </label>
 
-              <div style={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'flex-start',
-                padding: '0.75rem',
-                backgroundColor: '#f8f9fa',
-                border: '1px solid #e9ecef',
-                borderRadius: '8px',
-                marginTop: '0.5rem'
-              }}>
-                {/* Checkbox para Venta Confirmada */}
-                <label
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem',
-                    cursor: 'pointer',
-                    color: '#343a40',
-                    width: '100%',
-                    margin: 0
-                  }}>
-                  <input
-                    type="checkbox"
-                    checked={form.venta}
-                    onChange={(e) =>
-                      handleChange("venta", e.target.checked)
-                    }
-                    style={{ 
-                      width: '1.3rem', 
-                      height: '1.3rem', 
-                      cursor: 'pointer', 
-                      margin: 0,
-                      accentColor: '#4f67ff',
-                      flexShrink: 0
-                    }}
-                  />
-                  <span>¿Venta confirmada?</span>
-                </label>
-              </div>
+              {/* Checkbox para Venta Confirmada - Solo mostrar al CREAR, no al EDITAR */}
+              {!orden && (
+                <div style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'flex-start',
+                  padding: '0.75rem',
+                  backgroundColor: '#f8f9fa',
+                  border: '1px solid #e9ecef',
+                  borderRadius: '8px',
+                  marginTop: '0.5rem'
+                }}>
+                  <label
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      cursor: 'pointer',
+                      color: '#343a40',
+                      width: '100%',
+                      margin: 0
+                    }}>
+                    <input
+                      type="checkbox"
+                      checked={form.venta}
+                      onChange={(e) =>
+                        handleChange("venta", e.target.checked)
+                      }
+                      style={{ 
+                        width: '1.3rem', 
+                        height: '1.3rem', 
+                        cursor: 'pointer', 
+                        margin: 0,
+                        accentColor: '#4f67ff',
+                        flexShrink: 0
+                      }}
+                    />
+                    <span>¿Venta confirmada?</span>
+                  </label>
+                </div>
+              )}
             </div>
 
             <h3>Ítems de la orden</h3>
@@ -1560,12 +1853,128 @@ export default function OrdenEditarModal({
                     placeholder="0.00"
                   />
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid #ddd', paddingTop: '0.5rem', marginTop: '0.5rem' }}>
-                  <span><strong>Total:</strong></span>
-                  <strong style={{ fontSize: '1.1em', color: '#4f67ff' }}>
-                    ${(form.items.reduce((sum, item) => sum + (item.totalLinea || 0), 0) - (form.descuentos || 0)).toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </strong>
-                </div>
+                
+                {/* Checkbox para retención de fuente */}
+                {(() => {
+                  // Calcular base imponible (subtotal - descuentos)
+                  const subtotalFacturado = form.items.reduce((sum, item) => sum + (item.totalLinea || 0), 0);
+                  const baseImponible = subtotalFacturado - (form.descuentos || 0);
+                  
+                  // Calcular subtotal sin IVA para comparar con el umbral
+                  // El backend calcula: subtotalSinIva = baseImponible / 1.19
+                  const subtotalSinIva = baseImponible / 1.19;
+                  
+                  // Verificar si supera el umbral
+                  const superaUmbral = retefuenteThreshold > 0 && subtotalSinIva >= retefuenteThreshold;
+                  
+                  // Solo mostrar el checkbox si supera el umbral
+                  if (!superaUmbral) return null;
+                  
+                  return (
+                    <div style={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'flex-start',
+                      padding: '0.75rem',
+                      backgroundColor: '#f8f9fa',
+                      border: '1px solid #e9ecef',
+                      borderRadius: '8px',
+                      marginTop: '0.5rem'
+                    }}>
+                      <label
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.5rem',
+                          cursor: 'pointer',
+                          color: '#343a40',
+                          width: '100%',
+                          margin: 0
+                        }}>
+                        <input
+                          type="checkbox"
+                          checked={form.tieneRetencionFuente || false}
+                          onChange={(e) => {
+                            handleChange("tieneRetencionFuente", e.target.checked);
+                          }}
+                          style={{ 
+                            width: '1.3rem', 
+                            height: '1.3rem', 
+                            cursor: 'pointer', 
+                            margin: 0,
+                            accentColor: '#4f67ff',
+                            flexShrink: 0
+                          }}
+                        />
+                        <span>Esta orden tiene retención en la fuente (retefuente)</span>
+                      </label>
+                      <small style={{ 
+                        display: 'block', 
+                        color: '#666', 
+                        fontSize: '0.75rem', 
+                        marginTop: '0.25rem',
+                        marginLeft: '28px'
+                      }}>
+                        La base imponible (${subtotalSinIva.toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}) supera el umbral de ${retefuenteThreshold.toLocaleString('es-CO')}. 
+                        Marca esta opción solo si el cliente debe retener (empresas que retienen).
+                      </small>
+                    </div>
+                  );
+                })()}
+                
+                {(() => {
+                  // Calcular totales para mostrar
+                  const subtotalFacturado = form.items.reduce((sum, item) => sum + (item.totalLinea || 0), 0);
+                  const totalFacturado = subtotalFacturado - (form.descuentos || 0);
+                  
+                  // Calcular retención si está marcada
+                  let retencionFuente = 0;
+                  if (form.tieneRetencionFuente) {
+                    const baseImponible = totalFacturado;
+                    const subtotalSinIva = baseImponible / 1.19;
+                    if (subtotalSinIva >= retefuenteThreshold) {
+                      retencionFuente = subtotalSinIva * (retefuenteRate / 100);
+                    }
+                  }
+                  
+                  const valorAPagar = totalFacturado - retencionFuente;
+                  
+                  return (
+                    <>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid #ddd', paddingTop: '0.5rem', marginTop: '0.5rem' }}>
+                        <span><strong>Total Facturado:</strong></span>
+                        <strong style={{ fontSize: '1.1em', color: '#333' }}>
+                          ${totalFacturado.toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </strong>
+                      </div>
+                      {retencionFuente > 0 && (
+                        <>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '0.25rem', fontSize: '0.9em', color: '#666' }}>
+                            <span>(-) Retención en la Fuente:</span>
+                            <span>${retencionFuente.toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                          </div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid #ddd', paddingTop: '0.5rem', marginTop: '0.5rem' }}>
+                            <span><strong>Valor a Pagar:</strong></span>
+                            <strong style={{ fontSize: '1.2em', color: '#4f67ff' }}>
+                              ${valorAPagar.toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </strong>
+                          </div>
+                          <small style={{ display: 'block', color: '#666', fontSize: '0.75rem', marginTop: '0.25rem', fontStyle: 'italic' }}>
+                            El monto del método de pago debe ser el valor a pagar (total - retención)
+                          </small>
+                        </>
+                      )}
+                      {retencionFuente === 0 && (
+                        <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid #ddd', paddingTop: '0.5rem', marginTop: '0.5rem' }}>
+                          <span><strong>Valor a Pagar:</strong></span>
+                          <strong style={{ fontSize: '1.2em', color: '#4f67ff' }}>
+                            ${valorAPagar.toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </strong>
+                        </div>
+                      )}
+                    </>
+                  );
+                })()}
               </div>
             </div>
             
@@ -1710,6 +2119,7 @@ export default function OrdenEditarModal({
                   }}
                 >
                   <option value="">Todos los colores</option>
+                  <option value="MATE">MATE</option>
                   <option value="BLANCO">BLANCO</option>
                   <option value="NEGRO">NEGRO</option>
                   <option value="BRONCE">BRONCE</option>
