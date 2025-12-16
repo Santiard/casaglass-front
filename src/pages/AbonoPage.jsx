@@ -326,7 +326,39 @@ const AbonoPage = () => {
     }
     setOrdenesConRetencion(nuevasConRetencion);
 
-    // Actualizar la orden en el backend con tieneRetencionFuente
+    // Calcular retención y IVA si se está marcando como con retención
+    let retencionFuenteCalculada = 0;
+    let ivaCalculado = orden.iva || 0;
+    const totalOrden = orden.total || 0;
+    
+    if (nuevoValorRetencion && totalOrden > 0) {
+      // Calcular subtotal sin IVA (el total incluye IVA, así que dividimos por 1.19)
+      const subtotalSinIva = totalOrden / 1.19;
+      const subtotalSinIvaRedondeado = Math.round(subtotalSinIva * 100) / 100;
+      
+      // Calcular IVA si no está calculado
+      if (!orden.iva || orden.iva === 0) {
+        const ivaVal = totalOrden - subtotalSinIvaRedondeado;
+        ivaCalculado = Math.round(ivaVal * 100) / 100;
+      }
+      
+      // Verificar si el subtotal sin IVA supera el umbral
+      if (subtotalSinIvaRedondeado >= retefuenteThreshold) {
+        // Calcular retención sobre el subtotal sin IVA
+        retencionFuenteCalculada = subtotalSinIvaRedondeado * (retefuenteRate / 100);
+        retencionFuenteCalculada = Math.round(retencionFuenteCalculada * 100) / 100; // Redondear a 2 decimales
+      } else {
+        // Si no supera el umbral, no aplicar retención aunque se marque la checkbox
+        showError(`La orden #${orden.numero} no supera el umbral mínimo de $${retefuenteThreshold.toLocaleString('es-CO')} para aplicar retención.`);
+        // Revertir el cambio local
+        const revertidasConRetencion = new Set(ordenesConRetencion);
+        revertidasConRetencion.delete(ordenId);
+        setOrdenesConRetencion(revertidasConRetencion);
+        return;
+      }
+    }
+
+    // Actualizar la orden en el backend con tieneRetencionFuente y valores calculados
     try {
       // Construir payload para actualizar la orden
       const ordenUpdatePayload = {
@@ -337,6 +369,8 @@ const AbonoPage = () => {
         credito: Boolean(orden.credito),
         incluidaEntrega: Boolean(orden.incluidaEntrega || false),
         tieneRetencionFuente: nuevoValorRetencion, // Actualizar con el nuevo valor
+        retencionFuente: nuevoValorRetencion ? retencionFuenteCalculada : 0, // Enviar valor calculado
+        iva: ivaCalculado, // Enviar IVA calculado si no estaba
         descuentos: Number(orden.descuentos || 0),
         clienteId: Number(orden.clienteId || orden.cliente?.id),
         sedeId: Number(orden.sedeId || orden.sede?.id),
@@ -363,10 +397,20 @@ const AbonoPage = () => {
       setOrdenesCredito(prevOrdenes => 
         prevOrdenes.map(o => 
           o.id === ordenId 
-            ? { ...o, tieneRetencionFuente: nuevoValorRetencion }
+            ? { 
+                ...o, 
+                tieneRetencionFuente: nuevoValorRetencion,
+                retencionFuente: nuevoValorRetencion ? retencionFuenteCalculada : 0,
+                iva: ivaCalculado
+              }
             : o
         )
       );
+      
+      // Recargar las órdenes para obtener el saldoPendiente actualizado del backend
+      if (clienteSeleccionado?.id) {
+        await cargarOrdenesCredito(clienteSeleccionado.id);
+      }
     } catch (error) {
       console.error("Error actualizando tieneRetencionFuente en la orden:", error);
       // Revertir el cambio local si falla la actualización
