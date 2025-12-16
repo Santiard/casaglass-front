@@ -394,10 +394,12 @@ const AbonoPage = () => {
       return `${m.tipo}: ${m.monto.toLocaleString('es-CO')}`;
     });
     
-    // Agregar retenciones calculadas automáticamente por orden
+    // IMPORTANTE: Solo agregar retención cuando el abono COMPLETA el pago de la orden
+    // La retención se calcula UNA VEZ sobre el total de la orden, no sobre cada abono parcial
+    // Por lo tanto, solo se muestra cuando saldoRestante = 0 (orden completamente pagada)
     if (distribucionConRetencion && distribucionConRetencion.length > 0) {
       const retencionesPorOrden = distribucionConRetencion
-        .filter(d => d.montoRetencion > 0)
+        .filter(d => d.montoRetencion > 0 && d.saldoRestante === 0) // Solo cuando se completa el pago
         .map(d => `RETEFUENTE Orden #${d.ordenNumero}: ${d.montoRetencion.toLocaleString('es-CO')}`);
       
       if (retencionesPorOrden.length > 0) {
@@ -505,9 +507,9 @@ const AbonoPage = () => {
     try {
       setLoading(true);
       
-      // Construir descripción incluyendo retenciones calculadas
-      const metodoPagoString = construirDescripcion(metodosValidos, observacionesAdicionales, distribucionValida);
-
+      // Construir descripción para cada abono individualmente
+      // IMPORTANTE: La retención solo se muestra cuando el abono completa el pago de la orden
+      // porque la retención se calcula UNA VEZ sobre el total, no sobre cada abono parcial
       const abonosACrear = distribucionValida.map(dist => {
         const orden = ordenesCredito.find(o => o.id === dist.ordenId);
         const creditoId = orden?.creditoDetalle?.creditoId;
@@ -516,6 +518,11 @@ const AbonoPage = () => {
           console.warn(`No se encontró creditoId para la orden ${dist.ordenId}`);
           return null;
         }
+        
+        // Construir descripción solo para este abono específico
+        // Solo incluir retención si este abono completa el pago (saldoRestante = 0)
+        const distribucionParaEsteAbono = dist.saldoRestante === 0 ? [dist] : [{ ...dist, montoRetencion: 0 }];
+        const metodoPagoString = construirDescripcion(metodosValidos, observacionesAdicionales, distribucionParaEsteAbono);
         
         return {
           creditoId: creditoId,

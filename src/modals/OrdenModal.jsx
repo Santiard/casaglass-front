@@ -150,8 +150,23 @@ export default function OrdenEditarModal({
     };
   };
   
+  // Función helper para calcular retención actual basada en el estado del formulario
+  const calcularRetencionActual = () => {
+    if (!form.tieneRetencionFuente) return 0;
+    const subtotal = form.items.reduce((sum, item) => sum + (item.totalLinea || 0), 0);
+    const totalFacturado = subtotal - (form.descuentos || 0);
+    const subtotalSinIva = totalFacturado / 1.19;
+    if (subtotalSinIva >= retefuenteThreshold) {
+      const retencion = subtotalSinIva * (retefuenteRate / 100);
+      return Math.round(retencion * 100) / 100;
+    }
+    return 0;
+  };
+
   // Función para construir la descripción completa (string estructurado)
-  const construirDescripcion = (metodosArray, observaciones) => {
+  const construirDescripcion = (metodosArray, observaciones, retencionFuente = null) => {
+    // Si no se pasa retencionFuente, calcularla automáticamente
+    const retencion = retencionFuente !== null ? retencionFuente : calcularRetencionActual();
     if (metodosArray.length === 0) {
       return observaciones || "";
     }
@@ -208,6 +223,12 @@ export default function OrdenEditarModal({
       });
     }
     
+    // Agregar retención en la fuente si existe
+    if (retencionFuente && retencionFuente > 0) {
+      const retencionFormateada = retencionFuente.toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      descripcionCompleta += `\n(-) Retención en la Fuente: $${retencionFormateada}`;
+    }
+    
     if (observaciones) {
       descripcionCompleta += `\n${observaciones}`;
     }
@@ -224,7 +245,7 @@ export default function OrdenEditarModal({
   const eliminarMetodoPago = (index) => {
     const nuevosMetodos = metodosPago.filter((_, i) => i !== index);
     setMetodosPago(nuevosMetodos);
-    // Actualizar descripción
+    // Actualizar descripción (la retención se calcula automáticamente dentro de construirDescripcion)
     const nuevaDescripcion = construirDescripcion(nuevosMetodos, observacionesAdicionales);
     handleChange("descripcion", nuevaDescripcion);
   };
@@ -240,7 +261,7 @@ export default function OrdenEditarModal({
     }
     
     setMetodosPago(nuevosMetodos);
-    // Actualizar descripción
+    // Actualizar descripción (la retención se calcula automáticamente dentro de construirDescripcion)
     const nuevaDescripcion = construirDescripcion(nuevosMetodos, observacionesAdicionales);
     handleChange("descripcion", nuevaDescripcion);
   };
@@ -955,7 +976,12 @@ export default function OrdenEditarModal({
           }
           
           // Filtrar solo métodos con monto > 0 para construir la descripción
-          descripcionFinal = construirDescripcion(metodosPagoParaDescripcion.filter(m => m.monto > 0), observacionesAdicionales);
+          // Pasar también el valor de retención para incluirlo en la descripción
+          descripcionFinal = construirDescripcion(
+            metodosPagoParaDescripcion.filter(m => m.monto > 0), 
+            observacionesAdicionales,
+            retencionFuenteCrear // Pasar el valor de retención calculado
+          );
         }
         // Si es crédito, descripcionFinal ya es null
       } else {
@@ -1114,7 +1140,12 @@ export default function OrdenEditarModal({
       }
       
       // Construir descripción desde los métodos de pago
-      descripcionFinalEditar = construirDescripcion(metodosPagoParaDescripcionEditar.filter(m => m.monto > 0), observacionesAdicionales);
+      // Pasar también el valor de retención para incluirlo en la descripción
+      descripcionFinalEditar = construirDescripcion(
+        metodosPagoParaDescripcionEditar.filter(m => m.monto > 0), 
+        observacionesAdicionales,
+        retencionFuenteEditar // Pasar el valor de retención calculado
+      );
     } else {
       // Si es cotización (venta === false) o es crédito, descripción = null
       descripcionFinalEditar = null;
@@ -1693,7 +1724,7 @@ export default function OrdenEditarModal({
                   value={observacionesAdicionales}
                   onChange={(e) => {
                     setObservacionesAdicionales(e.target.value);
-                    // Construir descripción completa con observaciones
+                    // Construir descripción completa con observaciones (la retención se calcula automáticamente)
                     const nuevaDescripcion = construirDescripcion(metodosPago, e.target.value);
                     handleChange("descripcion", nuevaDescripcion);
                   }}
@@ -1895,7 +1926,22 @@ export default function OrdenEditarModal({
                           type="checkbox"
                           checked={form.tieneRetencionFuente || false}
                           onChange={(e) => {
-                            handleChange("tieneRetencionFuente", e.target.checked);
+                            const nuevoValorRetencion = e.target.checked;
+                            handleChange("tieneRetencionFuente", nuevoValorRetencion);
+                            // Actualizar la descripción para incluir/excluir la retención
+                            // Calcular retención con el nuevo valor
+                            let retencionCalculada = 0;
+                            if (nuevoValorRetencion) {
+                              const subtotal = form.items.reduce((sum, item) => sum + (item.totalLinea || 0), 0);
+                              const totalFacturado = subtotal - (form.descuentos || 0);
+                              const subtotalSinIva = totalFacturado / 1.19;
+                              if (subtotalSinIva >= retefuenteThreshold) {
+                                retencionCalculada = subtotalSinIva * (retefuenteRate / 100);
+                                retencionCalculada = Math.round(retencionCalculada * 100) / 100;
+                              }
+                            }
+                            const nuevaDescripcion = construirDescripcion(metodosPago, observacionesAdicionales, retencionCalculada);
+                            handleChange("descripcion", nuevaDescripcion);
                           }}
                           style={{ 
                             width: '1.3rem', 

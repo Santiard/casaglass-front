@@ -33,6 +33,7 @@ export default function FacturasTable({
   const [isHistoricoGeneralModalOpen, setIsHistoricoGeneralModalOpen] = useState(false);
   const [ordenDetalleModalOpen, setOrdenDetalleModalOpen] = useState(false);
   const [ordenIdSeleccionada, setOrdenIdSeleccionada] = useState(null);
+  const [facturaIdSeleccionada, setFacturaIdSeleccionada] = useState(null);
 
   const fmtFecha = (iso) =>
     iso
@@ -471,6 +472,7 @@ export default function FacturasTable({
                           console.log("Factura clickeada:", { facturaId: f.id, ordenId, factura: f });
                           if (ordenId) {
                             setOrdenIdSeleccionada(ordenId);
+                            setFacturaIdSeleccionada(f.id); // Pasar el facturaId para usar valores de la factura
                             setOrdenDetalleModalOpen(true);
                           } else {
                             console.log("Factura sin ordenId:", f);
@@ -741,10 +743,12 @@ export default function FacturasTable({
       {/* Modal de Detalles de Orden */}
       <OrdenDetalleModal
         ordenId={ordenIdSeleccionada}
+        facturaId={facturaIdSeleccionada}
         isOpen={ordenDetalleModalOpen}
         onClose={() => {
           setOrdenDetalleModalOpen(false);
           setOrdenIdSeleccionada(null);
+          setFacturaIdSeleccionada(null);
         }}
       />
     </div>

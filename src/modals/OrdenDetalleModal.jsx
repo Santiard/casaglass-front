@@ -1,11 +1,13 @@
 // src/modals/OrdenDetalleModal.jsx
 import { useEffect, useState } from "react";
 import { obtenerOrdenDetalle } from "../services/OrdenesService.js";
+import { obtenerFactura } from "../services/FacturasService.js";
 import { getBusinessSettings } from "../services/businessSettingsService.js";
 import "../styles/IngresoDetalleModal.css";
 
-export default function OrdenDetalleModal({ ordenId, isOpen, onClose }) {
+export default function OrdenDetalleModal({ ordenId, facturaId, isOpen, onClose }) {
   const [orden, setOrden] = useState(null);
+  const [factura, setFactura] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [ivaRate, setIvaRate] = useState(19);
@@ -21,11 +23,17 @@ export default function OrdenDetalleModal({ ordenId, isOpen, onClose }) {
         }
       });
       loadOrdenDetalle();
+      
+      // Si hay facturaId, cargar también la factura para usar sus valores monetarios
+      if (facturaId) {
+        loadFactura();
+      }
     } else {
       setOrden(null);
+      setFactura(null);
       setError(null);
     }
-  }, [isOpen, ordenId]);
+  }, [isOpen, ordenId, facturaId]);
 
   const loadOrdenDetalle = async () => {
     setLoading(true);
@@ -48,6 +56,25 @@ export default function OrdenDetalleModal({ ordenId, isOpen, onClose }) {
       setError(e?.response?.data?.message || "No se pudieron cargar los detalles de la orden.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadFactura = async () => {
+    try {
+      const facturaData = await obtenerFactura(facturaId);
+      console.log("[OrdenDetalleModal] Datos de factura recibidos:", {
+        id: facturaData?.id,
+        numeroFactura: facturaData?.numeroFactura,
+        subtotal: facturaData?.subtotal,
+        iva: facturaData?.iva,
+        retencionFuente: facturaData?.retencionFuente,
+        total: facturaData?.total,
+        descuentos: facturaData?.descuentos
+      });
+      setFactura(facturaData);
+    } catch (e) {
+      console.error("Error cargando detalles de factura:", e);
+      // No mostrar error si falla cargar la factura, solo usar valores de la orden
     }
   };
 
@@ -76,21 +103,43 @@ export default function OrdenDetalleModal({ ordenId, isOpen, onClose }) {
 
   const detalles = Array.isArray(orden?.items) ? orden.items : [];
 
-  // Valores monetarios de la orden
-  // IMPORTANTE: Usar SOLO los valores que retorna el backend (sin cálculos en frontend)
+  // Valores monetarios: usar los de la factura si están disponibles, sino usar los de la orden
+  // IMPORTANTE: Si hay factura, usar sus valores porque son los que realmente se facturaron
   // Estos son datos para facturación electrónica y deben ser exactos del backend
-  const subtotal = (typeof orden?.subtotal === 'number' && orden.subtotal !== null && orden.subtotal !== undefined) ? orden.subtotal : 0;
-  const descuentos = (typeof orden?.descuentos === 'number' && orden.descuentos !== null && orden.descuentos !== undefined) ? orden.descuentos : 0;
-  const iva = (typeof orden?.iva === 'number' && orden.iva !== null && orden.iva !== undefined) ? orden.iva : 0;
-  const retencionFuente = (typeof orden?.retencionFuente === 'number' && orden.retencionFuente !== null && orden.retencionFuente !== undefined) ? orden.retencionFuente : 0;
-  const total = (typeof orden?.total === 'number' && orden.total !== null && orden.total !== undefined) ? orden.total : 0;
+  const subtotal = factura 
+    ? ((typeof factura?.subtotal === 'number' && factura.subtotal !== null && factura.subtotal !== undefined) ? factura.subtotal : 0)
+    : ((typeof orden?.subtotal === 'number' && orden.subtotal !== null && orden.subtotal !== undefined) ? orden.subtotal : 0);
+  
+  const descuentos = factura
+    ? ((typeof factura?.descuentos === 'number' && factura.descuentos !== null && factura.descuentos !== undefined) ? factura.descuentos : 0)
+    : ((typeof orden?.descuentos === 'number' && orden.descuentos !== null && orden.descuentos !== undefined) ? orden.descuentos : 0);
+  
+  const iva = factura
+    ? ((typeof factura?.iva === 'number' && factura.iva !== null && factura.iva !== undefined) ? factura.iva : 0)
+    : ((typeof orden?.iva === 'number' && orden.iva !== null && orden.iva !== undefined) ? orden.iva : 0);
+  
+  const retencionFuente = factura
+    ? ((typeof factura?.retencionFuente === 'number' && factura.retencionFuente !== null && factura.retencionFuente !== undefined) ? factura.retencionFuente : 0)
+    : ((typeof orden?.retencionFuente === 'number' && orden.retencionFuente !== null && orden.retencionFuente !== undefined) ? orden.retencionFuente : 0);
+  
+  const total = factura
+    ? ((typeof factura?.total === 'number' && factura.total !== null && factura.total !== undefined) ? factura.total : 0)
+    : ((typeof orden?.total === 'number' && orden.total !== null && orden.total !== undefined) ? orden.total : 0);
+  
+  // Para tieneRetencionFuente, usar el de la orden (la factura no tiene este campo boolean)
+  const tieneRetencionFuente = orden?.tieneRetencionFuente || false;
 
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-container modal-tall ingreso-modal" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
         <div className="modal-header">
-          <h2>Detalles de la Orden #{orden?.numero || orden?.id || "—"}</h2>
+          <h2>
+            {factura 
+              ? `Detalles de la Factura #${factura.numeroFactura || factura.numero || factura.id || "—"} (Orden #${orden?.numero || orden?.id || "—"})`
+              : `Detalles de la Orden #${orden?.numero || orden?.id || "—"}`
+            }
+          </h2>
           <button className="btn" onClick={onClose} type="button">
             Cerrar
           </button>
@@ -151,9 +200,14 @@ export default function OrdenDetalleModal({ ordenId, isOpen, onClose }) {
                   <strong>Venta a Crédito:</strong> Sí
                 </div>
               )}
-              {orden.tieneRetencionFuente && (
+              {tieneRetencionFuente && (
                 <div>
                   <strong>Retención en la Fuente:</strong> Sí ({fmtCOP(retencionFuente)})
+                </div>
+              )}
+              {factura && (
+                <div>
+                  <strong>N° Factura:</strong> {factura.numeroFactura || factura.numero || "-"}
                 </div>
               )}
             </div>
