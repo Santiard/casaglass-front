@@ -212,6 +212,36 @@ export async function actualizarOrden(id, payload) {
   return data;
 }
 
+/**
+ * 💰 ACTUALIZAR RETENCIÓN DE FUENTE DE UNA ORDEN
+ * 
+ * Endpoint especializado para actualizar SOLO la retención sin enviar todos los datos
+ * 
+ * @param {number} ordenId - ID de la orden
+ * @param {Object} payload - Datos de retención
+ * @param {boolean} payload.tieneRetencionFuente - Si tiene retención
+ * @param {number} payload.retencionFuente - Valor de la retención
+ * @param {number} [payload.iva] - Valor del IVA (opcional)
+ * @returns {Promise<Object>} Respuesta del backend con mensaje y orden actualizada
+ */
+export async function actualizarRetencionFuente(ordenId, payload) {
+  if (!ordenId) throw new Error("ID de la orden no proporcionado");
+  
+  try {
+    const { data } = await api.put(`ordenes/${ordenId}/retencion-fuente`, {
+      tieneRetencionFuente: payload.tieneRetencionFuente,
+      retencionFuente: payload.retencionFuente,
+      iva: payload.iva // Opcional
+    });
+    
+    // El backend retorna { mensaje: "...", orden: {...} }
+    return data;
+  } catch (error) {
+    console.error('❌ Error actualizando retención de fuente:', error);
+    throw error;
+  }
+}
+
 //  Confirmar venta (cambiar venta de false a true)
 export async function confirmarVenta(id, ordenCompleta) {
   if (!id) throw new Error("ID de la orden no proporcionado");

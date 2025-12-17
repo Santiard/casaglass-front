@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../lib/api.js';
 import { listarClientes } from '../services/ClientesService.js';
-import { listarOrdenesCredito } from '../services/OrdenesService.js';
+import { listarOrdenesCredito, actualizarOrden } from '../services/OrdenesService.js';
+import { getBusinessSettings } from '../services/businessSettingsService.js';
 import { getTodayLocalDate } from '../lib/dateUtils.js';
 import '../styles/CrudModal.css';
 import './AbonoModal.css';
@@ -15,6 +16,98 @@ const AbonoModal = ({ isOpen, onClose, credito, onSuccess }) => {
   const [ordenesCredito, setOrdenesCredito] = useState([]);
   const [ordenesSeleccionadas, setOrdenesSeleccionadas] = useState(new Set());
   const [distribucion, setDistribucion] = useState([]); // [{ ordenId, montoAbono, saldoRestante }]
+  const [retenSettings, setReteSettings] = useState({ ivaRate: 19, retefuenteRate: 2.5, retefuenteThreshold: 1000000 });
+  const [retenLoading, setReteLoading] = useState(false);
+  const [retenError, setReteError] = useState("");
+  // Cargar settings de negocio (IVA, retefuente, umbral) al abrir modal
+  useEffect(() => {
+    if (isOpen) {
+      setReteLoading(true);
+      getBusinessSettings().then(setReteSettings).catch(() => {}).finally(() => setReteLoading(false));
+    }
+  }, [isOpen]);
+  // Helper para calcular retención e IVA
+  const calcularRetencionYIva = (orden) => {
+    const { ivaRate, retefuenteRate, retefuenteThreshold } = retenSettings;
+    const total = orden.total || 0;
+    // Calcular IVA si no está
+    const iva = orden.iva !== undefined ? orden.iva : Math.round(total * (ivaRate / (100 + ivaRate)));
+    // Subtotal sin IVA
+    const subtotal = total - iva;
+    // Calcular retención si supera umbral
+    let retencionFuente = 0;
+    let tieneRetencionFuente = false;
+    if (subtotal >= retefuenteThreshold) {
+      retencionFuente = Math.round(subtotal * (retefuenteRate / 100));
+      tieneRetencionFuente = true;
+    }
+    return { iva, subtotal, retencionFuente, tieneRetencionFuente };
+  };
+  // Handler para marcar/desmarcar retención en una orden
+  const handleToggleRetencion = async (orden) => {
+    setReteError("");
+    if (!orden) return;
+    const { iva, subtotal, retencionFuente, tieneRetencionFuente } = calcularRetencionYIva(orden);
+    if (subtotal < retenSettings.retefuenteThreshold) {
+      setReteError("La orden no supera el umbral para aplicar retención.");
+      return;
+    }
+    try {
+      setReteLoading(true);
+      
+      // Primero actualizar el estado local ANTES del PUT (optimistic update)
+      const ordenIndex = ordenesCredito.findIndex(o => o.id === orden.id);
+      if (ordenIndex === -1) {
+        setReteError("Orden no encontrada");
+        return;
+      }
+      
+      const nuevoEstadoRetencion = !orden.tieneRetencionFuente;
+      const nuevoValorRetencion = nuevoEstadoRetencion ? retencionFuente : 0;
+      
+      // Actualizar INMEDIATAMENTE el estado local sin esperar el backend
+      setOrdenesCredito(prev => {
+        const newArray = [...prev];
+        newArray[ordenIndex] = {
+          ...newArray[ordenIndex],
+          tieneRetencionFuente: nuevoEstadoRetencion,
+          retencionFuente: nuevoValorRetencion,
+          iva: iva
+        };
+        return newArray;
+      });
+      
+      // Ahora hacer el PUT al backend (en background)
+      await actualizarOrden(orden.id, {
+        ...orden,
+        tieneRetencionFuente: nuevoEstadoRetencion,
+        retencionFuente: nuevoValorRetencion,
+        iva,
+      });
+      
+      // Si el PUT fue exitoso, no hacemos nada más (ya actualizamos el estado)
+      // Si falla, revertimos en el catch
+      
+    } catch (err) {
+      // Revertir el cambio optimista si el PUT falla
+      setOrdenesCredito(prev => {
+        const newArray = [...prev];
+        const ordenIndex = newArray.findIndex(o => o.id === orden.id);
+        if (ordenIndex !== -1) {
+          newArray[ordenIndex] = {
+            ...newArray[ordenIndex],
+            tieneRetencionFuente: orden.tieneRetencionFuente, // Revertir al valor original
+            retencionFuente: orden.retencionFuente,
+            iva: orden.iva
+          };
+        }
+        return newArray;
+      });
+      setReteError("Error actualizando retención: " + (err?.message || ""));
+    } finally {
+      setReteLoading(false);
+    }
+  };
   
   const [formData, setFormData] = useState({
     montoTotal: '',
@@ -75,16 +168,26 @@ const AbonoModal = ({ isOpen, onClose, credito, onSuccess }) => {
 
   // Cargar órdenes a crédito del cliente seleccionado
   useEffect(() => {
+    console.log("🔍 useEffect [isOpen, clienteSeleccionado?.id] ejecutándose", {
+      isOpen,
+      clienteSeleccionadoId: clienteSeleccionado?.id,
+      ordenesSeleccionadasSize: ordenesSeleccionadas.size,
+      ordenesSeleccionadasIds: Array.from(ordenesSeleccionadas)
+    });
+    
     if (isOpen && clienteSeleccionado?.id) {
       cargarOrdenesCredito(clienteSeleccionado.id);
-    } else {
+    } else if (!clienteSeleccionado?.id && isOpen) {
+      // Solo limpiar si realmente no hay cliente seleccionado Y el modal está abierto
+      console.log("⚠️ Limpiando selecciones porque no hay cliente");
       setOrdenesCredito([]);
       setOrdenesSeleccionadas(new Set());
       setDistribucion([]);
     }
-  }, [isOpen, clienteSeleccionado]);
+  }, [isOpen, clienteSeleccionado?.id]); // Usar clienteSeleccionado?.id en lugar del objeto completo
 
   const cargarOrdenesCredito = async (clienteId) => {
+    console.log("📥 cargarOrdenesCredito llamado", { clienteId, ordenesSeleccionadasActual: Array.from(ordenesSeleccionadas) });
     setLoadingOrdenes(true);
     try {
       // Usar el nuevo endpoint que devuelve solo órdenes a crédito con creditoDetalle
@@ -96,6 +199,7 @@ const AbonoModal = ({ isOpen, onClose, credito, onSuccess }) => {
         return orden.creditoDetalle?.saldoPendiente > 0;
       });
       
+      console.log("⚠️ ATENCION: cargarOrdenesCredito va a limpiar selecciones");
       setOrdenesCredito(ordenesConSaldo);
       setOrdenesSeleccionadas(new Set());
       setDistribucion([]);
@@ -714,12 +818,31 @@ const AbonoModal = ({ isOpen, onClose, credito, onSuccess }) => {
                                 padding: '0.5rem', 
                                 textAlign: 'right',
                                 color: montoAbono > 0 ? '#28a745' : '#666',
-                                fontWeight: montoAbono > 0 ? 'bold' : 'normal'
+                                fontWeight: montoAbono > 0 ? 'bold' : 'normal',
+                                display: 'flex', alignItems: 'center', gap: 8
                               }}>
                                 ${montoAbono.toLocaleString('es-CO')}
+                                {/* Checkbox de retención fuente */}
+                                {estaSeleccionada && (
+                                  <input
+                                    type="checkbox"
+                                    checked={!!orden.tieneRetencionFuente}
+                                    disabled={retenLoading || (calcularRetencionYIva(orden).subtotal < retenSettings.retefuenteThreshold)}
+                                    title={calcularRetencionYIva(orden).subtotal < retenSettings.retefuenteThreshold ? `Para aplicar retención: la orden debe estar seleccionada y el subtotal debe ser >= $${retenSettings.retefuenteThreshold.toLocaleString('es-CO')}` : 'Marcar para aplicar retención'}
+                                    style={{ width: 18, height: 18, cursor: (retenLoading || calcularRetencionYIva(orden).subtotal < retenSettings.retefuenteThreshold) ? 'not-allowed' : 'pointer', opacity: (retenLoading || calcularRetencionYIva(orden).subtotal < retenSettings.retefuenteThreshold) ? 0.5 : 1 }}
+                                    onClick={e => { e.preventDefault(); e.stopPropagation(); }}
+                                    onChange={e => { e.preventDefault(); e.stopPropagation(); handleToggleRetencion(orden); }}
+                                  />
+                                )}
                               </td>
                             </tr>
                           );
+        {/* Error de retención fuente */}
+        {retenError && (
+          <div className="modal-error" role="alert" style={{ marginBottom: '1rem', color: 'red' }}>
+            {retenError}
+          </div>
+        )}
                         })}
                       </tbody>
                       <tfoot style={{ backgroundColor: '#f8f9fa', fontWeight: 'bold', position: 'sticky', bottom: 0 }}>

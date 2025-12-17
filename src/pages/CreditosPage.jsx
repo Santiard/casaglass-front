@@ -58,10 +58,10 @@ const CreditosPage = () => {
         setCurrentPage(creditosResponse.data.page || page);
       } else {
         // Respuesta sin paginación (fallback)
-        let creditosData = [];
-        if (creditosResponse.data) {
-          if (Array.isArray(creditosResponse.data)) {
-            creditosData = creditosResponse.data;
+      let creditosData = [];
+      if (creditosResponse.data) {
+        if (Array.isArray(creditosResponse.data)) {
+          creditosData = creditosResponse.data;
           }
         }
         setCreditos(creditosData);
@@ -155,10 +155,10 @@ const CreditosPage = () => {
         setCurrentPage(response.data.page || currentPage);
       } else {
         // Respuesta sin paginación (fallback)
-        let data = [];
-        if (response.data) {
-          if (Array.isArray(response.data)) {
-            data = response.data;
+      let data = [];
+      if (response.data) {
+        if (Array.isArray(response.data)) {
+          data = response.data;
           }
         }
         setCreditos(data);

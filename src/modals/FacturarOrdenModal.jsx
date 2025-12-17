@@ -156,9 +156,9 @@ export default function FacturarOrdenModal({ isOpen, onClose, onSave, orden }) {
       // Si la orden tiene total calculado, usarlo; sino calcular desde items
       const subtotalFacturado = typeof orden.total === "number" && !isNaN(orden.total)
         ? orden.total
-        : Array.isArray(orden.items)
+          : Array.isArray(orden.items)
         ? orden.items.reduce((acc, it) => acc + (Number(it.totalLinea) || 0), 0)
-        : 0;
+          : 0;
 
       // Usar descuentos de la orden si existen
       const descuentosOrden = typeof orden.descuentos === "number" && !isNaN(orden.descuentos)
@@ -630,7 +630,7 @@ export default function FacturarOrdenModal({ isOpen, onClose, onSave, orden }) {
               
               // Calcular subtotal sin IVA para mostrar (base - IVA)
               const subtotalSinIva = base - ivaVal;
-
+              
               // Determinar si, según las reglas, debería aplicar retención
               // Se usa para mostrar el mensaje de "No aplica" cuando reteVal === 0
               const debeAplicarRetencion =

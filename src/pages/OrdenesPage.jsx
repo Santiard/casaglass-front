@@ -45,11 +45,11 @@ export default function OrdenesPage() {
         // Respuesta paginada
         const norm = Array.isArray(response.content)
           ? response.content.map((o) => ({
-              ...o,
-              facturada: Boolean(o.facturada ?? o.factura ?? o.facturaId ?? o.numeroFactura),
-            }))
-          : [];
-        setData(norm);
+            ...o,
+            facturada: Boolean(o.facturada ?? o.factura ?? o.facturaId ?? o.numeroFactura),
+          }))
+        : [];
+      setData(norm);
         setTotalElements(response.totalElements || 0);
         setTotalPages(response.totalPages || 1);
         setCurrentPage(response.page || page);

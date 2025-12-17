@@ -116,7 +116,7 @@ export async function listarBusinessSettings() {
 export async function eliminarBusinessSettings(id) {
   try {
     await api.delete(`/business-settings/${id}`);
-    return { ok: true };
+return { ok: true };
   } catch (error) {
     console.error("Error eliminando configuración de negocio:", error);
     throw error;

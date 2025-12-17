@@ -602,7 +602,7 @@ export default function OrdenesTable({
         <div className="ordenes-pagination-controls">
           <button onClick={goFirst} disabled={!canPrev}>«</button>
           <button onClick={goPrev}  disabled={!canPrev}>‹</button>
-            {Array.from({ length: Math.min(5, maxPage) }, (_, i) => {
+          {Array.from({ length: Math.min(5, maxPage) }, (_, i) => {
             const p = Math.max(1, Math.min(curPage - 2, maxPage - 4)) + i;
             return p <= maxPage ? (
               <button 

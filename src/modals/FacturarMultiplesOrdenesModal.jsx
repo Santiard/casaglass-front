@@ -175,7 +175,7 @@ const FacturarMultiplesOrdenesModal = ({ isOpen, onClose, ordenInicial, onSucces
           .filter(o => Boolean(o.tieneRetencionFuente))
           .map(o => o.id)
       );
-
+      
       // Si hay una orden inicial, preseleccionarla
       // Usar ordenInicialCompleta si está disponible, sino ordenInicial
       const ordenIdInicial = ordenInicialCompleta?.id || ordenInicial?.id;
@@ -187,8 +187,8 @@ const FacturarMultiplesOrdenesModal = ({ isOpen, onClose, ordenInicial, onSucces
 
           // Asegurar que la orden inicial refleje correctamente su estado de retención
           const tieneRetencion = Boolean(
-            ordenInicialCompleta?.tieneRetencionFuente ||
-            ordenInicialEncontrada.tieneRetencionFuente ||
+            ordenInicialCompleta?.tieneRetencionFuente || 
+            ordenInicialEncontrada.tieneRetencionFuente || 
             ordenInicial?.tieneRetencionFuente
           );
 

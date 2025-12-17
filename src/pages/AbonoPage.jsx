@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { api } from '../lib/api.js';
 import { listarClientes } from '../services/ClientesService.js';
-import { listarOrdenesCredito, actualizarOrdenVenta, actualizarOrden } from '../services/OrdenesService.js';
+import { listarOrdenesCredito, actualizarRetencionFuente } from '../services/OrdenesService.js';
 import { getBusinessSettings } from '../services/businessSettingsService.js';
 import { useToast } from '../context/ToastContext.jsx';
 import '../styles/CrudModal.css';
@@ -358,61 +358,47 @@ const AbonoPage = () => {
       }
     }
 
-    // Actualizar la orden en el backend con tieneRetencionFuente y valores calculados
+    // 🆕 USAR EL NUEVO ENDPOINT ESPECIALIZADO
     try {
-      // Construir payload para actualizar la orden
-      const ordenUpdatePayload = {
-        fecha: orden.fecha,
-        obra: orden.obra || "",
-        descripcion: orden.descripcion || null,
-        venta: Boolean(orden.venta ?? false),
-        credito: Boolean(orden.credito),
-        incluidaEntrega: Boolean(orden.incluidaEntrega || false),
-        tieneRetencionFuente: nuevoValorRetencion, // Actualizar con el nuevo valor
-        retencionFuente: nuevoValorRetencion ? retencionFuenteCalculada : 0, // Enviar valor calculado
-        iva: ivaCalculado, // Enviar IVA calculado si no estaba
-        descuentos: Number(orden.descuentos || 0),
-        clienteId: Number(orden.clienteId || orden.cliente?.id),
-        sedeId: Number(orden.sedeId || orden.sede?.id),
-        ...(orden.trabajadorId || orden.trabajador?.id ? { trabajadorId: Number(orden.trabajadorId || orden.trabajador?.id) } : {}),
-        items: (Array.isArray(orden.items) ? orden.items : []).map(item => ({
-          id: item.id ?? null,
-          productoId: Number(item.productoId || item.producto?.id),
-          descripcion: item.descripcion ?? "",
-          cantidad: Number(item.cantidad ?? 1),
-          precioUnitario: Number(item.precioUnitario ?? 0),
-          totalLinea: Number(item.totalLinea ?? 0),
-          ...(item.reutilizarCorteSolicitadoId ? { reutilizarCorteSolicitadoId: Number(item.reutilizarCorteSolicitadoId) } : {})
-        }))
-      };
+      console.log('💰 Actualizando retención con nuevo endpoint:', {
+        ordenId,
+        tieneRetencionFuente: nuevoValorRetencion,
+        retencionFuente: nuevoValorRetencion ? retencionFuenteCalculada : 0,
+        iva: ivaCalculado
+      });
+
+      // Llamar al endpoint especializado /ordenes/{id}/retencion-fuente
+      const response = await actualizarRetencionFuente(ordenId, {
+        tieneRetencionFuente: nuevoValorRetencion,
+        retencionFuente: nuevoValorRetencion ? retencionFuenteCalculada : 0,
+        iva: ivaCalculado
+      });
       
-      // Actualizar la orden usando el endpoint correcto según si es venta o no
-      if (orden.venta) {
-        await actualizarOrdenVenta(orden.id, ordenUpdatePayload);
-      } else {
-        await actualizarOrden(orden.id, ordenUpdatePayload);
-      }
+      console.log('✅ Respuesta del backend:', response);
       
-      // Actualizar el estado local de la orden para reflejar el cambio
+      // El backend retorna { mensaje: "...", orden: {...} }
+      const ordenActualizada = response.orden;
+      
+      // Actualizar solo esta orden en el estado local con los datos del backend
       setOrdenesCredito(prevOrdenes => 
         prevOrdenes.map(o => 
           o.id === ordenId 
             ? { 
                 ...o, 
-                tieneRetencionFuente: nuevoValorRetencion,
-                retencionFuente: nuevoValorRetencion ? retencionFuenteCalculada : 0,
-                iva: ivaCalculado
+                ...ordenActualizada,
+                // Asegurar que creditoDetalle se actualice
+                creditoDetalle: ordenActualizada.creditoDetalle || o.creditoDetalle
               }
             : o
         )
       );
       
-      // Recargar las órdenes para obtener el saldoPendiente actualizado del backend
-      if (clienteSeleccionado?.id) {
-        await cargarOrdenesCredito(clienteSeleccionado.id);
-      }
+      // Mostrar mensaje de éxito del backend
+      showSuccess(response.mensaje || 'Retención actualizada exitosamente');
+      
     } catch (error) {
-      console.error("Error actualizando tieneRetencionFuente en la orden:", error);
+      console.error("❌ Error actualizando retención de fuente:", error);
+      
       // Revertir el cambio local si falla la actualización
       const revertidasConRetencion = new Set(ordenesConRetencion);
       if (nuevoValorRetencion) {
@@ -421,7 +407,15 @@ const AbonoPage = () => {
         revertidasConRetencion.add(ordenId);
       }
       setOrdenesConRetencion(revertidasConRetencion);
-      showError(`No se pudo actualizar la retención de fuente en la orden #${orden.numero}. Intenta nuevamente.`);
+      
+      // Manejo de errores específico
+      if (error.response?.data?.tipo === 'VALIDACION') {
+        showError(error.response.data.error);
+      } else if (error.response?.data?.error) {
+        showError(error.response.data.error);
+      } else {
+        showError(`No se pudo actualizar la retención de fuente en la orden #${orden.numero}. Intenta nuevamente.`);
+      }
     }
   };
 
