@@ -93,3 +93,27 @@ export async function listarAbonosPorFecha(fecha, options = {}) {
   }
 }
 
+/**
+ * 💰 Listar créditos pendientes de un cliente
+ * 
+ * Obtiene SOLO los créditos con saldo pendiente > 0
+ * Incluye toda la información necesaria para la página de abonos
+ * 
+ * @param {number} clienteId - ID del cliente
+ * @returns {Promise<Array>} Array de créditos pendientes con toda la información
+ */
+export async function listarCreditosPendientes(clienteId) {
+  if (!clienteId) {
+    throw new Error("clienteId es obligatorio para listar créditos pendientes");
+  }
+  
+  try {
+    const { data } = await api.get(`/creditos/cliente/${clienteId}/pendientes`);
+    console.log(`✅ Créditos pendientes obtenidos: ${data.length}`);
+    return data;
+  } catch (error) {
+    console.error('❌ Error obteniendo créditos pendientes:', error);
+    throw error;
+  }
+}
+

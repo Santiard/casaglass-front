@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { api } from '../lib/api.js';
 import { listarClientes } from '../services/ClientesService.js';
-import { listarOrdenesCredito, actualizarRetencionFuente } from '../services/OrdenesService.js';
+import { listarCreditosPendientes } from '../services/AbonosService.js';
+import { actualizarRetencionFuente } from '../services/OrdenesService.js';
 import { getBusinessSettings } from '../services/businessSettingsService.js';
 import { useToast } from '../context/ToastContext.jsx';
 import '../styles/CrudModal.css';
@@ -26,6 +27,7 @@ const AbonoPage = () => {
   const [ordenesCredito, setOrdenesCredito] = useState([]);
   const [ordenesSeleccionadas, setOrdenesSeleccionadas] = useState(new Set());
   const [ordenesConRetencion, setOrdenesConRetencion] = useState(new Set()); // Órdenes a las que se aplica retención
+  const [updatingRetencion, setUpdatingRetencion] = useState(new Set()); // Órdenes con actualización de retención en curso
   const [distribucion, setDistribucion] = useState([]);
   
   // Función para obtener la fecha local en formato YYYY-MM-DD
@@ -150,28 +152,74 @@ const AbonoPage = () => {
   const cargarOrdenesCredito = async (clienteId) => {
     setLoadingOrdenes(true);
     try {
-      const ordenes = await listarOrdenesCredito(clienteId);
+      // 🆕 USAR EL NUEVO ENDPOINT ESPECIALIZADO /creditos/cliente/{id}/pendientes
+      const creditosPendientes = await listarCreditosPendientes(clienteId);
       
-      // Filtrar solo órdenes que cumplen estas condiciones:
-      // 1. Son a CRÉDITO (credito === true)
-      // 2. Tienen saldo pendiente > 0 (del creditoDetalle)
-      // Nota: Si es crédito, automáticamente es una venta (las cotizaciones no pueden ser a crédito)
-      // Nota: El endpoint /ordenes/credito puede no devolver el campo 'venta', pero si credito === true, es venta
-      const ordenesConSaldo = ordenes.filter(orden => {
-        const esCredito = Boolean(orden.credito === true);
+      // 🔍 LOG COMPLETO: Ver TODOS los datos que trae el backend
+      console.log('✅ Créditos pendientes recibidos:', creditosPendientes.length);
+      console.log('📦 DATOS COMPLETOS del backend:', JSON.stringify(creditosPendientes, null, 2));
+      
+      // Log específico de retención
+      console.log('🔍 Créditos con tieneRetencionFuente:', 
+        creditosPendientes.filter(c => c.tieneRetencionFuente)
+          .map(c => ({ 
+            ordenId: c.ordenId, 
+            ordenNumero: c.ordenNumero,
+            total: c.total,
+            subtotal: c.subtotal,
+            iva: c.iva,
+            tieneRetencionFuente: c.tieneRetencionFuente, 
+            retencionFuente: c.retencionFuente,
+            saldoPendiente: c.saldoPendiente,
+            totalCredito: c.totalCredito
+          }))
+      );
+      
+      // El backend YA filtra por saldo > 0 y estado ABIERTO
+      // No necesitamos filtrar manualmente en frontend
+      
+      // Mapear de CreditoPendienteDTO a formato esperado por el componente
+      const ordenesConSaldo = creditosPendientes.map(credito => ({
+        // Datos de la orden
+        id: credito.ordenId,
+        numero: credito.ordenNumero,
+        fecha: credito.ordenFecha,
+        obra: credito.ordenObra,
         
-        // Usar saldo pendiente del creditoDetalle (el backend ahora lo crea correctamente)
-        const saldoPendiente = orden.creditoDetalle?.saldoPendiente ?? 0;
-        const tieneSaldo = saldoPendiente > 0;
+        // Montos
+        total: credito.total,
+        subtotal: credito.subtotal,
+        iva: credito.iva,
+        descuentos: credito.descuentos,
         
-        // Si es crédito y tiene saldo, debe aparecer (las cotizaciones no pueden ser a crédito)
-        return esCredito && tieneSaldo;
-      });
+        // Retención de fuente
+        tieneRetencionFuente: credito.tieneRetencionFuente,
+        retencionFuente: credito.retencionFuente,
+        
+        // Crédito (mantener compatibilidad)
+        credito: true,
+        venta: true,
+        creditoDetalle: {
+          id: credito.creditoId,
+          saldoPendiente: credito.saldoPendiente,
+          totalCredito: credito.totalCredito,
+          totalAbonado: credito.totalAbonado,
+          estado: credito.estado
+        },
+        
+        // Sede
+        sede: credito.sede,
+        sedeId: credito.sede?.id,
+        
+        // Cliente
+        cliente: credito.cliente,
+        clienteId: credito.cliente?.id
+      }));
       
       setOrdenesCredito(ordenesConSaldo);
       setOrdenesSeleccionadas(new Set());
       
-      // Inicializar órdenes con retención basándose en tieneRetencionFuente de cada orden
+      // Inicializar órdenes con retención basándose en tieneRetencionFuente del backend
       const ordenesConRetencionInicial = new Set();
       ordenesConSaldo.forEach(orden => {
         if (orden.tieneRetencionFuente === true) {
@@ -180,10 +228,12 @@ const AbonoPage = () => {
       });
       setOrdenesConRetencion(ordenesConRetencionInicial);
       
+      console.log(`📊 Inicializadas ${ordenesConRetencionInicial.size} órdenes con retención`);
+      
       setDistribucion([]);
     } catch (err) {
-      console.error("Error cargando órdenes a crédito:", err);
-      setError('Error cargando órdenes a crédito del cliente');
+      console.error("❌ Error cargando créditos pendientes:", err);
+      setError('Error cargando créditos pendientes del cliente');
       setOrdenesCredito([]);
     } finally {
       setLoadingOrdenes(false);
@@ -310,11 +360,20 @@ const AbonoPage = () => {
   };
 
   const toggleRetencionOrden = async (ordenId) => {
+    // Prevenir llamadas duplicadas mientras hay una petición en curso
+    if (updatingRetencion.has(ordenId)) {
+      console.log('⏳ Ya hay una actualización en curso para esta orden');
+      return;
+    }
+
     const orden = ordenesCredito.find(o => o.id === ordenId);
     if (!orden) {
       console.error("No se encontró la orden para actualizar:", ordenId);
       return;
     }
+
+    // Marcar como en actualización
+    setUpdatingRetencion(prev => new Set(prev).add(ordenId));
 
     const nuevasConRetencion = new Set(ordenesConRetencion);
     const nuevoValorRetencion = !nuevasConRetencion.has(ordenId);
@@ -416,6 +475,13 @@ const AbonoPage = () => {
       } else {
         showError(`No se pudo actualizar la retención de fuente en la orden #${orden.numero}. Intenta nuevamente.`);
       }
+    } finally {
+      // Siempre limpiar el estado de actualización en curso
+      setUpdatingRetencion(prev => {
+        const next = new Set(prev);
+        next.delete(ordenId);
+        return next;
+      });
     }
   };
 
@@ -924,6 +990,10 @@ const AbonoPage = () => {
                             ? ordenesConRetencion.has(orden.id)
                             : (orden.tieneRetencionFuente === true);
                           
+                          // 💰 MOSTRAR RETENCIÓN: Si la orden ya tiene retencionFuente del backend, mostrarlo
+                          // Esto es independiente de si está seleccionada o no
+                          const valorRetencionOrden = orden.retencionFuente || 0;
+                          
                           return (
                             <tr
                               key={orden.id}
@@ -975,16 +1045,8 @@ const AbonoPage = () => {
                               <td style={{ 
                                 padding: '0.5rem', 
                                 textAlign: 'center',
-                                borderRight: '1px solid #e0e0e0',
-                                cursor: puedeAplicarRetencion ? 'pointer' : 'default'
-                              }}
-                              onClick={(e) => {
-                                if (puedeAplicarRetencion) {
-                                  e.stopPropagation();
-                                  toggleRetencionOrden(orden.id);
-                                }
-                              }}
-                              >
+                                borderRight: '1px solid #e0e0e0'
+                              }}>
                                 <input
                                   type="checkbox"
                                   checked={tieneRetencion}
@@ -1010,11 +1072,11 @@ const AbonoPage = () => {
                                 padding: '0.5rem', 
                                 textAlign: 'right',
                                 borderRight: '1px solid #e0e0e0',
-                                color: montoRetencion > 0 ? '#856404' : '#999',
-                                fontWeight: montoRetencion > 0 ? 'bold' : 'normal',
-                                backgroundColor: montoRetencion > 0 ? '#fff3cd' : 'transparent'
+                                color: valorRetencionOrden > 0 ? '#856404' : '#999',
+                                fontWeight: valorRetencionOrden > 0 ? 'bold' : 'normal',
+                                backgroundColor: valorRetencionOrden > 0 ? '#fff3cd' : 'transparent'
                               }}>
-                                {montoRetencion > 0 ? `$${montoRetencion.toLocaleString('es-CO')}` : '-'}
+                                {valorRetencionOrden > 0 ? `$${valorRetencionOrden.toLocaleString('es-CO')}` : '-'}
                               </td>
                             </tr>
                           );
