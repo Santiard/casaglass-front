@@ -20,7 +20,18 @@ export default function EntregasTable({
 
   // Actualizar entregas cuando cambian los datos del padre
   useEffect(() => {
-    setEntregas(Array.isArray(data) ? data : []);
+    const entregasData = Array.isArray(data) ? data : [];
+    
+    // 🔍 DEBUG: Ver las fechas que llegan del backend
+    if (entregasData.length > 0) {
+      console.log('📊 EntregaTable - Datos recibidos:', entregasData.map(e => ({
+        id: e.id,
+        fechaEntrega: e.fechaEntrega,
+        tipo: typeof e.fechaEntrega
+      })));
+    }
+    
+    setEntregas(entregasData);
   }, [data]);
 
   const openNuevo = () => { setEntregaEditando(null); setIsModalOpen(true); };
@@ -52,8 +63,20 @@ export default function EntregasTable({
   // Paginación simple sin filtros (los filtros están en la página padre)  
   const [page, setPage] = useState(1);
 
-  const fmtFecha = (iso) => {
-    const d = new Date(iso);
+  const fmtFecha = (fechaStr) => {
+    if (!fechaStr) return "-";
+    
+    // 🔍 DEBUG: Ver qué fecha recibimos
+    console.log('📅 fmtFecha recibió:', fechaStr, 'tipo:', typeof fechaStr);
+    
+    // Si viene en formato YYYY-MM-DD (LocalDate del backend), usarlo directamente
+    if (/^\d{4}-\d{2}-\d{2}$/.test(fechaStr)) {
+      const [año, mes, dia] = fechaStr.split('-');
+      return `${dia}/${mes}/${año}`;
+    }
+    
+    // Fallback: intentar parsear como Date (para formatos antiguos)
+    const d = new Date(fechaStr);
     return isNaN(d) ? "-" : d.toLocaleString("es-CO", {
       year: "numeric", month: "2-digit", day: "2-digit"
     });

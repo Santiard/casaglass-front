@@ -783,18 +783,30 @@ export default function OrdenEditarModal({
   const handleItemChange = (idx, field, value) => {
     setForm((prev) => {
       const arr = [...prev.items];
-      const item = { ...arr[idx] };
+      const item = { ...arr[idx] }; // Crea copia del item
       
+      // IMPORTANTE: Preservar productoId siempre
+      // El problema era que al crear la copia, algunos campos podían perderse
       if (field === "cantidad") {
         item.cantidad = Number(value) || 0;
         // Recalcular total de línea automáticamente
-        item.totalLinea = item.cantidad * item.precioUnitario;
+        item.totalLinea = item.cantidad * (item.precioUnitario || 0);
       } else if (field === "precioUnitario") {
         item.precioUnitario = Number(value) || 0;
         // Recalcular total de línea automáticamente
-        item.totalLinea = item.cantidad * item.precioUnitario;
+        item.totalLinea = (item.cantidad || 0) * item.precioUnitario;
       } else {
         item[field] = field === "totalLinea" ? Number(value) : value;
+      }
+      
+      // Verificar que productoId esté presente
+      if (!item.productoId && arr[idx].productoId) {
+        console.warn("⚠️ productoId se perdió al editar. Restaurando...", {
+          campo: field,
+          productoIdOriginal: arr[idx].productoId,
+          item: item
+        });
+        item.productoId = arr[idx].productoId;
       }
       
       arr[idx] = item;
@@ -975,6 +987,13 @@ export default function OrdenEditarModal({
         // Si es crédito, la descripción (método de pago) debe ser null
         // Si es contado, construir la descripción desde los métodos de pago
         if (!esCredito) {
+          // 🆕 VALIDAR QUE HAYA AL MENOS UN MÉTODO DE PAGO PARA CONTADO
+          const metodosConTipo = metodosPago.filter(m => m.tipo);
+          if (metodosConTipo.length === 0) {
+            showError("Debes agregar al menos un método de pago para una orden de contado. Usa el botón '+ Agregar método de pago'.");
+            return;
+          }
+          
           let metodosPagoParaDescripcion = metodosPago.filter(m => m.tipo).map(m => ({ ...m })); // Crear copia para no modificar el estado original
           
           // Si hay un solo método de pago con monto vacío, asignar el total de la orden
@@ -1156,12 +1175,30 @@ export default function OrdenEditarModal({
     const subtotalEditar = itemsActivosEditar.reduce((sum, item) => sum + (item.totalLinea || 0), 0);
     const totalOrdenEditar = subtotalEditar - (form.descuentos || 0);
     
+    // Calcular retención de fuente si está marcada (ANTES de construir descripción)
+    let retencionFuenteEditar = 0;
+    if (form.tieneRetencionFuente) {
+      const totalFacturadoEditar = subtotalEditar - (form.descuentos || 0);
+      const subtotalSinIvaEditar = totalFacturadoEditar / 1.19;
+      if (subtotalSinIvaEditar >= retefuenteThreshold) {
+        retencionFuenteEditar = subtotalSinIvaEditar * (retefuenteRate / 100);
+        retencionFuenteEditar = Math.round(retencionFuenteEditar * 100) / 100;
+      }
+    }
+    
     // Determinar si es venta o cotización
     const esVentaEditar = Boolean(form.venta === true);
     let descripcionFinalEditar = null;
     
     // Solo construir descripción con métodos de pago si ES VENTA y NO es crédito
     if (esVentaEditar && !form.credito) {
+      // 🆕 VALIDAR QUE HAYA AL MENOS UN MÉTODO DE PAGO PARA CONTADO
+      const metodosConTipo = metodosPago.filter(m => m.tipo);
+      if (metodosConTipo.length === 0) {
+        showError("Debes agregar al menos un método de pago para una orden de contado. Usa el botón '+ Agregar método de pago'.");
+        return;
+      }
+      
       let metodosPagoParaDescripcionEditar = metodosPago.filter(m => m.tipo).map(m => ({ ...m })); // Crear copia para no modificar el estado original
       
       // Si hay un solo método de pago con monto vacío, asignar el total de la orden
@@ -1185,16 +1222,34 @@ export default function OrdenEditarModal({
       descripcionFinalEditar = null;
     }
     
-    // Calcular retención de fuente si está marcada
-    let retencionFuenteEditar = 0;
-    if (form.tieneRetencionFuente) {
-      const totalFacturadoEditar = subtotalEditar - (form.descuentos || 0);
-      const subtotalSinIvaEditar = totalFacturadoEditar / 1.19;
-      if (subtotalSinIvaEditar >= retefuenteThreshold) {
-        retencionFuenteEditar = subtotalSinIvaEditar * (retefuenteRate / 100);
-        retencionFuenteEditar = Math.round(retencionFuenteEditar * 100) / 100;
+    // Calcular montos por método de pago para EDICIÓN
+    let montoEfectivoTotalEditar = 0;
+    let montoTransferenciaTotalEditar = 0;
+    let montoChequeotalEditar = 0;
+    
+    // Si es venta de contado, calcular los montos desde los métodos de pago
+    if (esVentaEditar && !form.credito) {
+      // Filtrar métodos con monto > 0
+      const metodosConMonto = metodosPago.filter(m => m.tipo && parseFloat(m.monto) > 0);
+      
+      // Si hay un solo método sin monto especificado, asignarle el total
+      if (metodosConMonto.length === 0 && metodosPago.length === 1 && metodosPago[0].tipo) {
+        metodosConMonto.push({ ...metodosPago[0], monto: totalOrdenEditar });
       }
+      
+      // Sumar montos por tipo
+      metodosConMonto.forEach(metodo => {
+        const monto = parseFloat(metodo.monto) || 0;
+        if (metodo.tipo === "EFECTIVO") {
+          montoEfectivoTotalEditar += monto;
+        } else if (metodo.tipo === "TRANSFERENCIA") {
+          montoTransferenciaTotalEditar += monto;
+        } else if (metodo.tipo === "CHEQUE") {
+          montoChequeotalEditar += monto;
+        }
+      });
     }
+    // Si es crédito o cotización, los montos quedan en 0
     
     const payload = {
     id: form.id,
@@ -1207,6 +1262,10 @@ export default function OrdenEditarModal({
     retencionFuente: retencionFuenteEditar, // Enviar 0 si no está marcado, o el valor calculado si está marcado
     descuentos: Number(form.descuentos || 0),
     subtotal: subtotalEditar, // Enviar subtotal explícitamente (precio completo con IVA incluido)
+    // 🆕 CAMPOS NUMÉRICOS: Montos por método de pago (también en edición)
+    montoEfectivo: montoEfectivoTotalEditar,
+    montoTransferencia: montoTransferenciaTotalEditar,
+    montoCheque: montoChequeotalEditar,
     clienteId: form.clienteId ? Number(form.clienteId) : null,
     trabajadorId: form.trabajadorId ? Number(form.trabajadorId) : null,
     sedeId: form.sedeId ? Number(form.sedeId) : null,

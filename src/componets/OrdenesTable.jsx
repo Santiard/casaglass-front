@@ -12,6 +12,7 @@ import HistoricoClienteModal from "../modals/HistoricoClienteModal.jsx";
 import HistoricoGeneralModal from "../modals/HistoricoGeneralModal.jsx";
 import FacturarOpcionesModal from "../componets/FacturarOpcionesModal.jsx";
 import { useToast } from "../context/ToastContext.jsx";
+import { obtenerOrden } from "../services/OrdenesService.js";
 
 export default function OrdenesTable({
   data = [],
@@ -466,9 +467,16 @@ export default function OrdenesTable({
 
                         <button
                           className="btnEdit"
-                          onClick={() => {
-                            setOrdenEditando(o);
-                            setIsModalOpen(true);
+                          onClick={async () => {
+                            try {
+                              // 🆕 OBTENER ORDEN COMPLETA con productoId, clienteId, etc.
+                              const ordenCompleta = await obtenerOrden(o.id);
+                              setOrdenEditando(ordenCompleta);
+                              setIsModalOpen(true);
+                            } catch (error) {
+                              console.error("Error cargando orden para editar:", error);
+                              showError("Error al cargar los datos de la orden. Intenta nuevamente.");
+                            }
                           }}
                           disabled={estaAnulada || yaFacturada || yaPagada}
                           title={estaAnulada ? 'No se puede editar una orden anulada' : (yaFacturada || yaPagada) ? 'No se puede editar una orden facturada o pagada' : 'Editar orden'}

@@ -646,6 +646,16 @@ const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores, se
         empleadoId: parseInt(formData.empleadoId),
         fechaEntrega: formData.fechaEntrega || obtenerFechaLocal()
       };
+      
+      // 🔍 DEBUG: Verificar qué fecha se está enviando exactamente
+      console.log('═══════════════════════════════════════════════════════');
+      console.log('📅 FECHA SIENDO ENVIADA AL BACKEND:');
+      console.log('  - formData.fechaEntrega:', formData.fechaEntrega);
+      console.log('  - Tipo:', typeof formData.fechaEntrega);
+      console.log('  - entregaData.fechaEntrega:', entregaData.fechaEntrega);
+      console.log('  - Tipo:', typeof entregaData.fechaEntrega);
+      console.log('  - Payload completo:', JSON.stringify(entregaData, null, 2));
+      console.log('═══════════════════════════════════════════════════════');
 
       // Campos opcionales - solo agregar si tienen valor
       const ordenesIds = Array.isArray(formData.ordenesIds) ? formData.ordenesIds : [];
