@@ -18,6 +18,7 @@ export default function EntregaDetalleModal({ entrega, isOpen, onClose }) {
   const montoTransferencia = Number(entrega.montoTransferencia ?? 0);
   const montoCheque = Number(entrega.montoCheque ?? 0);
   const montoDeposito = Number(entrega.montoDeposito ?? 0);
+  const montoRetencion = Number(entrega.montoRetencion ?? 0); // 🆕 Campo nuevo
   
   // Calcular suma del desglose para validación
   const sumaDesglose = montoEfectivo + montoTransferencia + montoCheque + montoDeposito;
@@ -117,6 +118,12 @@ export default function EntregaDetalleModal({ entrega, isOpen, onClose }) {
             <label>Depósito</label>
             <span>{fmtCOP(montoDeposito)}</span>
           </div>
+          {montoRetencion > 0 && (
+            <div className="entrega-detalle-resumen-item" style={{ color: '#d32f2f' }}>
+              <label>Retención de Fuente</label>
+              <span>{fmtCOP(montoRetencion)}</span>
+            </div>
+          )}
           <div className="entrega-detalle-resumen-item monto-total">
             <label>Monto Total</label>
             <span>{fmtCOP(monto)}</span>

@@ -474,6 +474,23 @@ const AbonoModal = ({ isOpen, onClose, credito, onSuccess }) => {
       
       const metodoPagoString = construirDescripcion(metodosValidos, observacionesAdicionales);
 
+      // 🆕 CALCULAR MONTOS POR MÉTODO DE PAGO (campos numéricos)
+      let montoEfectivoTotal = 0;
+      let montoTransferenciaTotal = 0;
+      let montoChequeTotal = 0;
+      
+      metodosValidos.forEach(metodo => {
+        const monto = parseFloat(metodo.monto) || 0;
+        if (metodo.tipo === "EFECTIVO") {
+          montoEfectivoTotal += monto;
+        } else if (metodo.tipo === "TRANSFERENCIA") {
+          montoTransferenciaTotal += monto;
+        } else if (metodo.tipo === "CHEQUE") {
+          montoChequeTotal += monto;
+        }
+        // Otros tipos (NEQUI, DAVIPLATA, etc.) no se envían en campos numéricos por ahora
+      });
+
       // Crear un abono por cada orden con monto de abono > 0
       // El creditoId viene directamente en creditoDetalle.creditoId de cada orden
       const abonosACrear = distribucionValida.map(dist => {
@@ -485,12 +502,31 @@ const AbonoModal = ({ isOpen, onClose, credito, onSuccess }) => {
           return null;
         }
         
+        // 🆕 CALCULAR RETENCIÓN PROPORCIONAL
+        // Solo si la orden tiene retención Y el saldo queda en 0 (orden completamente pagada)
+        let montoRetencionAbono = 0;
+        if (orden.tieneRetencionFuente && dist.saldoRestante === 0) {
+          // Si este abono completa la orden, incluir la retención total de la orden
+          montoRetencionAbono = orden.retencionFuente || 0;
+        }
+        
+        // 🆕 CALCULAR MONTOS PROPORCIONALES de cada método de pago
+        const proporcion = dist.montoAbono / montoTotal;
+        const montoEfectivoAbono = montoEfectivoTotal * proporcion;
+        const montoTransferenciaAbono = montoTransferenciaTotal * proporcion;
+        const montoChequeAbono = montoChequeTotal * proporcion;
+        
         return {
           creditoId: creditoId,
           total: dist.montoAbono,
           fecha: formData.fecha,
           metodoPago: metodoPagoString,
-          factura: formData.factura || null
+          factura: formData.factura || null,
+          // 🆕 CAMPOS NUMÉRICOS
+          montoEfectivo: Math.round(montoEfectivoAbono * 100) / 100,
+          montoTransferencia: Math.round(montoTransferenciaAbono * 100) / 100,
+          montoCheque: Math.round(montoChequeAbono * 100) / 100,
+          montoRetencion: Math.round(montoRetencionAbono * 100) / 100
         };
       }).filter(abono => abono !== null && abono.creditoId); // Solo crear si tiene creditoId válido
 

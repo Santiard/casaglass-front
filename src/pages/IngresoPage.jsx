@@ -205,10 +205,7 @@ export default function IngresosPage() {
   };
 
   return (
-    <div
-      className="page-ingresos"
-      style={{ display: "flex", flexDirection: "column", gap: "1rem" }}
-    >
+    <div className="page-ingresos">
       <IngresosTable
         data={ingresos}
         loading={loading}

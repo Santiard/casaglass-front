@@ -261,14 +261,30 @@ const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores, se
   };
 
   // Función para parsear el método de pago de un abono (formato: "EFECTIVO: 100.000 | TRANSFERENCIA: 50.000 (Banco de Bogotá) | RETEFUENTE Orden #1057: 12.500")
+  // Función auxiliar para parsear números en formato colombiano
+  const parsearNumeroColombiano = (numeroStr) => {
+    if (!numeroStr) return 0;
+    // Formato colombiano: 1.234.567,89 (puntos para miles, coma para decimales)
+    // Convertir a formato JavaScript: 1234567.89
+    let limpio = numeroStr.trim();
+    // Remover puntos (separadores de miles)
+    limpio = limpio.replace(/\./g, '');
+    // Reemplazar coma por punto (separador decimal)
+    limpio = limpio.replace(/,/g, '.');
+    // Remover espacios
+    limpio = limpio.replace(/\s/g, '');
+    return parseFloat(limpio) || 0;
+  };
+
   const parsearMetodoPagoAbono = (metodoPagoString) => {
     if (!metodoPagoString || typeof metodoPagoString !== 'string') {
-      return { montoEfectivo: 0, montoTransferencia: 0, montoCheque: 0 };
+      return { montoEfectivo: 0, montoTransferencia: 0, montoCheque: 0, montoRetencion: 0 };
     }
     
     let montoEfectivo = 0;
     let montoTransferencia = 0;
     let montoCheque = 0;
+    let montoRetencion = 0;
     
     // Convertir a mayúsculas para búsqueda
     const metodoUpper = metodoPagoString.toUpperCase();
@@ -277,22 +293,23 @@ const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores, se
     const partes = metodoUpper.split(/\s*\|\s*/).map(p => p.trim()).filter(p => p.length > 0);
     
     for (const parte of partes) {
-      // Ignorar RETEFUENTE (es una deducción, no un método de pago)
-      if (parte.includes('RETEFUENTE') || parte.includes('RETENCION')) {
+      // Buscar RETEFUENTE (retención de fuente)
+      // Formato: "RETEFUENTE Orden #1102: 54.831,93"
+      const retencionMatch = parte.match(/RETEFUENTE[:\s]+.*?[:\s]+([\d.,\s]+)/);
+      if (retencionMatch) {
+        const montoStr = retencionMatch[1];
+        const monto = parsearNumeroColombiano(montoStr);
+        if (monto > 0) {
+          montoRetencion += monto;
+        }
         continue;
       }
       
       // Buscar EFECTIVO: monto
-      // Patrón más estricto: debe tener "EFECTIVO" seguido de ":" o espacios, luego números
       const efectivoMatch = parte.match(/EFECTIVO[:\s]+([\d.,\s]+)/);
       if (efectivoMatch) {
-        // Extraer el número, puede tener formato: "100.000" o "100,000" o "100 000"
-        // Pero solo tomar hasta el primer carácter no numérico después de los números
-        const montoStr = efectivoMatch[1].trim();
-        // Remover todo excepto dígitos, pero preservar el primer punto o coma como separador de miles
-        // Si tiene punto o coma, asumir que es separador de miles (formato colombiano)
-        let numeroLimpio = montoStr.replace(/[^\d]/g, '');
-        const monto = parseFloat(numeroLimpio) || 0;
+        const montoStr = efectivoMatch[1];
+        const monto = parsearNumeroColombiano(montoStr);
         if (monto > 0) {
           montoEfectivo += monto;
         }
@@ -301,13 +318,10 @@ const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores, se
       
       // Buscar TRANSFERENCIA: monto (puede tener banco entre paréntesis)
       // Formato: "TRANSFERENCIA: 50.000 (Banco de Bogotá)" o "TRANSFERENCIA: 50.000"
-      // Patrón más estricto: debe tener "TRANSFERENCIA" seguido de ":" o espacios, luego números
       const transferenciaMatch = parte.match(/TRANSFERENCIA[:\s]+([\d.,\s]+)/);
       if (transferenciaMatch) {
-        const montoStr = transferenciaMatch[1].trim();
-        // Remover todo excepto dígitos
-        let numeroLimpio = montoStr.replace(/[^\d]/g, '');
-        const monto = parseFloat(numeroLimpio) || 0;
+        const montoStr = transferenciaMatch[1];
+        const monto = parsearNumeroColombiano(montoStr);
         if (monto > 0) {
           montoTransferencia += monto;
         }
@@ -317,9 +331,8 @@ const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores, se
       // Buscar CHEQUE: monto
       const chequeMatch = parte.match(/CHEQUE[:\s]+([\d.,\s]+)/);
       if (chequeMatch) {
-        const montoStr = chequeMatch[1].trim();
-        let numeroLimpio = montoStr.replace(/[^\d]/g, '');
-        const monto = parseFloat(numeroLimpio) || 0;
+        const montoStr = chequeMatch[1];
+        const monto = parsearNumeroColombiano(montoStr);
         if (monto > 0) {
           montoCheque += monto;
         }
@@ -327,7 +340,7 @@ const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores, se
       }
     }
     
-    return { montoEfectivo, montoTransferencia, montoCheque };
+    return { montoEfectivo, montoTransferencia, montoCheque, montoRetencion };
   };
 
   const handleChange = (e) => {
@@ -373,71 +386,103 @@ const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores, se
     // Monto total = órdenes a contado + abonos
     const montoTotal = montoOrdenes + montoAbonos;
     
+    console.log('═══════════════════════════════════════════════════════');
+    console.log('📊 CÁLCULO DETALLADO DE ENTREGA');
+    console.log('═══════════════════════════════════════════════════════');
+    
     // Calcular desglose de montos según método de pago de las órdenes
     let montoEfectivo = 0;
     let montoTransferencia = 0;
     let montoCheque = 0;
+    let montoRetencion = 0; // Agregar acumulador para retención
     
     // Procesar cada orden seleccionada
+    console.log('\n🛒 ÓRDENES A CONTADO SELECCIONADAS:');
     ordenesSeleccionadas.forEach(orden => {
-      const parseado = parsearMetodoPagoOrden(orden.descripcion || '', orden.total || 0);
-      montoEfectivo += parseado.montoEfectivo;
-      montoTransferencia += parseado.montoTransferencia;
-      montoCheque += parseado.montoCheque;
+      // 🆕 PRIORIZAR CAMPOS NUMÉRICOS del backend
+      const tieneMontos = (orden.montoEfectivo || 0) > 0 || (orden.montoTransferencia || 0) > 0 || (orden.montoCheque || 0) > 0;
+      
+      let montosOrden = {};
+      if (tieneMontos) {
+        // Usar campos numéricos del backend
+        montosOrden = {
+          montoEfectivo: Number(orden.montoEfectivo) || 0,
+          montoTransferencia: Number(orden.montoTransferencia) || 0,
+          montoCheque: Number(orden.montoCheque) || 0
+        };
+        console.log(`  Orden #${orden.numero} (usando campos numéricos):`);
+      } else {
+        // Fallback: parsear descripción (registros antiguos)
+        montosOrden = parsearMetodoPagoOrden(orden.descripcion || '', orden.total || 0);
+        console.log(`  Orden #${orden.numero} (parseando descripción):`);
+      }
+      
+      console.log(`    Total orden: $${orden.total.toLocaleString('es-CO', { minimumFractionDigits: 2 })}`);
+      console.log(`    - Efectivo: $${montosOrden.montoEfectivo.toLocaleString('es-CO', { minimumFractionDigits: 2 })}`);
+      console.log(`    - Transferencia: $${montosOrden.montoTransferencia.toLocaleString('es-CO', { minimumFractionDigits: 2 })}`);
+      console.log(`    - Cheque: $${montosOrden.montoCheque.toLocaleString('es-CO', { minimumFractionDigits: 2 })}`);
+      
+      montoEfectivo += montosOrden.montoEfectivo;
+      montoTransferencia += montosOrden.montoTransferencia;
+      montoCheque += montosOrden.montoCheque;
     });
+    console.log(`  📌 Total Órdenes: $${montoOrdenes.toLocaleString('es-CO', { minimumFractionDigits: 2 })}`);
     
     // Los abonos tienen método de pago en el campo metodoPago como string complejo
     // Formato: "EFECTIVO: 100.000 | TRANSFERENCIA: 50.000 (Banco de Bogotá) | RETEFUENTE Orden #1057: 12.500"
+    console.log('\n💰 ABONOS SELECCIONADOS:');
     abonosSeleccionados.forEach(abono => {
-      const metodoPagoString = abono.metodoPago || '';
       const montoAbono = Number(abono.montoAbono) || 0;
       
-      if (metodoPagoString) {
-        // Parsear el string del método de pago
-        const parseado = parsearMetodoPagoAbono(metodoPagoString);
-        
-        // Verificar que la suma de los métodos parseados no exceda el monto del abono
-        const sumaParseada = parseado.montoEfectivo + parseado.montoTransferencia + parseado.montoCheque;
-        
-        // DEBUG: Log para identificar problemas
-        if (sumaParseada !== montoAbono) {
-          console.log(` [DEBUG Entrega] Abono #${abono.id}:`, {
-            montoAbono,
-            metodoPagoString: metodoPagoString.substring(0, 100), // Primeros 100 caracteres
-            parseado,
-            sumaParseada,
-            diferencia: sumaParseada - montoAbono
-          });
-        }
-        
-        // Si la suma parseada es mayor al monto del abono, hay un error en el parseo
-        // En ese caso, distribuir proporcionalmente
-        if (sumaParseada > montoAbono * 1.01) { // Tolerancia del 1% por redondeos
-          console.warn(` Abono #${abono.id}: Suma parseada (${sumaParseada}) > monto abono (${montoAbono}). Ajustando proporcionalmente.`);
-          const factor = montoAbono / sumaParseada;
-          parseado.montoEfectivo = parseado.montoEfectivo * factor;
-          parseado.montoTransferencia = parseado.montoTransferencia * factor;
-          parseado.montoCheque = parseado.montoCheque * factor;
-        } else if (sumaParseada < montoAbono * 0.99) {
-          // Si la suma parseada es menor, la diferencia va a efectivo por defecto
-          const diferencia = montoAbono - sumaParseada;
-          parseado.montoEfectivo += diferencia;
-        }
-        
-        montoEfectivo += parseado.montoEfectivo;
-        montoTransferencia += parseado.montoTransferencia;
-        montoCheque += parseado.montoCheque;
+      // 🆕 PRIORIZAR CAMPOS NUMÉRICOS del backend
+      const tieneMontos = (abono.montoEfectivo || 0) > 0 || (abono.montoTransferencia || 0) > 0 || (abono.montoCheque || 0) > 0;
+      
+      let montosAbono = {};
+      if (tieneMontos) {
+        // Usar campos numéricos del backend
+        montosAbono = {
+          montoEfectivo: Number(abono.montoEfectivo) || 0,
+          montoTransferencia: Number(abono.montoTransferencia) || 0,
+          montoCheque: Number(abono.montoCheque) || 0,
+          montoRetencion: Number(abono.montoRetencion) || 0
+        };
+        console.log(`  Abono #${abono.id} (usando campos numéricos):`);
       } else {
-        // Si no tiene método de pago, se asume efectivo por defecto
-        montoEfectivo += montoAbono;
+        // Fallback: parsear metodoPago string (registros antiguos)
+        const metodoPagoString = abono.metodoPago || '';
+        montosAbono = parsearMetodoPagoAbono(metodoPagoString);
+        console.log(`  Abono #${abono.id} (parseando metodoPago):`);
       }
+      
+      console.log(`    Monto abono: $${montoAbono.toLocaleString('es-CO', { minimumFractionDigits: 2 })}`);
+      console.log(`    - Efectivo: $${montosAbono.montoEfectivo.toLocaleString('es-CO', { minimumFractionDigits: 2 })}`);
+      console.log(`    - Transferencia: $${montosAbono.montoTransferencia.toLocaleString('es-CO', { minimumFractionDigits: 2 })}`);
+      console.log(`    - Cheque: $${montosAbono.montoCheque.toLocaleString('es-CO', { minimumFractionDigits: 2 })}`);
+      console.log(`    - Retención: $${montosAbono.montoRetencion.toLocaleString('es-CO', { minimumFractionDigits: 2 })}`);
+      
+      montoEfectivo += montosAbono.montoEfectivo;
+      montoTransferencia += montosAbono.montoTransferencia;
+      montoCheque += montosAbono.montoCheque;
+      montoRetencion += montosAbono.montoRetencion; // Acumular retención
     });
+    console.log(`  📌 Total Abonos: $${montoAbonos.toLocaleString('es-CO', { minimumFractionDigits: 2 })}`);
+    
+    console.log('\n📊 TOTALES ACUMULADOS:');
+    console.log(`  💵 Efectivo: $${montoEfectivo.toLocaleString('es-CO', { minimumFractionDigits: 2 })}`);
+    console.log(`  💳 Transferencia: $${montoTransferencia.toLocaleString('es-CO', { minimumFractionDigits: 2 })}`);
+    console.log(`  📝 Cheque: $${montoCheque.toLocaleString('es-CO', { minimumFractionDigits: 2 })}`);
+    console.log(`  🧾 Retención: $${montoRetencion.toLocaleString('es-CO', { minimumFractionDigits: 2 })}`);
+    console.log(`  💰 Suma métodos de pago: $${(montoEfectivo + montoTransferencia + montoCheque).toLocaleString('es-CO', { minimumFractionDigits: 2 })}`);
+    console.log(`  📦 Monto total esperado: $${montoTotal.toLocaleString('es-CO', { minimumFractionDigits: 2 })}`);
+    console.log(`  🔍 Diferencia: $${Math.abs((montoEfectivo + montoTransferencia + montoCheque) - montoTotal).toLocaleString('es-CO', { minimumFractionDigits: 2 })}`);
+    console.log('═══════════════════════════════════════════════════════\n');
     
     const desglose = {
       montoEfectivo,
       montoTransferencia,
       montoCheque,
       montoDeposito: 0, // Depósito no se usa en órdenes
+      montoRetencion, // Agregar retención al desglose
     };
     
     // El monto total debe ser la suma de órdenes + abonos, no la suma del desglose
@@ -478,6 +523,7 @@ const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores, se
       montoTransferencia,
       montoCheque,
       montoDeposito: 0,
+      montoRetencion, // Agregar retención al return
     };
   };
 
@@ -903,12 +949,14 @@ const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores, se
                     ${totales.montoCheque.toLocaleString()}
                   </span>
                 </div>
-                <div className="desglose-row">
-                  <label>Depósito</label>
-                  <span style={{ fontWeight: 'bold', color: '#1976d2' }}>
-                    ${totales.montoDeposito.toLocaleString()}
-                  </span>
-                </div>
+                {totales.montoRetencion > 0 && (
+                  <div className="desglose-row">
+                    <label>Retención de Fuente</label>
+                    <span style={{ fontWeight: 'bold', color: '#d32f2f' }}>
+                      ${totales.montoRetencion.toLocaleString()}
+                    </span>
+                  </div>
+                )}
               </div>
               <div className="resumen-item">
                 <span>Total Órdenes a Contado:</span>

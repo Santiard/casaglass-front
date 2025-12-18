@@ -941,6 +941,17 @@ export default function OrdenEditarModal({
       const subtotal = itemsActivos.reduce((sum, item) => sum + (item.totalLinea || 0), 0);
       const totalOrden = subtotal - (form.descuentos || 0);
 
+      // Calcular retención de fuente si está marcada (ANTES de usar en construirDescripcion)
+      let retencionFuenteCrear = 0;
+      if (form.tieneRetencionFuente) {
+        // totalOrden ya es subtotal - descuentos (total facturado con IVA)
+        const subtotalSinIvaCrear = totalOrden / 1.19;
+        if (subtotalSinIvaCrear >= retefuenteThreshold) {
+          retencionFuenteCrear = subtotalSinIvaCrear * (retefuenteRate / 100);
+          retencionFuenteCrear = Math.round(retencionFuenteCrear * 100) / 100;
+        }
+      }
+
       // Determinar si es venta o cotización
       const esVenta = Boolean(form.venta === true);
       let esCredito = false;
@@ -993,21 +1004,40 @@ export default function OrdenEditarModal({
         descripcionFinal = null; // Las cotizaciones no tienen métodos de pago
       }
 
+      // Calcular montos por método de pago
+      let montoEfectivoTotal = 0;
+      let montoTransferenciaTotal = 0;
+      let montoChequeTotal = 0;
+      
+      // Si es contado, calcular los montos desde los métodos de pago
+      if (!esCredito && esVenta) {
+        // Filtrar métodos con monto > 0
+        const metodosConMonto = metodosPago.filter(m => m.tipo && parseFloat(m.monto) > 0);
+        
+        // Si hay un solo método sin monto especificado, asignarle el total
+        if (metodosConMonto.length === 0 && metodosPago.length === 1 && metodosPago[0].tipo) {
+          metodosConMonto.push({ ...metodosPago[0], monto: totalOrden });
+        }
+        
+        // Sumar montos por tipo
+        metodosConMonto.forEach(metodo => {
+          const monto = parseFloat(metodo.monto) || 0;
+          if (metodo.tipo === "EFECTIVO") {
+            montoEfectivoTotal += monto;
+          } else if (metodo.tipo === "TRANSFERENCIA") {
+            montoTransferenciaTotal += monto;
+          } else if (metodo.tipo === "CHEQUE") {
+            montoChequeTotal += monto;
+          }
+          // Otros tipos (NEQUI, DAVIPLATA, etc.) no se envían en campos numéricos por ahora
+        });
+      }
+      // Si es crédito o cotización, los montos quedan en 0
+      
       // Crear nueva orden
       const fechaFormateada = toLocalDateOnly(form.fecha);
       console.log("📅 [OrdenModal] Fecha del formulario:", form.fecha);
       console.log("📅 [OrdenModal] Fecha formateada para enviar:", fechaFormateada);
-      
-      // Calcular retención de fuente si está marcada
-      let retencionFuenteCrear = 0;
-      if (form.tieneRetencionFuente) {
-        // totalOrden ya es subtotal - descuentos (total facturado con IVA)
-        const subtotalSinIvaCrear = totalOrden / 1.19;
-        if (subtotalSinIvaCrear >= retefuenteThreshold) {
-          retencionFuenteCrear = subtotalSinIvaCrear * (retefuenteRate / 100);
-          retencionFuenteCrear = Math.round(retencionFuenteCrear * 100) / 100;
-        }
-      }
       
       const payload = {
         fecha: fechaFormateada,
@@ -1019,6 +1049,10 @@ export default function OrdenEditarModal({
         retencionFuente: retencionFuenteCrear, // Calcular si está marcado, sino 0
         descuentos: Number(form.descuentos || 0),
         subtotal: subtotal, // Enviar subtotal explícitamente (precio completo con IVA incluido)
+        // 🆕 CAMPOS NUMÉRICOS: Montos por método de pago
+        montoEfectivo: montoEfectivoTotal,
+        montoTransferencia: montoTransferenciaTotal,
+        montoCheque: montoChequeTotal,
         clienteId: Number(form.clienteId),
         sedeId: Number(form.sedeId),
         // trabajadorId es opcional según la documentación

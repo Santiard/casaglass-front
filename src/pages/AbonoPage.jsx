@@ -201,6 +201,7 @@ const AbonoPage = () => {
         venta: true,
         creditoDetalle: {
           id: credito.creditoId,
+          creditoId: credito.creditoId, // ✅ Agregar creditoId también para compatibilidad
           saldoPendiente: credito.saldoPendiente,
           totalCredito: credito.totalCredito,
           totalAbonado: credito.totalAbonado,
@@ -611,6 +612,22 @@ const AbonoPage = () => {
     try {
       setLoading(true);
       
+      // 🆕 CALCULAR MONTOS POR MÉTODO DE PAGO (campos numéricos)
+      let montoEfectivoTotal = 0;
+      let montoTransferenciaTotal = 0;
+      let montoChequeTotal = 0;
+      
+      metodosValidos.forEach(metodo => {
+        const monto = parseFloat(metodo.monto) || 0;
+        if (metodo.tipo === "EFECTIVO") {
+          montoEfectivoTotal += monto;
+        } else if (metodo.tipo === "TRANSFERENCIA") {
+          montoTransferenciaTotal += monto;
+        } else if (metodo.tipo === "CHEQUE") {
+          montoChequeTotal += monto;
+        }
+      });
+      
       // Construir descripción para cada abono individualmente
       // IMPORTANTE: La retención solo se muestra cuando el abono completa el pago de la orden
       // porque la retención se calcula UNA VEZ sobre el total, no sobre cada abono parcial
@@ -628,12 +645,30 @@ const AbonoPage = () => {
         const distribucionParaEsteAbono = dist.saldoRestante === 0 ? [dist] : [{ ...dist, montoRetencion: 0 }];
         const metodoPagoString = construirDescripcion(metodosValidos, observacionesAdicionales, distribucionParaEsteAbono);
         
+        // 🆕 CALCULAR RETENCIÓN PROPORCIONAL
+        let montoRetencionAbono = 0;
+        if (orden.tieneRetencionFuente && dist.saldoRestante === 0) {
+          // Si este abono completa la orden, incluir la retención total
+          montoRetencionAbono = orden.retencionFuente || 0;
+        }
+        
+        // 🆕 CALCULAR MONTOS PROPORCIONALES de cada método de pago
+        const proporcion = dist.montoAbono / totalMetodosPago;
+        const montoEfectivoAbono = montoEfectivoTotal * proporcion;
+        const montoTransferenciaAbono = montoTransferenciaTotal * proporcion;
+        const montoChequeAbono = montoChequeTotal * proporcion;
+        
         return {
           creditoId: creditoId,
           total: dist.montoAbono,
           fecha: formData.fecha,
           metodoPago: metodoPagoString,
-          factura: numeroAbono // Siempre enviar un valor válido
+          factura: numeroAbono, // Siempre enviar un valor válido
+          // 🆕 CAMPOS NUMÉRICOS
+          montoEfectivo: Math.round(montoEfectivoAbono * 100) / 100,
+          montoTransferencia: Math.round(montoTransferenciaAbono * 100) / 100,
+          montoCheque: Math.round(montoChequeAbono * 100) / 100,
+          montoRetencion: Math.round(montoRetencionAbono * 100) / 100
         };
       }).filter(abono => abono !== null && abono.creditoId);
 
@@ -1084,7 +1119,7 @@ const AbonoPage = () => {
                       </tbody>
                       <tfoot style={{ backgroundColor: '#f8f9fa', fontWeight: 'bold', position: 'sticky', bottom: 0, zIndex: 3 }}>
                         <tr>
-                          <td colSpan="5" style={{ padding: '0.5rem', textAlign: 'right', borderTop: '2px solid #1e2753' }}>
+                          <td colSpan="4" style={{ padding: '0.5rem', textAlign: 'right', borderTop: '2px solid #1e2753' }}>
                             TOTAL DEUDA:
                           </td>
                           <td style={{ padding: '0.5rem', textAlign: 'right', borderTop: '2px solid #1e2753' }}>

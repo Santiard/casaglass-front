@@ -179,7 +179,6 @@ export default function EntregasTable({
               <th>Efectivo</th>
               <th>Transferencia</th>
               <th>Cheque</th>
-              <th>Depósito</th>
               <th>Estado</th>
               <th>Detalles</th>
               <th>Acciones</th>
@@ -188,13 +187,12 @@ export default function EntregasTable({
 
           <tbody>
             {pageData.length === 0 ? (
-              <tr><td colSpan={12} className="empty">No hay entregas registradas</td></tr>
+              <tr><td colSpan={11} className="empty">No hay entregas registradas</td></tr>
             ) : pageData.map((ent) => {
               const monto = Number(ent.monto ?? 0);
               const montoEfectivo = Number(ent.montoEfectivo ?? 0);
               const montoTransferencia = Number(ent.montoTransferencia ?? 0);
               const montoCheque = Number(ent.montoCheque ?? 0);
-              const montoDeposito = Number(ent.montoDeposito ?? 0);
               const estaSeleccionada = entregasSeleccionadas.includes(ent.id);
               
               return (
@@ -224,7 +222,6 @@ export default function EntregasTable({
                   <td className="monto-desglose">{fmtCOP(montoEfectivo)}</td>
                   <td className="monto-desglose">{fmtCOP(montoTransferencia)}</td>
                   <td className="monto-desglose">{fmtCOP(montoCheque)}</td>
-                  <td className="monto-desglose">{fmtCOP(montoDeposito)}</td>
                   <td>
                     {ent.estado === "ENTREGADA" && <span className="status ok">Entregada</span>}
                     {ent.estado === "PENDIENTE" && <span className="status pending">Pendiente</span>}

@@ -70,6 +70,19 @@
   margin-top: auto;
 }
 
+/* ===== ESTILOS ESPECÍFICOS PARA TABLAS DE VENTA (SOLO EN VenderPage) ===== */
+/* Aumentar ancho de la columna Nombre (columna 2) SOLO en tablas de venta de productos/cortes */
+.vender-page .venta-table .table th:nth-child(2),
+.vender-page .venta-table .table td:nth-child(2) {
+  min-width: 15rem !important; /* Nombre - ancho aumentado para mostrar completo */
+  max-width: 20rem !important; /* Límite máximo razonable */
+  white-space: normal !important; /* Permitir wrap si es necesario */
+  overflow: visible !important; /* Mostrar todo el contenido */
+  text-overflow: clip !important; /* No truncar */
+  word-wrap: break-word !important;
+  overflow-wrap: break-word !important;
+}
+
 .items-count {
   color: var(--color-white);
 }
@@ -97,6 +110,30 @@
   max-width: 100%; /* No exceder el ancho del contenedor */
   width: 100%;
   box-sizing: border-box;
+  /* Estilos del scrollbar para mejor UX */
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e0 #f7fafc;
+}
+
+/* Estilos de scrollbar para navegadores basados en Webkit (Chrome, Safari, Edge) */
+.table-wrapper::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.table-wrapper::-webkit-scrollbar-track {
+  background: #f7fafc;
+  border-radius: 4px;
+}
+
+.table-wrapper::-webkit-scrollbar-thumb {
+  background: #cbd5e0;
+  border-radius: 4px;
+  transition: background 0.2s ease;
+}
+
+.table-wrapper::-webkit-scrollbar-thumb:hover {
+  background: #a0aec0;
 }
 
 /* Paginación abajo */
@@ -1305,6 +1342,16 @@ input[type="number"] {
   transform: translateY(0.0625rem); 
 }
 
+/* ===== ESTILOS DE PÁGINA DE INGRESOS ===== */
+.page-ingresos {
+  height: 100%; /* Tomar toda la altura disponible del viewport */
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  overflow: hidden; /* Prevenir scroll en el contenedor padre */
+  box-sizing: border-box;
+}
+
 /* ===== ESTILOS DE INGRESOS (iguales a Clientes, Movimientos y Proveedores) ===== */
 .ingresos.table-container {
   border-radius: 0.75rem;
@@ -1436,7 +1483,7 @@ input[type="number"] {
   top: 0;
   z-index: 1;
   background: var(--color-light-blue);
-  color: var(--color-white);
+  color: #ffffff !important;
 }
 
 .ingresos .table {
@@ -1451,6 +1498,7 @@ input[type="number"] {
   text-align: left;
   font-weight: 600;
   font-size: 0.875rem;
+  color: #ffffff !important; /* Texto blanco en headers */
 }
 
 .ingresos .table th,
