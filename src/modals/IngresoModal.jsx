@@ -3,13 +3,13 @@ import { useEffect, useMemo, useState } from "react";
 import "../styles/IngresoNuevoModal.css";
 import "../styles/Table.css";
 import {
-  toLocalDateString,
+  obtenerIngreso,
 } from "../services/IngresosService.js";
 import CategorySidebar from "../componets/CategorySidebar.jsx";
 import { listarCategorias } from "../services/CategoriasService.js";
 import { useToast } from "../context/ToastContext.jsx";
 import { listarProveedores } from "../services/ProveedoresService.js";
-import { getTodayLocalDate } from "../lib/dateUtils.js";
+import { getTodayLocalDate, parseLocalDate, diffDaysFromToday } from "../lib/dateUtils.js";
 
 export default function IngresoModal({
   isOpen,
@@ -59,51 +59,69 @@ export default function IngresoModal({
   }, [isOpen]);
 
   useEffect(() => {
-  if (!isOpen) return;
+    if (!isOpen) return;
 
-  if (ingresoInicial) {
-    setForm({
-      fecha: ingresoInicial.fecha ?? getTodayLocalDate(),
-      proveedorId: ingresoInicial.proveedor?.id ?? "",
-      proveedorNombre: ingresoInicial.proveedor?.nombre ?? "",
-      numeroFactura: ingresoInicial.numeroFactura ?? "",
-      observaciones: ingresoInicial.observaciones ?? "",
-      detalles: Array.isArray(ingresoInicial.detalles)
-        ? ingresoInicial.detalles.map((d) => ({
-            producto: {
-              id: d.producto?.id ?? "",
-              nombre: d.producto?.nombre ?? "",
-              codigo: d.producto?.codigo ?? "",
-            },
-            cantidad: d.cantidad && Number(d.cantidad) > 0 ? Number(d.cantidad) : "",
-            costoUnitario: d.costoUnitario && Number(d.costoUnitario) > 0 ? Number(d.costoUnitario) : "",
-          }))
-        : [],
-    });
+    const cargarIngreso = async () => {
+      if (ingresoInicial) {
+        let ingresoCompleto = ingresoInicial;
+        
+        // Si el ingreso no tiene detalles o están vacíos, obtenerlo del backend
+        if (!ingresoInicial.detalles || ingresoInicial.detalles.length === 0) {
+          if (ingresoInicial.id) {
+            try {
+              console.log("📥 Obteniendo ingreso completo para edición:", ingresoInicial.id);
+              ingresoCompleto = await obtenerIngreso(ingresoInicial.id);
+              console.log("✅ Ingreso completo obtenido:", ingresoCompleto);
+            } catch (error) {
+              console.error("❌ Error al obtener ingreso completo:", error);
+              showError("No se pudieron cargar los detalles del ingreso");
+              return;
+            }
+          }
+        }
+        
+        setForm({
+          fecha: ingresoCompleto.fecha ?? getTodayLocalDate(),
+          proveedorId: ingresoCompleto.proveedor?.id ?? "",
+          proveedorNombre: ingresoCompleto.proveedor?.nombre ?? "",
+          numeroFactura: ingresoCompleto.numeroFactura ?? "",
+          observaciones: ingresoCompleto.observaciones ?? "",
+          detalles: Array.isArray(ingresoCompleto.detalles)
+            ? ingresoCompleto.detalles.map((d) => ({
+                producto: {
+                  id: d.producto?.id ?? "",
+                  nombre: d.producto?.nombre ?? "",
+                  codigo: d.producto?.codigo ?? "",
+                },
+                cantidad: d.cantidad && Number(d.cantidad) > 0 ? Number(d.cantidad) : "",
+                costoUnitario: d.costoUnitario && Number(d.costoUnitario) > 0 ? Number(d.costoUnitario) : "",
+              }))
+            : [],
+        });
 
-    // Calcula días de diferencia (sin helpers)
-    const base = new Date(ingresoInicial.fecha);
-    const hoy = new Date();
-    const diffDays = Math.floor(
-      (hoy.getTime() - base.getTime()) / (1000 * 60 * 60 * 24)
-    );
+        // Calcula días de diferencia usando las funciones de dateUtils
+        const base = parseLocalDate(ingresoCompleto.fecha);
+        const diffDays = diffDaysFromToday(base);
 
-    setEditable(diffDays <= 2);
-  } else {
-    setForm({
-      fecha: getTodayLocalDate(),
-      proveedorId: "",
-      proveedorNombre: "",
-      numeroFactura: "",
-      observaciones: "",
-      detalles: [],
-    });
-    setEditable(true);
-  }
+        setEditable(diffDays <= 2);
+      } else {
+        setForm({
+          fecha: getTodayLocalDate(),
+          proveedorId: "",
+          proveedorNombre: "",
+          numeroFactura: "",
+          observaciones: "",
+          detalles: [],
+        });
+        setEditable(true);
+      }
 
-  setSearchCat("");
-  setSelectedCategoryId(null);
-}, [isOpen, ingresoInicial]);
+      setSearchCat("");
+      setSelectedCategoryId(null);
+    };
+
+    cargarIngreso();
+  }, [isOpen, ingresoInicial]);
 
   // Cargar categorías y proveedores desde el servidor
   useEffect(() => {
@@ -314,11 +332,9 @@ export default function IngresoModal({
   const handleSubmit = async () => {
     if (disabledSubmit) return;
 
-    // Aseguramos Date "YYYY-MM-DD"
-    const fechaStr =
-      form.fecha?.length === 10
-        ? toLocalDateString(new Date(form.fecha))
-        : toLocalDateString(new Date());
+    // La fecha ya viene en formato correcto "YYYY-MM-DD" del input
+    // No necesitamos convertirla - solo asegurarnos que existe
+    const fechaStr = form.fecha || getTodayLocalDate();
 
     const formParaService = {
       ...form,

@@ -20,7 +20,7 @@
 - `venta` (Boolean, opcional)
 - `credito` (Boolean, opcional)
 - `facturada` (Boolean, opcional)
-- `page` (Integer, opcional): Número de página (default: sin paginación)
+- `page` (Integer, opcional): Número de página (default: sin paGET /api/ingresos?page=1&size=20ginación)
 - `size` (Integer, opcional): Tamaño de página (default: 20, máximo: 100)
 - `sortBy` (String, opcional): "fecha", "numero", "total" (default: "fecha")
 - `sortOrder` (String, opcional): "ASC", "DESC" (default: "DESC")

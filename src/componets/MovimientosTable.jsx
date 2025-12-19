@@ -318,8 +318,8 @@ export default function MovimientosTable({
                           {expanded[id] ? "Ocultar" : "Ver Detalles"}
                         </button>
 
-                        {/* Botones solo para ADMINISTRADORES */}
-                        {isAdmin && (
+                        {/* Botones solo para ADMINISTRADORES y traslados NO confirmados */}
+                        {isAdmin && !mov.trabajadorConfirmacion && (
                           <>
                             <button
                               className="btnEdit"

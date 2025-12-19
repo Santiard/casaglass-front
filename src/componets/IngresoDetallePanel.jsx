@@ -1,5 +1,6 @@
 import "../styles/Table.css";
 import "../styles/IngresoDetallePanel.css";
+import { parseLocalDate } from "../lib/dateUtils.js";
 
 export default function IngresoDetallePanel({ ingreso, onClose }){
   if (!ingreso) return null;
@@ -12,8 +13,8 @@ export default function IngresoDetallePanel({ ingreso, onClose }){
       : n ?? "-";
 
   const fmtFecha = (iso) => {
-    const d = new Date(iso);
-    return isNaN(d) ? "-" : d.toLocaleString("es-CO", {
+    const d = parseLocalDate(iso);
+    return !d || isNaN(d) ? "-" : d.toLocaleDateString("es-CO", {
       year: "numeric", month: "2-digit", day: "2-digit"
     });
   };

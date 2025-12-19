@@ -431,13 +431,14 @@ export default function EntregasImprimirModal({ entregas = [], isOpen, onClose }
                         <th>Total Orden</th>
                         <th>Saldo</th>
                         <th>Valor Entregado</th>
+                        <th>Retención</th>
                         <th>Medio</th>
                       </tr>
                     </thead>
                     <tbody>
                       {entrega.detalles?.length === 0 ? (
                         <tr>
-                          <td colSpan={6} className="empty">Sin órdenes</td>
+                          <td colSpan={7} className="empty">Sin órdenes</td>
                         </tr>
                       ) : (
                         entrega.detalles?.map((detalle, idx) => {
@@ -542,6 +543,14 @@ export default function EntregasImprimirModal({ entregas = [], isOpen, onClose }
                             }
                           }
 
+                          // Extraer retención del método de pago
+                          let retencion = null;
+                          const metodoPagoStr = detalle.ventaCredito ? (detalle.metodoPago || "") : (detalle.descripcion || "");
+                          const retencionMatch = metodoPagoStr.match(/RETEFUENTE.*?:\s*([0-9.,]+)/i);
+                          if (retencionMatch) {
+                            retencion = retencionMatch[1];
+                          }
+
                           return (
                             <tr key={detalle.id || idx}>
                               <td>{detalle.numeroOrden || "-"}</td>
@@ -549,6 +558,7 @@ export default function EntregasImprimirModal({ entregas = [], isOpen, onClose }
                               <td>${(Number(detalle.montoOrden) || 0).toLocaleString("es-CO")}</td>
                               <td>${saldo.toLocaleString("es-CO")}</td>
                               <td>${valorEntregado.toLocaleString("es-CO")}</td>
+                              <td>{retencion ? `$${retencion}` : "-"}</td>
                               <td>{medio}</td>
                             </tr>
                           );
@@ -561,11 +571,12 @@ export default function EntregasImprimirModal({ entregas = [], isOpen, onClose }
                   {(() => {
                     // Estructura para agrupar por método de pago y monto
                     const metodosPago = {};
-                    // Formato: { "EFECTIVO|1000000": [{orden, retencion}], "TRANSFERENCIA BANCOLOMBIA|7000000": [...] }
+                    // Formato: { "EFECTIVO|1000000": {tipo, monto, cliente, ordenes: [{orden, retencion}]} }
                     
                     entrega.detalles?.forEach((detalle) => {
                       const numeroOrden = detalle.numeroOrden;
                       const esAbono = detalle.ventaCredito;
+                      const nombreCliente = detalle.clienteNombre || detalle.cliente?.nombre || "Cliente";
                       let metodoPagoStr = "";
                       
                       // Obtener el string completo del método de pago
@@ -598,6 +609,7 @@ export default function EntregasImprimirModal({ entregas = [], isOpen, onClose }
                             metodosPago[clave] = {
                               tipo: "EFECTIVO",
                               monto: monto,
+                              cliente: nombreCliente,
                               ordenes: []
                             };
                           }
@@ -618,6 +630,7 @@ export default function EntregasImprimirModal({ entregas = [], isOpen, onClose }
                             metodosPago[clave] = {
                               tipo: `TRANSFERENCIA ${banco}`,
                               monto: monto,
+                              cliente: nombreCliente,
                               ordenes: []
                             };
                           }
@@ -637,6 +650,7 @@ export default function EntregasImprimirModal({ entregas = [], isOpen, onClose }
                             metodosPago[clave] = {
                               tipo: "CHEQUE",
                               monto: monto,
+                              cliente: nombreCliente,
                               ordenes: []
                             };
                           }
@@ -656,6 +670,7 @@ export default function EntregasImprimirModal({ entregas = [], isOpen, onClose }
                             metodosPago[clave] = {
                               tipo: "DEPÓSITO",
                               monto: monto,
+                              cliente: nombreCliente,
                               ordenes: []
                             };
                           }
@@ -683,25 +698,38 @@ export default function EntregasImprimirModal({ entregas = [], isOpen, onClose }
                     // Generar las líneas agrupadas por método de pago
                     const lineas = [];
                     
+                    // Agrupar por cliente primero
+                    const porCliente = {};
                     Object.keys(metodosPago).forEach(clave => {
                       const grupo = metodosPago[clave];
+                      if (!porCliente[grupo.cliente]) {
+                        porCliente[grupo.cliente] = [];
+                      }
+                      porCliente[grupo.cliente].push({ clave, grupo });
+                    });
+                    
+                    // Generar líneas ordenadas por cliente
+                    Object.keys(porCliente).sort().forEach(cliente => {
+                      const pagosCliente = porCliente[cliente];
                       
-                      // Encabezado del método con monto (NO sumar, usar el monto de la transferencia)
-                      lineas.push(`${grupo.tipo}: $${grupo.monto}`);
-                      
-                      // Listar órdenes de este método
-                      grupo.ordenes.forEach(item => {
-                        const prefijo = item.esAbono ? "ABONO Orden" : "Orden";
-                        let linea = `${prefijo} #${item.orden}`;
+                      pagosCliente.forEach(({ clave, grupo }) => {
+                        // Encabezado del método con cliente y monto
+                        lineas.push(`${grupo.cliente} - ${grupo.tipo}: $${grupo.monto}`);
                         
-                        if (item.retencion) {
-                          linea += ` | (-) Retención: $${item.retencion}`;
-                        }
+                        // Listar órdenes de este método
+                        grupo.ordenes.forEach(item => {
+                          const prefijo = item.esAbono ? "ABONO Orden" : "Orden";
+                          let linea = `${prefijo} #${item.orden}`;
+                          
+                          if (item.retencion) {
+                            linea += ` | (-) Retención: $${item.retencion}`;
+                          }
+                          
+                          lineas.push(linea);
+                        });
                         
-                        lineas.push(linea);
+                        lineas.push(""); // Línea vacía entre métodos
                       });
-                      
-                      lineas.push(""); // Línea vacía entre métodos
                     });
                     
                     // Solo mostrar la sección si hay líneas
@@ -736,11 +764,11 @@ export default function EntregasImprimirModal({ entregas = [], isOpen, onClose }
                   {/* Subtotal por entrega */}
                   <div className="total total-horizontal" style={{ marginTop: "8px" }}>
                     <div className="total-row">
-                      <span><strong>Subtotal Entrega #{entrega.id}:</strong></span>
-                      <span>Efectivo: ${(Number(entrega.montoEfectivo) || 0).toLocaleString("es-CO")}</span>
-                      <span>Transferencia: ${(Number(entrega.montoTransferencia) || 0).toLocaleString("es-CO")}</span>
-                      <span>Cheque: ${(Number(entrega.montoCheque) || 0).toLocaleString("es-CO")}</span>
-                      <span>Depósito: ${(Number(entrega.montoDeposito) || 0).toLocaleString("es-CO")}</span>
+                      <span><strong>Subtotal Entrega #{entrega.id}: </strong></span>
+                      <span>Efectivo: ${(Number(entrega.montoEfectivo) || 0).toLocaleString("es-CO")} | </span>
+                      <span>Transferencia: ${(Number(entrega.montoTransferencia) || 0).toLocaleString("es-CO")} | </span>
+                      <span>Cheque: ${(Number(entrega.montoCheque) || 0).toLocaleString("es-CO")} | </span>
+                      <span>Depósito: ${(Number(entrega.montoDeposito) || 0).toLocaleString("es-CO")} | </span>
                       {/* Total Gastos eliminado - ya no se usan gastos en entregas */}
                       <span><strong>Total Entregado: ${totalEntregado.toLocaleString("es-CO")}</strong></span>
                     </div>

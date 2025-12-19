@@ -7,6 +7,7 @@ import deleteIcon from "../assets/eliminar.png";
 import IngresoModal from "../modals/IngresoModal.jsx";
 import { useConfirm } from "../hooks/useConfirm.jsx";
 import { useToast } from "../context/ToastContext.jsx";
+import { parseLocalDate, diffDaysFromToday } from "../lib/dateUtils.js";
 
 export default function IngresosTable({
   data = [],
@@ -45,11 +46,19 @@ export default function IngresosTable({
     setIsModalOpen(true);
   };
 
-  const openEditar = (ing) => {
-  // Permite abrir el modal SIEMPRE, pero dentro decidirá si es editable
-  setIngresoEditando(ing);
-  setIsModalOpen(true);
-};
+  const openEditar = async (ing) => {
+    // Obtener el ingreso completo con todos sus detalles antes de editar
+    try {
+      // Necesitamos importar obtenerIngreso desde el servicio
+      // Por ahora, asumimos que onVerDetalles ya lo hace y podríamos usar esa misma lógica
+      // O simplemente pasar el ingreso y que el modal llame al servicio si necesita más datos
+      setIngresoEditando(ing);
+      setIsModalOpen(true);
+    } catch (e) {
+      console.error("Error al abrir ingreso para editar:", e);
+      showError?.("No se pudo cargar el ingreso para editar");
+    }
+  };
 
   const handleGuardarIngreso = async (payload, isEdit) => {
     try {
@@ -70,34 +79,46 @@ export default function IngresosTable({
   };
 
   const eliminar = async (ing) => {
-    const d = parseLocalDate(ing.fecha);
-    const diff = diffDaysFromToday(d);
-    if (diff > 2) {
-      showError("No se puede eliminar un ingreso con más de 2 días de antigüedad.");
+    // Si el ingreso está procesado, no permitir eliminar (aunque el botón no debería aparecer)
+    if (ing.procesado) {
+      showError("No se puede eliminar un ingreso que ya ha sido procesado.");
       return;
     }
-    const confirmacion = await confirm({
-      title: "Eliminar Ingreso",
-      message: `¿Estás seguro de que deseas eliminar este ingreso?\n\nEsta acción no se puede deshacer.`,
-      confirmText: "Eliminar",
-      cancelText: "Cancelar",
-      type: "danger"
-    });
-    if (!confirmacion) return;
-    await onEliminar?.(ing.id);
+    
+    // Si el ingreso está pendiente (no procesado), se puede eliminar sin importar la fecha
+    // Si está procesado, verificar la antigüedad (aunque esto no debería llegar aquí)
+    if (!ing.procesado) {
+      // Ingreso pendiente: permitir eliminar siempre
+      const confirmacion = await confirm({
+        title: "Eliminar Ingreso",
+        message: `¿Estás seguro de que deseas eliminar este ingreso?\n\nEsta acción no se puede deshacer.`,
+        confirmText: "Eliminar",
+        cancelText: "Cancelar",
+        type: "danger"
+      });
+      if (!confirmacion) return;
+      await onEliminar?.(ing.id);
+    } else {
+      // Ingreso procesado: verificar antigüedad
+      const d = parseLocalDate(ing.fecha);
+      const diff = diffDaysFromToday(d);
+      if (diff > 2) {
+        showError("No se puede eliminar un ingreso con más de 2 días de antigüedad.");
+        return;
+      }
+      const confirmacion = await confirm({
+        title: "Eliminar Ingreso",
+        message: `¿Estás seguro de que deseas eliminar este ingreso?\n\nEsta acción no se puede deshacer.`,
+        confirmText: "Eliminar",
+        cancelText: "Cancelar",
+        type: "danger"
+      });
+      if (!confirmacion) return;
+      await onEliminar?.(ing.id);
+    }
   };
 
-  // === Helpers de fecha ===
-  const parseLocalDate = (s) => {
-    if (!s) return null;
-    const [y, m, d] = String(s).split("-").map(Number);
-    return new Date(y, (m ?? 1) - 1, d ?? 1);
-  };
-  const diffDaysFromToday = (dateObj) => {
-    if (!dateObj || isNaN(dateObj)) return Infinity;
-    const ms = Date.now() - dateObj.getTime();
-    return Math.floor(ms / (1000 * 60 * 60 * 24));
-  };
+  // === Helpers de fecha (ahora importados desde dateUtils) ===
   const canEdit = (ing) => {
     const d = parseLocalDate(ing.fecha);
     const days = diffDaysFromToday(d);
@@ -266,7 +287,7 @@ export default function IngresosTable({
               <th>Fecha</th>
               <th>Proveedor</th>
               <th>N° Factura</th>
-              <th>Ítems</th>
+              <th>Total Productos</th>
               <th>Total costo</th>
               <th>Estado</th>
               <th>Detalle</th>
@@ -294,6 +315,10 @@ export default function IngresosTable({
               pageData.map((ing) => {
                 const dets = Array.isArray(ing.detalles) ? ing.detalles : [];
                 const editable = canEdit(ing);
+                // Calcular suma total de cantidades de productos
+                const totalProductos = dets.reduce((sum, det) => sum + (Number(det.cantidad) || 0), 0);
+                // Usar cantidadTotal del backend si existe, sino calcular de detalles
+                const cantidadMostrar = ing.cantidadTotal ?? (dets.length > 0 ? totalProductos : null);
 
                 return (
                   <tr
@@ -305,7 +330,11 @@ export default function IngresosTable({
                     <td>{ing.proveedor?.nombre ?? "-"}</td>
                     <td>{ing.numeroFactura ?? "-"}</td>
                     <td>
-                      <span className="badge">{dets.length}</span>
+                      {cantidadMostrar !== null ? (
+                        <span className="badge">{cantidadMostrar}</span>
+                      ) : (
+                        <span style={{ color: '#999', fontSize: '0.85rem' }}>-</span>
+                      )}
                     </td>
                     <td>{fmtCOP(Number(ing.totalCosto))}</td>
                     <td>
@@ -344,29 +373,35 @@ export default function IngresosTable({
                         </button>
                       )}
                       
-                      <button
-                          className="btnEdit"
-                          onClick={() => openEditar(ing)}
-                          title={
-                            editable
-                              ? "Editar ingreso"
-                              : "Solo lectura (más de 2 días)"
-                          }
-                        >
-                        <img
-                          src={editar}
-                          className="iconButton"
-                          alt="Editar"
-                        />
-                      </button>
+                      {/* Botón Editar - solo si no está procesado */}
+                      {!ing.procesado && (
+                        <button
+                            className="btnEdit"
+                            onClick={() => openEditar(ing)}
+                            title={
+                              editable
+                                ? "Editar ingreso"
+                                : "Solo lectura (más de 2 días)"
+                            }
+                          >
+                          <img
+                            src={editar}
+                            className="iconButton"
+                            alt="Editar"
+                          />
+                        </button>
+                      )}
                       
-                      <button
-                      className="btnDelete"
-                      onClick={() => eliminar(ing)}
-                      title="Eliminar ingreso"
-                    >
-                     <img src={deleteIcon} className="iconButton" />
-                    </button>
+                      {/* Botón Eliminar - solo si no está procesado */}
+                      {!ing.procesado && (
+                        <button
+                          className="btnDelete"
+                          onClick={() => eliminar(ing)}
+                          title="Eliminar ingreso"
+                        >
+                         <img src={deleteIcon} className="iconButton" />
+                        </button>
+                      )}
                    
                     </td>
                   </tr>

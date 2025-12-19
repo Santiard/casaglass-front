@@ -1009,6 +1009,56 @@ input[type="number"] {
   color: var(--color-dark-gray);
 }
 
+/* Anchos específicos de columnas para Movimientos/Traslados */
+.mov .table th:nth-child(1), /* Sede origen */
+.mov .table td:nth-child(1) {
+  width: 8%;
+  min-width: 6rem;
+}
+
+.mov .table th:nth-child(2), /* Sede destino */
+.mov .table td:nth-child(2) {
+  width: 8%;
+  min-width: 6rem;
+}
+
+.mov .table th:nth-child(3), /* Fecha */
+.mov .table td:nth-child(3) {
+  width: 10%;
+  min-width: 6.5rem;
+}
+
+.mov .table th:nth-child(4), /* Día */
+.mov .table td:nth-child(4) {
+  width: 12%;
+  min-width: 7rem;
+}
+
+.mov .table th:nth-child(5), /* Ítems */
+.mov .table td:nth-child(5) {
+  width: 6%;
+  min-width: 4rem;
+  text-align: center;
+}
+
+.mov .table th:nth-child(6), /* Estado */
+.mov .table td:nth-child(6) {
+  width: 10%;
+  min-width: 6.5rem;
+}
+
+.mov .table th:nth-child(7), /* Confirmado por */
+.mov .table td:nth-child(7) {
+  width: 26%;
+  min-width: 10rem;
+}
+
+.mov .table th:nth-child(8), /* Acciones */
+.mov .table td:nth-child(8) {
+  width: 20%;
+  min-width: 12rem;
+}
+
 .mov .pagination-bar {
   display: flex;
   align-items: center;

@@ -1,5 +1,6 @@
 // src/modals/IngresoDetalleModal.jsx
 import "../styles/IngresoDetalleModal.css";
+import { parseLocalDate } from "../lib/dateUtils.js";
 
 export default function IngresoDetalleModal({ ingreso, onClose }) {
   if (!ingreso) return null;
@@ -24,15 +25,13 @@ export default function IngresoDetalleModal({ ingreso, onClose }) {
       : n ?? "-";
 
   const fmtFecha = (iso) => {
-    const d = new Date(iso);
-    return isNaN(d)
+    const d = parseLocalDate(iso);
+    return !d || isNaN(d)
       ? "-"
-      : d.toLocaleString("es-CO", {
+      : d.toLocaleDateString("es-CO", {
           year: "numeric",
           month: "2-digit",
           day: "2-digit",
-          hour: "2-digit",
-          minute: "2-digit",
         });
   };
 

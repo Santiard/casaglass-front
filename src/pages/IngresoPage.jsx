@@ -124,6 +124,7 @@ export default function IngresosPage() {
   useEffect(() => {
     loadIngresos(1, pageSize);
     loadAux();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAdmin, sedeId]); // Solo recargar si cambian estos valores
 
   // Recargar cuando cambie la página o el tamaño
@@ -131,7 +132,8 @@ export default function IngresosPage() {
     if (currentPage > 0 && pageSize > 0) {
       loadIngresos(currentPage, pageSize);
     }
-  }, [currentPage, pageSize, loadIngresos]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPage, pageSize]); // Removida dependencia de loadIngresos para evitar recargas innecesarias
 
   // Handler para cambios de página desde IngresosTable
   const handlePageChange = useCallback((newPage, newSize) => {

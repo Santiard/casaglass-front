@@ -3,15 +3,7 @@ import { api } from "../lib/api.js";
 import { listarProductos, actualizarProducto, actualizarCostoProducto } from "./ProductosService.js";
 import { listarInventarioCompleto } from "./InventarioService.js";
 import { listarCategorias } from "./CategoriasService.js";
-
-// === Utils ===
-export function toLocalDateString(date) {
-  const d = date instanceof Date ? date : new Date(date);
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
-}
+import { toLocalDateOnly } from "../lib/dateUtils.js";
 
 // Convierte el form del modal al payload que espera el backend
 function mapFormAIngresoAPI(form = {}) {
@@ -37,8 +29,8 @@ function mapFormAIngresoAPI(form = {}) {
   }
 
   const fecha = form.fecha
-    ? toLocalDateString(form.fecha.length === 16 ? new Date(form.fecha) : new Date(form.fecha))
-    : toLocalDateString(new Date());
+    ? toLocalDateOnly(form.fecha)
+    : toLocalDateOnly(new Date());
 
   const detalles = Array.isArray(form.detalles) ? form.detalles : [];
   if (detalles.length === 0) throw new Error("Debes agregar al menos un producto.");
@@ -65,6 +57,7 @@ function mapFormAIngresoAPI(form = {}) {
       },
       cantidad,
       costoUnitario,
+      costoUnitarioPonderado: costoUnitario, // Usar el mismo costo como ponderado por defecto
       totalLinea
     };
     
@@ -542,7 +535,7 @@ export async function actualizarIngresoDesdeForm(id, form) {
     return data;
   } catch (error) {
     console.error("Error en PUT /ingresos/{id}:", {
-      url: fullUrl,
+      url: `/ingresos/${id}`,
       status: error.response?.status,
       statusText: error.response?.statusText,
       message: error.message
