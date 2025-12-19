@@ -37,8 +37,8 @@ export default function IngresoDetallePanel({ ingreso, onClose }){
         <table className="table subtable">
           <thead>
             <tr>
+              <th>CODIGO</th>
               <th>Producto</th>
-              <th>SKU</th>
               <th>Cantidad</th>
               <th>Costo unitario</th>
               <th>Total línea</th>
@@ -48,9 +48,9 @@ export default function IngresoDetallePanel({ ingreso, onClose }){
             {dets.length === 0 ? (
               <tr><td colSpan={5} className="empty">Sin ítems</td></tr>
             ) : dets.map((d) => (
-              <tr key={d.id ?? `${d.producto?.id}-${d.producto?.sku}`}>
+              <tr key={d.id ?? `${d.producto?.id}-${d.producto?.codigo}`}>
+                <td>{d.producto?.codigo ?? "-"}</td>
                 <td>{d.producto?.nombre ?? "-"}</td>
-                <td>{d.producto?.sku ?? "-"}</td>
                 <td>{d.cantidad ?? "-"}</td>
                 <td>{fmtCOP(Number(d.costoUnitario))}</td>
                 <td>{fmtCOP(Number(d.totalLinea))}</td>

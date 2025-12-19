@@ -187,7 +187,7 @@
 }
 
 .ordenes-table thead th {
-  padding: 1rem 0.75rem;
+  padding: 0.5rem 0.75rem; /* Reducido de 1rem a 0.5rem verticalmente */
   text-align: left;
   font-weight: 600;
   font-size: 0.9rem;
@@ -218,7 +218,7 @@
 }
 
 .ordenes-table tbody td {
-  padding: 1rem 0.75rem;
+  padding: 0.4rem 0.75rem; /* Reducido de 1rem a 0.4rem verticalmente */
   color: #333;
   vertical-align: middle;
 }
@@ -236,7 +236,7 @@
 
 .ordenes-table .actions-cell button {
   margin: 0 0.25rem;
-  padding: 0.4rem 0.8rem;
+  padding: 0.3rem 0.6rem; /* Reducido de 0.4rem 0.8rem */
   font-size: 0.85rem;
   border-radius: 6px;
   transition: all 0.2s ease;
@@ -283,7 +283,7 @@
 /* Estado badge */
 .ordenes-table .badge {
   display: inline-block;
-  padding: 0.35rem 0.75rem;
+  padding: 0.25rem 0.6rem; /* Reducido de 0.35rem 0.75rem */
   border-radius: 6px;
   font-size: 0.8rem;
   font-weight: 600;

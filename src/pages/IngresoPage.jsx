@@ -2,7 +2,7 @@
 import { useEffect, useState, useCallback } from "react";
 import IngresosTable from "../componets/IngresoTable.jsx";
 import IngresoDetalleModal from "../modals/IngresoDetalleModal.jsx";
-import { listarIngresos, crearIngresoDesdeForm, actualizarIngresoDesdeForm, eliminarIngreso, procesarIngreso } from "../services/IngresosService.js";
+import { listarIngresos, crearIngresoDesdeForm, actualizarIngresoDesdeForm, eliminarIngreso, procesarIngreso, obtenerIngreso } from "../services/IngresosService.js";
 import { listarProveedores } from "../services/ProveedoresService.js";
 import { listarTodosLosProductos } from "../services/ProductosService.js";
 import { useConfirm } from "../hooks/useConfirm.jsx";
@@ -204,6 +204,21 @@ export default function IngresosPage() {
     }
   };
 
+  // Handler para ver detalles - obtiene el ingreso completo con detalles
+  const onVerDetalles = async (ing) => {
+    try {
+      setLoading(true);
+      const ingresoCompleto = await obtenerIngreso(ing.id);
+      console.log("📦 Ingreso completo obtenido:", ingresoCompleto);
+      setSeleccionado(ingresoCompleto);
+    } catch (e) {
+      console.error("Error al obtener detalles del ingreso:", e);
+      showError("No se pudieron cargar los detalles del ingreso");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="page-ingresos">
       <IngresosTable
@@ -211,7 +226,7 @@ export default function IngresosPage() {
         loading={loading}
         proveedores={proveedores}
         catalogoProductos={catalogo}
-        onVerDetalles={(ing) => setSeleccionado(ing)} // 👈 abre modal
+        onVerDetalles={onVerDetalles} // 👈 ahora llama a la función que obtiene el ingreso completo
         onCrear={onCrear}
         onActualizar={onActualizar}
         onEliminar={onEliminar}

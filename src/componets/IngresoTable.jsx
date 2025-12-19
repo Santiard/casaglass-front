@@ -266,7 +266,6 @@ export default function IngresosTable({
               <th>Fecha</th>
               <th>Proveedor</th>
               <th>N° Factura</th>
-              <th>Observaciones</th>
               <th>Ítems</th>
               <th>Total costo</th>
               <th>Estado</th>
@@ -278,14 +277,14 @@ export default function IngresosTable({
           <tbody>
             {loading && (
               <tr>
-                <td colSpan={8} className="empty">
+                <td colSpan={7} className="empty">
                   Cargando…
                 </td>
               </tr>
             )}
             {!loading && pageData.length === 0 && (
               <tr>
-                <td colSpan={8} className="empty">
+                <td colSpan={7} className="empty">
                   No hay ingresos registrados
                 </td>
               </tr>
@@ -305,7 +304,6 @@ export default function IngresosTable({
                     <td>{fmtFecha(ing.fecha)}</td>
                     <td>{ing.proveedor?.nombre ?? "-"}</td>
                     <td>{ing.numeroFactura ?? "-"}</td>
-                    <td className="cut">{ing.observaciones ?? "-"}</td>
                     <td>
                       <span className="badge">{dets.length}</span>
                     </td>

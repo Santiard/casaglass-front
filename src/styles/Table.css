@@ -1493,6 +1493,16 @@ input[type="number"] {
   table-layout: fixed; /* Controlar anchos */
 }
 
+/* Columna Ítems más estrecha */
+.ingresos-table th:nth-child(4),
+.ingresos-table td:nth-child(4) {
+  width: 6.3rem;
+  min-width: 6.3rem;
+  max-width: 6.3rem;
+  text-align: center;
+  white-space: normal;
+}
+
 .ingresos .table th {
   padding: 0.75rem;
   text-align: left;

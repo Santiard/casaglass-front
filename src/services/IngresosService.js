@@ -107,6 +107,12 @@ export async function probarConectividad() {
 
 export async function obtenerIngreso(id) {
   const { data } = await api.get(`/ingresos/${id}`);
+  console.log("🔍 Respuesta del backend para ingreso #" + id + ":", data);
+  console.log("📋 Detalles del ingreso:", data?.detalles);
+  if (data?.detalles && data.detalles.length > 0) {
+    console.log("🔎 Primer detalle completo:", data.detalles[0]);
+    console.log("📦 Producto del primer detalle:", data.detalles[0]?.producto);
+  }
   return data;
 }
 

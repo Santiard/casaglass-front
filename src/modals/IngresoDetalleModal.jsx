@@ -5,6 +5,14 @@ export default function IngresoDetalleModal({ ingreso, onClose }) {
   if (!ingreso) return null;
 
   const dets = Array.isArray(ingreso.detalles) ? ingreso.detalles : [];
+  
+  console.log("🎯 IngresoDetalleModal - Ingreso recibido:", ingreso);
+  console.log("📊 IngresoDetalleModal - Detalles:", dets);
+  if (dets.length > 0) {
+    console.log("🔍 IngresoDetalleModal - Primer detalle:", dets[0]);
+    console.log("📦 IngresoDetalleModal - Producto del primer detalle:", dets[0]?.producto);
+    console.log("🏷️ IngresoDetalleModal - CODIGO del producto:", dets[0]?.producto?.codigo);
+  }
 
   const fmtCOP = (n) =>
     typeof n === "number"
@@ -33,7 +41,7 @@ export default function IngresoDetalleModal({ ingreso, onClose }) {
     <div className="modal-container modal-tall ingreso-modal">
       {/* Header */}
       <div className="modal-header">
-        <h2>Detalles del ingreso #{ingreso.id ?? "—"}</h2>
+        <h2 style={{ color: 'white' }}>Detalles del ingreso #{ingreso.id ?? "—"}</h2>
         <button className="btn" onClick={onClose} type="button">
           Cerrar
         </button>
@@ -70,8 +78,8 @@ export default function IngresoDetalleModal({ ingreso, onClose }) {
           <table className="subtable">
             <thead>
               <tr>
+                <th>CODIGO</th>
                 <th>Producto</th>
-                <th>SKU</th>
                 <th>Cantidad</th>
                 <th>Costo unitario</th>
                 <th>Total línea</th>
@@ -90,12 +98,12 @@ export default function IngresoDetalleModal({ ingreso, onClose }) {
                     key={
                       d.id ??
                       `${d.producto?.id ?? "noid"}-${
-                        d.producto?.sku ?? "nosku"
+                        d.producto?.codigo ?? "nocodigo"
                       }`
                     }
                   >
+                    <td>{d.producto?.codigo ?? "-"}</td>
                     <td>{d.producto?.nombre ?? "-"}</td>
-                    <td>{d.producto?.sku ?? "-"}</td>
                     <td>{d.cantidad ?? "-"}</td>
                     <td>{fmtCOP(Number(d.costoUnitario))}</td>
                     <td>{fmtCOP(Number(d.totalLinea))}</td>

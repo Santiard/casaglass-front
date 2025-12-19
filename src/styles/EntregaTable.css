@@ -33,7 +33,7 @@
 }
 
 .entregas-table thead th {
-  padding: 12px 8px;
+  padding: 8px 8px; /* Reducido de 12px a 8px verticalmente */
   text-align: left;
   font-weight: 600;
   white-space: nowrap;
@@ -62,7 +62,7 @@
 }
 
 .entregas-table tbody td {
-  padding: 10px 8px;
+  padding: 6px 8px; /* Reducido de 10px a 6px verticalmente */
   white-space: nowrap;
   border-right: 1px solid #f0f0f0;
 }
@@ -80,7 +80,7 @@
 
 /* Estados */
 .entregas-table .status {
-  padding: 4px 8px;
+  padding: 3px 8px; /* Reducido de 4px a 3px verticalmente */
   border-radius: 4px;
   font-size: 0.85rem;
   font-weight: 600;

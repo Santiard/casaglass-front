@@ -559,29 +559,153 @@ export default function EntregasImprimirModal({ entregas = [], isOpen, onClose }
 
                   {/* Descripción de métodos de pago */}
                   {(() => {
-                    // Recopilar descripciones de métodos de pago de los detalles
-                    const descripciones = [];
+                    // Estructura para agrupar por método de pago y monto
+                    const metodosPago = {};
+                    // Formato: { "EFECTIVO|1000000": [{orden, retencion}], "TRANSFERENCIA BANCOLOMBIA|7000000": [...] }
                     
                     entrega.detalles?.forEach((detalle) => {
-                    if (!detalle.ventaCredito) {
-                        // Orden a contado: el backend envía la descripción en detalle.descripcion
-                        // Este campo contiene el string con el método de pago de la orden
-                        const desc = detalle.descripcion || "";
-                        if (desc && desc.trim()) {
-                          descripciones.push(`Orden #${detalle.numeroOrden}:\n${desc}`);
-                        }
+                      const numeroOrden = detalle.numeroOrden;
+                      const esAbono = detalle.ventaCredito;
+                      let metodoPagoStr = "";
+                      
+                      // Obtener el string completo del método de pago
+                      if (!esAbono) {
+                        metodoPagoStr = detalle.descripcion || "";
                       } else {
-                        // Orden a crédito (abono): el backend envía el método de pago en detalle.metodoPago
-                        // Este campo contiene el string con el método de pago del abono
-                        const metodoPago = detalle.metodoPago || "";
-                        if (metodoPago && metodoPago.trim()) {
-                          descripciones.push(`Abono Orden #${detalle.numeroOrden}:\n${metodoPago}`);
+                        metodoPagoStr = detalle.metodoPago || "";
+                      }
+                      
+                      if (!metodoPagoStr.trim()) return;
+                      
+                      // Parsear el string para extraer cada método de pago
+                      const partes = metodoPagoStr.split('|').map(p => p.trim());
+                      let retencion = null;
+                      
+                      partes.forEach(parte => {
+                        // Extraer RETEFUENTE (solo una vez por orden)
+                        const retencionMatch = parte.match(/RETEFUENTE.*?:\s*([0-9.,]+)/i);
+                        if (retencionMatch) {
+                          retencion = retencionMatch[1];
+                          return; // No procesar como método de pago
+                        }
+                        
+                        // EFECTIVO
+                        const efectivoMatch = parte.match(/EFECTIVO:\s*([0-9.,]+)/i);
+                        if (efectivoMatch) {
+                          const monto = efectivoMatch[1];
+                          const clave = `EFECTIVO|${monto}`;
+                          if (!metodosPago[clave]) {
+                            metodosPago[clave] = {
+                              tipo: "EFECTIVO",
+                              monto: monto,
+                              ordenes: []
+                            };
+                          }
+                          metodosPago[clave].ordenes.push({
+                            orden: numeroOrden,
+                            esAbono,
+                            retencion: null
+                          });
+                        }
+                        
+                        // TRANSFERENCIA (con banco)
+                        const transferenciaMatch = parte.match(/TRANSFERENCIA:\s*([0-9.,]+)\s*\(([^)]+)\)/i);
+                        if (transferenciaMatch) {
+                          const monto = transferenciaMatch[1];
+                          const banco = transferenciaMatch[2].trim();
+                          const clave = `TRANSFERENCIA ${banco}|${monto}`;
+                          if (!metodosPago[clave]) {
+                            metodosPago[clave] = {
+                              tipo: `TRANSFERENCIA ${banco}`,
+                              monto: monto,
+                              ordenes: []
+                            };
+                          }
+                          metodosPago[clave].ordenes.push({
+                            orden: numeroOrden,
+                            esAbono,
+                            retencion: null
+                          });
+                        }
+                        
+                        // CHEQUE
+                        const chequeMatch = parte.match(/CHEQUE:\s*([0-9.,]+)/i);
+                        if (chequeMatch) {
+                          const monto = chequeMatch[1];
+                          const clave = `CHEQUE|${monto}`;
+                          if (!metodosPago[clave]) {
+                            metodosPago[clave] = {
+                              tipo: "CHEQUE",
+                              monto: monto,
+                              ordenes: []
+                            };
+                          }
+                          metodosPago[clave].ordenes.push({
+                            orden: numeroOrden,
+                            esAbono,
+                            retencion: null
+                          });
+                        }
+                        
+                        // DEPÓSITO
+                        const depositoMatch = parte.match(/DEP[OÓ]SITO:\s*([0-9.,]+)/i);
+                        if (depositoMatch) {
+                          const monto = depositoMatch[1];
+                          const clave = `DEPÓSITO|${monto}`;
+                          if (!metodosPago[clave]) {
+                            metodosPago[clave] = {
+                              tipo: "DEPÓSITO",
+                              monto: monto,
+                              ordenes: []
+                            };
+                          }
+                          metodosPago[clave].ordenes.push({
+                            orden: numeroOrden,
+                            esAbono,
+                            retencion: null
+                          });
+                        }
+                      });
+                      
+                      // Agregar la retención a la orden correspondiente
+                      if (retencion) {
+                        for (const clave in metodosPago) {
+                          const grupo = metodosPago[clave];
+                          const ordenItem = grupo.ordenes.find(o => o.orden === numeroOrden && !o.retencion);
+                          if (ordenItem) {
+                            ordenItem.retencion = retencion;
+                            break;
+                          }
                         }
                       }
                     });
                     
-                    // Solo mostrar la sección si hay descripciones
-                    if (descripciones.length === 0) return null;
+                    // Generar las líneas agrupadas por método de pago
+                    const lineas = [];
+                    
+                    Object.keys(metodosPago).forEach(clave => {
+                      const grupo = metodosPago[clave];
+                      
+                      // Encabezado del método con monto (NO sumar, usar el monto de la transferencia)
+                      lineas.push(`${grupo.tipo}: $${grupo.monto}`);
+                      
+                      // Listar órdenes de este método
+                      grupo.ordenes.forEach(item => {
+                        const prefijo = item.esAbono ? "ABONO Orden" : "Orden";
+                        let linea = `${prefijo} #${item.orden}`;
+                        
+                        if (item.retencion) {
+                          linea += ` | (-) Retención: $${item.retencion}`;
+                        }
+                        
+                        lineas.push(linea);
+                      });
+                      
+                      lineas.push(""); // Línea vacía entre métodos
+                    });
+                    
+                    // Solo mostrar la sección si hay líneas
+                    if (lineas.length === 0) return null;
                     
                     return (
                       <div className="metodos-pago-descripcion" style={{ marginTop: "8px", marginBottom: "8px" }}>
@@ -601,7 +725,7 @@ export default function EntregasImprimirModal({ entregas = [], isOpen, onClose }
                           color: "#333",
                           fontFamily: "monospace"
                         }}>
-                          {descripciones.join("\n\n")}
+                          {lineas.join("\n")}
                         </div>
                       </div>
                     );
