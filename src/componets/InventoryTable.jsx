@@ -25,10 +25,11 @@ export default function InventoryTable({ data = [], filters, loading, onEditar, 
             {isVidrio ? (
               <>
                 {/* Columnas específicas para VIDRIO */}
-                <th>mm</th>
-                <th>m²</th>
-                {isAdmin && <th>Precio Insula</th>}
-                {isAdmin && <th>Cantidad Insula</th>}
+                <th style={{ width: '70px' }}>mm</th>
+                <th style={{ width: '80px' }}>m1</th>
+                <th style={{ width: '80px' }}>m2</th>
+                {isAdmin && <th style={{ width: '120px' }}>Precio Insula</th>}
+                {isAdmin && <th style={{ width: '120px' }}>Cantidad Insula</th>}
               </>
             ) : (
               <>
@@ -64,10 +65,10 @@ export default function InventoryTable({ data = [], filters, loading, onEditar, 
         </thead>
         <tbody>
           {loading && (
-            <tr><td colSpan={isAdmin ? (isVidrio ? 7 : 12) : (isVidrio ? 4 : 5)} className="empty">Cargando…</td></tr>
+            <tr><td colSpan={isAdmin ? (isVidrio ? 8 : 12) : (isVidrio ? 5 : 5)} className="empty">Cargando…</td></tr>
           )}
           {!loading && data.length === 0 && (
-            <tr><td colSpan={isAdmin ? (isVidrio ? 7 : 12) : (isVidrio ? 4 : 5)} className="empty">Sin resultados</td></tr>
+            <tr><td colSpan={isAdmin ? (isVidrio ? 8 : 12) : (isVidrio ? 5 : 5)} className="empty">Sin resultados</td></tr>
           )}
           {!loading && data.map((p) => {
             const total = Number(p.cantidadTotal || 0) || 
@@ -100,12 +101,13 @@ export default function InventoryTable({ data = [], filters, loading, onEditar, 
                 {isVidrio ? (
                   <>
                     {/* Columnas específicas para VIDRIO */}
-                    <td>{p.mm ?? "-"}</td>
-                    <td>{p.m1m2 ?? "-"}</td>
+                    <td style={{ textAlign: 'center' }}>{p.mm ?? "-"}</td>
+                    <td style={{ textAlign: 'center' }}>{p.m1 ?? "-"}</td>
+                    <td style={{ textAlign: 'center' }}>{p.m2 ?? "-"}</td>
                     {isAdmin && (
                       <>
-                        <td>{p.precio1 ? new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(p.precio1) : "-"}</td>
-                        <td className={Number(p.cantidadInsula || 0) < 0 ? "stock-negativo" : ""}>
+                        <td style={{ textAlign: 'right' }}>{p.precio1 ? new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(p.precio1) : "-"}</td>
+                        <td style={{ textAlign: 'center' }} className={Number(p.cantidadInsula || 0) < 0 ? "stock-negativo" : ""}>
                           {p.cantidadInsula ?? 0}
                           {Number(p.cantidadInsula || 0) < 0 && <span className="badge-negativo"> </span>}
                         </td>
