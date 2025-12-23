@@ -93,7 +93,7 @@ const EntregasService = {
   // Crear nueva entrega
   crearEntrega: async (entregaData) => {
     try {
-      // 🔍 DEBUG: Ver exactamente qué se está enviando
+      // DEBUG: Ver exactamente qué se está enviando
       console.log('🚀 EntregasService.crearEntrega - Payload enviado:', {
         ...entregaData,
         fechaEntrega: entregaData.fechaEntrega,
@@ -102,7 +102,7 @@ const EntregasService = {
       
       const response = await api.post('entregas-dinero', entregaData);
       
-      // 🔍 DEBUG: Ver qué retorna el backend
+      // DEBUG: Ver qué retorna el backend
       console.log('📥 EntregasService.crearEntrega - Respuesta del backend:', {
         data: response.data,
         fechaEntrega: response.data?.fechaEntrega,

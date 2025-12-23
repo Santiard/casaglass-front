@@ -551,8 +551,8 @@ export default function OrdenesTable({
                                     // El total facturado viene del backend (o.total), si no está disponible usar totalOrden calculado
                                     const totalFacturado = (typeof o.total === 'number' && o.total !== null && o.total !== undefined) ? o.total : totalOrden;
                                     
-                                    // 🔍 LOG: Valores que se van a mostrar
-                                    console.log(`🔍 [OrdenesTable] Valores calculados para mostrar (orden ${id}):`, {
+                                    // LOG: Valores que se van a mostrar
+                                    console.log(`[OrdenesTable] Valores calculados para mostrar (orden ${id}):`, {
                                       subtotal,
                                       descuentos,
                                       iva,

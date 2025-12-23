@@ -9,7 +9,14 @@ export default function HistoricoGeneralModal({ isOpen, onClose, ordenes: ordene
   const { showError } = useToast();
   const [ordenes, setOrdenes] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [fechaSeleccionada, setFechaSeleccionada] = useState(new Date().toISOString().slice(0, 10));
+  // Usar fecha local en lugar de ISO para evitar problemas de zona horaria
+  const [fechaSeleccionada, setFechaSeleccionada] = useState(() => {
+    const hoy = new Date();
+    const año = hoy.getFullYear();
+    const mes = String(hoy.getMonth() + 1).padStart(2, '0');
+    const dia = String(hoy.getDate()).padStart(2, '0');
+    return `${año}-${mes}-${dia}`;
+  });
   const [mesActual, setMesActual] = useState(new Date().getMonth());
   const [añoActual, setAñoActual] = useState(new Date().getFullYear());
 
@@ -35,15 +42,24 @@ export default function HistoricoGeneralModal({ isOpen, onClose, ordenes: ordene
     }
   };
 
-  // Formatear fecha
-  const fmtFecha = (iso) =>
-    iso
-      ? new Date(iso).toLocaleDateString("es-CO", {
-          year: "numeric",
-          month: "2-digit",
-          day: "2-digit",
-        })
-      : "-";
+  // Formatear fecha sin problemas de zona horaria
+  const fmtFecha = (iso) => {
+    if (!iso) return "-";
+    
+    // Si es formato YYYY-MM-DD, formatearlo directamente sin conversión de zona horaria
+    if (typeof iso === 'string' && /^\d{4}-\d{2}-\d{2}/.test(iso)) {
+      const [año, mes, dia] = iso.split('T')[0].split('-');
+      return `${dia}/${mes}/${año}`;
+    }
+    
+    // Fallback: usar Date con zona horaria local
+    const fecha = new Date(iso);
+    return fecha.toLocaleDateString("es-CO", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    });
+  };
 
   // Formatear moneda
   const fmtCOP = (n) =>
@@ -307,6 +323,14 @@ export default function HistoricoGeneralModal({ isOpen, onClose, ordenes: ordene
     // Días de la semana
     const diasSemana = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
     
+    // Función helper para obtener fecha local
+    const obtenerFechaLocal = (fecha = new Date()) => {
+      const año = fecha.getFullYear();
+      const mes = String(fecha.getMonth() + 1).padStart(2, '0');
+      const dia = String(fecha.getDate()).padStart(2, '0');
+      return `${año}-${mes}-${dia}`;
+    };
+    
     // Agregar días vacíos al inicio si el mes no empieza en domingo
     for (let i = 0; i < primerDia.getDay(); i++) {
       dias.push(null);
@@ -315,17 +339,18 @@ export default function HistoricoGeneralModal({ isOpen, onClose, ordenes: ordene
     // Agregar todos los días del mes
     for (let dia = 1; dia <= ultimoDia.getDate(); dia++) {
       const fecha = new Date(año, mes, dia);
-      const fechaStr = fecha.toISOString().slice(0, 10);
+      const fechaStr = obtenerFechaLocal(fecha);
       const tieneOrdenes = ordenes.some(orden => {
         if (!orden.fecha) return false;
-        const fechaOrden = new Date(orden.fecha).toISOString().slice(0, 10);
-        return fechaOrden === fechaStr;
+        // Extraer solo la parte de fecha del string sin conversión de zona horaria
+        const fechaOrdenStr = orden.fecha.split('T')[0]; // "2025-12-22"
+        return fechaOrdenStr === fechaStr;
       });
       dias.push({
         dia,
         fecha: fechaStr,
         tieneOrdenes,
-        esHoy: fechaStr === new Date().toISOString().slice(0, 10),
+        esHoy: fechaStr === obtenerFechaLocal(),
         esSeleccionado: fechaStr === fechaSeleccionada
       });
     }

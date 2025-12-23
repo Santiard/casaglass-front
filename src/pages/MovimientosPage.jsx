@@ -1,6 +1,7 @@
 // src/pages/MovimientosPage.jsx
 import { useEffect, useState, useCallback } from "react";
 import MovimientosTable from "../componets/MovimientosTable";
+import MovimientoDetalleModal from "../modals/MovimientoDetalleModal.jsx";
 
 // Estos dos servicios deben existir en tu proyecto.
 // Si la ruta difiere, ajusta adentro de cada servicio.
@@ -26,6 +27,7 @@ export default function MovimientosPage() {
   const [sedes, setSedes] = useState([]);
   const [catalogoProductos, setCatalogoProductos] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [seleccionado, setSeleccionado] = useState(null);
   const [totalElements, setTotalElements] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [currentPage, setCurrentPage] = useState(1);
@@ -176,6 +178,7 @@ export default function MovimientosPage() {
         onActualizar={onActualizar}
         onEliminar={onEliminar}
         onConfirmar={onConfirmar}
+        onVerDetalles={(movimiento) => setSeleccionado(movimiento)}
         // Paginación del servidor
         totalElements={totalElements}
         totalPages={totalPages}
@@ -184,6 +187,15 @@ export default function MovimientosPage() {
         onPageChange={handlePageChange}
         serverSidePagination={true}
       />
+      
+      {/* Modal de detalles */}
+      {seleccionado && (
+        <MovimientoDetalleModal
+          movimiento={seleccionado}
+          onClose={() => setSeleccionado(null)}
+        />
+      )}
+      
       <ConfirmDialog />
     </div>
   );

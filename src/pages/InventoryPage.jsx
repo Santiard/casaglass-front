@@ -83,14 +83,22 @@ export default function InventoryPage() {
     fetchCategorias();
   }, [fetchCategorias]);
 
+  // === Filtrar categorías para inventario (excluir "TODAS") ===
+  const categoriasParaInventario = useMemo(() => {
+    return categories.filter(cat => {
+      const nombre = cat.nombre?.toUpperCase().trim() || "";
+      return nombre !== "TODAS" && nombre !== "TODAS LAS CATEGORÍAS";
+    });
+  }, [categories]);
+
   // === Establecer primera categoría para productos al cargar ===
   // Siempre debe haber una categoría seleccionada por defecto
   useEffect(() => {
-    if (categories.length > 0 && view === "producto") {
+    if (categoriasParaInventario.length > 0 && view === "producto") {
       setFilters((prev) => {
         // Solo establecer si no hay categoría seleccionada
         if (!prev.categoryId) {
-          const primeraCategoria = categories[0];
+          const primeraCategoria = categoriasParaInventario[0];
           if (primeraCategoria) {
             // Determinar el color por defecto según la categoría
             const categoriasConMate = [
@@ -119,7 +127,7 @@ export default function InventoryPage() {
         return prev;
       });
     }
-  }, [categories, view]);
+  }, [categoriasParaInventario, view]);
 
   // COMENTADO: No establecer color automáticamente para permitir ver todos los productos
   // El usuario puede seleccionar un color específico si lo desea
@@ -144,7 +152,7 @@ export default function InventoryPage() {
   //   }
   // }, []); // Solo al montar el componente
 
-  // === Cargar TODOS los productos con inventario completo ===
+  // === Cargar productos con inventario completo filtrados por categoría ===
   const fetchData = useCallback(async () => {
     if (view !== "producto") return;
     setLoading(true);
@@ -165,9 +173,16 @@ export default function InventoryPage() {
         console.warn(" Categoría VIDRIO NO encontrada en la lista de categorías");
       }
       
+      // Construir filtros para el endpoint
+      const params = {};
+      if (filters.categoryId) {
+        params.categoriaId = filters.categoryId;
+        console.log(" Filtrando por categoría ID:", filters.categoryId);
+      }
+      
       // Pasar información de autenticación para filtrar según rol
       // Pasar también el mapa de categorías para mapear nombres a IDs
-      const productos = await listarInventarioCompleto({}, isAdmin, sedeId, categoriasMap);
+      let productos = await listarInventarioCompleto(params, isAdmin, sedeId, categoriasMap);
       console.log(" Productos obtenidos de /inventario-completo:", productos?.length || 0);
       
       const vidrios = productos?.filter(p => p.esVidrio || (typeof p.categoria === 'string' && p.categoria.toLowerCase().includes('vidrio'))) || [];
@@ -189,6 +204,37 @@ export default function InventoryPage() {
         categoriaId: p.categoriaId,
         esVidrio: p.esVidrio 
       })));
+      
+      // FILTRAR productos que tienen categoría VIDRIO pero NO son ProductoVidrio reales
+      // Estos son productos con categoria.nombre="VIDRIO" pero esVidrio=false/undefined y sin campos mm/m1/m2
+      if (filters.categoryId === 26 || filters.categoryId === "26") { // 26 = ID de categoría VIDRIO
+        const productosFiltrados = productos?.filter(p => {
+          // Si tiene esVidrio=true, es válido
+          if (p.esVidrio === true) return true;
+          
+          // Si tiene campos de vidrio (mm, m1, m2), es válido
+          const tieneCamposVidrio = (p.mm != null && p.mm !== undefined) || 
+                                     (p.m1 != null && p.m1 !== undefined) || 
+                                     (p.m2 != null && p.m2 !== undefined);
+          if (tieneCamposVidrio) return true;
+          
+          // Si NO es vidrio real, excluirlo
+          console.warn("EXCLUYENDO producto falso con categoría VIDRIO:", {
+            id: p.id,
+            codigo: p.codigo,
+            nombre: p.nombre,
+            esVidrio: p.esVidrio,
+            mm: p.mm,
+            m1: p.m1,
+            m2: p.m2
+          });
+          return false;
+        }) || [];
+        
+        console.log(`Productos REALES de vidrio después del filtro: ${productosFiltrados.length} (antes: ${productos?.length || 0})`);
+        productos = productosFiltrados;
+      }
+      
       setData(productos || []);
     } catch (e) {
       console.error("Error cargando inventario completo", e);
@@ -196,7 +242,7 @@ export default function InventoryPage() {
     } finally {
       setLoading(false);
     }
-  }, [view, isAdmin, sedeId, categories]);
+  }, [view, isAdmin, sedeId, categories, filters.categoryId, showError]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -232,7 +278,19 @@ export default function InventoryPage() {
   useEffect(() => { fetchCortesData(); }, [fetchCortesData]);
 
   const handleAddProduct = () => { setEditingProduct(null); setModalOpen(true); };
-  const handleEditProduct = (product) => { setEditingProduct(product); setModalOpen(true); };
+  const handleEditProduct = (product) => { 
+    console.log("Editando producto - Datos completos:", product);
+    console.log("  - id:", product.id);
+    console.log("  - productoVidrioId:", product.productoVidrioId);
+    console.log("  - esVidrio:", product.esVidrio);
+    console.log("  - categoria:", product.categoria);
+    console.log("  - categoriaObj:", product.categoriaObj);
+    console.log("  - mm:", product.mm);
+    console.log("  - m1:", product.m1);
+    console.log("  - m2:", product.m2);
+    setEditingProduct(product); 
+    setModalOpen(true); 
+  };
   const handleAddCategory = () => { setCategoriaModalOpen(true); };
 
   const handleCreateCategory = async (nombre) => {
@@ -269,14 +327,10 @@ export default function InventoryPage() {
       if (esVidrio) {
         //  Producto vidrio: usar endpoint /productos-vidrio
         if (editando) {
-          // Para productos vidrio, el backend puede retornar productoVidrioId o el id puede ser el del vidrio
-          // Si el backend retorna productoVidrioId, usarlo; si no, intentar usar id
-          // NOTA: El backend puede retornar el ID del producto vidrio en el campo 'id' cuando es vidrio
-          const vidrioId = editingProduct.productoVidrioId || editingProduct.id;
-          console.log(" Actualizando producto vidrio:");
-          console.log("  - editingProduct.id:", editingProduct.id);
-          console.log("  - editingProduct.productoVidrioId:", editingProduct.productoVidrioId);
-          console.log("  - ID a usar para actualizar:", vidrioId);
+          // Para productos vidrio, el id retornado por /inventario-completo ES el ID correcto
+          // debido a la herencia JOINED en el backend (@PrimaryKeyJoinColumn)
+          const vidrioId = editingProduct.id;
+          console.log("📝 Actualizando producto vidrio con ID:", vidrioId);
           
           // 1. Actualizar el producto vidrio (campos del producto)
           // IMPORTANTE: El payload NO debe incluir cantidadInsula, cantidadCentro, cantidadPatios
@@ -306,7 +360,18 @@ export default function InventoryPage() {
             cantidadPatios
           });
         } else {
-          await crearProductoVidrio(product);
+          // CREAR NUEVO VIDRIO
+          console.log("✨ CREANDO NUEVO PRODUCTO VIDRIO:");
+          console.log("  - Payload completo:", JSON.stringify(product, null, 2));
+          console.log("  - mm:", product.mm, "(tipo:", typeof product.mm, ")");
+          console.log("  - m1:", product.m1, "(tipo:", typeof product.m1, ")");
+          console.log("  - m2:", product.m2, "(tipo:", typeof product.m2, ")");
+          console.log("  - categoria:", product.categoria);
+          
+          const resultado = await crearProductoVidrio(product);
+          console.log("VIDRIO CREADO - Respuesta del backend:", resultado);
+          console.log("  - ID retornado:", resultado?.id);
+          console.log("  - esVidrio:", resultado?.esVidrio);
         }
       } else {
         //  Producto normal: usar endpoint /productos
@@ -737,14 +802,14 @@ export default function InventoryPage() {
         <aside className="inventory-categories">
           {view === "producto" ? (
             <CategorySidebar
-              categories={categories}
+              categories={categoriasParaInventario}
               selectedId={filters.categoryId}
               onSelect={handleSelectCategory}
               onAddCategory={isAdmin ? handleAddCategory : null}
             />
           ) : (
             <CategorySidebar
-              categories={categories}
+              categories={categoriasParaInventario}
               selectedId={corteFilters.categoryId}
               onSelect={handleSelectCorteCategory}
             />

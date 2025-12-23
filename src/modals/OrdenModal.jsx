@@ -1050,6 +1050,13 @@ export default function OrdenEditarModal({
           }
           // Otros tipos (NEQUI, DAVIPLATA, etc.) no se envían en campos numéricos por ahora
         });
+        
+        // 🆕 VALIDAR QUE EL MONTO PAGADO NO SUPERE EL TOTAL A PAGAR
+        const totalPagado = montoEfectivoTotal + montoTransferenciaTotal + montoChequeTotal;
+        if (totalPagado > totalOrden) {
+          showError(`El monto pagado ($${totalPagado.toLocaleString("es-CO")}) no puede ser mayor al total de la orden ($${totalOrden.toLocaleString("es-CO")}). Verifica los montos ingresados.`);
+          return;
+        }
       }
       // Si es crédito o cotización, los montos quedan en 0
       
@@ -1248,6 +1255,13 @@ export default function OrdenEditarModal({
           montoChequeotalEditar += monto;
         }
       });
+      
+      // 🆕 VALIDAR QUE EL MONTO PAGADO NO SUPERE EL TOTAL A PAGAR
+      const totalPagadoEditar = montoEfectivoTotalEditar + montoTransferenciaTotalEditar + montoChequeotalEditar;
+      if (totalPagadoEditar > totalOrdenEditar) {
+        showError(`El monto pagado ($${totalPagadoEditar.toLocaleString("es-CO")}) no puede ser mayor al total de la orden ($${totalOrdenEditar.toLocaleString("es-CO")}). Verifica los montos ingresados.`);
+        return;
+      }
     }
     // Si es crédito o cotización, los montos quedan en 0
     

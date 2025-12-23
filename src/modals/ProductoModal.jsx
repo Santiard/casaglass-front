@@ -65,8 +65,26 @@ export default function ProductModal({ isOpen, onClose, onSave, product }) {
 
   useEffect(() => {
     if (product) {
-      // si product viene sin esVidrio, lo inferimos desde la categoría
-      const esVid = product.esVidrio ?? (product.categoria === "Vidrios");
+      // Detectar si es vidrio: por campo esVidrio, categoría, o presencia de campos mm/m1/m2
+      const categoriaNombre = product.categoria?.nombre?.toLowerCase() || 
+                              (typeof product.categoria === 'string' ? product.categoria.toLowerCase() : "");
+      const tieneCamposVidrio = (product.mm != null && product.mm !== undefined) || 
+                                 (product.m1 != null && product.m1 !== undefined) || 
+                                 (product.m2 != null && product.m2 !== undefined);
+      const esVid = product.esVidrio === true || categoriaNombre.includes('vidrio') || tieneCamposVidrio;
+      
+      console.log("ProductoModal - Cargando producto:", {
+        id: product.id,
+        esVidrio: product.esVidrio,
+        categoria: product.categoria,
+        categoriaNombre,
+        tieneCamposVidrio,
+        esVidCalculado: esVid,
+        mm: product.mm,
+        m1: product.m1,
+        m2: product.m2
+      });
+      
       const tipoProducto = product.tipo || "UNID";
       // PERFIL y MT usan MATE por defecto, otros usan NA
       const colorPorDefecto = (tipoProducto === "PERFIL" || tipoProducto === "MT") ? "MATE" : "NA";
@@ -84,9 +102,10 @@ export default function ProductModal({ isOpen, onClose, onSave, product }) {
         cantidadInsula: product.cantidadInsula && product.cantidadInsula !== 0 ? String(product.cantidadInsula) : "",
         cantidadCentro: product.cantidadCentro && product.cantidadCentro !== 0 ? String(product.cantidadCentro) : "",
         cantidadPatios: product.cantidadPatios && product.cantidadPatios !== 0 ? String(product.cantidadPatios) : "",
-        // si el producto tiene m1m2 antiguo, tratar de separarlo (opcional)
-        m1: product.m1 ?? product.m1m2?.split?.("x")?.[0] ?? "",
-        m2: product.m2 ?? product.m1m2?.split?.("x")?.[1] ?? "",
+        // Campos de vidrio: asegurar que se cargan correctamente
+        mm: product.mm !== undefined && product.mm !== null ? String(product.mm) : "",
+        m1: product.m1 !== undefined && product.m1 !== null ? String(product.m1) : (product.m1m2?.split?.("x")?.[0] ?? ""),
+        m2: product.m2 !== undefined && product.m2 !== null ? String(product.m2) : (product.m1m2?.split?.("x")?.[1] ?? ""),
       });
     } else {
       setFormData(initialState);
@@ -305,6 +324,7 @@ export default function ProductModal({ isOpen, onClose, onSave, product }) {
     if (esVidrioFinal) {
       // IMPORTANTE: Enviar m1, m2 y mm como NÚMEROS (Double), no strings
       // El backend calcula m1m2 = m1 * m2 automáticamente
+      backendPayload.esVidrio = true;  // ✅ CAMPO ESENCIAL - Marca el producto como vidrio
       backendPayload.mm = parseFloat(toSave.mm || "0") || 0;
       backendPayload.m1 = parseFloat(toSave.m1 || "0") || 0;
       backendPayload.m2 = parseFloat(toSave.m2 || "0") || 0;
@@ -549,19 +569,6 @@ export default function ProductModal({ isOpen, onClose, onSave, product }) {
                       />
                     </label>
                   </div>
-
-                  <label>
-                    Láminas:
-                    <input
-                      type="text"
-                      name="laminas"
-                      placeholder="Número de láminas"
-                      value={formData.laminas}
-                      onChange={handleChange}
-                      inputMode="numeric"
-                      pattern="[0-9]*"
-                    />
-                  </label>
                 </div>
               )}
             </div>

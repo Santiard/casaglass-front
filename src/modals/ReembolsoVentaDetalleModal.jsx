@@ -77,7 +77,7 @@ export default function ReembolsoVentaDetalleModal({
 
   return (
     <div className="modal-overlay">
-      <div className="modal-container modal-wide">
+      <div className="modal-container modal-wide" style={{ maxHeight: "90vh", overflowY: "auto" }}>
         <h2>Detalles de la Devolución de Venta</h2>
 
         {loading && <p>Cargando...</p>}

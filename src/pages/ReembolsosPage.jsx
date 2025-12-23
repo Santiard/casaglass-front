@@ -20,6 +20,7 @@ export default function ReembolsosPage() {
   const [reembolsosIngreso, setReembolsosIngreso] = useState([]);
   const [loadingIngreso, setLoadingIngreso] = useState(false);
   const [isModalIngresoOpen, setIsModalIngresoOpen] = useState(false);
+  const [reembolsoIngresoAEditar, setReembolsoIngresoAEditar] = useState(null);
   const [isDetalleIngresoOpen, setIsDetalleIngresoOpen] = useState(false);
   const [reembolsoIngresoId, setReembolsoIngresoId] = useState(null);
   
@@ -27,6 +28,7 @@ export default function ReembolsosPage() {
   const [reembolsosVenta, setReembolsosVenta] = useState([]);
   const [loadingVenta, setLoadingVenta] = useState(false);
   const [isModalVentaOpen, setIsModalVentaOpen] = useState(false);
+  const [reembolsoVentaAEditar, setReembolsoVentaAEditar] = useState(null);
   const [isDetalleVentaOpen, setIsDetalleVentaOpen] = useState(false);
   const [reembolsoVentaId, setReembolsoVentaId] = useState(null);
 
@@ -69,12 +71,19 @@ export default function ReembolsosPage() {
   // Handlers para reembolsos de ingreso
   const handleCrearIngreso = async (payload) => {
     try {
-      await ReembolsosIngresoService.crearReembolso(payload);
+      if (reembolsoIngresoAEditar) {
+        // Modo edición
+        await ReembolsosIngresoService.actualizarReembolso(reembolsoIngresoAEditar.id, payload);
+        showSuccess("Devolución de ingreso actualizada exitosamente.");
+      } else {
+        // Modo creación
+        await ReembolsosIngresoService.crearReembolso(payload);
+        showSuccess("Devolución de ingreso creada exitosamente.");
+      }
       await cargarReembolsosIngreso();
-      showSuccess("Devolución de ingreso creada exitosamente.");
     } catch (error) {
-      console.error("Error creando reembolso de ingreso:", error);
-      const msg = error?.response?.data?.error || error?.message || "No se pudo crear la devolución.";
+      console.error("Error guardando reembolso de ingreso:", error);
+      const msg = error?.response?.data?.error || error?.message || "No se pudo guardar la devolución.";
       showError(msg);
       throw error;
     }
@@ -109,15 +118,31 @@ export default function ReembolsosPage() {
     setIsDetalleIngresoOpen(true);
   };
 
+  const handleEditarIngreso = async (reembolso) => {
+    if (reembolso.procesado || reembolso.estado === "PROCESADO") {
+      showError("No se puede editar una devolución ya procesada.");
+      return;
+    }
+    setReembolsoIngresoAEditar(reembolso);
+    setIsModalIngresoOpen(true);
+  };
+
   // Handlers para reembolsos de venta
   const handleCrearVenta = async (payload) => {
     try {
-      await ReembolsosVentaService.crearReembolso(payload);
+      if (reembolsoVentaAEditar) {
+        // Modo edición
+        await ReembolsosVentaService.actualizarReembolso(reembolsoVentaAEditar.id, payload);
+        showSuccess("Devolución de venta actualizada exitosamente.");
+      } else {
+        // Modo creación
+        await ReembolsosVentaService.crearReembolso(payload);
+        showSuccess("Devolución de venta creada exitosamente.");
+      }
       await cargarReembolsosVenta();
-      showSuccess("Devolución de venta creada exitosamente.");
     } catch (error) {
-      console.error("Error creando reembolso de venta:", error);
-      const msg = error?.response?.data?.error || error?.message || "No se pudo crear la devolución.";
+      console.error("Error guardando reembolso de venta:", error);
+      const msg = error?.response?.data?.error || error?.message || "No se pudo guardar la devolución.";
       showError(msg);
       throw error;
     }
@@ -150,6 +175,16 @@ export default function ReembolsosPage() {
   const handleVerDetallesVenta = async (reembolso) => {
     setReembolsoVentaId(reembolso.id);
     setIsDetalleVentaOpen(true);
+  };
+
+  const handleEditarVenta = async (reembolso) => {
+    // Solo permitir edición si no está procesado
+    if (reembolso.procesado || reembolso.estado === "PROCESADO") {
+      showError("No se puede editar una devolución ya procesada.");
+      return;
+    }
+    setReembolsoVentaAEditar(reembolso);
+    setIsModalVentaOpen(true);
   };
 
   return (
@@ -189,6 +224,7 @@ export default function ReembolsosPage() {
           onVerDetalles={handleVerDetallesIngreso}
           onProcesar={handleProcesarIngreso}
           onEliminar={handleEliminarIngreso}
+          onEditar={handleEditarIngreso}
         />
       ) : (
         <ReembolsosVentaTable
@@ -197,20 +233,29 @@ export default function ReembolsosPage() {
           onVerDetalles={handleVerDetallesVenta}
           onProcesar={handleProcesarVenta}
           onEliminar={handleEliminarVenta}
+          onEditar={handleEditarVenta}
         />
       )}
 
       {/* Modales */}
       <CrearReembolsoIngresoModal
         isOpen={isModalIngresoOpen}
-        onClose={() => setIsModalIngresoOpen(false)}
+        onClose={() => {
+          setIsModalIngresoOpen(false);
+          setReembolsoIngresoAEditar(null);
+        }}
         onSave={handleCrearIngreso}
+        reembolsoAEditar={reembolsoIngresoAEditar}
       />
 
       <CrearReembolsoVentaModal
         isOpen={isModalVentaOpen}
-        onClose={() => setIsModalVentaOpen(false)}
+        onClose={() => {
+          setIsModalVentaOpen(false);
+          setReembolsoVentaAEditar(null);
+        }}
         onSave={handleCrearVenta}
+        reembolsoAEditar={reembolsoVentaAEditar}
       />
 
       {/* Modales de detalle */}

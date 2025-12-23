@@ -1,6 +1,6 @@
 import React, { useState, useEffect, Fragment } from "react";
 import { listarClientes } from "../services/ClientesService.js";
-import { listarAbonosPorCliente } from "../services/AbonosService.js";
+import { listarAbonosPorCliente, listarCreditosCliente } from "../services/AbonosService.js";
 import { useToast } from "../context/ToastContext.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import "../styles/Table.css";
@@ -13,8 +13,11 @@ export default function HistoricoAbonosClienteModal({ isOpen, onClose }) {
   const [clienteSeleccionado, setClienteSeleccionado] = useState(null);
   const [clienteSearchModal, setClienteSearchModal] = useState("");
   const [showClienteModal, setShowClienteModal] = useState(false);
+  const [activeTab, setActiveTab] = useState("abonos"); // "abonos" o "creditos"
   const [abonos, setAbonos] = useState([]);
   const [abonosCompletos, setAbonosCompletos] = useState([]); // Almacenar todos los abonos sin filtrar
+  const [creditos, setCreditos] = useState([]);
+  const [creditosCompletos, setCreditosCompletos] = useState([]); // Almacenar todos los créditos sin filtrar
   const [loading, setLoading] = useState(false);
   const [expanded, setExpanded] = useState({});
   const [fechaDesde, setFechaDesde] = useState("");
@@ -39,22 +42,33 @@ export default function HistoricoAbonosClienteModal({ isOpen, onClose }) {
   // Cargar abonos cuando se selecciona un cliente
   useEffect(() => {
     if (clienteSeleccionado?.id) {
-      cargarAbonosCliente(clienteSeleccionado.id);
+      if (activeTab === "abonos") {
+        cargarAbonosCliente(clienteSeleccionado.id);
+      } else if (activeTab === "creditos") {
+        cargarCreditosCliente(clienteSeleccionado.id);
+      }
     } else {
       setAbonos([]);
       setAbonosCompletos([]);
+      setCreditos([]);
+      setCreditosCompletos([]);
     }
-  }, [clienteSeleccionado]);
+  }, [clienteSeleccionado, activeTab]);
 
   // Cargar abonos con filtros de fecha del backend cuando cambian los filtros
   useEffect(() => {
     if (!clienteSeleccionado) {
       setAbonos([]);
+      setCreditos([]);
       return;
     }
 
-    // Recargar abonos con los filtros de fecha aplicados en el backend
-    cargarAbonosCliente(clienteSeleccionado.id);
+    // Recargar según la pestaña activa con filtros de fecha del backend
+    if (activeTab === "abonos") {
+      cargarAbonosCliente(clienteSeleccionado.id);
+    } else if (activeTab === "creditos") {
+      cargarCreditosCliente(clienteSeleccionado.id);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fechaDesde, fechaHasta, clienteSeleccionado]);
 
@@ -93,15 +107,58 @@ export default function HistoricoAbonosClienteModal({ isOpen, onClose }) {
     }
   };
 
+  const cargarCreditosCliente = async (clienteId) => {
+    setLoading(true);
+    try {
+      // Construir parámetros con filtros de fecha para el backend
+      const options = {};
+      if (fechaDesde) {
+        options.fechaDesde = fechaDesde;
+      }
+      if (fechaHasta) {
+        options.fechaHasta = fechaHasta;
+      }
+      
+      const creditosData = await listarCreditosCliente(clienteId, options);
+      
+      // Ordenar por fecha descendente (más recientes primero)
+      const creditosOrdenados = (Array.isArray(creditosData) ? creditosData : []).sort((a, b) => {
+        const fechaA = new Date(a.orden?.fecha || 0);
+        const fechaB = new Date(b.orden?.fecha || 0);
+        return fechaB - fechaA;
+      });
+      
+      setCreditos(creditosOrdenados);
+      setCreditosCompletos(creditosOrdenados); // Mantener para compatibilidad
+    } catch (err) {
+      console.error("Error cargando créditos del cliente:", err);
+      showError("No se pudieron cargar los créditos del cliente.");
+      setCreditos([]);
+      setCreditosCompletos([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Formatear fecha
-  const fmtFecha = (iso) =>
-    iso
-      ? new Date(iso).toLocaleDateString("es-CO", {
-          year: "numeric",
-          month: "2-digit",
-          day: "2-digit",
-        })
-      : "-";
+  // Formatear fecha sin problemas de zona horaria
+  const fmtFecha = (iso) => {
+    if (!iso) return "-";
+    
+    // Si es formato YYYY-MM-DD, formatearlo directamente sin conversión de zona horaria
+    if (typeof iso === 'string' && /^\d{4}-\d{2}-\d{2}/.test(iso)) {
+      const [año, mes, dia] = iso.split('T')[0].split('-');
+      return `${dia}/${mes}/${año}`;
+    }
+    
+    // Fallback: usar Date con zona horaria local
+    const fecha = new Date(iso);
+    return fecha.toLocaleDateString("es-CO", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    });
+  };
 
   // Formatear moneda
   const fmtCOP = (n) =>
@@ -322,7 +379,7 @@ export default function HistoricoAbonosClienteModal({ isOpen, onClose }) {
     return ventana;
   };
 
-  // Función para imprimir
+  // Función para imprimir abonos
   const handleImprimir = () => {
     if (!clienteSeleccionado || abonos.length === 0) {
       showError("No hay abonos para imprimir");
@@ -334,6 +391,202 @@ export default function HistoricoAbonosClienteModal({ isOpen, onClose }) {
         ventana.print();
       };
     }
+  };
+
+  // Función para imprimir créditos
+  const handleImprimirCreditos = () => {
+    if (!clienteSeleccionado || creditos.length === 0) {
+      showError("No hay créditos para imprimir");
+      return;
+    }
+    const ventana = crearVentanaImpresionCreditos();
+    if (ventana) {
+      ventana.onload = () => {
+        ventana.print();
+      };
+    }
+  };
+
+  // Función para crear ventana de impresión de créditos
+  const crearVentanaImpresionCreditos = () => {
+    if (!clienteSeleccionado || creditos.length === 0) return null;
+    
+    const contenido = document.getElementById('printable-creditos-historico-content').innerHTML;
+    const ventana = window.open('', '', 'width=800,height=600');
+    ventana.document.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Histórico de Créditos - ${clienteSeleccionado.nombre}</title>
+          <style>
+            @page {
+              margin: 10mm;
+              size: auto;
+            }
+            
+            * {
+              -webkit-print-color-adjust: exact;
+              print-color-adjust: exact;
+              color-adjust: exact;
+            }
+            
+            body { 
+              font-family: 'Roboto', sans-serif; 
+              padding: 0;
+              margin: 0;
+              background: #fff;
+              font-size: 0.75rem;
+              line-height: 1.3;
+            }
+            
+            .historico-header {
+              text-align: center;
+              margin-bottom: 12px;
+              padding-bottom: 8px;
+              border-bottom: 1px solid #999;
+            }
+            
+            .historico-header h1 {
+              margin: 0 0 4px 0;
+              color: #000;
+              font-size: 1.2rem;
+              font-weight: 700;
+            }
+            
+            .historico-header h2 {
+              margin: 2px 0;
+              color: #000;
+              font-size: 0.9rem;
+              font-weight: 600;
+            }
+            
+            .historico-header p {
+              margin: 1px 0;
+              color: #333;
+              font-size: 0.7rem;
+            }
+            
+            .creditos-print-table {
+              width: 100%;
+              border-collapse: collapse;
+              margin-bottom: 12px;
+              font-size: 0.7rem;
+            }
+            
+            .creditos-print-table th,
+            .creditos-print-table td {
+              padding: 6px 8px;
+              text-align: left;
+              border: 1px solid #999;
+            }
+            
+            .creditos-print-table th {
+              background-color: #1e2753;
+              color: #fff;
+              font-weight: 600;
+              text-align: center;
+            }
+            
+            .creditos-print-table td {
+              font-weight: 400;
+              color: #000;
+            }
+            
+            .creditos-print-table td.right {
+              text-align: right;
+            }
+            
+            .creditos-print-table td.center {
+              text-align: center;
+            }
+            
+            .historico-totales {
+              margin-top: 16px;
+              padding-top: 8px;
+              border-top: 1px solid #999;
+              page-break-inside: avoid;
+            }
+            
+            .historico-totales h3 {
+              margin: 0 0 6px 0;
+              color: #000;
+              font-size: 0.9rem;
+              font-weight: 700;
+            }
+            
+            .historico-totales-table {
+              width: 100%;
+              border-collapse: collapse;
+              font-size: 0.75rem;
+            }
+            
+            .historico-totales-table th,
+            .historico-totales-table td {
+              padding: 4px 6px;
+              text-align: right;
+              border: 1px solid #999;
+            }
+            
+            .historico-totales-table th {
+              background-color: transparent;
+              color: #000;
+              font-weight: 600;
+              text-align: left;
+              border-bottom: 2px solid #000;
+            }
+            
+            .historico-totales-table td {
+              font-weight: 500;
+              color: #000;
+            }
+            
+            @media print {
+              body {
+                font-size: 0.7rem;
+              }
+              
+              .creditos-print-table {
+                page-break-inside: avoid;
+              }
+              
+              .historico-totales {
+                page-break-inside: avoid;
+              }
+              
+              * {
+                -webkit-print-color-adjust: economy;
+                print-color-adjust: economy;
+                color-adjust: economy;
+              }
+            }
+          </style>
+        </head>
+        <body>
+          ${contenido}
+          <script>
+            // Cerrar la ventana después de imprimir o cancelar
+            var timeoutId;
+            
+            function cerrarVentana() {
+              if (!window.closed) {
+                window.close();
+              }
+            }
+            
+            // Escuchar el evento afterprint
+            window.addEventListener('afterprint', function() {
+              clearTimeout(timeoutId);
+              setTimeout(cerrarVentana, 100);
+            });
+            
+            // Fallback: cerrar después de un tiempo
+            timeoutId = setTimeout(cerrarVentana, 5000);
+          </script>
+        </body>
+      </html>
+    `);
+    ventana.document.close();
+    return ventana;
   };
 
   if (!isOpen) return null;
@@ -363,10 +616,10 @@ export default function HistoricoAbonosClienteModal({ isOpen, onClose }) {
             borderBottom: '2px solid #1e2753'
           }}>
             <h2 style={{ margin: 0, color: '#fff', fontSize: '1.5rem', fontWeight: '600' }}>
-              Histórico de Abonos por Cliente
+              Histórico del Cliente
             </h2>
             <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-              {clienteSeleccionado && abonos.length > 0 && (
+              {clienteSeleccionado && abonos.length > 0 && activeTab === "abonos" && (
                 <button
                   onClick={handleImprimir}
                   style={{
@@ -390,6 +643,34 @@ export default function HistoricoAbonosClienteModal({ isOpen, onClose }) {
                     e.target.style.color = '#1e2753';
                   }}
                   title="Imprimir histórico completo"
+                >
+                  Imprimir
+                </button>
+              )}
+              {clienteSeleccionado && creditos.length > 0 && activeTab === "creditos" && (
+                <button
+                  onClick={handleImprimirCreditos}
+                  style={{
+                    padding: '0.5rem 1rem',
+                    fontSize: '0.9rem',
+                    whiteSpace: 'nowrap',
+                    background: '#fff',
+                    color: '#1e2753',
+                    border: '2px solid #1e2753',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontWeight: '600',
+                    transition: 'all 0.2s ease'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.target.style.background = '#1e2753';
+                    e.target.style.color = '#fff';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.background = '#fff';
+                    e.target.style.color = '#1e2753';
+                  }}
+                  title="Imprimir histórico de créditos"
                 >
                   Imprimir
                 </button>
@@ -509,6 +790,83 @@ export default function HistoricoAbonosClienteModal({ isOpen, onClose }) {
             </div>
           )}
 
+          {/* Contenido de impresión de créditos (oculto) */}
+          {clienteSeleccionado && creditos.length > 0 && activeTab === "creditos" && (
+            <div id="printable-creditos-historico-content" style={{ display: 'none' }}>
+              <div className="historico-header">
+                <h1>HISTÓRICO DE CRÉDITOS</h1>
+                <h2>{clienteSeleccionado.nombre}</h2>
+                <p>NIT: {clienteSeleccionado.nit || 'N/A'} | Fecha de impresión: {new Date().toLocaleDateString('es-CO')}</p>
+              </div>
+
+              <table className="creditos-print-table">
+                <thead>
+                  <tr>
+                    <th>Orden</th>
+                    <th>Fecha</th>
+                    <th>Obra</th>
+                    <th>Total Crédito</th>
+                    <th>Total Abonado</th>
+                    <th>Saldo Pendiente</th>
+                    <th>Retención</th>
+                    <th>Estado</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {creditos.map((credito) => (
+                    <tr key={credito.id}>
+                      <td className="center">#{credito.orden?.numero || '-'}</td>
+                      <td className="center">{fmtFecha(credito.orden?.fecha)}</td>
+                      <td>{credito.orden?.obra || '-'}</td>
+                      <td className="right">{fmtCOP(credito.totalCredito || 0)}</td>
+                      <td className="right">{fmtCOP(credito.totalAbonado || 0)}</td>
+                      <td className="right">{fmtCOP(credito.saldoPendiente || 0)}</td>
+                      <td className="center">
+                        {credito.orden?.retencionFuente && credito.orden?.retencionFuente > 0 
+                          ? fmtCOP(credito.orden.retencionFuente) 
+                          : '-'
+                        }
+                      </td>
+                      <td className="center">
+                        {credito.saldoPendiente === 0 ? 'Pagado' : 'Pendiente'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+
+              <div className="historico-totales">
+                <h3>RESUMEN GENERAL</h3>
+                <table className="historico-totales-table">
+                  <thead>
+                    <tr>
+                      <th>Concepto</th>
+                      <th>Valor</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td><strong>Total de Créditos</strong></td>
+                      <td>{creditos.length}</td>
+                    </tr>
+                    <tr>
+                      <td><strong>Total Crédito</strong></td>
+                      <td>{fmtCOP(creditos.reduce((sum, c) => sum + (c.totalCredito || 0), 0))}</td>
+                    </tr>
+                    <tr>
+                      <td><strong>Total Abonado</strong></td>
+                      <td>{fmtCOP(creditos.reduce((sum, c) => sum + (c.totalAbonado || 0), 0))}</td>
+                    </tr>
+                    <tr>
+                      <td><strong>Saldo Pendiente Total</strong></td>
+                      <td>{fmtCOP(creditos.reduce((sum, c) => sum + (c.saldoPendiente || 0), 0))}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
           {/* Selección de Cliente y Filtros de Fecha */}
           <div style={{ 
             padding: '1.5rem', 
@@ -546,6 +904,8 @@ export default function HistoricoAbonosClienteModal({ isOpen, onClose }) {
                       setClienteSeleccionado(null);
                       setAbonos([]);
                       setAbonosCompletos([]);
+                      setCreditos([]);
+                      setCreditosCompletos([]);
                       setFechaDesde("");
                       setFechaHasta("");
                       setExpanded({});
@@ -591,7 +951,7 @@ export default function HistoricoAbonosClienteModal({ isOpen, onClose }) {
                   color: '#1e2753',
                   fontSize: '0.9rem'
                 }}>
-                  Filtrar por Fechas (Opcional)
+                  Filtrar por Fechas {activeTab === "abonos" ? "(Fecha del Abono)" : "(Fecha de la Orden)"}
                 </label>
                 <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
                   <div style={{ flex: 1, minWidth: '200px' }}>
@@ -662,7 +1022,56 @@ export default function HistoricoAbonosClienteModal({ isOpen, onClose }) {
             )}
           </div>
 
+          {/* Tabs de navegación */}
+          {clienteSeleccionado && (
+            <div style={{
+              display: 'flex',
+              gap: '0',
+              borderBottom: '2px solid #e6e8f0',
+              padding: '0 1.5rem',
+              backgroundColor: '#f8f9fa'
+            }}>
+              <button
+                type="button"
+                onClick={() => setActiveTab("abonos")}
+                style={{
+                  padding: '1rem 2rem',
+                  backgroundColor: activeTab === "abonos" ? '#1e2753' : 'transparent',
+                  color: activeTab === "abonos" ? '#fff' : '#666',
+                  border: 'none',
+                  borderBottom: activeTab === "abonos" ? '3px solid #1e2753' : '3px solid transparent',
+                  cursor: 'pointer',
+                  fontWeight: activeTab === "abonos" ? '600' : '400',
+                  fontSize: '0.95rem',
+                  transition: 'all 0.2s',
+                  borderRadius: '4px 4px 0 0'
+                }}
+              >
+                Histórico de Abonos
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab("creditos")}
+                style={{
+                  padding: '1rem 2rem',
+                  backgroundColor: activeTab === "creditos" ? '#1e2753' : 'transparent',
+                  color: activeTab === "creditos" ? '#fff' : '#666',
+                  border: 'none',
+                  borderBottom: activeTab === "creditos" ? '3px solid #1e2753' : '3px solid transparent',
+                  cursor: 'pointer',
+                  fontWeight: activeTab === "creditos" ? '600' : '400',
+                  fontSize: '0.95rem',
+                  transition: 'all 0.2s',
+                  borderRadius: '4px 4px 0 0'
+                }}
+              >
+                Histórico de Créditos
+              </button>
+            </div>
+          )}
+
           {/* Tabla de Abonos */}
+          {activeTab === "abonos" && (
           <div style={{ 
             flex: 1,
             minHeight: 0,
@@ -851,6 +1260,196 @@ export default function HistoricoAbonosClienteModal({ isOpen, onClose }) {
               </div>
             )}
           </div>
+          )}
+
+          {/* Tabla de Créditos */}
+          {activeTab === "creditos" && (
+          <div style={{ 
+            flex: 1,
+            minHeight: 0,
+            overflow: 'hidden',
+            display: 'flex',
+            flexDirection: 'column',
+            padding: '1.5rem'
+          }}>
+            {!clienteSeleccionado ? (
+              <div className="empty-state" style={{ 
+                flex: 1,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#666',
+                fontSize: '1.1rem'
+              }}>
+                Selecciona un cliente para ver su historial de créditos
+              </div>
+            ) : loading ? (
+              <div className="loading-state" style={{ 
+                flex: 1,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#666',
+                fontSize: '1.1rem'
+              }}>
+                Cargando créditos...
+              </div>
+            ) : (
+              <div style={{ 
+                flex: 1,
+                minHeight: 0,
+                display: 'flex',
+                flexDirection: 'column',
+                backgroundColor: '#fff',
+                borderRadius: '8px',
+                border: '1px solid #e6e8f0',
+                overflow: 'hidden'
+              }}>
+                <div style={{ 
+                  padding: '1rem 1.5rem',
+                  backgroundColor: '#1e2753',
+                  color: '#fff',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  borderBottom: '2px solid #e6e8f0'
+                }}>
+                  <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: '600' }}>
+                    Créditos de {clienteSeleccionado.nombre}
+                  </h3>
+                  <div style={{ fontSize: '0.9rem', fontWeight: '500' }}>
+                    {creditos.length} crédito{creditos.length !== 1 ? 's' : ''}
+                  </div>
+                </div>
+                <div style={{ 
+                  flex: 1,
+                  minHeight: 0,
+                  overflowY: 'auto',
+                  overflowX: 'auto'
+                }}>
+                  <table className="table" style={{ margin: 0, width: '100%' }}>
+                    <thead style={{ 
+                      position: 'sticky', 
+                      top: 0, 
+                      backgroundColor: '#1e2753',
+                      zIndex: 2
+                    }}>
+                      <tr>
+                        <th style={{ padding: '0.75rem', textAlign: 'left', borderRight: '1px solid #e0e0e0', color: '#fff' }}>Orden</th>
+                        <th style={{ padding: '0.75rem', textAlign: 'left', borderRight: '1px solid #e0e0e0', color: '#fff' }}>Fecha</th>
+                        <th style={{ padding: '0.75rem', textAlign: 'left', borderRight: '1px solid #e0e0e0', color: '#fff' }}>Obra</th>
+                        <th style={{ padding: '0.75rem', textAlign: 'right', borderRight: '1px solid #e0e0e0', color: '#fff' }}>Total Crédito</th>
+                        <th style={{ padding: '0.75rem', textAlign: 'right', borderRight: '1px solid #e0e0e0', color: '#fff' }}>Total Abonado</th>
+                        <th style={{ padding: '0.75rem', textAlign: 'right', borderRight: '1px solid #e0e0e0', color: '#fff' }}>Saldo Pendiente</th>
+                        <th style={{ padding: '0.75rem', textAlign: 'center', borderRight: '1px solid #e0e0e0', color: '#fff' }}>Retención</th>
+                        <th style={{ padding: '0.75rem', textAlign: 'center', color: '#fff' }}>Estado</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {creditos.length === 0 ? (
+                        <tr>
+                          <td colSpan={8} style={{ 
+                            padding: '3rem', 
+                            textAlign: 'center', 
+                            color: '#666',
+                            fontSize: '1rem'
+                          }}>
+                            No hay créditos registrados para este cliente
+                          </td>
+                        </tr>
+                      ) : (
+                        creditos.map((credito) => (
+                          <tr 
+                            key={credito.id}
+                            style={{
+                              transition: 'background-color 0.2s'
+                            }}
+                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f9fbff'}
+                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                          >
+                            <td style={{ padding: '0.75rem', borderRight: '1px solid #e0e0e0', fontWeight: '600' }}>
+                              #{credito.orden?.numero || '-'}
+                            </td>
+                            <td style={{ padding: '0.75rem', borderRight: '1px solid #e0e0e0' }}>
+                              {fmtFecha(credito.orden?.fecha)}
+                            </td>
+                            <td style={{ padding: '0.75rem', borderRight: '1px solid #e0e0e0' }}>
+                              {credito.orden?.obra || '-'}
+                            </td>
+                            <td style={{ padding: '0.75rem', textAlign: 'right', borderRight: '1px solid #e0e0e0', fontWeight: '600' }}>
+                              {fmtCOP(credito.totalCredito || 0)}
+                            </td>
+                            <td style={{ padding: '0.75rem', textAlign: 'right', borderRight: '1px solid #e0e0e0', color: '#28a745', fontWeight: '500' }}>
+                              {fmtCOP(credito.totalAbonado || 0)}
+                            </td>
+                            <td style={{ padding: '0.75rem', textAlign: 'right', borderRight: '1px solid #e0e0e0', color: credito.saldoPendiente > 0 ? '#dc3545' : '#28a745', fontWeight: '600' }}>
+                              {fmtCOP(credito.saldoPendiente || 0)}
+                            </td>
+                            <td style={{ padding: '0.75rem', textAlign: 'center', borderRight: '1px solid #e0e0e0' }}>
+                              {credito.orden?.retencionFuente && credito.orden?.retencionFuente > 0 ? (
+                                <span style={{ 
+                                  fontSize: '0.85rem', 
+                                  color: '#856404',
+                                  backgroundColor: '#fff3cd',
+                                  padding: '0.25rem 0.5rem',
+                                  borderRadius: '4px',
+                                  fontWeight: '500'
+                                }}>
+                                  {fmtCOP(credito.orden.retencionFuente)}
+                                </span>
+                              ) : (
+                                <span style={{ color: '#999', fontSize: '0.9rem' }}>-</span>
+                              )}
+                            </td>
+                            <td style={{ padding: '0.75rem', textAlign: 'center' }}>
+                              <span style={{
+                                padding: '0.375rem 0.75rem',
+                                borderRadius: '4px',
+                                fontSize: '0.8rem',
+                                fontWeight: '500',
+                                backgroundColor: credito.estado === 'CERRADO' ? '#d4edda' : credito.estado === 'ANULADO' ? '#f8d7da' : '#fff3cd',
+                                color: credito.estado === 'CERRADO' ? '#155724' : credito.estado === 'ANULADO' ? '#721c24' : '#856404'
+                              }}>
+                                {credito.estado || 'ABIERTO'}
+                              </span>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                    {creditos.length > 0 && (
+                      <tfoot style={{ 
+                        backgroundColor: '#f8f9fa', 
+                        fontWeight: 'bold', 
+                        position: 'sticky', 
+                        bottom: 0, 
+                        zIndex: 3 
+                      }}>
+                        <tr>
+                          <td colSpan="3" style={{ padding: '0.75rem', textAlign: 'right', borderTop: '2px solid #1e2753' }}>
+                            TOTALES:
+                          </td>
+                          <td style={{ padding: '0.75rem', textAlign: 'right', borderTop: '2px solid #1e2753' }}>
+                            {fmtCOP(creditos.reduce((sum, c) => sum + (c.totalCredito || 0), 0))}
+                          </td>
+                          <td style={{ padding: '0.75rem', textAlign: 'right', borderTop: '2px solid #1e2753', color: '#28a745' }}>
+                            {fmtCOP(creditos.reduce((sum, c) => sum + (c.totalAbonado || 0), 0))}
+                          </td>
+                          <td style={{ padding: '0.75rem', textAlign: 'right', borderTop: '2px solid #1e2753', color: '#dc3545' }}>
+                            {fmtCOP(creditos.reduce((sum, c) => sum + (c.saldoPendiente || 0), 0))}
+                          </td>
+                          <td colSpan="2" style={{ padding: '0.75rem', textAlign: 'right', borderTop: '2px solid #1e2753' }}>
+                            {creditos.length} crédito{creditos.length !== 1 ? 's' : ''}
+                          </td>
+                        </tr>
+                      </tfoot>
+                    )}
+                  </table>
+                </div>
+              </div>
+            )}
+          </div>
+          )}
         </div>
       </div>
 
@@ -870,10 +1469,38 @@ export default function HistoricoAbonosClienteModal({ isOpen, onClose }) {
           }} onClick={(e) => e.stopPropagation()}>
             <header className="modal-header">
               <h2>Seleccionar Cliente</h2>
-              <button className="close-btn" onClick={() => {
-                setClienteSearchModal("");
-                setShowClienteModal(false);
-              }}>
+              <button 
+                className="close-btn" 
+                onClick={() => {
+                  setClienteSearchModal("");
+                  setShowClienteModal(false);
+                }}
+                style={{
+                  background: 'rgba(255, 255, 255, 0.2)',
+                  border: '2px solid rgba(255, 255, 255, 0.3)',
+                  color: '#fff',
+                  fontSize: '1.5rem',
+                  cursor: 'pointer',
+                  width: '36px',
+                  height: '36px',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: 0,
+                  lineHeight: 1,
+                  fontWeight: '700',
+                  transition: 'all 0.2s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.background = 'rgba(231, 76, 60, 0.9)';
+                  e.target.style.borderColor = 'rgba(231, 76, 60, 1)';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.background = 'rgba(255, 255, 255, 0.2)';
+                  e.target.style.borderColor = 'rgba(255, 255, 255, 0.3)';
+                }}
+              >
                 ✕
               </button>
             </header>

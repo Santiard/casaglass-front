@@ -72,9 +72,6 @@ function transformarInventarioDTO(productos, isAdmin = true, userSedeId = null, 
     
     return {
       id: producto.productoId || producto.id,
-      // Para productos vidrio, guardar también el productoVidrioId si existe
-      // El backend puede retornar productoVidrioId para vidrios, o el id puede ser el del vidrio directamente
-      productoVidrioId: producto.productoVidrioId || (esVidrio ? (producto.id || producto.productoId) : null),
       codigo: producto.codigo,
       nombre: producto.nombre,
       posicion: producto.posicion,

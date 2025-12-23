@@ -155,12 +155,12 @@ const AbonoPage = () => {
       // 🆕 USAR EL NUEVO ENDPOINT ESPECIALIZADO /creditos/cliente/{id}/pendientes
       const creditosPendientes = await listarCreditosPendientes(clienteId);
       
-      // 🔍 LOG COMPLETO: Ver TODOS los datos que trae el backend
-      console.log('✅ Créditos pendientes recibidos:', creditosPendientes.length);
+      // LOG COMPLETO: Ver TODOS los datos que trae el backend
+      console.log('Créditos pendientes recibidos:', creditosPendientes.length);
       console.log('📦 DATOS COMPLETOS del backend:', JSON.stringify(creditosPendientes, null, 2));
       
       // Log específico de retención
-      console.log('🔍 Créditos con tieneRetencionFuente:', 
+      console.log('Créditos con tieneRetencionFuente:', 
         creditosPendientes.filter(c => c.tieneRetencionFuente)
           .map(c => ({ 
             ordenId: c.ordenId, 
@@ -201,7 +201,7 @@ const AbonoPage = () => {
         venta: true,
         creditoDetalle: {
           id: credito.creditoId,
-          creditoId: credito.creditoId, // ✅ Agregar creditoId también para compatibilidad
+          creditoId: credito.creditoId, // Agregar creditoId también para compatibilidad
           saldoPendiente: credito.saldoPendiente,
           totalCredito: credito.totalCredito,
           totalAbonado: credito.totalAbonado,
@@ -229,11 +229,11 @@ const AbonoPage = () => {
       });
       setOrdenesConRetencion(ordenesConRetencionInicial);
       
-      console.log(`📊 Inicializadas ${ordenesConRetencionInicial.size} órdenes con retención`);
+      console.log(`Inicializadas ${ordenesConRetencionInicial.size} órdenes con retención`);
       
       setDistribucion([]);
     } catch (err) {
-      console.error("❌ Error cargando créditos pendientes:", err);
+      console.error("Error cargando créditos pendientes:", err);
       setError('Error cargando créditos pendientes del cliente');
       setOrdenesCredito([]);
     } finally {
@@ -420,7 +420,7 @@ const AbonoPage = () => {
 
     // 🆕 USAR EL NUEVO ENDPOINT ESPECIALIZADO
     try {
-      console.log('💰 Actualizando retención con nuevo endpoint:', {
+      console.log('Actualizando retención con nuevo endpoint:', {
         ordenId,
         tieneRetencionFuente: nuevoValorRetencion,
         retencionFuente: nuevoValorRetencion ? retencionFuenteCalculada : 0,
@@ -445,9 +445,20 @@ const AbonoPage = () => {
           o.id === ordenId 
             ? { 
                 ...o, 
-                ...ordenActualizada,
-                // Asegurar que creditoDetalle se actualice
-                creditoDetalle: ordenActualizada.creditoDetalle || o.creditoDetalle
+                // Actualizar campos de retención
+                tieneRetencionFuente: ordenActualizada.tieneRetencionFuente,
+                retencionFuente: ordenActualizada.retencionFuente,
+                iva: ordenActualizada.iva,
+                subtotal: ordenActualizada.subtotal,
+                total: ordenActualizada.total,
+                // ✅ CRÍTICO: PRESERVAR creditoDetalle pero ACTUALIZAR saldoPendiente
+                creditoDetalle: o.creditoDetalle ? {
+                  ...o.creditoDetalle,
+                  // Recalcular saldoPendiente: si tiene retención, restarla del total a pagar
+                  saldoPendiente: ordenActualizada.tieneRetencionFuente
+                    ? (o.creditoDetalle.totalCredito || ordenActualizada.total) - (ordenActualizada.retencionFuente || 0) - (o.creditoDetalle.totalAbonado || 0)
+                    : (o.creditoDetalle.totalCredito || ordenActualizada.total) - (o.creditoDetalle.totalAbonado || 0)
+                } : o.creditoDetalle
               }
             : o
         )

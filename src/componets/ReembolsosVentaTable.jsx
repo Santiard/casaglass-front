@@ -14,6 +14,7 @@ export default function ReembolsosVentaTable({
   onVerDetalles,
   onProcesar,
   onEliminar,
+  onEditar,
 }) {
   const { confirm, ConfirmDialog } = useConfirm();
   const { showError } = useToast();
@@ -21,7 +22,9 @@ export default function ReembolsosVentaTable({
 
   const fmtFecha = (iso) => {
     if (!iso) return "-";
-    const d = new Date(iso);
+    // Parsear fecha como string "YYYY-MM-DD" sin conversion a UTC
+    const [year, month, day] = iso.split("T")[0].split("-");
+    const d = new Date(Number(year), Number(month) - 1, Number(day));
     return isNaN(d) ? "-" : d.toLocaleDateString("es-CO", {
       year: "numeric",
       month: "2-digit",
@@ -177,14 +180,21 @@ export default function ReembolsosVentaTable({
                   <td className="acciones">
                     <div style={{ display: "flex", gap: "0.25rem", alignItems: "center", justifyContent: "center", flexWrap: "nowrap" }}>
                       <button
-                        className="btnEdit"
+                        className="btnLink"
+                        type="button"
                         onClick={() => onVerDetalles?.(reembolso)}
-                        title="Ver detalles"
                       >
-                        <img src={editar} className="iconButton" alt="Ver detalles" />
+                        Ver detalles
                       </button>
                       {!(reembolso.procesado || reembolso.estado === "PROCESADO") && (
                         <>
+                          <button
+                            className="btnEdit"
+                            onClick={() => onEditar?.(reembolso)}
+                            title="Editar"
+                          >
+                            <img src={editar} className="iconButton" alt="Editar" />
+                          </button>
                           <button
                             className="btnEdit"
                             onClick={() => handleProcesar(reembolso)}

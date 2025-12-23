@@ -100,6 +100,7 @@ const CreditosTable = ({
               <th>Fecha Cierre</th>
               <th>Total</th>
               <th>Abonado</th>
+              <th>Retefuente</th>
               <th>Saldo</th>
               <th>Estado</th>
               <th>Acciones</th>
@@ -108,7 +109,7 @@ const CreditosTable = ({
           <tbody>
           {total === 0 ? (
             <tr>
-              <td colSpan="10" className="sin-datos">No hay créditos registrados.</td>
+              <td colSpan="11" className="sin-datos">No hay créditos registrados.</td>
             </tr>
           ) : (
             pageData.map((credito) => (
@@ -121,6 +122,7 @@ const CreditosTable = ({
                   <td>{credito.fechaCierre || "-"}</td>
                   <td>${credito.totalCredito.toLocaleString()}</td>
                   <td>${credito.totalAbonado.toLocaleString()}</td>
+                  <td>{credito.orden?.retencionFuente ? `$${credito.orden.retencionFuente.toLocaleString()}` : "-"}</td>
                   <td>${credito.saldoPendiente.toLocaleString()}</td>
                   <td>
                     <span className={`estado-badge ${credito.estado.toLowerCase()}`}>{credito.estado}</span>
@@ -146,7 +148,7 @@ const CreditosTable = ({
                 </tr>
                 {expandido === credito.id && (
                   <tr className="detalle-abonos">
-                    <td colSpan="10">
+                    <td colSpan="11">
                       <h4>Abonos realizados</h4>
                       {credito.abonos && credito.abonos.length > 0 ? (
                         <table className="tabla-abonos">
@@ -156,6 +158,7 @@ const CreditosTable = ({
                               <th>Método</th>
                               <th>Factura</th>
                               <th>Total</th>
+                              <th>Retefuente</th>
                               <th>Saldo post-abono</th>
                             </tr>
                           </thead>
@@ -166,6 +169,7 @@ const CreditosTable = ({
                                 <td>{a.metodoPago}</td>
                                 <td>{a.factura || "-"}</td>
                                 <td>${a.total.toLocaleString()}</td>
+                                <td>{a.retencionFuente ? `$${a.retencionFuente.toLocaleString()}` : "-"}</td>
                                 <td>${a.saldo.toLocaleString()}</td>
                               </tr>
                             ))}

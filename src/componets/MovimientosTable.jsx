@@ -20,6 +20,7 @@ export default function MovimientosTable({
   onActualizar,
   onEliminar,
   onConfirmar,
+  onVerDetalles,
   // Paginación del servidor
   totalElements = 0,
   totalPages = 1,
@@ -309,13 +310,13 @@ export default function MovimientosTable({
                         )}
                       </td>
                       <td>
-                        {/* Botón Ver Detalles - Siempre visible */}
+                        {/* Botón Ver Detalles - Abre modal */}
                         <button
                           className="btnLink"
-                          onClick={() => toggleExpand(id)}
+                          onClick={() => onVerDetalles?.(mov)}
                           type="button"
                         >
-                          {expanded[id] ? "Ocultar" : "Ver Detalles"}
+                          Ver Detalles
                         </button>
 
                         {/* Botones solo para ADMINISTRADORES y traslados NO confirmados */}
@@ -365,24 +366,6 @@ export default function MovimientosTable({
                         )}
                       </td>
                     </tr>
-
-                    {expanded[id] && (
-                      <tr>
-                        <td colSpan={8}>
-                          {detalles.length === 0 ? (
-                            <div className="empty-sub">Sin productos.</div>
-                          ) : (
-                            <ul>
-                              {detalles.map((d, i) => (
-                                <li key={d.id ?? i}>
-                                  {d.producto?.nombre ?? "-"} — {d.cantidad ?? 0}
-                                </li>
-                              ))}
-                            </ul>
-                          )}
-                        </td>
-                      </tr>
-                    )}
                   </Fragment>
                 );
               })}

@@ -10,9 +10,9 @@ const [loading, setLoading] = useState(true);
 const [message, setMessage] = useState(null);
 
 
-const [iva, setIva] = useState(19); // %
-const [rete, setRete] = useState(2.5); // %
-const [umbral, setUmbral] = useState(1000000);// COP
+const [iva, setIva] = useState(0); // % - Inicializado en 0 hasta que cargue del backend
+const [rete, setRete] = useState(0); // % - Inicializado en 0 hasta que cargue del backend
+const [umbral, setUmbral] = useState(0);// COP - Inicializado en 0 hasta que cargue del backend
 
 
 useEffect(()=>{
@@ -90,7 +90,7 @@ onChange={(e)=>setRete(Number(e.target.value))} />
 <label htmlFor="umbral">Umbral retención (COP)</label>
 <div className="input-with-prefix">
 <span className="prefix">$</span>
-<input id="umbral" type="number" step="1000" min="0" value={umbral}
+<input id="umbral" type="number" step="1" min="0" value={umbral}
 onChange={(e)=>setUmbral(Number(e.target.value))} />
 </div>
 <small className="hint">Desde este monto aplica retención</small>

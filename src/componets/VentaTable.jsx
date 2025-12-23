@@ -216,15 +216,16 @@ export default function VentaTable({
   };
 
   return (
-    <div className="table-wrapper venta-table">
-      <table className="table">
+    <div className="table-container">
+      <div className={`table-wrapper venta-table ${isCategoriaVidrio ? 'venta-vidrio' : ''}`}>
+        <table className="table">
         <thead>
           <tr>
             <th>Código</th>
             <th>Nombre</th>
             {isVidrio && <th>mm</th>}
-            {isVidrio && <th>m²</th>}
-            {isVidrio && <th>Láminas</th>}
+            {isVidrio && <th>m1</th>}
+            {isVidrio && <th>m2</th>}
             
             {/* Inventario según el rol */}
             {isAdmin ? (
@@ -255,7 +256,8 @@ export default function VentaTable({
             
             {/* Columnas específicas de venta */}
             <th>Cant</th>
-            <th>Acción</th>
+            {/* Ocultar columna Acción si es categoría VIDRIO */}
+            {!isCategoriaVidrio && <th>Acción</th>}
           </tr>
         </thead>
         <tbody>
@@ -263,8 +265,8 @@ export default function VentaTable({
             <tr>
               <td colSpan={
                 isAdmin 
-                  ? (isCategoriaVidrio ? (isVidrio ? 8 : 5) : (isVidrio ? 12 : 9))
-                  : (isVidrio ? 8 : 5)
+                  ? (isCategoriaVidrio ? (isVidrio ? 7 : 4) : (isVidrio ? 11 : 9))
+                  : (isVidrio ? (isCategoriaVidrio ? 7 : 7) : (isCategoriaVidrio ? 4 : 5))
               } className="empty">
                 Cargando…
               </td>
@@ -274,8 +276,8 @@ export default function VentaTable({
             <tr>
               <td colSpan={
                 isAdmin 
-                  ? (isCategoriaVidrio ? (isVidrio ? 8 : 5) : (isVidrio ? 12 : 9))
-                  : (isVidrio ? 8 : 5)
+                  ? (isCategoriaVidrio ? (isVidrio ? 7 : 4) : (isVidrio ? 11 : 9))
+                  : (isVidrio ? (isCategoriaVidrio ? 7 : 7) : (isCategoriaVidrio ? 4 : 5))
               } className="empty">
                 Sin resultados
               </td>
@@ -314,8 +316,8 @@ export default function VentaTable({
                 <td>{p.codigo}</td>
                 <td>{p.nombre}</td>
                 {isVidrio && <td>{p.mm ?? "-"}</td>}
-                {isVidrio && <td>{p.m1m2 ?? "-"}</td>}
-                {isVidrio && <td>{p.laminas ?? "-"}</td>}
+                {isVidrio && <td>{p.m1 ?? "-"}</td>}
+                {isVidrio && <td>{p.m2 ?? "-"}</td>}
                 
                 {/* Columnas de inventario según el rol */}
                 {isAdmin ? (
@@ -385,57 +387,60 @@ export default function VentaTable({
                   )}
                 </td>
                 
-                {/* Botones de acción */}
-                <td>
-                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                    {p.tipo === "PERFIL" && (
-                      <button
-                        className="btnLink"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleAbrirModalCorte(p);
-                        }}
-                      >
-                        Cortar
-                      </button>
-                    )}
-                    {/* Botón Kit solo para categorías específicas */}
-                    {(() => {
-                      // Obtener el nombre de la categoría (puede venir como string o como objeto)
-                      const categoriaNombre = typeof p.categoria === 'string' 
-                        ? p.categoria 
-                        : (p.categoria?.nombre || '');
-                      
-                      // Categorías permitidas para mostrar el botón Kit
-                      const categoriasPermitidas = ['5020', '744', '7038', '8025'];
-                      const mostrarKit = categoriasPermitidas.includes(categoriaNombre);
-                      
-                      const cantidadKit = parseInt(cantidadesVenta[uniqueKey]) || 1;
-                      
-                      return mostrarKit ? (
+                {/* Botones de acción - Ocultar si es categoría VIDRIO */}
+                {!isCategoriaVidrio && (
+                  <td>
+                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                      {p.tipo === "PERFIL" && (
                         <button
                           className="btnLink"
                           onClick={(e) => {
-                            e.preventDefault();
                             e.stopPropagation();
-                            console.log("🔘 Botón Kit clickeado - Producto:", p);
-                            handleAgregarKit(p, uniqueKey);
+                            handleAbrirModalCorte(p);
                           }}
-                          disabled={!cantidadesVenta[uniqueKey] || cantidadesVenta[uniqueKey] <= 0}
-                          title={`Agregar ${cantidadKit} kit(s) completo(s) de ${categoriaNombre}`}
-                          type="button"
                         >
-                          Kit
+                          Cortar
                         </button>
-                      ) : null;
-                    })()}
-                  </div>
-                </td>
+                      )}
+                      {/* Botón Kit solo para categorías específicas */}
+                      {(() => {
+                        // Obtener el nombre de la categoría (puede venir como string o como objeto)
+                        const categoriaNombre = typeof p.categoria === 'string' 
+                          ? p.categoria 
+                          : (p.categoria?.nombre || '');
+                        
+                        // Categorías permitidas para mostrar el botón Kit
+                        const categoriasPermitidas = ['5020', '744', '7038', '8025'];
+                        const mostrarKit = categoriasPermitidas.includes(categoriaNombre);
+                        
+                        const cantidadKit = parseInt(cantidadesVenta[uniqueKey]) || 1;
+                        
+                        return mostrarKit ? (
+                          <button
+                            className="btnLink"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              console.log("🔘 Botón Kit clickeado - Producto:", p);
+                              handleAgregarKit(p, uniqueKey);
+                            }}
+                            disabled={!cantidadesVenta[uniqueKey] || cantidadesVenta[uniqueKey] <= 0}
+                            title={`Agregar ${cantidadKit} kit(s) completo(s) de ${categoriaNombre}`}
+                            type="button"
+                          >
+                            Kit
+                          </button>
+                        ) : null;
+                      })()}
+                    </div>
+                  </td>
+                )}
               </tr>
             );
           })}
         </tbody>
       </table>
+      </div>
       
       {/* Pie de página con descripción */}
       <div className="table-description-footer">

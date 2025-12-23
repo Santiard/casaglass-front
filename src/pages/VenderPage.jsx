@@ -70,11 +70,19 @@ export default function VenderPage() {
     fetchCategorias();
   }, []);
 
+  // === Filtrar categorías para venta (excluir "TODAS") ===
+  const categoriasParaVenta = useMemo(() => {
+    return categories.filter(cat => {
+      const nombre = cat.nombre?.toUpperCase().trim() || "";
+      return nombre !== "TODAS" && nombre !== "TODAS LAS CATEGORÍAS";
+    });
+  }, [categories]);
+
   // === Establecer primera categoría y primer color al cargar ===
   useEffect(() => {
-    if (categories.length > 0 && !filters.categoryId) {
+    if (categoriasParaVenta.length > 0 && !filters.categoryId) {
       // Establecer la primera categoría para productos
-      const primeraCategoria = categories[0];
+      const primeraCategoria = categoriasParaVenta[0];
       if (primeraCategoria) {
         setFilters((prev) => ({
           ...prev,
@@ -82,12 +90,12 @@ export default function VenderPage() {
         }));
       }
     }
-  }, [categories]);
+  }, [categoriasParaVenta, filters.categoryId]);
 
   useEffect(() => {
-    if (categories.length > 0 && !cortesFilters.categoryId) {
+    if (categoriasParaVenta.length > 0 && !cortesFilters.categoryId) {
       // Establecer la primera categoría para cortes
-      const primeraCategoria = categories[0];
+      const primeraCategoria = categoriasParaVenta[0];
       if (primeraCategoria) {
         setCortesFilters((prev) => ({
           ...prev,
@@ -95,7 +103,7 @@ export default function VenderPage() {
         }));
       }
     }
-  }, [categories]);
+  }, [categoriasParaVenta, cortesFilters.categoryId]);
 
   useEffect(() => {
     // Establecer el primer color (MATE) si no hay color seleccionado para productos
@@ -122,7 +130,14 @@ export default function VenderPage() {
     if (view !== "producto") return;
     setLoading(true);
     try {
-      const productos = await listarInventarioCompleto({}, isAdmin, sedeId);
+      // Construir filtros para el endpoint
+      const params = {};
+      if (filters.categoryId) {
+        params.categoriaId = filters.categoryId;
+        console.log("⏳ Filtrando productos por categoría ID:", filters.categoryId);
+      }
+      
+      const productos = await listarInventarioCompleto(params, isAdmin, sedeId);
       setData(productos || []);
     } catch (e) {
       console.error("Error cargando inventario completo", e);
@@ -130,7 +145,7 @@ export default function VenderPage() {
     } finally {
       setLoading(false);
     }
-  }, [view, isAdmin, sedeId]);
+  }, [view, isAdmin, sedeId, filters.categoryId, showError]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -143,7 +158,14 @@ export default function VenderPage() {
       setLoading(true);
     }
     try {
-      const cortes = await listarCortesInventarioCompleto({}, isAdmin, sedeId);
+      // Construir filtros para el endpoint
+      const params = {};
+      if (cortesFilters.categoryId) {
+        params.categoriaId = cortesFilters.categoryId;
+        console.log("⏳ Filtrando cortes por categoría ID:", cortesFilters.categoryId);
+      }
+      
+      const cortes = await listarCortesInventarioCompleto(params, isAdmin, sedeId);
       setCortesData(cortes || []);
     } catch (e) {
       console.error(" Error cargando inventario de cortes", e);
@@ -153,7 +175,7 @@ export default function VenderPage() {
         setLoading(false);
       }
     }
-  }, [view, isAdmin, sedeId]);
+  }, [view, isAdmin, sedeId, cortesFilters.categoryId, showError]);
 
   useEffect(() => { fetchCortesData(); }, [fetchCortesData]);
 
@@ -526,13 +548,13 @@ export default function VenderPage() {
       <aside className="vender-categories">
         {view === "producto" ? (
           <CategorySidebar
-            categories={categories}
+            categories={categoriasParaVenta}
             selectedId={filters.categoryId}
             onSelect={handleSelectCategory}
           />
         ) : (
           <CategorySidebar
-            categories={categories}
+            categories={categoriasParaVenta}
             selectedId={cortesFilters.categoryId}
             onSelect={handleSelectCorteCategory}
           />

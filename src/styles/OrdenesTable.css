@@ -262,8 +262,7 @@
   box-shadow: none;
 }
 
-.ordenes-table .btnEdit,
-.ordenes-table .btnAnular {
+.ordenes-table .btnEdit {
   background: transparent;
   border: none;
   cursor: pointer;
@@ -274,10 +273,6 @@
 
 .ordenes-table .btnEdit:hover {
   background: #e0f2fe;
-}
-
-.ordenes-table .btnAnular:hover {
-  background: #fee2e2;
 }
 
 /* Estado badge */

@@ -94,7 +94,7 @@ export async function listarAbonosPorFecha(fecha, options = {}) {
 }
 
 /**
- * 💰 Listar créditos pendientes de un cliente
+ * Listar créditos pendientes de un cliente
  * 
  * Obtiene SOLO los créditos con saldo pendiente > 0
  * Incluye toda la información necesaria para la página de abonos
@@ -109,10 +109,44 @@ export async function listarCreditosPendientes(clienteId) {
   
   try {
     const { data } = await api.get(`/creditos/cliente/${clienteId}/pendientes`);
-    console.log(`✅ Créditos pendientes obtenidos: ${data.length}`);
+    console.log(`Créditos pendientes obtenidos: ${data.length}`);
     return data;
   } catch (error) {
-    console.error('❌ Error obteniendo créditos pendientes:', error);
+    console.error('Error obteniendo créditos pendientes:', error);
+    throw error;
+  }
+}
+
+/**
+ * Listar TODOS los créditos de un cliente (histórico completo)
+ * Incluye créditos abiertos, cerrados, anulados - sin filtros
+ * 
+ * @param {number} clienteId - ID del cliente
+ * @param {Object} options - Opciones de filtrado
+ * @param {string} options.fechaDesde - Fecha desde (YYYY-MM-DD, opcional)
+ * @param {string} options.fechaHasta - Fecha hasta (YYYY-MM-DD, opcional)
+ * @returns {Promise<Array>} Array con todos los créditos del cliente
+ */
+export async function listarCreditosCliente(clienteId, options = {}) {
+  if (!clienteId) {
+    throw new Error("clienteId es obligatorio para listar créditos");
+  }
+  
+  try {
+    // Construir query params
+    const params = {};
+    if (options.fechaDesde) {
+      params.fechaDesde = options.fechaDesde;
+    }
+    if (options.fechaHasta) {
+      params.fechaHasta = options.fechaHasta;
+    }
+    
+    const { data } = await api.get(`/creditos/cliente/${clienteId}`, { params });
+    console.log(`Créditos totales obtenidos: ${data.length}`);
+    return data;
+  } catch (error) {
+    console.error('Error obteniendo créditos del cliente:', error);
     throw error;
   }
 }

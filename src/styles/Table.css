@@ -83,6 +83,62 @@
   overflow-wrap: break-word !important;
 }
 
+/* ===== ESTILOS PARA TABLA VIDRIO SIN COLUMNA DE ACCIONES ===== */
+/* Cuando se oculta la columna de Acciones, ajustar padding y anchos */
+.venta-table.venta-vidrio .table th,
+.venta-table.venta-vidrio .table td {
+  padding: 0.75rem 0.5rem !important; /* Padding más compacto */
+}
+
+/* Código */
+.venta-table.venta-vidrio .table th:nth-child(1),
+.venta-table.venta-vidrio .table td:nth-child(1) {
+  min-width: 6rem !important;
+}
+
+/* Nombre */
+.venta-table.venta-vidrio .table th:nth-child(2),
+.venta-table.venta-vidrio .table td:nth-child(2) {
+  min-width: 15rem !important;
+  max-width: 20rem !important;
+}
+
+/* mm */
+.venta-table.venta-vidrio .table th:nth-child(3),
+.venta-table.venta-vidrio .table td:nth-child(3) {
+  min-width: 5rem !important;
+}
+
+/* m1 */
+.venta-table.venta-vidrio .table th:nth-child(4),
+.venta-table.venta-vidrio .table td:nth-child(4) {
+  min-width: 5rem !important;
+}
+
+/* m2 */
+.venta-table.venta-vidrio .table th:nth-child(5),
+.venta-table.venta-vidrio .table td:nth-child(5) {
+  min-width: 5rem !important;
+}
+
+/* Insula */
+.venta-table.venta-vidrio .table th:nth-child(6),
+.venta-table.venta-vidrio .table td:nth-child(6) {
+  min-width: 6rem !important;
+}
+
+/* P. Venta */
+.venta-table.venta-vidrio .table th:nth-child(7),
+.venta-table.venta-vidrio .table td:nth-child(7) {
+  min-width: 7rem !important;
+}
+
+/* Cant */
+.venta-table.venta-vidrio .table th:nth-child(8),
+.venta-table.venta-vidrio .table td:nth-child(8) {
+  min-width: 6rem !important;
+}
+
 .items-count {
   color: var(--color-white);
 }

@@ -28,20 +28,8 @@ export async function listarOrdenesCredito(clienteId) {
 
 // GET /api/ordenes/{id}
 export async function obtenerOrden(id) {
-  try {
-    const response = await api.get(`ordenes/${id}`);
-    // Asegurar que data sea un objeto, no un string
-    let data = response.data;
-    if (typeof data === 'string') {
-      console.warn(" Response.data es string, parseando...");
-      data = JSON.parse(data);
-    }
-    
-    return data;
-  } catch (error) {
-    console.error(" Error en obtenerOrden:", error);
-    throw error;
-  }
+  const { data } = await api.get(`ordenes/${id}`);
+  return data;
 }
 
 // GET /api/ordenes/{id}/detalle

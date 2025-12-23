@@ -10,7 +10,7 @@ export default function IngresoDetalleModal({ ingreso, onClose }) {
   console.log("🎯 IngresoDetalleModal - Ingreso recibido:", ingreso);
   console.log("📊 IngresoDetalleModal - Detalles:", dets);
   if (dets.length > 0) {
-    console.log("🔍 IngresoDetalleModal - Primer detalle:", dets[0]);
+    console.log("IngresoDetalleModal - Primer detalle:", dets[0]);
     console.log("📦 IngresoDetalleModal - Producto del primer detalle:", dets[0]?.producto);
     console.log("🏷️ IngresoDetalleModal - CODIGO del producto:", dets[0]?.producto?.codigo);
   }

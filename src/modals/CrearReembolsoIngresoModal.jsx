@@ -10,13 +10,17 @@ export default function CrearReembolsoIngresoModal({
   isOpen,
   onClose,
   onSave,
+  reembolsoAEditar = null,
 }) {
   const { showError, showSuccess } = useToast();
+  const isEditMode = !!reembolsoAEditar;
   const [loading, setLoading] = useState(false);
   const [ingresos, setIngresos] = useState([]);
   const [ingresoSeleccionado, setIngresoSeleccionado] = useState(null);
   const [ingresoDetalle, setIngresoDetalle] = useState(null);
   const [cargandoIngreso, setCargandoIngreso] = useState(false);
+  const [showIngresoModal, setShowIngresoModal] = useState(false);
+  const [ingresoSearchModal, setIngresoSearchModal] = useState("");
 
   const [form, setForm] = useState({
     ingresoId: "",
@@ -29,8 +33,12 @@ export default function CrearReembolsoIngresoModal({
   useEffect(() => {
     if (!isOpen) return;
     cargarIngresos();
-    resetForm();
-  }, [isOpen]);
+    if (reembolsoAEditar) {
+      cargarReembolsoParaEditar();
+    } else {
+      resetForm();
+    }
+  }, [isOpen, reembolsoAEditar]);
 
   const resetForm = () => {
     setForm({
@@ -42,6 +50,46 @@ export default function CrearReembolsoIngresoModal({
     });
     setIngresoSeleccionado(null);
     setIngresoDetalle(null);
+  };
+
+  const cargarReembolsoParaEditar = async () => {
+    try {
+      if (!reembolsoAEditar.ingresoOriginal?.id) {
+        showError("El reembolso no tiene un ingreso original válido.");
+        return;
+      }
+
+      const ingreso = await obtenerIngreso(reembolsoAEditar.ingresoOriginal.id);
+      setIngresoDetalle(ingreso);
+      setIngresoSeleccionado(reembolsoAEditar.ingresoOriginal);
+
+      const detallesReembolso = (reembolsoAEditar.detalles || []).map(det => {
+        const detalleIngreso = ingreso.detalles?.find(d => 
+          d.producto?.codigo === det.producto?.codigo || 
+          d.producto?.id === det.producto?.id
+        );
+
+        return {
+          ingresoDetalleId: detalleIngreso?.id || det.ingresoDetalleId,
+          producto: det.producto || { nombre: "Producto", codigo: "" },
+          cantidadOriginal: detalleIngreso?.cantidad || det.cantidad || 0,
+          cantidadDisponible: detalleIngreso?.cantidad || det.cantidad || 0,
+          cantidad: det.cantidad || 0,
+          costoUnitario: det.costoUnitario || 0,
+        };
+      });
+
+      setForm({
+        ingresoId: String(reembolsoAEditar.ingresoOriginal.id),
+        fecha: reembolsoAEditar.fecha?.split("T")[0] || getTodayLocalDate(),
+        numeroFacturaDevolucion: reembolsoAEditar.numeroFacturaDevolucion || "",
+        motivo: reembolsoAEditar.motivo || "",
+        detalles: detallesReembolso,
+      });
+    } catch (error) {
+      console.error("Error cargando reembolso para editar:", error);
+      showError("Error al cargar los datos del reembolso.");
+    }
   };
 
   const cargarIngresos = async () => {
@@ -86,11 +134,12 @@ export default function CrearReembolsoIngresoModal({
     }
   };
 
-  const handleIngresoChange = (e) => {
-    const ingresoId = e.target.value;
-    setForm(prev => ({ ...prev, ingresoId, detalles: [] }));
-    setIngresoSeleccionado(ingresos.find(i => String(i.id) === ingresoId) || null);
-    cargarDetalleIngreso(ingresoId);
+  const handleIngresoChange = (ingresoSeleccionado) => {
+    setForm(prev => ({ ...prev, ingresoId: String(ingresoSeleccionado.id), detalles: [] }));
+    setIngresoSeleccionado(ingresoSeleccionado);
+    cargarDetalleIngreso(ingresoSeleccionado.id);
+    setShowIngresoModal(false);
+    setIngresoSearchModal("");
   };
 
   const handleDetalleChange = (index, field, value) => {
@@ -177,27 +226,43 @@ export default function CrearReembolsoIngresoModal({
 
   return (
     <div className="modal-overlay">
-      <div className="modal-container modal-wide">
-        <h2>Crear Devolución de Ingreso</h2>
+      <div className="modal-container modal-wide" style={{ maxHeight: "90vh", overflowY: "auto" }}>
+        <h2>{isEditMode ? "Editar Devolución de Ingreso" : "Crear Devolución de Ingreso"}</h2>
 
         <form onSubmit={handleSubmit} className="form">
           <div className="form-two-columns">
             <div className="form-column">
               <label>
                 Ingreso Original *
-                <select
-                  value={form.ingresoId}
-                  onChange={handleIngresoChange}
-                  required
-                  disabled={loading}
-                >
-                  <option value="">Seleccionar ingreso...</option>
-                  {ingresos.map((ing) => (
-                    <option key={ing.id} value={ing.id}>
-                      #{ing.id} - {ing.proveedor?.nombre || "Sin proveedor"} - {ing.numeroFactura || "Sin factura"}
-                    </option>
-                  ))}
-                </select>
+                <div style={{ display: "flex", gap: "8px" }}>
+                  <input
+                    type="text"
+                    value={ingresoSeleccionado ? `#${ingresoSeleccionado.id} - ${ingresoSeleccionado.proveedor?.nombre || "Sin proveedor"} - ${ingresoSeleccionado.numeroFactura || "Sin factura"}` : ""}
+                    placeholder="Click en 'Buscar' para seleccionar ingreso..."
+                    readOnly
+                    style={{ flex: 1, cursor: isEditMode ? "not-allowed" : "pointer", backgroundColor: "#f9fafb", opacity: isEditMode ? 0.6 : 1 }}
+                    onClick={() => !isEditMode && setShowIngresoModal(true)}
+                    required
+                    disabled={isEditMode}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowIngresoModal(true)}
+                    style={{
+                      padding: "8px 16px",
+                      backgroundColor: "#1e2753",
+                      color: "white",
+                      border: "none",
+                      borderRadius: "4px",
+                      cursor: isEditMode ? "not-allowed" : "pointer",
+                      whiteSpace: "nowrap",
+                      opacity: isEditMode ? 0.5 : 1
+                    }}
+                    disabled={loading || isEditMode}
+                  >
+                    Buscar Ingreso
+                  </button>
+                </div>
               </label>
 
               <label>
@@ -325,11 +390,125 @@ export default function CrearReembolsoIngresoModal({
               className="btn-guardar"
               disabled={loading}
             >
-              {loading ? "Guardando..." : "Crear Devolución"}
+              {loading ? "Guardando..." : isEditMode ? "Actualizar Devolución" : "Crear Devolución"}
             </button>
           </div>
         </form>
       </div>
+
+      {/* Modal de búsqueda de ingreso */}
+      {showIngresoModal && (
+        <div
+          className="modal-overlay"
+          style={{ zIndex: 10000 }}
+          onClick={() => setShowIngresoModal(false)}
+        >
+          <div
+            className="modal-container"
+            style={{ maxWidth: "800px", maxHeight: "80vh", overflow: "auto" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
+              <h3 style={{ margin: 0 }}>Buscar Ingreso</h3>
+              <button
+                type="button"
+                onClick={() => setShowIngresoModal(false)}
+                style={{
+                  background: "white",
+                  border: "1px solid #ddd",
+                  borderRadius: "50%",
+                  width: "32px",
+                  height: "32px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  cursor: "pointer",
+                  fontSize: "18px",
+                  color: "#666"
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.backgroundColor = "#fee";
+                  e.target.style.color = "#c00";
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.backgroundColor = "white";
+                  e.target.style.color = "#666";
+                }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <input
+              type="text"
+              placeholder="Buscar por ID, proveedor o número de factura..."
+              value={ingresoSearchModal}
+              onChange={(e) => setIngresoSearchModal(e.target.value)}
+              style={{
+                width: "100%",
+                padding: "10px",
+                marginBottom: "1rem",
+                border: "1px solid #ddd",
+                borderRadius: "4px",
+                fontSize: "14px"
+              }}
+              autoFocus
+            />
+
+            <div style={{ maxHeight: "400px", overflowY: "auto" }}>
+              {ingresos.length === 0 ? (
+                <p style={{ textAlign: "center", color: "#666", padding: "2rem" }}>
+                  No hay ingresos disponibles
+                </p>
+              ) : (
+                ingresos
+                  .filter((ing) => {
+                    const searchTerm = ingresoSearchModal.toLowerCase();
+                    const id = String(ing.id).toLowerCase();
+                    const proveedor = (ing.proveedor?.nombre || "").toLowerCase();
+                    const factura = (ing.numeroFactura || "").toLowerCase();
+                    return (
+                      id.includes(searchTerm) ||
+                      proveedor.includes(searchTerm) ||
+                      factura.includes(searchTerm)
+                    );
+                  })
+                  .map((ing) => (
+                    <div
+                      key={ing.id}
+                      onClick={() => handleIngresoChange(ing)}
+                      style={{
+                        padding: "12px",
+                        borderBottom: "1px solid #eee",
+                        cursor: "pointer",
+                        transition: "background-color 0.2s"
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = "#f0f0f0";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = "transparent";
+                      }}
+                    >
+                      <div style={{ fontWeight: "bold", marginBottom: "4px" }}>
+                        Ingreso #{ing.id}
+                      </div>
+                      <div style={{ fontSize: "14px", color: "#666" }}>
+                        Proveedor: {ing.proveedor?.nombre || "Sin proveedor"}
+                      </div>
+                      <div style={{ fontSize: "14px", color: "#666" }}>
+                        Factura: {ing.numeroFactura || "Sin factura"}
+                      </div>
+                      <div style={{ fontSize: "12px", color: "#999", marginTop: "4px" }}>
+                        Fecha: {ing.fecha ? new Date(ing.fecha).toLocaleDateString() : "N/A"}
+                      </div>
+                    </div>
+                  ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -22,7 +22,7 @@ export default function EntregasTable({
   useEffect(() => {
     const entregasData = Array.isArray(data) ? data : [];
     
-    // 🔍 DEBUG: Ver las fechas que llegan del backend
+    // DEBUG: Ver las fechas que llegan del backend
     if (entregasData.length > 0) {
       console.log('📊 EntregaTable - Datos recibidos:', entregasData.map(e => ({
         id: e.id,
@@ -66,7 +66,7 @@ export default function EntregasTable({
   const fmtFecha = (fechaStr) => {
     if (!fechaStr) return "-";
     
-    // 🔍 DEBUG: Ver qué fecha recibimos
+    // DEBUG: Ver qué fecha recibimos
     console.log('📅 fmtFecha recibió:', fechaStr, 'tipo:', typeof fechaStr);
     
     // Si viene en formato YYYY-MM-DD (LocalDate del backend), usarlo directamente

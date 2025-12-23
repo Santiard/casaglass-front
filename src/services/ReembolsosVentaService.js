@@ -47,6 +47,21 @@ const ReembolsosVentaService = {
     }
   },
 
+  // PUT /api/reembolsos-venta/{id}
+  // Nota: El backend no soporta PUT, por lo que actualizamos eliminando y recreando
+  actualizarReembolso: async (id, reembolsoData) => {
+    try {
+      // Primero eliminar el reembolso existente
+      await api.delete(`reembolsos-venta/${id}`);
+      // Luego crear uno nuevo con los datos actualizados
+      const { data } = await api.post("reembolsos-venta", reembolsoData);
+      return data;
+    } catch (error) {
+      console.error(`Error actualizando reembolso ${id}:`, error);
+      throw error;
+    }
+  },
+
   // PUT /api/reembolsos-venta/{id}/procesar
   procesarReembolso: async (id) => {
     try {

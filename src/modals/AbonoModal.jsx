@@ -168,7 +168,7 @@ const AbonoModal = ({ isOpen, onClose, credito, onSuccess }) => {
 
   // Cargar órdenes a crédito del cliente seleccionado
   useEffect(() => {
-    console.log("🔍 useEffect [isOpen, clienteSeleccionado?.id] ejecutándose", {
+    console.log("useEffect [isOpen, clienteSeleccionado?.id] ejecutándose", {
       isOpen,
       clienteSeleccionadoId: clienteSeleccionado?.id,
       ordenesSeleccionadasSize: ordenesSeleccionadas.size,

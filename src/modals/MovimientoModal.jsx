@@ -23,7 +23,7 @@ export default function MovimientoModal({
   const isEdit = Boolean(movimiento?.id);
   const [form, setForm] = useState(VACIO);
   const [search, setSearch] = useState("");
-  const [selectedColor, setSelectedColor] = useState(""); // Filtro de color
+  const [selectedColor, setSelectedColor] = useState("MATE"); // Filtro de color
   const [selectedCategoryId, setSelectedCategoryId] = useState(null);
   const [categorias, setCategorias] = useState([]);
   const [editableWithin2d, setEditableWithin2d] = useState(true);
@@ -94,6 +94,14 @@ export default function MovimientoModal({
       try {
         const cats = await listarCategorias();
         setCategorias(cats || []);
+        // Seleccionar por defecto la primera categoría que no sea "TODAS"
+        const primeraCategoria = cats.find(cat => 
+          cat.nombre.toUpperCase() !== "TODAS" && 
+          cat.nombre.toUpperCase() !== "TODAS LAS CATEGORÍAS"
+        );
+        if (primeraCategoria && !movimiento) {
+          setSelectedCategoryId(primeraCategoria.id);
+        }
       } catch (e) {
         console.error("Error cargando categorías:", e);
         setCategorias([]);
@@ -104,8 +112,10 @@ export default function MovimientoModal({
       fetchCategorias();
     } else {
       setCategorias([]);
+      setSelectedColor("MATE"); // Reset al color por defecto
+      setSelectedCategoryId(null);
     }
-  }, [isOpen]);
+  }, [isOpen, movimiento]);
 
   // Filtro de catálogo por categoría y búsqueda
   const catalogoFiltrado = useMemo(() => {

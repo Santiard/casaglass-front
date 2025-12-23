@@ -442,6 +442,9 @@ export default function EntregasImprimirModal({ entregas = [], isOpen, onClose }
                         </tr>
                       ) : (
                         entrega.detalles?.map((detalle, idx) => {
+                          // 🆕 DETECTAR SI ES DEVOLUCIÓN (EGRESO)
+                          const esDevolucion = detalle.tipoMovimiento === 'EGRESO';
+                          
                           // Calcular valor entregado según tipo de venta
                           let valorEntregado = 0;
                           if (!detalle.ventaCredito) {
@@ -452,9 +455,14 @@ export default function EntregasImprimirModal({ entregas = [], isOpen, onClose }
                             valorEntregado = Number(detalle.abonosDelPeriodo) || 0;
                           }
                           
+                          // Si es devolución, el valor es negativo
+                          if (esDevolucion) {
+                            valorEntregado = -Math.abs(valorEntregado);
+                          }
+                          
                           // Calcular saldo
                           const saldo = detalle.ventaCredito 
-                            ? Math.max(0, (Number(detalle.montoOrden) || 0) - valorEntregado)
+                            ? Math.max(0, (Number(detalle.montoOrden) || 0) - Math.abs(valorEntregado))
                             : 0; // Contado siempre tiene saldo 0
                           
                           // Medio de pago - extraer del detalle individual
@@ -552,12 +560,38 @@ export default function EntregasImprimirModal({ entregas = [], isOpen, onClose }
                           }
 
                           return (
-                            <tr key={detalle.id || idx}>
-                              <td>{detalle.numeroOrden || "-"}</td>
+                            <tr 
+                              key={detalle.id || idx}
+                              style={esDevolucion ? {
+                                backgroundColor: '#ffebee',
+                                borderLeft: '4px solid #c62828'
+                              } : {}}
+                            >
+                              <td>
+                                {esDevolucion && (
+                                  <span style={{
+                                    display: 'inline-block',
+                                    marginRight: '0.5rem',
+                                    padding: '0.1rem 0.4rem',
+                                    backgroundColor: '#c62828',
+                                    color: 'white',
+                                    borderRadius: '4px',
+                                    fontSize: '0.65rem',
+                                    fontWeight: 'bold'
+                                  }}>🔄 DEVOLUCIÓN</span>
+                                )}
+                                {detalle.numeroOrden || "-"}
+                              </td>
                               <td>{detalle.clienteNombre || detalle.cliente?.nombre || "-"}</td>
                               <td>${(Number(detalle.montoOrden) || 0).toLocaleString("es-CO")}</td>
                               <td>${saldo.toLocaleString("es-CO")}</td>
-                              <td>${valorEntregado.toLocaleString("es-CO")}</td>
+                              <td style={esDevolucion ? {
+                                color: '#c62828',
+                                fontWeight: 'bold'
+                              } : {}}>
+                                {esDevolucion && '−'}
+                                ${Math.abs(valorEntregado).toLocaleString("es-CO")}
+                              </td>
                               <td>{retencion ? `$${retencion}` : "-"}</td>
                               <td>{medio}</td>
                             </tr>

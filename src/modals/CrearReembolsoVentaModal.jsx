@@ -10,13 +10,17 @@ export default function CrearReembolsoVentaModal({
   isOpen,
   onClose,
   onSave,
+  reembolsoAEditar = null,
 }) {
   const { showError, showSuccess } = useToast();
+  const isEditMode = !!reembolsoAEditar;
   const [loading, setLoading] = useState(false);
   const [ordenes, setOrdenes] = useState([]);
   const [ordenSeleccionada, setOrdenSeleccionada] = useState(null);
   const [ordenDetalle, setOrdenDetalle] = useState(null);
   const [cargandoOrden, setCargandoOrden] = useState(false);
+  const [showOrdenModal, setShowOrdenModal] = useState(false);
+  const [ordenSearchModal, setOrdenSearchModal] = useState("");
 
   const [form, setForm] = useState({
     ordenId: "",
@@ -30,8 +34,12 @@ export default function CrearReembolsoVentaModal({
   useEffect(() => {
     if (!isOpen) return;
     cargarOrdenes();
-    resetForm();
-  }, [isOpen]);
+    if (reembolsoAEditar) {
+      cargarReembolsoParaEditar();
+    } else {
+      resetForm();
+    }
+  }, [isOpen, reembolsoAEditar]);
 
   const resetForm = () => {
     setForm({
@@ -44,6 +52,63 @@ export default function CrearReembolsoVentaModal({
     });
     setOrdenSeleccionada(null);
     setOrdenDetalle(null);
+  };
+
+  const cargarReembolsoParaEditar = async () => {
+    try {
+      // Primero cargar la orden para obtener los ordenItemId correctos
+      if (!reembolsoAEditar.ordenOriginal?.id) {
+        showError("El reembolso no tiene una orden original válida.");
+        return;
+      }
+
+      let orden = await obtenerOrden(reembolsoAEditar.ordenOriginal.id);
+      
+      // Si la orden no tiene items completos, usar el endpoint de detalle
+      if (!orden.items || orden.items.length === 0 || !orden.items[0]?.producto) {
+        console.log(" Orden sin items completos, usando endpoint de detalle...");
+        const ordenDetalle = await obtenerOrdenDetalle(reembolsoAEditar.ordenOriginal.id);
+        // Crear nuevo objeto con los items del detalle
+        orden = {
+          ...orden,
+          items: ordenDetalle.items || []
+        };
+      }
+
+      setOrdenDetalle(orden);
+      setOrdenSeleccionada(reembolsoAEditar.ordenOriginal);
+
+      // Mapear los detalles del reembolso con los items de la orden para obtener los ordenItemId correctos
+      const detallesReembolso = (reembolsoAEditar.detalles || []).map(det => {
+        // Buscar el item correspondiente en la orden por el código o nombre del producto
+        const itemOrden = orden.items?.find(item => 
+          item.producto?.codigo === det.producto?.codigo || 
+          item.producto?.id === det.producto?.id
+        );
+
+        return {
+          ordenItemId: itemOrden?.id || det.ordenItemId, // Usar el ID del item de la orden
+          producto: det.producto || { nombre: "Producto", codigo: "" },
+          cantidadOriginal: itemOrden?.cantidad || det.cantidad || 0,
+          cantidadDisponible: itemOrden?.cantidad || det.cantidad || 0,
+          cantidad: det.cantidad || 0,
+          precioUnitario: det.precioUnitario || 0,
+          seleccionado: true,
+        };
+      });
+
+      setForm({
+        ordenId: String(reembolsoAEditar.ordenOriginal.id),
+        fecha: reembolsoAEditar.fecha?.split("T")[0] || getTodayLocalDate(),
+        motivo: reembolsoAEditar.motivo || "",
+        formaReembolso: reembolsoAEditar.formaReembolso || "EFECTIVO",
+        descuentos: reembolsoAEditar.descuentos || 0,
+        detalles: detallesReembolso,
+      });
+    } catch (error) {
+      console.error("Error cargando reembolso para editar:", error);
+      showError("Error al cargar los datos del reembolso.");
+    }
   };
 
   const cargarOrdenes = async () => {
@@ -130,11 +195,12 @@ export default function CrearReembolsoVentaModal({
     }
   };
 
-  const handleOrdenChange = (e) => {
-    const ordenId = e.target.value;
-    setForm(prev => ({ ...prev, ordenId, detalles: [] }));
-    setOrdenSeleccionada(ordenes.find(o => String(o.id) === ordenId) || null);
-    cargarDetalleOrden(ordenId);
+  const handleOrdenChange = (ordenSeleccionada) => {
+    setForm(prev => ({ ...prev, ordenId: String(ordenSeleccionada.id), detalles: [] }));
+    setOrdenSeleccionada(ordenSeleccionada);
+    cargarDetalleOrden(ordenSeleccionada.id);
+    setShowOrdenModal(false);
+    setOrdenSearchModal("");
   };
 
   const handleDetalleChange = (index, field, value) => {
@@ -264,27 +330,43 @@ export default function CrearReembolsoVentaModal({
 
   return (
     <div className="modal-overlay">
-      <div className="modal-container modal-wide">
-        <h2>Crear Devolución de Venta</h2>
+      <div className="modal-container modal-wide" style={{ maxHeight: "90vh", overflowY: "auto" }}>
+        <h2>{isEditMode ? "Editar Devolución de Venta" : "Crear Devolución de Venta"}</h2>
 
         <form onSubmit={handleSubmit} className="form">
           <div className="form-two-columns">
             <div className="form-column">
               <label>
                 Orden Original *
-                <select
-                  value={form.ordenId}
-                  onChange={handleOrdenChange}
-                  required
-                  disabled={loading}
-                >
-                  <option value="">Seleccionar orden...</option>
-                  {ordenes.map((ord) => (
-                    <option key={ord.id} value={ord.id}>
-                      #{ord.numero || ord.id} - {ord.cliente?.nombre || "Sin cliente"} - {ord.obra || "Sin obra"}
-                    </option>
-                  ))}
-                </select>
+                <div style={{ display: "flex", gap: "8px" }}>
+                  <input
+                    type="text"
+                    value={ordenSeleccionada ? `#${ordenSeleccionada.numero || ordenSeleccionada.id} - ${ordenSeleccionada.cliente?.nombre || "Sin cliente"} - ${ordenSeleccionada.obra || "Sin obra"}` : ""}
+                    placeholder="Click en 'Buscar' para seleccionar orden..."
+                    readOnly
+                    style={{ flex: 1, cursor: isEditMode ? "not-allowed" : "pointer", backgroundColor: "#f9fafb", opacity: isEditMode ? 0.6 : 1 }}
+                    onClick={() => !isEditMode && setShowOrdenModal(true)}
+                    required
+                    disabled={isEditMode}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowOrdenModal(true)}
+                    style={{
+                      padding: "8px 16px",
+                      backgroundColor: "#1e2753",
+                      color: "white",
+                      border: "none",
+                      borderRadius: "4px",
+                      cursor: isEditMode ? "not-allowed" : "pointer",
+                      whiteSpace: "nowrap",
+                      opacity: isEditMode ? 0.5 : 1
+                    }}
+                    disabled={loading || isEditMode}
+                  >
+                    Buscar Orden
+                  </button>
+                </div>
               </label>
 
               <label>
@@ -374,7 +456,7 @@ export default function CrearReembolsoVentaModal({
               <table className="table" style={{ width: "100%", marginTop: "0.5rem" }}>
                 <thead>
                   <tr>
-                    <th style={{ width: "40px" }}>Incluir</th>
+                    <th>Incluir</th>
                     <th>Producto</th>
                     <th>Cantidad Original</th>
                     <th>Cantidad Disponible</th>
@@ -405,8 +487,8 @@ export default function CrearReembolsoVentaModal({
                             onChange={() => toggleProductoSeleccionado(index)}
                             disabled={loading}
                             style={{ 
-                              width: "20px", 
-                              height: "20px", 
+                              width: "1.25rem", 
+                              height: "1.25rem", 
                               cursor: "pointer" 
                             }}
                           />
@@ -428,7 +510,7 @@ export default function CrearReembolsoVentaModal({
                             placeholder="0"
                             disabled={loading || !estaSeleccionado}
                             style={{ 
-                              width: "80px",
+                              width: "5rem",
                               backgroundColor: estaSeleccionado ? "white" : "#f5f5f5"
                             }}
                           />
@@ -442,7 +524,7 @@ export default function CrearReembolsoVentaModal({
                             onChange={(e) => handleDetalleChange(index, "precioUnitario", e.target.value)}
                             disabled={loading || !estaSeleccionado}
                             style={{ 
-                              width: "100px",
+                              width: "6.25rem",
                               backgroundColor: estaSeleccionado ? "white" : "#f5f5f5"
                             }}
                           />
@@ -482,7 +564,119 @@ export default function CrearReembolsoVentaModal({
           </div>
         </form>
       </div>
-    </div>
+      {/* Modal de búsqueda de orden */}
+      {showOrdenModal && (
+        <div
+          className="modal-overlay"
+          style={{ zIndex: 10000 }}
+          onClick={() => setShowOrdenModal(false)}
+        >
+          <div
+            className="modal-container"
+            style={{ maxWidth: "800px", maxHeight: "80vh", overflow: "auto" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
+              <h3 style={{ margin: 0 }}>Buscar Orden</h3>
+              <button
+                type="button"
+                onClick={() => setShowOrdenModal(false)}
+                style={{
+                  background: "white",
+                  border: "1px solid #ddd",
+                  borderRadius: "50%",
+                  width: "32px",
+                  height: "32px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  cursor: "pointer",
+                  fontSize: "18px",
+                  color: "#666"
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.backgroundColor = "#fee";
+                  e.target.style.color = "#c00";
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.backgroundColor = "white";
+                  e.target.style.color = "#666";
+                }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <input
+              type="text"
+              placeholder="Buscar por número de orden, cliente u obra..."
+              value={ordenSearchModal}
+              onChange={(e) => setOrdenSearchModal(e.target.value)}
+              style={{
+                width: "100%",
+                padding: "10px",
+                marginBottom: "1rem",
+                border: "1px solid #ddd",
+                borderRadius: "4px",
+                fontSize: "14px"
+              }}
+              autoFocus
+            />
+
+            <div style={{ maxHeight: "400px", overflowY: "auto" }}>
+              {ordenes.length === 0 ? (
+                <p style={{ textAlign: "center", color: "#666", padding: "2rem" }}>
+                  No hay órdenes disponibles
+                </p>
+              ) : (
+                ordenes
+                  .filter((ord) => {
+                    const searchTerm = ordenSearchModal.toLowerCase();
+                    const numero = String(ord.numero || ord.id).toLowerCase();
+                    const cliente = (ord.cliente?.nombre || "").toLowerCase();
+                    const obra = (ord.obra || "").toLowerCase();
+                    return (
+                      numero.includes(searchTerm) ||
+                      cliente.includes(searchTerm) ||
+                      obra.includes(searchTerm)
+                    );
+                  })
+                  .map((ord) => (
+                    <div
+                      key={ord.id}
+                      onClick={() => handleOrdenChange(ord)}
+                      style={{
+                        padding: "12px",
+                        borderBottom: "1px solid #eee",
+                        cursor: "pointer",
+                        transition: "background-color 0.2s"
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = "#f0f0f0";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = "transparent";
+                      }}
+                    >
+                      <div style={{ fontWeight: "bold", marginBottom: "4px" }}>
+                        Orden #{ord.numero || ord.id}
+                      </div>
+                      <div style={{ fontSize: "14px", color: "#666" }}>
+                        Cliente: {ord.cliente?.nombre || "Sin cliente"}
+                      </div>
+                      <div style={{ fontSize: "14px", color: "#666" }}>
+                        Obra: {ord.obra || "Sin obra"}
+                      </div>
+                      <div style={{ fontSize: "12px", color: "#999", marginTop: "4px" }}>
+                        Fecha: {ord.fechaCreacion ? new Date(ord.fechaCreacion).toLocaleDateString() : "N/A"}
+                      </div>
+                    </div>
+                  ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}    </div>
   );
 }
 
