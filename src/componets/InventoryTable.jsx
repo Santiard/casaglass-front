@@ -60,15 +60,15 @@ export default function InventoryTable({ data = [], filters, loading, onEditar, 
                 )}
               </>
             )}
-            {isAdmin && <th>Acciones</th>}
+            <th>Acciones</th>
           </tr>
         </thead>
         <tbody>
           {loading && (
-            <tr><td colSpan={isAdmin ? (isVidrio ? 8 : 12) : (isVidrio ? 5 : 5)} className="empty">Cargando…</td></tr>
+            <tr><td colSpan={isAdmin ? (isVidrio ? 9 : 13) : (isVidrio ? 6 : 6)} className="empty">Cargando…</td></tr>
           )}
           {!loading && data.length === 0 && (
-            <tr><td colSpan={isAdmin ? (isVidrio ? 8 : 12) : (isVidrio ? 5 : 5)} className="empty">Sin resultados</td></tr>
+            <tr><td colSpan={isAdmin ? (isVidrio ? 9 : 13) : (isVidrio ? 6 : 6)} className="empty">Sin resultados</td></tr>
           )}
           {!loading && data.map((p) => {
             const total = Number(p.cantidadTotal || 0) || 
@@ -97,7 +97,11 @@ export default function InventoryTable({ data = [], filters, loading, onEditar, 
               >
                 <td>{p.codigo}</td>
                 <td>{p.nombre}</td>
-                <td>{p.color ?? "N/A"}</td>
+                <td>
+                  <span className={`color-badge color-${(p.color || 'NA').toLowerCase().replace(/\s+/g, '-')}`}>
+                    {p.color ?? "N/A"}
+                  </span>
+                </td>
                 {isVidrio ? (
                   <>
                     {/* Columnas específicas para VIDRIO */}
@@ -168,18 +172,15 @@ export default function InventoryTable({ data = [], filters, loading, onEditar, 
                   </>
                 )}
                 
-                {/* Solo administradores pueden editar/eliminar */}
-                {isAdmin && (
-                  <td className="acciones">
-                    <button className="btnEdit" onClick={() => onEditar?.(p)}>
-                    <img src={editar} className="iconButton" />
-                    </button>
-                    <button className="btnDelete" onClick={() => onEliminar?.(p.id)}>
-                    <img src={eliminar} className="iconButton" />
-                    </button>
-                  </td>
-
-                )}
+                {/* Acciones disponibles para todos los roles */}
+                <td className="acciones">
+                  <button className="btnEdit" onClick={() => onEditar?.(p)}>
+                  <img src={editar} className="iconButton" />
+                  </button>
+                  <button className="btnDelete" onClick={() => onEliminar?.(p.id)}>
+                  <img src={eliminar} className="iconButton" />
+                  </button>
+                </td>
               </tr>
             );
           })}

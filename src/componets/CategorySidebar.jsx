@@ -1,7 +1,13 @@
 import "../styles/CategorySidebar.css";
 import add from "../assets/add.png";
 
-export default function CategorySidebar({ categories = [], selectedId, onSelect, onAddCategory }) {
+export default function CategorySidebar({ 
+  categories = [], 
+  selectedId, 
+  onSelect, 
+  onAddCategory,
+  hideAllCategory = false // Nuevo prop para ocultar la categoría "TODAS" en modales
+}) {
   // Ordenar categorías por ID de menor a mayor
   const categoriasOrdenadas = [...categories].sort((a, b) => {
     // Manejar casos donde id puede ser null o undefined
@@ -9,6 +15,14 @@ export default function CategorySidebar({ categories = [], selectedId, onSelect,
     const idB = b.id ?? 0;
     return Number(idA) - Number(idB);
   });
+
+  // Filtrar categoría "TODAS" si hideAllCategory es true
+  const categoriasParaMostrar = hideAllCategory
+    ? categoriasOrdenadas.filter(cat => {
+        const nombre = cat.nombre?.toUpperCase().trim() || "";
+        return nombre !== "TODAS" && nombre !== "TODAS LAS CATEGORÍAS";
+      })
+    : categoriasOrdenadas;
 
   return (
     <div>
@@ -43,7 +57,7 @@ export default function CategorySidebar({ categories = [], selectedId, onSelect,
         </button>
       )}
       <div className="category-list">
-        {categoriasOrdenadas.map((cat) => (
+        {categoriasParaMostrar.map((cat) => (
           <button
             key={cat.id}
             className={`category-item ${selectedId === cat.id ? "active" : ""}`}

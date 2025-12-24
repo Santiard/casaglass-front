@@ -324,7 +324,7 @@ export default function ProductModal({ isOpen, onClose, onSave, product }) {
     if (esVidrioFinal) {
       // IMPORTANTE: Enviar m1, m2 y mm como NÚMEROS (Double), no strings
       // El backend calcula m1m2 = m1 * m2 automáticamente
-      backendPayload.esVidrio = true;  // ✅ CAMPO ESENCIAL - Marca el producto como vidrio
+      backendPayload.esVidrio = true;  // CAMPO ESENCIAL - Marca el producto como vidrio
       backendPayload.mm = parseFloat(toSave.mm || "0") || 0;
       backendPayload.m1 = parseFloat(toSave.m1 || "0") || 0;
       backendPayload.m2 = parseFloat(toSave.m2 || "0") || 0;

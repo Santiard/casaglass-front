@@ -4,7 +4,7 @@ import IngresosTable from "../componets/IngresoTable.jsx";
 import IngresoDetalleModal from "../modals/IngresoDetalleModal.jsx";
 import { listarIngresos, crearIngresoDesdeForm, actualizarIngresoDesdeForm, eliminarIngreso, procesarIngreso, obtenerIngreso } from "../services/IngresosService.js";
 import { listarProveedores } from "../services/ProveedoresService.js";
-import { listarTodosLosProductos } from "../services/ProductosService.js";
+import { listarInventarioCompleto } from "../services/InventarioService.js";
 import { useConfirm } from "../hooks/useConfirm.jsx";
 import { useToast } from "../context/ToastContext.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
@@ -83,40 +83,13 @@ export default function IngresosPage() {
 
   const loadAux = async () => {
     try {
-      const [prov, prods] = await Promise.all([
-        listarProveedores(),
-        listarTodosLosProductos(), //  Incluye productos normales + vidrios
-      ]);
-      
-
-      
+      const prov = await listarProveedores();
       setProveedores(prov || []);
-      // Filtrar cortes: excluir productos que tengan largoCm (son cortes)
-      // PERO incluir productos vidrio (tienen m1, m2, mm pero NO largoCm)
-      // Solo incluir productos regulares y vidrios (sin largoCm)
-      setCatalogo(
-        (prods || [])
-          .filter(p => {
-            // Excluir cortes (tienen largoCm)
-            // Incluir productos normales (sin largoCm) y vidrios (tienen m1, m2 pero no largoCm)
-            return p.largoCm === undefined || p.largoCm === null;
-          })
-          .map((p) => ({
-            id: p.id,
-            nombre: p.nombre,
-            codigo: p.codigo ?? "",
-            categoria: p.categoria?.nombre ?? p.categoria ?? "", //  Extraemos el nombre si es objeto
-            color: p.color, //  Incluir el color del producto
-            largoCm: p.largoCm, // Incluir para que el filtro del modal funcione
-            esVidrio: p.esVidrio || false, //  Incluir flag de vidrio
-            m1: p.m1, //  Campos de vidrio
-            m2: p.m2,
-            mm: p.mm,
-          }))
-      );
+      // No cargar productos aquí - se cargarán en el modal al seleccionar categoría
+      setCatalogo([]);
     } catch (e) {
-      console.error(e);
-      showError("No se pudieron cargar proveedores / catálogo.");
+      console.error("Error cargando datos:", e);
+      showError(e?.response?.data?.message || "No se pudieron cargar los datos");
     }
   };
 

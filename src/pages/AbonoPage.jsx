@@ -152,7 +152,7 @@ const AbonoPage = () => {
   const cargarOrdenesCredito = async (clienteId) => {
     setLoadingOrdenes(true);
     try {
-      // 🆕 USAR EL NUEVO ENDPOINT ESPECIALIZADO /creditos/cliente/{id}/pendientes
+      // USAR EL NUEVO ENDPOINT ESPECIALIZADO /creditos/cliente/{id}/pendientes
       const creditosPendientes = await listarCreditosPendientes(clienteId);
       
       // LOG COMPLETO: Ver TODOS los datos que trae el backend
@@ -363,7 +363,7 @@ const AbonoPage = () => {
   const toggleRetencionOrden = async (ordenId) => {
     // Prevenir llamadas duplicadas mientras hay una petición en curso
     if (updatingRetencion.has(ordenId)) {
-      console.log('⏳ Ya hay una actualización en curso para esta orden');
+      console.log('Ya hay una actualización en curso para esta orden');
       return;
     }
 
@@ -434,7 +434,7 @@ const AbonoPage = () => {
         iva: ivaCalculado
       });
       
-      console.log('✅ Respuesta del backend:', response);
+      console.log('Respuesta del backend:', response);
       
       // El backend retorna { mensaje: "...", orden: {...} }
       const ordenActualizada = response.orden;
@@ -451,7 +451,7 @@ const AbonoPage = () => {
                 iva: ordenActualizada.iva,
                 subtotal: ordenActualizada.subtotal,
                 total: ordenActualizada.total,
-                // ✅ CRÍTICO: PRESERVAR creditoDetalle pero ACTUALIZAR saldoPendiente
+                // CRÍTICO: PRESERVAR creditoDetalle pero ACTUALIZAR saldoPendiente
                 creditoDetalle: o.creditoDetalle ? {
                   ...o.creditoDetalle,
                   // Recalcular saldoPendiente: si tiene retención, restarla del total a pagar
@@ -468,7 +468,7 @@ const AbonoPage = () => {
       showSuccess(response.mensaje || 'Retención actualizada exitosamente');
       
     } catch (error) {
-      console.error("❌ Error actualizando retención de fuente:", error);
+      console.error("Error actualizando retención de fuente:", error);
       
       // Revertir el cambio local si falla la actualización
       const revertidasConRetencion = new Set(ordenesConRetencion);
@@ -656,14 +656,14 @@ const AbonoPage = () => {
         const distribucionParaEsteAbono = dist.saldoRestante === 0 ? [dist] : [{ ...dist, montoRetencion: 0 }];
         const metodoPagoString = construirDescripcion(metodosValidos, observacionesAdicionales, distribucionParaEsteAbono);
         
-        // 🆕 CALCULAR RETENCIÓN PROPORCIONAL
+        // CALCULAR RETENCIÓN PROPORCIONAL
         let montoRetencionAbono = 0;
         if (orden.tieneRetencionFuente && dist.saldoRestante === 0) {
           // Si este abono completa la orden, incluir la retención total
           montoRetencionAbono = orden.retencionFuente || 0;
         }
         
-        // 🆕 CALCULAR MONTOS PROPORCIONALES de cada método de pago
+        // CALCULAR MONTOS PROPORCIONALES de cada método de pago
         const proporcion = dist.montoAbono / totalMetodosPago;
         const montoEfectivoAbono = montoEfectivoTotal * proporcion;
         const montoTransferenciaAbono = montoTransferenciaTotal * proporcion;
@@ -675,7 +675,7 @@ const AbonoPage = () => {
           fecha: formData.fecha,
           metodoPago: metodoPagoString,
           factura: numeroAbono, // Siempre enviar un valor válido
-          // 🆕 CAMPOS NUMÉRICOS
+          // CAMPOS NUMÉRICOS
           montoEfectivo: Math.round(montoEfectivoAbono * 100) / 100,
           montoTransferencia: Math.round(montoTransferenciaAbono * 100) / 100,
           montoCheque: Math.round(montoChequeAbono * 100) / 100,
@@ -884,7 +884,7 @@ const AbonoPage = () => {
                       }}
                       disabled={!esTransferencia && existe}
                     >
-                      {tipo.label} {(existe || (esTransferencia && tieneTransferencias)) && '✓'}
+                      {tipo.label} {(existe || (esTransferencia && tieneTransferencias)) && '(Aplicado)'}
                     </button>
                   );
                 })}
@@ -1036,7 +1036,7 @@ const AbonoPage = () => {
                             ? ordenesConRetencion.has(orden.id)
                             : (orden.tieneRetencionFuente === true);
                           
-                          // 💰 MOSTRAR RETENCIÓN: Si la orden ya tiene retencionFuente del backend, mostrarlo
+                          // MOSTRAR RETENCIÓN: Si la orden ya tiene retencionFuente del backend, mostrarlo
                           // Esto es independiente de si está seleccionada o no
                           const valorRetencionOrden = orden.retencionFuente || 0;
                           

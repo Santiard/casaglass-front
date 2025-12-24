@@ -184,7 +184,7 @@ export default function FacturarOrdenModal({ isOpen, onClose, onSave, orden }) {
       setForm({
         ordenId: orden.id,
         fecha: getTodayLocalDate(),
-        subtotal: orden.subtotal || 0, // ✅ Base SIN IVA (lo que el backend espera)
+        subtotal: orden.subtotal || 0, // Base SIN IVA (lo que el backend espera)
         descuentos: descuentosOrden || "",
         iva: ivaOrden, // Valor del IVA calculado en la orden (en dinero, NO porcentaje)
         retencionFuente: retencionFuenteOrden, // Valor de retención calculado en la orden (en dinero, NO porcentaje)

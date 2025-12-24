@@ -179,7 +179,7 @@ const AbonoModal = ({ isOpen, onClose, credito, onSuccess }) => {
       cargarOrdenesCredito(clienteSeleccionado.id);
     } else if (!clienteSeleccionado?.id && isOpen) {
       // Solo limpiar si realmente no hay cliente seleccionado Y el modal está abierto
-      console.log("⚠️ Limpiando selecciones porque no hay cliente");
+      console.log("Limpiando selecciones porque no hay cliente");
       setOrdenesCredito([]);
       setOrdenesSeleccionadas(new Set());
       setDistribucion([]);
@@ -187,7 +187,7 @@ const AbonoModal = ({ isOpen, onClose, credito, onSuccess }) => {
   }, [isOpen, clienteSeleccionado?.id]); // Usar clienteSeleccionado?.id en lugar del objeto completo
 
   const cargarOrdenesCredito = async (clienteId) => {
-    console.log("📥 cargarOrdenesCredito llamado", { clienteId, ordenesSeleccionadasActual: Array.from(ordenesSeleccionadas) });
+    console.log("cargarOrdenesCredito llamado", { clienteId, ordenesSeleccionadasActual: Array.from(ordenesSeleccionadas) });
     setLoadingOrdenes(true);
     try {
       // Usar el nuevo endpoint que devuelve solo órdenes a crédito con creditoDetalle
@@ -199,7 +199,7 @@ const AbonoModal = ({ isOpen, onClose, credito, onSuccess }) => {
         return orden.creditoDetalle?.saldoPendiente > 0;
       });
       
-      console.log("⚠️ ATENCION: cargarOrdenesCredito va a limpiar selecciones");
+      console.log("ATENCION: cargarOrdenesCredito va a limpiar selecciones");
       setOrdenesCredito(ordenesConSaldo);
       setOrdenesSeleccionadas(new Set());
       setDistribucion([]);
@@ -474,7 +474,7 @@ const AbonoModal = ({ isOpen, onClose, credito, onSuccess }) => {
       
       const metodoPagoString = construirDescripcion(metodosValidos, observacionesAdicionales);
 
-      // 🆕 CALCULAR MONTOS POR MÉTODO DE PAGO (campos numéricos)
+      // CALCULAR MONTOS POR MÉTODO DE PAGO (campos numéricos)
       let montoEfectivoTotal = 0;
       let montoTransferenciaTotal = 0;
       let montoChequeTotal = 0;
@@ -502,7 +502,7 @@ const AbonoModal = ({ isOpen, onClose, credito, onSuccess }) => {
           return null;
         }
         
-        // 🆕 CALCULAR RETENCIÓN PROPORCIONAL
+        // CALCULAR RETENCIÓN PROPORCIONAL
         // Solo si la orden tiene retención Y el saldo queda en 0 (orden completamente pagada)
         let montoRetencionAbono = 0;
         if (orden.tieneRetencionFuente && dist.saldoRestante === 0) {
@@ -510,7 +510,7 @@ const AbonoModal = ({ isOpen, onClose, credito, onSuccess }) => {
           montoRetencionAbono = orden.retencionFuente || 0;
         }
         
-        // 🆕 CALCULAR MONTOS PROPORCIONALES de cada método de pago
+        // CALCULAR MONTOS PROPORCIONALES de cada método de pago
         const proporcion = dist.montoAbono / montoTotal;
         const montoEfectivoAbono = montoEfectivoTotal * proporcion;
         const montoTransferenciaAbono = montoTransferenciaTotal * proporcion;
@@ -522,7 +522,7 @@ const AbonoModal = ({ isOpen, onClose, credito, onSuccess }) => {
           fecha: formData.fecha,
           metodoPago: metodoPagoString,
           factura: formData.factura || null,
-          // 🆕 CAMPOS NUMÉRICOS
+          // CAMPOS NUMÉRICOS
           montoEfectivo: Math.round(montoEfectivoAbono * 100) / 100,
           montoTransferencia: Math.round(montoTransferenciaAbono * 100) / 100,
           montoCheque: Math.round(montoChequeAbono * 100) / 100,

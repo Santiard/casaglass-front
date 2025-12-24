@@ -49,6 +49,7 @@ export default function VenderTable({ data = [], onAgregarProducto, onActualizar
         <thead>
           <tr>
             <th>Producto</th>
+            <th>Color</th>
             <th>Categoría</th>
             <th>Cantidad</th>
             <th>Cantidad Insula</th>
@@ -63,7 +64,7 @@ export default function VenderTable({ data = [], onAgregarProducto, onActualizar
         <tbody>
           {data.length === 0 ? (
             <tr>
-              <td colSpan="11">No hay registros</td>
+              <td colSpan="12">No hay registros</td>
             </tr>
           ) : (
             data.map((item) => {
@@ -85,6 +86,11 @@ export default function VenderTable({ data = [], onAgregarProducto, onActualizar
                   style={{ cursor: 'pointer' }}
                 >
                   <td>{item.nombre}</td>
+                  <td>
+                    <span className={`color-badge color-${(item.color || 'NA').toLowerCase().replace(/\s+/g, '-')}`}>
+                      {item.color ?? "N/A"}
+                    </span>
+                  </td>
                   <td>{item.categoria}</td>
                   <td>{cantidadTotal}</td>
                   <td>{cantidadInsula}</td>

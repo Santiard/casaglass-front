@@ -7,6 +7,7 @@ import {
 } from "../services/IngresosService.js";
 import CategorySidebar from "../componets/CategorySidebar.jsx";
 import { listarCategorias } from "../services/CategoriasService.js";
+import { listarInventarioCompleto } from "../services/InventarioService.js";
 import { useToast } from "../context/ToastContext.jsx";
 import { listarProveedores } from "../services/ProveedoresService.js";
 import { getTodayLocalDate, parseLocalDate, diffDaysFromToday } from "../lib/dateUtils.js";
@@ -16,7 +17,7 @@ export default function IngresoModal({
   onClose,
   onSave,                   // callback opcional para refrescar la tabla del padre
   proveedores = [],         // [{id, nombre}]
-  catalogoProductos = [],   // [{id, nombre, codigo}]
+  catalogoProductos = [],   // [{id, nombre, codigo}] - DEPRECATED: ahora se cargan filtrados por categoría
   ingresoInicial = null,    // si viene => editar
 }) {
   const { showError } = useToast();
@@ -35,6 +36,8 @@ export default function IngresoModal({
   const [editable, setEditable] = useState(true);
   const [selectedCategoryId, setSelectedCategoryId] = useState(null);
   const [categorias, setCategorias] = useState([]);
+  const [catalogoProductosFiltrados, setCatalogoProductosFiltrados] = useState([]); // Productos cargados por categoría
+  const [loadingProductos, setLoadingProductos] = useState(false); // Estado de carga de productos
   const [proveedoresLista, setProveedoresLista] = useState([]);
   const [showProveedorModal, setShowProveedorModal] = useState(false);
   const [proveedorSearchModal, setProveedorSearchModal] = useState("");
@@ -71,7 +74,7 @@ export default function IngresoModal({
             try {
               console.log("📥 Obteniendo ingreso completo para edición:", ingresoInicial.id);
               ingresoCompleto = await obtenerIngreso(ingresoInicial.id);
-              console.log("✅ Ingreso completo obtenido:", ingresoCompleto);
+              console.log("Ingreso completo obtenido:", ingresoCompleto);
             } catch (error) {
               console.error("❌ Error al obtener ingreso completo:", error);
               showError("No se pudieron cargar los detalles del ingreso");
@@ -153,12 +156,58 @@ export default function IngresoModal({
       // Reset categorías y proveedores cuando se cierre el modal
       setCategorias([]);
       setProveedoresLista([]);
+      setCatalogoProductosFiltrados([]); // Limpiar productos filtrados
     }
   }, [isOpen]);
 
+  // Cargar productos filtrados por categoría
+  useEffect(() => {
+    const fetchProductosPorCategoria = async () => {
+      if (!selectedCategoryId || !isOpen) {
+        setCatalogoProductosFiltrados([]);
+        setLoadingProductos(false);
+        return;
+      }
+      
+      try {
+        setLoadingProductos(true);
+        console.log("⏳ [IngresoModal] Cargando productos para categoría ID:", selectedCategoryId);
+        const params = { categoriaId: selectedCategoryId };
+        const productos = await listarInventarioCompleto(params, true, null);
+        console.log("[IngresoModal] Productos cargados:", { categoriaId: selectedCategoryId, total: productos?.length || 0 });
+        setCatalogoProductosFiltrados(productos || []);
+      } catch (e) {
+        console.error("❌ [IngresoModal] Error cargando productos por categoría:", e);
+        showError("No se pudieron cargar los productos");
+        setCatalogoProductosFiltrados([]);
+      } finally {
+        setLoadingProductos(false);
+      }
+    };
+    
+    fetchProductosPorCategoria();
+  }, [selectedCategoryId, isOpen, showError]);
+
+  // Seleccionar primera categoría por defecto cuando se carguen las categorías
+  useEffect(() => {
+    if (categorias.length > 0 && !selectedCategoryId) {
+      const categoriasValidas = categorias.filter(cat => {
+        const nombre = cat.nombre?.toUpperCase().trim() || "";
+        return nombre !== "TODAS" && nombre !== "TODAS LAS CATEGORÍAS";
+      });
+      
+      if (categoriasValidas.length > 0) {
+        console.log("📌 [IngresoModal] Seleccionando primera categoría por defecto:", categoriasValidas[0]);
+        setSelectedCategoryId(categoriasValidas[0].id);
+      }
+    }
+  }, [categorias, selectedCategoryId]);
+
   // Catálogo filtrado por búsqueda y categoría
   const catalogoFiltrado = useMemo(() => {
-    let filtered = catalogoProductos;
+    let filtered = catalogoProductosFiltrados;
+    
+    // Ya vienen filtrados por categoría desde el backend, no necesitamos filtrar nuevamente por categoría
     
     // Filtrar cortes: excluir productos que tengan largoCm (son cortes)
     // Los cortes tienen la propiedad largoCm (incluso si es 0), los productos regulares no tienen esta propiedad
@@ -167,15 +216,6 @@ export default function IngresoModal({
       // Si largoCm existe (incluso si es 0), es un corte y debe excluirse
       return p.largoCm === undefined || p.largoCm === null;
     });
-    
-    // Filtrar por categoría si está seleccionada
-    if (selectedCategoryId) {
-      const selectedCategory = categorias.find(cat => cat.id === selectedCategoryId);
-      
-      if (selectedCategory) {
-        filtered = filtered.filter(p => p.categoria === selectedCategory.nombre);
-      }
-    }
     
     // Filtrar por color
     if (selectedColor) {
@@ -197,7 +237,7 @@ export default function IngresoModal({
     }
     
     return filtered;
-  }, [catalogoProductos, searchCat, selectedCategoryId, selectedColor, categorias]);
+  }, [catalogoProductosFiltrados, searchCat, selectedColor]);
 
   // Total costo calculado en UI (el back recalcula igual)
   const totalCosto = useMemo(
@@ -608,12 +648,34 @@ export default function IngresoModal({
           <div className="pane pane-sidebar">
             <div className="category-section">
               <CategorySidebar 
-                categories={[
-                  { id: null, nombre: "Todas" },
-                  ...categorias
-                ]}
+                categories={categorias}
                 selectedId={selectedCategoryId}
-                onSelect={(id) => setSelectedCategoryId(id === null ? null : id)}
+                onSelect={(id) => {
+                  // Determinar el color por defecto según la categoría
+                  const categoriasConMate = [
+                    "5020",
+                    "744",
+                    "8025",
+                    "7038",
+                    "3831",
+                    "BAÑO",
+                    "TUBOS CUARTO CIRCULOS",
+                    "CANALES"
+                  ];
+                  
+                  const selectedCategory = categorias.find(cat => cat.id === id);
+                  const categoriaNombre = selectedCategory?.nombre?.toUpperCase().trim() || "";
+                  
+                  const tieneMate = categoriasConMate.some(cat => 
+                    cat.toUpperCase().trim() === categoriaNombre
+                  );
+                  
+                  const colorDefault = tieneMate ? "MATE" : "";
+                  
+                  setSelectedCategoryId(id);
+                  setSelectedColor(colorDefault);
+                }}
+                hideAllCategory={true}
               />
             </div>
           </div>
@@ -678,10 +740,16 @@ export default function IngresoModal({
                   </tr>
                 </thead>
                 <tbody>
-                  {catalogoFiltrado.length === 0 ? (
+                  {loadingProductos ? (
                     <tr>
-                      <td colSpan={3} className="empty">
-                        Sin resultados
+                      <td colSpan={3} className="empty" style={{ textAlign: 'center', padding: '2rem', color: '#666' }}>
+                        Cargando productos...
+                      </td>
+                    </tr>
+                  ) : catalogoFiltrado.length === 0 ? (
+                    <tr>
+                      <td colSpan={3} className="empty" style={{ textAlign: 'center', padding: '2rem' }}>
+                        {selectedCategoryId ? 'No hay productos en esta categoría' : 'Selecciona una categoría para ver productos'}
                       </td>
                     </tr>
                   ) : (

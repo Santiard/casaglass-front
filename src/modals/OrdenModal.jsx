@@ -4,7 +4,6 @@ import CategorySidebar from "../componets/CategorySidebar.jsx";
 import { listarClientes } from "../services/ClientesService.js";
 import { listarSedes } from "../services/SedesService.js";
 import { listarTrabajadores } from "../services/TrabajadoresService.js";
-import { listarTodosLosProductos } from "../services/ProductosService.js";
 import { listarCategorias } from "../services/CategoriasService.js";
 import { actualizarOrden, obtenerOrden, actualizarOrdenVenta, crearOrdenVenta } from "../services/OrdenesService.js";
 import { useToast } from "../context/ToastContext.jsx";
@@ -13,6 +12,7 @@ import eliminar from "../assets/eliminar.png";
 
 import { api } from "../lib/api";
 import { getTodayLocalDate, toLocalDateOnly } from "../lib/dateUtils.js";
+import { listarInventarioCompleto } from "../services/InventarioService.js";
 import { getBusinessSettings } from "../services/businessSettingsService.js";
 
 export default function OrdenEditarModal({
@@ -33,6 +33,7 @@ export default function OrdenEditarModal({
   const [sedes, setSedes] = useState([]);
   const [categorias, setCategorias] = useState([]);
   const [catalogoProductos, setCatalogoProductos] = useState([]);
+  const [loadingProductos, setLoadingProductos] = useState(false); // Estado de carga de productos
   const [search, setSearch] = useState("");
   const [selectedCategoryId, setSelectedCategoryId] = useState(null);
   const [selectedColor, setSelectedColor] = useState(""); // Filtro de color
@@ -513,33 +514,8 @@ export default function OrdenEditarModal({
           console.error("Error cargando categorías:", e);
         }
         
-        try {
-          prods = await listarTodosLosProductos(); //  Incluye productos normales + vidrios
-          
-          //  LOG: Verificar estructura de productos cargados
-          console.log(" Productos cargados para órdenes:", {
-            total: prods?.length || 0,
-            primeros3: prods?.slice(0, 3).map(p => ({
-              id: p.id,
-              productoId: p.productoId,
-              codigo: p.codigo,
-              nombre: p.nombre,
-              tieneId: !!(p.id || p.productoId),
-              tipo: p.esVidrio ? "VIDRIO" : "NORMAL"
-            })) || []
-          });
-          
-          // Verificar si hay productos sin ID
-          const productosSinId = prods?.filter(p => !p.id && !p.productoId) || [];
-          if (productosSinId.length > 0) {
-            console.warn(" Productos sin ID encontrados:", productosSinId.map(p => ({
-              codigo: p.codigo,
-              nombre: p.nombre
-            })));
-          }
-        } catch (e) {
-          console.error("Error cargando productos:", e);
-        }
+        // No cargar productos aquí - se cargarán al seleccionar categoría
+        prods = [];
         
         setClientes(c);
         setTrabajadores(t);
@@ -551,6 +527,54 @@ export default function OrdenEditarModal({
       }
     })();
   }, [isOpen]);
+
+  // ========== Cargar productos filtrados por categoría seleccionada ==========
+  useEffect(() => {
+    const fetchProductosPorCategoria = async () => {
+      if (!selectedCategoryId || !isOpen) {
+        setCatalogoProductos([]);
+        setLoadingProductos(false);
+        return;
+      }
+      
+      try {
+        setLoadingProductos(true);
+        console.log("⏳ [OrdenModal] Cargando productos para categoría ID:", selectedCategoryId);
+        const params = { categoriaId: selectedCategoryId };
+        const productos = await listarInventarioCompleto(params, true, null);
+        
+        console.log("[OrdenModal] Productos cargados:", {
+          categoriaId: selectedCategoryId,
+          total: productos?.length || 0
+        });
+        
+        setCatalogoProductos(productos || []);
+      } catch (e) {
+        console.error("❌ [OrdenModal] Error cargando productos por categoría:", e);
+        showError("No se pudieron cargar los productos");
+        setCatalogoProductos([]);
+      } finally {
+        setLoadingProductos(false);
+      }
+    };
+    
+    fetchProductosPorCategoria();
+  }, [selectedCategoryId, isOpen, showError]);
+
+  // ========== Seleccionar primera categoría por defecto ==========
+  useEffect(() => {
+    if (categorias.length > 0 && !selectedCategoryId) {
+      const categoriasValidas = categorias.filter(cat => {
+        const nombre = cat.nombre?.toUpperCase().trim() || "";
+        return nombre !== "TODAS" && nombre !== "TODAS LAS CATEGORÍAS";
+      });
+      
+      if (categoriasValidas.length > 0) {
+        console.log("📌 [OrdenModal] Seleccionando primera categoría por defecto:", categoriasValidas[0]);
+        setSelectedCategoryId(categoriasValidas[0].id);
+      }
+    }
+  }, [categorias, selectedCategoryId]);
 
   // =============================
   // Match por nombre para establecer IDs
@@ -2213,6 +2237,7 @@ export default function OrdenEditarModal({
             <CategorySidebar
               categories={categorias}
               selectedId={selectedCategoryId}
+              hideAllCategory={true}
               onSelect={(catId) => {
                 // No permitir deseleccionar (siempre debe haber una categoría seleccionada)
                 if (selectedCategoryId === catId) {
@@ -2238,7 +2263,7 @@ export default function OrdenEditarModal({
                   cat.toUpperCase().trim() === categoriaNombre
                 );
                 
-        const colorDefault = ""; // sin predeterminado
+                const colorDefault = tieneMate ? "MATE" : "";
                 
                 setSelectedCategoryId(catId);
                 setSelectedColor(colorDefault);
@@ -2290,24 +2315,31 @@ export default function OrdenEditarModal({
                   </tr>
                 </thead>
                 <tbody>
-                  {catalogoFiltrado.map((p) => (
-                    <tr
-                      key={p.id}
-                      onDoubleClick={() => addProducto(p)}
-                      style={{ cursor: "pointer" }}
-                      title="Doble clic para agregar"
-                    >
-                      <td onDoubleClick={(e) => { e.stopPropagation(); addProducto(p); }}>{p.nombre}</td>
-                      <td onDoubleClick={(e) => { e.stopPropagation(); addProducto(p); }}>{p.codigo ?? "-"}</td>
-                      <td onDoubleClick={(e) => { e.stopPropagation(); addProducto(p); }}>{p.color ?? "-"}</td>
-                    </tr>
-                  ))}
-                  {catalogoFiltrado.length === 0 && (
+                  {loadingProductos ? (
                     <tr>
-                      <td colSpan={3} className="empty">
-                        Sin resultados
+                      <td colSpan={3} className="empty" style={{ textAlign: 'center', padding: '2rem', color: '#666' }}>
+                        Cargando productos...
                       </td>
                     </tr>
+                  ) : catalogoFiltrado.length === 0 ? (
+                    <tr>
+                      <td colSpan={3} className="empty" style={{ textAlign: 'center', padding: '2rem' }}>
+                        {selectedCategoryId ? 'No hay productos en esta categoría' : 'Selecciona una categoría para ver productos'}
+                      </td>
+                    </tr>
+                  ) : (
+                    catalogoFiltrado.map((p) => (
+                      <tr
+                        key={p.id}
+                        onDoubleClick={() => addProducto(p)}
+                        style={{ cursor: "pointer" }}
+                        title="Doble clic para agregar"
+                      >
+                        <td onDoubleClick={(e) => { e.stopPropagation(); addProducto(p); }}>{p.nombre}</td>
+                        <td onDoubleClick={(e) => { e.stopPropagation(); addProducto(p); }}>{p.codigo ?? "-"}</td>
+                        <td onDoubleClick={(e) => { e.stopPropagation(); addProducto(p); }}>{p.color ?? "-"}</td>
+                      </tr>
+                    ))
                   )}
                 </tbody>
               </table>

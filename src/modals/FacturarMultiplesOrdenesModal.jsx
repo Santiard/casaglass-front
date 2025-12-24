@@ -336,7 +336,7 @@ const FacturarMultiplesOrdenesModal = ({ isOpen, onClose, ordenInicial, onSucces
   // Verificar si una orden supera el umbral de retefuente
   // Usar la misma fórmula que calcularTotalesOrden para garantizar consistencia
   const ordenSuperaUmbral = (orden) => {
-    // ✅ IMPORTANTE: orden.total es el total facturado CON IVA, orden.subtotal es base SIN IVA
+    // IMPORTANTE: orden.total es el total facturado CON IVA, orden.subtotal es base SIN IVA
     // Usamos orden.total como base facturada (con IVA incluido)
     const subtotalFacturado = orden.total || orden.items?.reduce((sum, item) => sum + (item.totalLinea || 0), 0) || 0;
     const descuentos = Number(orden.descuentos || 0);
@@ -353,7 +353,7 @@ const FacturarMultiplesOrdenesModal = ({ isOpen, onClose, ordenInicial, onSucces
   // Calcular totales para cada orden seleccionada
   // IMPORTANTE: Usar EXACTAMENTE la misma fórmula que el backend para garantizar precisión contable
   const calcularTotalesOrden = (orden) => {
-    // ✅ IMPORTANTE: orden.total es el total facturado CON IVA, orden.subtotal es base SIN IVA
+    // IMPORTANTE: orden.total es el total facturado CON IVA, orden.subtotal es base SIN IVA
     // Usamos orden.total como base facturada (con IVA incluido)
     const subtotalFacturado = orden.total || orden.items?.reduce((sum, item) => sum + (item.totalLinea || 0), 0) || 0;
     const descuentos = Number(orden.descuentos || 0);

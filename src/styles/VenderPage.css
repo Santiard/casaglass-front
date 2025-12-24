@@ -102,22 +102,45 @@
 .vender-content {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem; /* Reducido de 0.75rem */
-  height: calc(100vh - 5rem); /* Altura fija */
-  overflow: hidden; /* Controlar overflow aquí */
+  gap: 0.5rem;
+  height: calc(100vh - 7rem); /* Reducir altura para dar más espacio al header y padding */
+  max-height: calc(100vh - 7rem);
+  overflow: hidden;
 }
 
-/* Contenedor para la tabla con scroll */
-.vender-content .table-wrapper {
-  flex: 1;
+/* Asegurar que el toolbar de filtros no crezca */
+.vender-page .vender-content .filters-toolbar {
+  flex: 0 0 auto; /* No crecer ni encoger, mantener tamaño fijo */
+}
+
+/* El table-container debe usar el espacio restante después del toolbar de filtros */
+.vender-page .vender-content .table-container {
+  flex: 1 1 auto; /* Crecer para llenar el espacio disponible */
+  min-height: 0; /* Permitir que se encoja */
+  overflow-y: auto !important; /* Scroll vertical para tabla + descripción */
+  overflow-x: hidden !important;
+  display: flex !important;
+  flex-direction: column !important;
+  max-height: 100%; /* Limitar al espacio disponible */
+  height: auto !important; /* Altura automática basada en el contenido disponible */
+}
+
+/* Asegurar que el table-wrapper dentro se comporte correctamente */
+.vender-page .vender-content .table-wrapper {
+  flex: 0 1 auto; /* No crecer, solo encoger si es necesario */
   min-height: 0;
   overflow-x: auto; /* Scroll horizontal si es necesario */
-  overflow-y: auto; /* Scroll vertical si es necesario */
+  overflow-y: visible; /* Permitir que el contenido se expanda */
   display: flex;
   flex-direction: column;
-  width: 100%; /* Asegurar que ocupe todo el ancho */
-  max-width: 100%; /* No exceder el ancho del contenedor */
+  width: 100%;
+  max-width: 100%;
   box-sizing: border-box;
+}
+
+/* El footer de descripción no debe tener flex para no interferir */
+.vender-page .vender-content .table-description-footer {
+  flex: 0 0 auto; /* Mantener tamaño fijo */
 }
 
 /* Tabla de venta con headers fijos - Solo para tabla de venta */

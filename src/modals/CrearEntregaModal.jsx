@@ -227,7 +227,7 @@ const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores, se
                 return false;
               }
               
-              console.log(`✅ Reembolso #${r.id} (Orden #${r.ordenOriginal?.numero || '?'}) INCLUIDO - Fecha ${fechaReembolso} coincide`);
+              console.log(`Reembolso #${r.id} (Orden #${r.ordenOriginal?.numero || '?'}) INCLUIDO - Fecha ${fechaReembolso} coincide`);
               return true;
             })
             .map(reembolso => ({
@@ -248,7 +248,7 @@ const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores, se
       setAbonosDisponibles(abonosArray);
       setReembolsosDisponibles(reembolsosArray);
       
-      console.log(`✅ [CrearEntrega] Reembolsos FILTRADOS por fecha ${fechaUnica}: ${reembolsosArray.length}`);
+      console.log(`[CrearEntrega] Reembolsos FILTRADOS por fecha ${fechaUnica}: ${reembolsosArray.length}`);
       if (reembolsosArray.length > 0) {
         console.log(`   IDs incluidos: [${reembolsosArray.map(r => `#${r.id}`).join(', ')}]`);
       }
@@ -527,7 +527,7 @@ const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores, se
           montoCheque: Number(abono.montoCheque) || 0,
           montoRetencion: Number(abono.montoRetencion) || 0
         };
-        console.log(`  ✅ Usando campos numéricos`);
+        console.log(`  Usando campos numéricos`);
       } else {
         // Fallback: parsear metodoPago string (registros antiguos)
         const metodoPagoString = abono.metodoPago || '';

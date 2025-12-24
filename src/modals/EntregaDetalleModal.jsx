@@ -16,7 +16,7 @@ export default function EntregaDetalleModal({ entrega, isOpen, onClose }) {
   const ingresos = dets.filter(d => !d.tipoMovimiento || d.tipoMovimiento === 'INGRESO');
   const egresos = dets.filter(d => d.tipoMovimiento === 'EGRESO');
   
-  console.log(`✅ [EntregaDetalleModal] Ingresos: ${ingresos.length}, Egresos: ${egresos.length}`);
+  console.log(`[EntregaDetalleModal] Ingresos: ${ingresos.length}, Egresos: ${egresos.length}`);
 
   const fmtCOP = (n) => new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(Number(n||0));
   const fmtFecha = (iso) => {
