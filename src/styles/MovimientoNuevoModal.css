@@ -24,8 +24,8 @@
 }
 
 .modal-container.modal-wide {
-  height: 85vh; /* Altura fija para modales grandes */
-  min-height: 600px; /* Altura mínima */
+  height: 90vh; /* Altura fija para modales grandes */
+  min-height: 700px; /* Altura mínima */
 }
 
 .modal-container h2 {
@@ -54,10 +54,10 @@
   grid-template-columns: 1fr 200px 1fr;
   gap: 14px;
   flex: 1 1 auto; /* Ocupa todo el espacio disponible y puede crecer */
-  min-height: 0; /* Necesario para que funcione con flex */
+  min-height: 550px; /* Altura mínima para asegurar espacio vertical */
   overflow: hidden; /* Evita desbordamiento */
   align-items: stretch; /* Asegura que los panes se expandan verticalmente */
-  height: 100%; /* Ocupa toda la altura disponible del contenedor flex */
+  height: calc(90vh - 140px); /* Altura basada en viewport menos header y botones */
 }
 .pane {
   background: #fafbff;
@@ -68,7 +68,6 @@
   overflow: hidden; /* Cambiado de visible a hidden para que funcione con flex */
   display: flex;
   flex-direction: column;
-  height: 100%; /* Ocupa toda la altura del grid */
 }
 
 .pane.pane-sidebar {
@@ -170,19 +169,21 @@
   flex-direction: column !important;
   min-width: 0;
   min-height: 0; /* Permite que el contenido se encoja y se expanda */
-  height: 100%; /* Ocupa toda la altura disponible del grid */
   overflow: hidden; /* Evita desbordamiento del contenedor */
 }
 
 .pane.pane-right .inv-header {
   flex-shrink: 0; /* No se encoge, siempre visible */
   flex-grow: 0; /* No crece */
+  margin-bottom: 0.5rem;
 }
 
 .pane.pane-right .inventory-scroll {
   flex: 1 1 auto !important; /* Ocupa todo el espacio restante */
-  min-height: 0 !important; /* Necesario para que funcione con flex */
-  overflow: auto;
+  min-height: 500px !important; /* Altura mínima para asegurar espacio vertical */
+  max-height: calc(90vh - 220px) !important; /* Altura máxima responsiva */
+  overflow-y: auto !important; /* Scroll vertical cuando sea necesario */
+  overflow-x: hidden;
   border: 1px solid #e6e8f0;
   border-radius: 10px;
   background: #fff;

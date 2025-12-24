@@ -483,3 +483,62 @@
   }
 }
 
+/* =====================================================
+   ESTILOS ESPECÍFICOS PARA TABLA DE VENDEDOR
+   ===================================================== */
+/* Cuando el usuario es vendedor (no admin), la tabla tiene menos columnas:
+   1. Código
+   2. Nombre
+   3. Cantidad (sede)
+   4. P. Venta
+   5. Cant (input)
+   6. Acción
+*/
+.venta-table.venta-vendedor.table-wrapper .table th:first-child,
+.venta-table.venta-vendedor.table-wrapper .table td:first-child {
+  width: 90px !important;
+  min-width: 90px !important;
+  max-width: 90px !important;
+}
+
+.venta-table.venta-vendedor.table-wrapper .table th:nth-child(2),
+.venta-table.venta-vendedor.table-wrapper .table td:nth-child(2) {
+  width: auto !important;
+  min-width: 200px !important;
+  max-width: none !important;
+}
+
+.venta-table.venta-vendedor.table-wrapper .table th:nth-child(3),
+.venta-table.venta-vendedor.table-wrapper .table td:nth-child(3) {
+  width: 120px !important;
+  min-width: 120px !important;
+  max-width: 120px !important;
+  text-align: center;
+}
+
+.venta-table.venta-vendedor.table-wrapper .table th:nth-child(4),
+.venta-table.venta-vendedor.table-wrapper .table td:nth-child(4) {
+  width: 110px !important;
+  min-width: 110px !important;
+  max-width: 110px !important;
+  text-align: center;
+  font-weight: 600;
+}
+
+.venta-table.venta-vendedor.table-wrapper .table th:nth-child(5),
+.venta-table.venta-vendedor.table-wrapper .table td:nth-child(5) {
+  width: 80px !important;
+  min-width: 80px !important;
+  max-width: 80px !important;
+  text-align: center;
+}
+
+.venta-table.venta-vendedor.table-wrapper .table th:nth-child(6),
+.venta-table.venta-vendedor.table-wrapper .table td:nth-child(6) {
+  width: 140px !important;
+  min-width: 140px !important;
+  max-width: 140px !important;
+  text-align: center;
+}
+
+

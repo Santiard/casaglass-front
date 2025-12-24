@@ -186,7 +186,8 @@ export default function IngresoModal({
     };
     
     fetchProductosPorCategoria();
-  }, [selectedCategoryId, isOpen, showError]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedCategoryId, isOpen]);
 
   // Seleccionar primera categoría por defecto cuando se carguen las categorías
   useEffect(() => {

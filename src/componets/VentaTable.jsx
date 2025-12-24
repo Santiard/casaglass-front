@@ -217,7 +217,7 @@ export default function VentaTable({
 
   return (
     <div className="table-container">
-      <div className={`table-wrapper venta-table ${isCategoriaVidrio ? 'venta-vidrio' : ''}`}>
+      <div className={`table-wrapper venta-table ${isCategoriaVidrio ? 'venta-vidrio' : ''} ${!isAdmin ? 'venta-vendedor' : ''}`}>
         <table className="table">
         <thead>
           <tr>
@@ -359,12 +359,14 @@ export default function VentaTable({
                 
                 {/* Precios según el rol */}
                 {isAdmin ? (
-                  <td><strong>${p.precio1 ?? "-"}</strong></td>
+                  <td><strong>
+                    {p.precio1 ? new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(p.precio1) : "-"}
+                  </strong></td>
                 ) : (
                   <td><strong>
-                    ${userSede === "Insula" ? (p.precio1 ?? "-") : 
-                      userSede === "Centro" ? (p.precio2 ?? "-") :
-                      userSede === "Patios" ? (p.precio3 ?? "-") : "-"}
+                    {userSede === "Insula" ? (p.precio1 ? new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(p.precio1) : "-") : 
+                      userSede === "Centro" ? (p.precio2 ? new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(p.precio2) : "-") :
+                      userSede === "Patios" ? (p.precio3 ? new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(p.precio3) : "-") : "-"}
                   </strong></td>
                 )}
                 
