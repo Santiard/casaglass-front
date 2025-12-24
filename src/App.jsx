@@ -25,12 +25,10 @@ import { ToastProvider } from "./context/ToastContext.jsx";
 /**
  * Configuración del basename para React Router
  * 
- * Si el frontend se despliega en una subruta (ej: https://midominio.com/app),
- * define VITE_ROUTER_BASENAME=/app en .env.production
- * 
- * Si se despliega en la raíz del dominio, deja esta variable vacía o no la definas.
+ * La app se sirve en /web/ por lo que React Router necesita este basename
+ * para que las rutas funcionen correctamente.
  */
-const routerBasename = import.meta.env.VITE_ROUTER_BASENAME || undefined;
+const routerBasename = '/web';
 
 function App() {
   // Silenciar warning de "Components desaprobado" de DevTools
