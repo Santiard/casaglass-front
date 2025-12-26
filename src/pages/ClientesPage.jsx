@@ -23,7 +23,7 @@ export default function ClientesPage() {
       const arr = await listarClientes();
       setData(arr);
     } catch (e) {
-      console.error("Error listando clientes", e);
+      // Error listando clientes
     } finally {
       setLoading(false);
     }
@@ -53,7 +53,7 @@ export default function ClientesPage() {
       }
       await fetchData();
     } catch (e) {
-      console.error("Error guardando cliente", e);
+      // Error guardando cliente
       
       // Si es error de NIT duplicado, no mostrar alert adicional (ya se mostró arriba)
       if (e.message && e.message.includes('NIT duplicado')) {
@@ -87,7 +87,7 @@ export default function ClientesPage() {
       await fetchData();
       showSuccess(`Cliente "${cli.nombre || 'el cliente'}" eliminado correctamente.`);
     } catch (e) {
-      console.error("Error eliminando cliente", e);
+      // Error eliminando cliente
 
       // Si el backend devuelve mensaje personalizado (por ejemplo en status 409)
       const backendMsg = e?.response?.data?.message;

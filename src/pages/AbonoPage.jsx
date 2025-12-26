@@ -79,7 +79,7 @@ const AbonoPage = () => {
           setRetefuenteThreshold(Number(settings.retefuenteThreshold) || 1000000);
         }
       } catch (err) {
-        console.error("Error cargando configuración:", err);
+        // console.error("Error cargando configuración:", err);
       }
     };
     cargarConfiguracion();
@@ -101,7 +101,7 @@ const AbonoPage = () => {
           }
         }
       } catch (err) {
-        console.error("Error cargando clientes:", err);
+        // console.error("Error cargando clientes:", err);
       }
     };
     cargarClientes();
@@ -122,7 +122,7 @@ const AbonoPage = () => {
       
       return `ABO-${año}${mes}${dia}-${hora}${minutos}${segundos}`;
     } catch (error) {
-      console.error('Error obteniendo siguiente número de abono:', error);
+      // console.error('Error obteniendo siguiente número de abono:', error);
       // Fallback: usar timestamp completo
       const hoy = new Date();
       const año = hoy.getFullYear();
@@ -156,11 +156,11 @@ const AbonoPage = () => {
       const creditosPendientes = await listarCreditosPendientes(clienteId);
       
       // LOG COMPLETO: Ver TODOS los datos que trae el backend
-      console.log('Créditos pendientes recibidos:', creditosPendientes.length);
-      console.log('📦 DATOS COMPLETOS del backend:', JSON.stringify(creditosPendientes, null, 2));
+      // console.log('Créditos pendientes recibidos:', creditosPendientes.length);
+      // console.log('📦 DATOS COMPLETOS del backend:', JSON.stringify(creditosPendientes, null, 2));
       
       // Log específico de retención
-      console.log('Créditos con tieneRetencionFuente:', 
+      // console.log('Créditos con tieneRetencionFuente:', 
         creditosPendientes.filter(c => c.tieneRetencionFuente)
           .map(c => ({ 
             ordenId: c.ordenId, 
@@ -229,11 +229,11 @@ const AbonoPage = () => {
       });
       setOrdenesConRetencion(ordenesConRetencionInicial);
       
-      console.log(`Inicializadas ${ordenesConRetencionInicial.size} órdenes con retención`);
+      // console.log(`Inicializadas ${ordenesConRetencionInicial.size} órdenes con retención`);
       
       setDistribucion([]);
     } catch (err) {
-      console.error("Error cargando créditos pendientes:", err);
+      // console.error("Error cargando créditos pendientes:", err);
       setError('Error cargando créditos pendientes del cliente');
       setOrdenesCredito([]);
     } finally {
@@ -363,13 +363,13 @@ const AbonoPage = () => {
   const toggleRetencionOrden = async (ordenId) => {
     // Prevenir llamadas duplicadas mientras hay una petición en curso
     if (updatingRetencion.has(ordenId)) {
-      console.log('Ya hay una actualización en curso para esta orden');
+      // console.log('Ya hay una actualización en curso para esta orden');
       return;
     }
 
     const orden = ordenesCredito.find(o => o.id === ordenId);
     if (!orden) {
-      console.error("No se encontró la orden para actualizar:", ordenId);
+      // console.error("No se encontró la orden para actualizar:", ordenId);
       return;
     }
 
@@ -420,7 +420,7 @@ const AbonoPage = () => {
 
     // 🆕 USAR EL NUEVO ENDPOINT ESPECIALIZADO
     try {
-      console.log('Actualizando retención con nuevo endpoint:', {
+      // console.log('Actualizando retención con nuevo endpoint:', {
         ordenId,
         tieneRetencionFuente: nuevoValorRetencion,
         retencionFuente: nuevoValorRetencion ? retencionFuenteCalculada : 0,
@@ -434,7 +434,7 @@ const AbonoPage = () => {
         iva: ivaCalculado
       });
       
-      console.log('Respuesta del backend:', response);
+      // console.log('Respuesta del backend:', response);
       
       // El backend retorna { mensaje: "...", orden: {...} }
       const ordenActualizada = response.orden;
@@ -468,7 +468,7 @@ const AbonoPage = () => {
       showSuccess(response.mensaje || 'Retención actualizada exitosamente');
       
     } catch (error) {
-      console.error("Error actualizando retención de fuente:", error);
+      // console.error("Error actualizando retención de fuente:", error);
       
       // Revertir el cambio local si falla la actualización
       const revertidasConRetencion = new Set(ordenesConRetencion);
@@ -647,7 +647,7 @@ const AbonoPage = () => {
         const creditoId = orden?.creditoDetalle?.creditoId;
         
         if (!creditoId) {
-          console.warn(`No se encontró creditoId para la orden ${dist.ordenId}`);
+          // console.warn(`No se encontró creditoId para la orden ${dist.ordenId}`);
           return null;
         }
         
@@ -700,7 +700,7 @@ const AbonoPage = () => {
       navigate('/creditos?reload=true');
     } catch (err) {
       const errorMessage = err.response?.data?.message || err.message || 'Error al crear los abonos';
-      console.error("Error al registrar abonos:", errorMessage);
+      // console.error("Error al registrar abonos:", errorMessage);
       setError(errorMessage);
     } finally {
       setLoading(false);

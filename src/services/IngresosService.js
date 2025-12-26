@@ -21,7 +21,7 @@ function mapFormAIngresoAPI(form = {}) {
     const proveedorIdNum = Number(form.proveedorId);
     
     if (!Number.isFinite(proveedorIdNum) || proveedorIdNum <= 0) {
-      console.error("Proveedor inválido:", { proveedorId: form.proveedorId, proveedorIdNum });
+      // Proveedor inválido
       throw new Error("Proveedor inválido. Debes seleccionar un proveedor.");
     }
     
@@ -93,18 +93,18 @@ export async function probarConectividad() {
     await api.get("/ingresos");
     return true;
   } catch (error) {
-    console.error("Error de conectividad:", error);
+    // Error de conectividad
     return false;
   }
 }
 
 export async function obtenerIngreso(id) {
   const { data } = await api.get(`/ingresos/${id}`);
-  console.log("Respuesta del backend para ingreso #" + id + ":", data);
-  console.log("Detalles del ingreso:", data?.detalles);
+  // Respuesta del backend para ingreso
+  // Detalles del ingreso
   if (data?.detalles && data.detalles.length > 0) {
-    console.log("🔎 Primer detalle completo:", data.detalles[0]);
-    console.log("📦 Producto del primer detalle:", data.detalles[0]?.producto);
+    // Primer detalle completo
+    // Producto del primer detalle
   }
   return data;
 }
@@ -115,9 +115,9 @@ export async function crearIngresoDesdeForm(form) {
   let productosAntes = [];
   try {
     productosAntes = await listarInventarioCompleto({}, true, null);
-    console.log(" Productos con inventario obtenidos antes de crear el ingreso");
+    // Productos con inventario obtenidos antes de crear el ingreso
   } catch (error) {
-    console.warn(" No se pudieron obtener productos con inventario antes del ingreso");
+    // No se pudieron obtener productos con inventario antes del ingreso
   }
   
   // Calcular el costo ponderado para cada producto ANTES de crear el ingreso

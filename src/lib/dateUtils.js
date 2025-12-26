@@ -43,7 +43,7 @@ export function toLocalDateOnly(val) {
   // Para cualquier otro caso (string en otro formato, timestamp, etc.)
   // NO usar new Date(val) porque causa problemas de timezone
   // En su lugar, usar la fecha de hoy para evitar errores
-  console.warn('toLocalDateOnly: formato de fecha no reconocido, usando fecha actual:', val);
+  // toLocalDateOnly: formato de fecha no reconocido, usando fecha actual
   return getTodayLocalDate();
 }
 

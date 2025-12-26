@@ -25,8 +25,8 @@ export async function crearCorte(payload) {
     });
     return data;
   } catch (error) {
-    console.error("Error en crearCorte:", error);
-    console.error("Response data:", error.response?.data);
+    // Error en crearCorte
+    // Response data
     throw error;
   }
 }
@@ -44,8 +44,8 @@ export async function actualizarCorte(id, payload) {
     });
     return data;
   } catch (error) {
-    console.error("Error en actualizarCorte:", error);
-    console.error("Response data:", error.response?.data);
+    // Error en actualizarCorte
+    // Response data
     throw error;
   }
 }
@@ -58,8 +58,8 @@ export async function eliminarCorte(id) {
   try {
     await api.delete(`${base}/${id}`);
   } catch (error) {
-    console.error("Error en eliminarCorte:", error);
-    console.error("Response data:", error.response?.data);
+    // Error en eliminarCorte
+    // Response data
     throw error;
   }
 }

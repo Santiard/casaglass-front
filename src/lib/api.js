@@ -35,8 +35,8 @@ const getBaseURL = () => {
   // - En desarrollo: usa el proxy de Vite '/api' que mantiene el prefijo
   // - En producción: ERROR - debe definirse VITE_API_URL
   if (import.meta.env.PROD) {
-    console.error(" ERROR: VITE_API_URL no está definida en producción.");
-    console.error("Por favor, crea .env.production con: VITE_API_URL=http://148.230.87.167:8080/api");
+    // ERROR: VITE_API_URL no está definida en producción.
+    // Por favor, crea .env.production con: VITE_API_URL=http://148.230.87.167:8080/api
   }
   return "/api"; // Fallback para desarrollo (usa el proxy de Vite)
 };
@@ -67,18 +67,13 @@ api.interceptors.request.use((cfg) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    console.error("🚨 Error de API interceptado:", {
-      url: error.config?.url,
-      method: error.config?.method,
-      status: error.response?.status,
-      statusText: error.response?.statusText,
-      data: error.response?.data,
+    // 🚨 Error de API interceptado
       headers: error.response?.headers
     });
     
     // Log detallado del error del backend
     if (error.response?.data) {
-      console.error(" Detalles del error del backend:", JSON.stringify(error.response.data, null, 2));
+      // Detalles del error del backend
     }
     
     return Promise.reject(error);

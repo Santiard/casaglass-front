@@ -151,9 +151,9 @@ export default function CortarModal({
         if (coincidenteSolicitado?.id) {
           // Guardar el ID para que el backend lo reutilice
           corteParaVender.reutilizarCorteSolicitadoId = coincidenteSolicitado.id;
-          console.log(` Corte solicitado existente encontrado - Reutilizando (ID: ${coincidenteSolicitado.id}, código: ${coincidenteSolicitado.codigo}, largo: ${coincidenteSolicitado.largoCm || coincidenteSolicitado.largo}cm)`);
+          // Corte solicitado existente encontrado - Reutilizando
         } else {
-          console.log(` Corte solicitado nuevo - El backend creará uno nuevo con código base "${productoCodigo}" y largo ${largoSolicitado}cm`);
+          // Corte solicitado nuevo - El backend creará uno nuevo
         }
 
         // Buscar corte SOBRANTE (el que queda en inventario)
@@ -164,12 +164,12 @@ export default function CortarModal({
             ...corteSobrante,
             reutilizarCorteId: coincidenteSobrante.id,
           };
-          console.log(` Corte sobrante existente encontrado - Reutilizando (ID: ${coincidenteSobrante.id}, código: ${coincidenteSobrante.codigo}, largo: ${coincidenteSobrante.largoCm || coincidenteSobrante.largo}cm)`);
+          // Corte sobrante existente encontrado - Reutilizando
         } else {
-          console.log(` Corte sobrante nuevo - El backend creará uno nuevo con código base "${productoCodigo}" y largo ${largoSobrante}cm`);
+          // Corte sobrante nuevo - El backend creará uno nuevo
         }
       } catch (lookupErr) {
-        console.warn(" No se pudo verificar cortes existentes:", lookupErr);
+        // No se pudo verificar cortes existentes
       }
 
       // Llamar a la función de corte
@@ -181,7 +181,7 @@ export default function CortarModal({
       onClose();
       
     } catch (error) {
-      console.error("Error al procesar corte:", error);
+      // Error al procesar corte
       showError("Error al procesar el corte. Intente nuevamente.");
     } finally {
       setLoading(false);

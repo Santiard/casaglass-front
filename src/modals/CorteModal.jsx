@@ -39,7 +39,7 @@ export default function CorteModal({ isOpen, onClose, onSave, corte }) {
         const cats = await listarCategorias();
         setCategories(cats || []);
       } catch (e) {
-        console.error("Error cargando categorías:", e);
+        // Error cargando categorías
       }
     };
     fetchCategorias();

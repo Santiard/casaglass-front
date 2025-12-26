@@ -51,7 +51,7 @@ export async function listarAbonos(params = {}) {
     // Compatibilidad: si viene como array directo
     return Array.isArray(data) ? data : [];
   } catch (error) {
-    console.error("Error listando abonos:", error);
+    // console.error("Error listando abonos:", error);
     throw error;
   }
 }
@@ -69,7 +69,7 @@ export async function listarAbonosPorCliente(clienteId, options = {}) {
   try {
     return await listarAbonos({ clienteId, ...options });
   } catch (error) {
-    console.error("Error listando abonos por cliente:", error);
+    // console.error("Error listando abonos por cliente:", error);
     throw error;
   }
 }
@@ -88,7 +88,7 @@ export async function listarAbonosPorFecha(fecha, options = {}) {
     // Convertir fecha única a rango fechaDesde-fechaHasta
     return await listarAbonos({ fechaDesde: fecha, fechaHasta: fecha, ...options });
   } catch (error) {
-    console.error("Error listando abonos por fecha:", error);
+    // console.error("Error listando abonos por fecha:", error);
     throw error;
   }
 }
@@ -109,10 +109,10 @@ export async function listarCreditosPendientes(clienteId) {
   
   try {
     const { data } = await api.get(`/creditos/cliente/${clienteId}/pendientes`);
-    console.log(`Créditos pendientes obtenidos: ${data.length}`);
+    // console.log(`Créditos pendientes obtenidos: ${data.length}`);
     return data;
   } catch (error) {
-    console.error('Error obteniendo créditos pendientes:', error);
+    // console.error('Error obteniendo créditos pendientes:', error);
     throw error;
   }
 }
@@ -143,10 +143,10 @@ export async function listarCreditosCliente(clienteId, options = {}) {
     }
     
     const { data } = await api.get(`/creditos/cliente/${clienteId}`, { params });
-    console.log(`Créditos totales obtenidos: ${data.length}`);
+    // console.log(`Créditos totales obtenidos: ${data.length}`);
     return data;
   } catch (error) {
-    console.error('Error obteniendo créditos del cliente:', error);
+    // console.error('Error obteniendo créditos del cliente:', error);
     throw error;
   }
 }

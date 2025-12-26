@@ -43,7 +43,7 @@ export default function AdminPage() {
         setTrabajadores(Array.isArray(lista) ? lista : []);
         if (lista?.length && !trabajadorId) setTrabajadorId(lista[0].id);
       } catch (e) {
-        console.error("Error listando trabajadores", e);
+        // Error listando trabajadores
       }
     })();
   }, []);
@@ -55,7 +55,7 @@ export default function AdminPage() {
         const data = await DashboardService.getDashboardTrabajador(trabajadorId, fechaDesde, fechaHasta);
         setDashTrabajador(data);
       } catch (e) {
-        console.error("Error cargando dashboard de trabajador", e);
+        // Error cargando dashboard de trabajador
         setDashTrabajador(null);
       }
     })();
@@ -98,7 +98,7 @@ export default function AdminPage() {
         }));
         setTrabajadoresResumen(resultados);
       } catch (e) {
-        console.error("Error comparando trabajadores", e);
+        // Error comparando trabajadores
         setTrabajadoresResumen([]);
       }
     })();
@@ -111,7 +111,7 @@ export default function AdminPage() {
       const data = await DashboardService.getDashboardCompleto(fechaDesde, fechaHasta);
       setDashboardData(data);
     } catch (error) {
-      console.error("Error cargando datos del dashboard", error);
+      // Error cargando datos del dashboard
       setError(error?.response?.data?.message || "Error cargando datos del dashboard");
     } finally {
       setLoading(false);

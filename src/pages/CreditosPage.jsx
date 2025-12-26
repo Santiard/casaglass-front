@@ -72,7 +72,7 @@ const CreditosPage = () => {
       
       setClientes(clientesData);
     } catch (err) {
-      console.error("Error loading data:", err);
+      // Error loading data
       setError(`Error cargando datos: ${err.message}`);
       setCreditos([]);
       setClientes([]);
@@ -168,7 +168,7 @@ const CreditosPage = () => {
       }
       
     } catch (err) {
-      console.error(" Error recargando créditos:", err.message);
+      // Error recargando créditos
       setError(`Error al recargar: ${err.message}`);
       // Mantener estado actual en lugar de array vacío
     } finally {

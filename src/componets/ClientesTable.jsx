@@ -41,7 +41,7 @@ export default function ClientesTable({
       }
       setIsModalOpen(false);
     } catch (e) {
-      console.error("Error guardando cliente", e);
+      // Error guardando cliente
       showError("No se pudo guardar el cliente.");
     }
   };

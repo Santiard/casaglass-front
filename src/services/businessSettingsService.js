@@ -13,7 +13,7 @@ export async function getBusinessSettings() {
       updatedAt: data.updatedAt
     };
   } catch (error) {
-    console.error("Error obteniendo configuración de negocio:", error);
+    // Error obteniendo configuración de negocio
     // Valores por defecto si falla la petición
     return { ivaRate: 19, retefuenteRate: 2.5, retefuenteThreshold: 1000000 };
   }
@@ -47,7 +47,7 @@ export async function updateBusinessSettings(payload) {
       updatedAt: data.updatedAt
     };
   } catch (error) {
-    console.error("Error actualizando configuración de negocio:", error);
+    // Error actualizando configuración de negocio
     throw error;
   }
 }
@@ -73,7 +73,7 @@ export async function crearBusinessSettings(payload) {
       updatedAt: data.updatedAt
     };
   } catch (error) {
-    console.error("Error creando configuración de negocio:", error);
+    // Error creando configuración de negocio
     throw error;
   }
 }
@@ -90,7 +90,7 @@ export async function obtenerBusinessSettingsPorId(id) {
       updatedAt: data.updatedAt
     };
   } catch (error) {
-    console.error("Error obteniendo configuración de negocio por ID:", error);
+    // Error obteniendo configuración de negocio por ID
     throw error;
   }
 }
@@ -107,7 +107,7 @@ export async function listarBusinessSettings() {
       updatedAt: item.updatedAt
     })) : [];
   } catch (error) {
-    console.error("Error listando configuraciones de negocio:", error);
+    // Error listando configuraciones de negocio
     return [];
   }
 }
@@ -118,7 +118,7 @@ export async function eliminarBusinessSettings(id) {
     await api.delete(`/business-settings/${id}`);
 return { ok: true };
   } catch (error) {
-    console.error("Error eliminando configuración de negocio:", error);
+    // Error eliminando configuración de negocio
     throw error;
   }
 }

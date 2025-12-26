@@ -72,11 +72,11 @@ export default function IngresoModal({
         if (!ingresoInicial.detalles || ingresoInicial.detalles.length === 0) {
           if (ingresoInicial.id) {
             try {
-              console.log("📥 Obteniendo ingreso completo para edición:", ingresoInicial.id);
+              // console.log("📥 Obteniendo ingreso completo para edición:", ingresoInicial.id);
               ingresoCompleto = await obtenerIngreso(ingresoInicial.id);
-              console.log("Ingreso completo obtenido:", ingresoCompleto);
+              // console.log("Ingreso completo obtenido:", ingresoCompleto);
             } catch (error) {
-              console.error("❌ Error al obtener ingreso completo:", error);
+              // console.error("❌ Error al obtener ingreso completo:", error);
               showError("No se pudieron cargar los detalles del ingreso");
               return;
             }
@@ -133,7 +133,7 @@ export default function IngresoModal({
         const cats = await listarCategorias();
         setCategorias(cats || []);
       } catch (e) {
-        console.error("Error cargando categorías:", e);
+        // console.error("Error cargando categorías:", e);
         setCategorias([]); // Asegurar que quede un array vacío
         // No mostramos alert para evitar interrumpir la UX del modal
       }
@@ -144,7 +144,7 @@ export default function IngresoModal({
         const provs = await listarProveedores();
         setProveedoresLista(Array.isArray(provs) ? provs : []);
       } catch (e) {
-        console.error("Error cargando proveedores:", e);
+        // console.error("Error cargando proveedores:", e);
         setProveedoresLista([]);
       }
     };
@@ -171,13 +171,13 @@ export default function IngresoModal({
       
       try {
         setLoadingProductos(true);
-        console.log("⏳ [IngresoModal] Cargando productos para categoría ID:", selectedCategoryId);
+        // console.log("⏳ [IngresoModal] Cargando productos para categoría ID:", selectedCategoryId);
         const params = { categoriaId: selectedCategoryId };
         const productos = await listarInventarioCompleto(params, true, null);
-        console.log("[IngresoModal] Productos cargados:", { categoriaId: selectedCategoryId, total: productos?.length || 0 });
+        // console.log("[IngresoModal] Productos cargados:", { categoriaId: selectedCategoryId, total: productos?.length || 0 });
         setCatalogoProductosFiltrados(productos || []);
       } catch (e) {
-        console.error("❌ [IngresoModal] Error cargando productos por categoría:", e);
+        // console.error("❌ [IngresoModal] Error cargando productos por categoría:", e);
         showError("No se pudieron cargar los productos");
         setCatalogoProductosFiltrados([]);
       } finally {
@@ -198,7 +198,7 @@ export default function IngresoModal({
       });
       
       if (categoriasValidas.length > 0) {
-        console.log("📌 [IngresoModal] Seleccionando primera categoría por defecto:", categoriasValidas[0]);
+        // console.log("📌 [IngresoModal] Seleccionando primera categoría por defecto:", categoriasValidas[0]);
         setSelectedCategoryId(categoriasValidas[0].id);
       }
     }
@@ -387,11 +387,11 @@ export default function IngresoModal({
       await onSave?.(formParaService, isEdit);
       // Si llegamos aquí, fue exitoso - el modal se cerrará desde el padre
     } catch (e) {
-      console.error("Error guardando ingreso", {
-        status: e?.response?.status,
-        data: e?.response?.data,
-        message: e?.message,
-      });
+      // console.error("Error guardando ingreso", {
+      //   status: e?.response?.status,
+      //   data: e?.response?.data,
+      //   message: e?.message,
+      // });
       showError(
         e?.message || e?.response?.data?.message || "No se pudo guardar el ingreso."
       );

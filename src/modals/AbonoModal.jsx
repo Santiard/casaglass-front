@@ -159,7 +159,7 @@ const AbonoModal = ({ isOpen, onClose, credito, onSuccess }) => {
             }
           }
         } catch (err) {
-          console.error("Error cargando clientes:", err);
+          // console.error("Error cargando clientes:", err);
         }
       };
       cargarClientes();
@@ -168,18 +168,18 @@ const AbonoModal = ({ isOpen, onClose, credito, onSuccess }) => {
 
   // Cargar órdenes a crédito del cliente seleccionado
   useEffect(() => {
-    console.log("useEffect [isOpen, clienteSeleccionado?.id] ejecutándose", {
-      isOpen,
-      clienteSeleccionadoId: clienteSeleccionado?.id,
-      ordenesSeleccionadasSize: ordenesSeleccionadas.size,
-      ordenesSeleccionadasIds: Array.from(ordenesSeleccionadas)
-    });
+    // console.log("useEffect [isOpen, clienteSeleccionado?.id] ejecutándose", {
+    //   isOpen,
+    //   clienteSeleccionadoId: clienteSeleccionado?.id,
+    //   ordenesSeleccionadasSize: ordenesSeleccionadas.size,
+    //   ordenesSeleccionadasIds: Array.from(ordenesSeleccionadas)
+    // });
     
     if (isOpen && clienteSeleccionado?.id) {
       cargarOrdenesCredito(clienteSeleccionado.id);
     } else if (!clienteSeleccionado?.id && isOpen) {
       // Solo limpiar si realmente no hay cliente seleccionado Y el modal está abierto
-      console.log("Limpiando selecciones porque no hay cliente");
+      // console.log("Limpiando selecciones porque no hay cliente");
       setOrdenesCredito([]);
       setOrdenesSeleccionadas(new Set());
       setDistribucion([]);
@@ -187,7 +187,7 @@ const AbonoModal = ({ isOpen, onClose, credito, onSuccess }) => {
   }, [isOpen, clienteSeleccionado?.id]); // Usar clienteSeleccionado?.id en lugar del objeto completo
 
   const cargarOrdenesCredito = async (clienteId) => {
-    console.log("cargarOrdenesCredito llamado", { clienteId, ordenesSeleccionadasActual: Array.from(ordenesSeleccionadas) });
+    // console.log("cargarOrdenesCredito llamado", { clienteId, ordenesSeleccionadasActual: Array.from(ordenesSeleccionadas) });
     setLoadingOrdenes(true);
     try {
       // Usar el nuevo endpoint que devuelve solo órdenes a crédito con creditoDetalle
@@ -199,12 +199,12 @@ const AbonoModal = ({ isOpen, onClose, credito, onSuccess }) => {
         return orden.creditoDetalle?.saldoPendiente > 0;
       });
       
-      console.log("ATENCION: cargarOrdenesCredito va a limpiar selecciones");
+      // console.log("ATENCION: cargarOrdenesCredito va a limpiar selecciones");
       setOrdenesCredito(ordenesConSaldo);
       setOrdenesSeleccionadas(new Set());
       setDistribucion([]);
     } catch (err) {
-      console.error("Error cargando órdenes a crédito:", err);
+      // console.error("Error cargando órdenes a crédito:", err);
       setError('Error cargando órdenes a crédito del cliente');
       setOrdenesCredito([]);
     } finally {
@@ -511,7 +511,7 @@ const AbonoModal = ({ isOpen, onClose, credito, onSuccess }) => {
         const creditoId = orden?.creditoDetalle?.creditoId;
         
         if (!creditoId) {
-          console.warn(`No se encontró creditoId para la orden ${dist.ordenId}`);
+          // console.warn(`No se encontró creditoId para la orden ${dist.ordenId}`);
           return null;
         }
         
@@ -562,7 +562,7 @@ const AbonoModal = ({ isOpen, onClose, credito, onSuccess }) => {
       onClose();
     } catch (err) {
       const errorMessage = err.response?.data?.message || err.message || 'Error al crear los abonos';
-      console.error("Error al registrar abonos:", errorMessage);
+      // console.error("Error al registrar abonos:", errorMessage);
       setError(errorMessage);
     } finally {
       setLoading(false);

@@ -32,10 +32,10 @@ const EntregasService = {
       // Fallback a array vacío
       return [];
     } catch (error) {
-      console.error('Error obteniendo entregas:', error);
-      console.error('Error response data:', error.response?.data);
-      console.error('Error response status:', error.response?.status);
-      console.error('Error response headers:', error.response?.headers);
+      // Error obteniendo entregas
+        // Error response data
+        // Error response status
+        // Error response headers
       throw error;
     }
   },
@@ -46,7 +46,7 @@ const EntregasService = {
       const response = await api.get(`entregas-dinero/${id}`);
       return response.data;
     } catch (error) {
-      console.error(`Error obteniendo entrega ${id}:`, error);
+      // Error obteniendo entrega
       throw error;
     }
   },
@@ -57,7 +57,7 @@ const EntregasService = {
       const response = await api.get(`entregas-dinero/sede/${sedeId}`);
       return response.data;
     } catch (error) {
-      console.error(`Error obteniendo entregas de sede ${sedeId}:`, error);
+      // Error obteniendo entregas de sede
       throw error;
     }
   },
@@ -68,7 +68,7 @@ const EntregasService = {
       const response = await api.get('entregas-dinero/con-diferencias');
       return response.data;
     } catch (error) {
-      console.error('Error obteniendo entregas con diferencias:', error);
+      // Error obteniendo entregas con diferencias
       throw error;
     }
   },
@@ -85,7 +85,7 @@ const EntregasService = {
       const response = await api.get(`entregas-dinero/ordenes-disponibles?${params}`);
       return response.data;
     } catch (error) {
-      console.error('Error obteniendo órdenes disponibles:', error);
+      // Error obteniendo órdenes disponibles
       throw error;
     }
   },
@@ -94,27 +94,19 @@ const EntregasService = {
   crearEntrega: async (entregaData) => {
     try {
       // DEBUG: Ver exactamente qué se está enviando
-      console.log('🚀 EntregasService.crearEntrega - Payload enviado:', {
-        ...entregaData,
-        fechaEntrega: entregaData.fechaEntrega,
-        tipoFechaEntrega: typeof entregaData.fechaEntrega
-      });
+      // EntregasService.crearEntrega - Payload enviado
       
       const response = await api.post('entregas-dinero', entregaData);
       
       // DEBUG: Ver qué retorna el backend
-      console.log('📥 EntregasService.crearEntrega - Respuesta del backend:', {
-        data: response.data,
-        fechaEntrega: response.data?.fechaEntrega,
-        tipoFechaEntrega: typeof response.data?.fechaEntrega
-      });
+      // EntregasService.crearEntrega - Respuesta del backend
       
       return response.data;
     } catch (error) {
-      console.error('Error creando entrega:', error);
-      console.error('Error response data:', error.response?.data);
-      console.error('Error response status:', error.response?.status);
-      console.error('Error response headers:', error.response?.headers);
+      // Error creando entrega
+      // Error response data
+      // Error response status
+      // Error response headers
       throw error;
     }
   },
@@ -125,7 +117,7 @@ const EntregasService = {
       const response = await api.put(`entregas-dinero/${id}`, entregaData);
       return response.data;
     } catch (error) {
-      console.error('Error actualizando entrega:', error);
+      // Error actualizando entrega
       throw error;
     }
   },
@@ -136,7 +128,7 @@ const EntregasService = {
       const response = await api.put(`entregas-dinero/${id}/confirmar`);
       return response.data;
     } catch (error) {
-      console.error(`Error confirmando entrega ${id}:`, error);
+      // Error confirmando entrega
       throw error;
     }
   },
@@ -151,7 +143,7 @@ const EntregasService = {
       const response = await api.put(`entregas-dinero/${id}/cancelar?${params}`);
       return response.data;
     } catch (error) {
-      console.error(`Error cancelando entrega ${id}:`, error);
+      // Error cancelando entrega
       throw error;
     }
   },
@@ -162,7 +154,7 @@ const EntregasService = {
       const response = await api.delete(`entregas-dinero/${id}`);
       return response.data;
     } catch (error) {
-      console.error(`Error eliminando entrega ${id}:`, error);
+      // Error eliminando entrega
       throw error;
     }
   },
@@ -178,7 +170,7 @@ const EntregasService = {
       const response = await api.get(`entregas-dinero/sede/${sedeId}/total-entregado?${params}`);
       return response.data;
     } catch (error) {
-      console.error('Error obteniendo total entregado:', error);
+      // Error obteniendo total entregado
       throw error;
     }
   },
@@ -196,7 +188,7 @@ const EntregasService = {
       const response = await api.get(`entregas-dinero/resumen/empleado?${params}`);
       return response.data;
     } catch (error) {
-      console.error('Error obteniendo resumen por empleado:', error);
+      // Error obteniendo resumen por empleado
       throw error;
     }
   },
@@ -230,7 +222,7 @@ const EntregasService = {
       
       return `ENT-${siguienteNumero}`;
     } catch (error) {
-      console.error('Error obteniendo siguiente número de comprobante:', error);
+      // Error obteniendo siguiente número de comprobante
       // En caso de error, retornar un número basado en timestamp como fallback
       return `ENT-${Date.now()}`;
     }

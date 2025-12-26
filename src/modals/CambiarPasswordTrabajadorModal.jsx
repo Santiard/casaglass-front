@@ -21,7 +21,7 @@ export default function CambiarPasswordTrabajadorModal({ isOpen, onClose, trabaj
       reset();
       onClose?.();
     } catch (e) {
-      console.error("Error cambiando contraseña", e);
+      // Error cambiando contraseña
       showError(e?.response?.data?.message || "No se pudo cambiar la contraseña");
     } finally {
       setLoading(false);

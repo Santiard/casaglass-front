@@ -27,7 +27,7 @@ const ConfirmarEntregaModal = ({ isOpen, entrega, onClose, onSuccess }) => {
       onClose();
       
     } catch (err) {
-      console.error('Error confirmando entrega:', err);
+      // Error confirmando entrega
       setError(`Error confirmando entrega: ${err.message}`);
     } finally {
       setLoading(false);
