@@ -423,16 +423,33 @@ export default function CrearReembolsoVentaModal({
             <div className="form-column">
               {cargandoOrden && <p>Cargando detalles de la orden...</p>}
               
-              {ordenDetalle && (
+              {(ordenDetalle || ordenSeleccionada) && (
                 <div style={{ background: "#f5f5f5", padding: "1rem", borderRadius: "8px" }}>
                   <h3 style={{ marginTop: 0 }}>Información de la Orden</h3>
-                  <p><strong>N°:</strong> {ordenDetalle.numero || ordenDetalle.id}</p>
-                  <p><strong>Fecha:</strong> {new Date(ordenDetalle.fecha).toLocaleDateString("es-CO")}</p>
-                  <p><strong>Cliente:</strong> {ordenDetalle.cliente?.nombre || "-"}</p>
-                  <p><strong>Obra:</strong> {ordenDetalle.obra || "-"}</p>
-                  <p><strong>Sede:</strong> {ordenDetalle.sede?.nombre || "-"}</p>
-                  <p><strong>Total:</strong> {fmtCOP(ordenDetalle.total || ordenDetalle.subtotal)}</p>
-                  {ordenDetalle.credito && (
+                  <p><strong>N°:</strong> {
+                    ordenSeleccionada?.numero || ordenDetalle?.numero || ordenDetalle?.id || ordenSeleccionada?.id || "-"
+                  }</p>
+                  <p><strong>Fecha:</strong> {
+                    (() => {
+                      const fechaRaw = ordenSeleccionada?.fechaCreacion || ordenDetalle?.fecha || ordenDetalle?.fechaCreacion;
+                      if (!fechaRaw) return "-";
+                      const fechaObj = new Date(fechaRaw);
+                      return isNaN(fechaObj.getTime()) ? "-" : fechaObj.toLocaleDateString("es-CO");
+                    })()
+                  }</p>
+                  <p><strong>Cliente:</strong> {
+                    ordenSeleccionada?.cliente?.nombre || ordenDetalle?.cliente?.nombre || "-"
+                  }</p>
+                  <p><strong>Obra:</strong> {
+                    ordenSeleccionada?.obra || ordenDetalle?.obra || "-"
+                  }</p>
+                  <p><strong>Sede:</strong> {
+                    ordenSeleccionada?.sede?.nombre || ordenDetalle?.sede?.nombre || "-"
+                  }</p>
+                  <p><strong>Total:</strong> {
+                    fmtCOP(ordenSeleccionada?.total || ordenDetalle?.total || ordenDetalle?.subtotal)
+                  }</p>
+                  {(ordenSeleccionada?.credito || ordenDetalle?.credito) && (
                     <p><strong>Venta a Crédito:</strong> Sí</p>
                   )}
                 </div>

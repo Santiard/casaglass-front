@@ -5,7 +5,7 @@ import "../styles/ListadoOrden.css";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useToast } from "../context/ToastContext.jsx";
 
-export default function ListadoOrden({ productosCarrito, subtotal, total, limpiarCarrito, eliminarProducto, actualizarCantidad, cortesPendientes }) {
+export default function ListadoOrden({ productosCarrito, subtotal, total, limpiarCarrito, eliminarProducto, actualizarCantidad, cortesPendientes, inventarioCompleto = [], cortesCompletos = [] }) {
   const { showError } = useToast();
   const [items, setItems] = useState([]);
   const [isFacturarOpen, setIsFacturarOpen] = useState(false);
@@ -16,14 +16,97 @@ export default function ListadoOrden({ productosCarrito, subtotal, total, limpia
     setItems(productosCarrito || []);
   }, [productosCarrito]);
 
-  const handleImprimirCotizacion = () => {
-    if (items.length === 0) {
-      showError("No hay productos en la cotización para imprimir");
-      return;
+
+  // --- Nueva función para imprimir precios de TODO el inventario y cortes ---
+  const handleImprimirPrecios = () => {
+    // Generar HTML para impresión
+    const productos = Array.isArray(inventarioCompleto) ? inventarioCompleto : [];
+    const cortes = Array.isArray(cortesCompletos) ? cortesCompletos : [];
+
+    // Función para formatear precios y cantidades
+    const fmt = (n) => n != null ? Number(n).toLocaleString('es-CO') : '';
+
+    // Tabla de productos
+    const productosRows = productos.sort((a, b) => (a.codigo || '').localeCompare(b.codigo || '')).map(p => `
+      <tr>
+        <td>${p.codigo || ''}</td>
+        <td>${p.nombre || ''}</td>
+        <td>${p.color || ''}</td>
+        <td>${fmt(p.cantidadInsula)}</td>
+        <td>${fmt(p.cantidadCentro)}</td>
+        <td>${fmt(p.cantidadPatios)}</td>
+        <td><b>${fmt((+p.cantidadInsula||0)+(+p.cantidadCentro||0)+(+p.cantidadPatios||0))}</b></td>
+        <td>${fmt(p.precioInsula || p.precio1 || p.precio || 0)}</td>
+        <td>${fmt(p.precioCentro || p.precio2 || 0)}</td>
+        <td>${fmt(p.precioPatios || p.precio3 || 0)}</td>
+      </tr>`).join('');
+
+    // Tabla de cortes
+    const cortesRows = cortes.sort((a, b) => (a.codigo || '').localeCompare(b.codigo || '')).map(c => `
+      <tr>
+        <td>${c.codigo || ''}</td>
+        <td>${c.nombre || ''}</td>
+        <td>${c.color || ''}</td>
+        <td>${fmt(c.cantidadInsula)}</td>
+        <td>${fmt(c.cantidadCentro)}</td>
+        <td>${fmt(c.cantidadPatios)}</td>
+        <td><b>${fmt((+c.cantidadInsula||0)+(+c.cantidadCentro||0)+(+c.cantidadPatios||0))}</b></td>
+        <td>${fmt(c.precioInsula || c.precio1 || c.precio || 0)}</td>
+        <td>${fmt(c.precioCentro || c.precio2 || 0)}</td>
+        <td>${fmt(c.precioPatios || c.precio3 || 0)}</td>
+      </tr>`).join('');
+
+    const html = `
+      <html>
+      <head>
+        <title>Listado de Precios</title>
+        <style>
+          body { font-family: Arial, sans-serif; margin: 20px; }
+          h2 { margin-top: 2rem; }
+          table { border-collapse: collapse; width: 100%; margin-bottom: 2rem; }
+          th, td { border: 1px solid #888; padding: 4px 8px; font-size: 13px; }
+          th { background: #f0f0f0; }
+          .total { font-weight: bold; }
+        </style>
+      </head>
+      <body>
+        <h1>Listado de Precios - Inventario Completo</h1>
+        <h2>Productos</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Código</th><th>Nombre</th><th>Color</th><th>Insula</th><th>Centro</th><th>Patios</th><th>Total</th><th>P. Insula</th><th>P. Centro</th><th>P. Patios</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${productosRows}
+          </tbody>
+        </table>
+        <h2>Cortes</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Código</th><th>Nombre</th><th>Color</th><th>Insula</th><th>Centro</th><th>Patios</th><th>Total</th><th>P. Insula</th><th>P. Centro</th><th>P. Patios</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${cortesRows}
+          </tbody>
+        </table>
+        <script>
+          window.onload = function() {
+            window.print();
+            setTimeout(() => { window.close(); }, 5000);
+          };
+        </script>
+      </body>
+      </html>
+    `;
+    const printWindow = window.open('', '_blank', 'width=900,height=700');
+    if (printWindow) {
+      printWindow.document.write(html);
+      printWindow.document.close();
     }
-    
-    // Abrir modal de impresión con formato de cotización
-    setIsImprimirOpen(true);
   };
 
   // Crear objeto orden temporal para el modal de impresión
@@ -147,10 +230,9 @@ export default function ListadoOrden({ productosCarrito, subtotal, total, limpia
           </button>
           <button 
             className="btn-imprimir"
-            onClick={handleImprimirCotizacion}
-            disabled={items.length === 0}
+            onClick={handleImprimirPrecios}
           >
-            Imprimir Cotización
+            Imprimir Precios
           </button>
         </div>
       </div>

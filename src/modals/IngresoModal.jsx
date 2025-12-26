@@ -419,9 +419,7 @@ export default function IngresoModal({
           {(!isEdit || editable) &&
             (form.detalles.length === 0 ||
               !Number.isFinite(proveedorIdNum) ||
-              proveedorIdNum <= 0 ||
-              cantidadesInvalidas ||
-              costosInvalidos) && (
+              proveedorIdNum <= 0) && (
               <>
                 {(!Number.isFinite(proveedorIdNum) ||
                   proveedorIdNum <= 0) && (
@@ -429,18 +427,9 @@ export default function IngresoModal({
                     Debes seleccionar un proveedor.
                   </div>
                 )}
-                {cantidadesInvalidas && (
-                  <div className="alert error">
-                    Hay cantidades inválidas (&gt; 0).
-                  </div>
-                )}
-                {costosInvalidos && (
-                  <div className="alert error">
-                    Hay costos inválidos (≥ 0).
-                  </div>
-                )}
               </>
             )}
+
         </div>
 
         <div className="modal-grid">

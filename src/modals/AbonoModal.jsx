@@ -437,7 +437,20 @@ const AbonoModal = ({ isOpen, onClose, credito, onSuccess }) => {
       setError('Debes seleccionar al menos una orden para abonar.');
       return;
     }
-    
+
+    // Validación: no permitir abono mayor a la suma de las deudas
+    const sumaDeudas = Array.from(ordenesSeleccionadas)
+      .map(ordenId => {
+        const orden = ordenesCredito.find(o => o.id === ordenId);
+        return orden ? Number(orden.saldoPendiente || orden.saldo || 0) : 0;
+      })
+      .reduce((acc, val) => acc + val, 0);
+    if (montoTotal > sumaDeudas) {
+      const excedente = montoTotal - sumaDeudas;
+      setError(`El monto ingresado ($${montoTotal.toLocaleString('es-CO')}) excede la deuda total ($${sumaDeudas.toLocaleString('es-CO')}). El excedente de $${excedente.toLocaleString('es-CO')} no puede aplicarse a ningún crédito.`);
+      return;
+    }
+
     const distribucionValida = distribucion.filter(d => d.montoAbono > 0);
     if (distribucionValida.length === 0) {
       setError('No hay órdenes con monto de abono válido. Verifica la distribución.');

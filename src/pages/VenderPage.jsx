@@ -33,6 +33,24 @@ export default function VenderPage() {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // === Inventario y cortes completos sin filtros ===
+  const [inventarioCompletoSinFiltros, setInventarioCompletoSinFiltros] = useState([]);
+  const [cortesCompletosSinFiltros, setCortesCompletosSinFiltros] = useState([]);
+  // Cargar TODO el inventario y cortes sin filtros al montar
+  useEffect(() => {
+    const cargarInventarioYCortes = async () => {
+      try {
+        const inventario = await listarInventarioCompleto({}, isAdmin, sedeId);
+        setInventarioCompletoSinFiltros(inventario || []);
+        const cortes = await listarCortesInventarioCompleto({}, isAdmin, sedeId);
+        setCortesCompletosSinFiltros(cortes || []);
+      } catch (e) {
+        showError("No se pudo cargar el inventario/cortes completos para impresión.");
+      }
+    };
+    cargarInventarioYCortes();
+  }, [isAdmin, sedeId, showError]);
+
   // ======= Filtros =======
   const [filters, setFilters] = useState({
     search: "",
@@ -615,6 +633,8 @@ export default function VenderPage() {
           eliminarProducto={eliminarProducto}
           actualizarCantidad={actualizarCantidad}
           cortesPendientes={cortesPendientes}
+          inventarioCompleto={inventarioCompletoSinFiltros}
+          cortesCompletos={cortesCompletosSinFiltros}
         />
       </aside>
     </div>
