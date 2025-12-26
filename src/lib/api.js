@@ -68,14 +68,11 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     // 🚨 Error de API interceptado
-      headers: error.response?.headers
-    });
-    
+    // Aquí puedes agregar logs o manejo de errores personalizados si lo necesitas
     // Log detallado del error del backend
     if (error.response?.data) {
       // Detalles del error del backend
     }
-    
     return Promise.reject(error);
   }
 );

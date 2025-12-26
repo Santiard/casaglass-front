@@ -160,7 +160,8 @@ const AbonoPage = () => {
       // console.log('📦 DATOS COMPLETOS del backend:', JSON.stringify(creditosPendientes, null, 2));
       
       // Log específico de retención
-      // console.log('Créditos con tieneRetencionFuente:', 
+      /*
+      console.log('Créditos con tieneRetencionFuente:', 
         creditosPendientes.filter(c => c.tieneRetencionFuente)
           .map(c => ({ 
             ordenId: c.ordenId, 
@@ -174,6 +175,7 @@ const AbonoPage = () => {
             totalCredito: c.totalCredito
           }))
       );
+      */
       
       // El backend YA filtra por saldo > 0 y estado ABIERTO
       // No necesitamos filtrar manualmente en frontend
@@ -421,11 +423,11 @@ const AbonoPage = () => {
     // 🆕 USAR EL NUEVO ENDPOINT ESPECIALIZADO
     try {
       // console.log('Actualizando retención con nuevo endpoint:', {
-        ordenId,
-        tieneRetencionFuente: nuevoValorRetencion,
-        retencionFuente: nuevoValorRetencion ? retencionFuenteCalculada : 0,
-        iva: ivaCalculado
-      });
+      //   ordenId,
+      //   tieneRetencionFuente: nuevoValorRetencion,
+      //   retencionFuente: nuevoValorRetencion ? retencionFuenteCalculada : 0,
+      //   iva: ivaCalculado
+      // });
 
       // Llamar al endpoint especializado /ordenes/{id}/retencion-fuente
       const response = await actualizarRetencionFuente(ordenId, {
