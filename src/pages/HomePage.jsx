@@ -110,7 +110,7 @@ export default function HomePage(){
             (dashboardData.alertasStock?.productosBajos || [])
               .filter(p => {
                 const stock = p.stockActual || p.stock || 0;
-                return stock <= 5;
+                return stock < 30;
               }).length
           )}
           subtitle="Productos con stock ≤ 5 unidades"
@@ -128,7 +128,7 @@ export default function HomePage(){
                 (dashboardData.alertasStock?.productosBajos || [])
                   .filter(p => {
                     const stock = p.stockActual || p.stock || 0;
-                    return stock <= 5;
+                    return stock < 30;
                   })
               } />
             </div>

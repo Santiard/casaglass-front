@@ -1,11 +1,13 @@
 // src/modals/ProductoModal.jsx
 import { useState, useEffect } from "react";
 import { useToast } from "../context/ToastContext.jsx";
+import { useAuth } from "../context/AuthContext.jsx";
 import "../styles/CrudModal.css";
 import { listarCategorias } from "../services/CategoriasService";
 
 export default function ProductModal({ isOpen, onClose, onSave, product }) {
   const { showError } = useToast();
+  const { user } = useAuth();
   const initialState = {
     id: null,
     codigo: "",
@@ -32,6 +34,9 @@ export default function ProductModal({ isOpen, onClose, onSave, product }) {
   const [categories, setCategories] = useState([]);
 
   const isEditing = !!product;
+
+  // Detectar si el usuario es vendedor
+  const isVendedor = user?.rol === "VENDEDOR";
 
   // Cargar categorías al montar el componente
   useEffect(() => {
@@ -588,12 +593,13 @@ export default function ProductModal({ isOpen, onClose, onSave, product }) {
                 />
               </label>
 
+
               <label>
-                Precio 1:
+                Precio Insula:
                 <input
                   type="text"
                   name="precio1"
-                  placeholder="Precio 1"
+                  placeholder="Precio Insula"
                   value={formData.precio1}
                   onChange={handleChange}
                   inputMode="numeric"
@@ -602,11 +608,11 @@ export default function ProductModal({ isOpen, onClose, onSave, product }) {
               </label>
 
               <label>
-                Precio 2:
+                Precio Centro:
                 <input
                   type="text"
                   name="precio2"
-                  placeholder="Precio 2"
+                  placeholder="Precio Centro"
                   value={formData.precio2}
                   onChange={handleChange}
                   inputMode="numeric"
@@ -615,11 +621,11 @@ export default function ProductModal({ isOpen, onClose, onSave, product }) {
               </label>
 
               <label>
-                Precio 3:
+                Precio Patios:
                 <input
                   type="text"
                   name="precio3"
-                  placeholder="Precio 3"
+                  placeholder="Precio Patios"
                   value={formData.precio3}
                   onChange={handleChange}
                   inputMode="numeric"
@@ -645,6 +651,8 @@ export default function ProductModal({ isOpen, onClose, onSave, product }) {
                       inputMode="numeric"
                       pattern="[0-9]*"
                       placeholder="Cantidad"
+                      disabled={isVendedor}
+                      readOnly={isVendedor}
                     />
                   </label>
 
@@ -658,6 +666,8 @@ export default function ProductModal({ isOpen, onClose, onSave, product }) {
                       inputMode="numeric"
                       pattern="[0-9]*"
                       placeholder="Cantidad"
+                      disabled={isVendedor}
+                      readOnly={isVendedor}
                     />
                   </label>
 
@@ -671,6 +681,8 @@ export default function ProductModal({ isOpen, onClose, onSave, product }) {
                       inputMode="numeric"
                       pattern="[0-9]*"
                       placeholder="Cantidad"
+                      disabled={isVendedor}
+                      readOnly={isVendedor}
                     />
                   </label>
                 </>

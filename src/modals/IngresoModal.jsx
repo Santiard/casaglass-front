@@ -550,14 +550,11 @@ export default function IngresoModal({
                           />
                         </td>
                         <td>
-                          <input
-                            type="text"
-                            value={d.producto.color ?? ""}
-                            readOnly
-                            disabled
-                            placeholder="Color"
-                            style={{ backgroundColor: '#f5f5f5', cursor: 'not-allowed' }}
-                          />
+                          <span className={`color-badge color-${(d.producto.color || 'NA').toLowerCase().replace(/\s+/g, '-')}`}
+                            style={{ display: 'inline-block', minWidth: 48, textAlign: 'center' }}
+                          >
+                            {d.producto.color ?? "N/A"}
+                          </span>
                         </td>
                         <td>
                           <input
@@ -769,7 +766,13 @@ export default function IngresoModal({
                         <td onDoubleClick={(e) => { 
                           e.stopPropagation(); 
                           if (editable || !isEdit) addProducto(item); 
-                        }}>{item.color ?? "-"}</td>
+                        }}>
+                          <span className={`color-badge color-${(item.color || 'NA').toLowerCase().replace(/\s+/g, '-')}`}
+                            style={{ display: 'inline-block', minWidth: 48, textAlign: 'center' }}
+                          >
+                            {item.color ?? "N/A"}
+                          </span>
+                        </td>
                       </tr>
                     ))
                   )}

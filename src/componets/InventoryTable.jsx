@@ -25,11 +25,12 @@ export default function InventoryTable({ data = [], filters, loading, onEditar, 
             {isVidrio ? (
               <>
                 {/* Columnas específicas para VIDRIO */}
-                <th style={{ width: '70px' }}>mm</th>
-                <th style={{ width: '80px' }}>m1</th>
-                <th style={{ width: '80px' }}>m2</th>
-                {isAdmin && <th style={{ width: '120px' }}>Precio Insula</th>}
-                {isAdmin && <th style={{ width: '120px' }}>Cantidad Insula</th>}
+                <th style={{ width: '60px' }}>mm</th>
+                <th style={{ width: '70px' }}>m1</th>
+                <th style={{ width: '70px' }}>m2</th>
+                {/* Mostrar precio y cantidad para admin y vendedor */}
+                <th style={{ width: '110px' }}>Precio</th>
+                <th style={{ width: '80px', textAlign: 'center' }}>Cantidad</th>
               </>
             ) : (
               <>
@@ -60,7 +61,7 @@ export default function InventoryTable({ data = [], filters, loading, onEditar, 
                 )}
               </>
             )}
-            <th>Acciones</th>
+            <th style={{ width: '60px', textAlign: 'center' }}>Acciones</th>
           </tr>
         </thead>
         <tbody>
@@ -108,15 +109,38 @@ export default function InventoryTable({ data = [], filters, loading, onEditar, 
                     <td style={{ textAlign: 'center' }}>{p.mm ?? "-"}</td>
                     <td style={{ textAlign: 'center' }}>{p.m1 ?? "-"}</td>
                     <td style={{ textAlign: 'center' }}>{p.m2 ?? "-"}</td>
-                    {isAdmin && (
-                      <>
-                        <td style={{ textAlign: 'right' }}>{p.precio1 ? new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(p.precio1) : "-"}</td>
-                        <td style={{ textAlign: 'center' }} className={Number(p.cantidadInsula || 0) < 0 ? "stock-negativo" : ""}>
-                          {p.cantidadInsula ?? 0}
-                          {Number(p.cantidadInsula || 0) < 0 && <span className="badge-negativo"> </span>}
-                        </td>
-                      </>
-                    )}
+                    {/* Mostrar precio y cantidad según el rol y sede */}
+                    <td style={{ textAlign: 'right' }}>
+                      {isAdmin
+                        ? (p.precio1 ? new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(p.precio1) : "-")
+                        : (userSede === "Insula" ? (p.precio1 ? new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(p.precio1) : "-")
+                          : userSede === "Centro" ? (p.precio2 ? new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(p.precio2) : "-")
+                          : userSede === "Patios" ? (p.precio3 ? new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(p.precio3) : "-")
+                          : "-")
+                      }
+                    </td>
+                    <td style={{ textAlign: 'center' }} className={(() => {
+                      if (isAdmin) return Number(p.cantidadInsula || 0) < 0 ? "stock-negativo" : "";
+                      if (userSede === "Insula") return Number(p.cantidadInsula || 0) < 0 ? "stock-negativo" : "";
+                      if (userSede === "Centro") return Number(p.cantidadCentro || 0) < 0 ? "stock-negativo" : "";
+                      if (userSede === "Patios") return Number(p.cantidadPatios || 0) < 0 ? "stock-negativo" : "";
+                      return "";
+                    })()}>
+                      {isAdmin
+                        ? (p.cantidadInsula ?? 0)
+                        : userSede === "Insula" ? (p.cantidadInsula ?? 0)
+                        : userSede === "Centro" ? (p.cantidadCentro ?? 0)
+                        : userSede === "Patios" ? (p.cantidadPatios ?? 0)
+                        : 0
+                      }
+                      {(() => {
+                        if (isAdmin) return Number(p.cantidadInsula || 0) < 0 ? <span className="badge-negativo"> </span> : null;
+                        if (userSede === "Insula") return Number(p.cantidadInsula || 0) < 0 ? <span className="badge-negativo"> </span> : null;
+                        if (userSede === "Centro") return Number(p.cantidadCentro || 0) < 0 ? <span className="badge-negativo"> </span> : null;
+                        if (userSede === "Patios") return Number(p.cantidadPatios || 0) < 0 ? <span className="badge-negativo"> </span> : null;
+                        return null;
+                      })()}
+                    </td>
                   </>
                 ) : (
                   <>
@@ -173,12 +197,12 @@ export default function InventoryTable({ data = [], filters, loading, onEditar, 
                 )}
                 
                 {/* Acciones disponibles para todos los roles */}
-                <td className="acciones">
-                  <button className="btnEdit" onClick={() => onEditar?.(p)}>
-                  <img src={editar} className="iconButton" />
+                <td className="acciones" style={{ width: '60px', textAlign: 'center', padding: '0.25rem 0.25rem' }}>
+                  <button className="btnEdit" style={{ padding: '2px 4px', marginRight: 2 }} onClick={e => { e.stopPropagation(); onEditar?.(p); }}>
+                    <img src={editar} className="iconButton" style={{ width: 18, height: 18 }} />
                   </button>
-                  <button className="btnDelete" onClick={() => onEliminar?.(p.id)}>
-                  <img src={eliminar} className="iconButton" />
+                  <button className="btnDelete" style={{ padding: '2px 4px' }} onClick={e => { e.stopPropagation(); onEliminar?.(p.id); }}>
+                    <img src={eliminar} className="iconButton" style={{ width: 18, height: 18 }} />
                   </button>
                 </td>
               </tr>

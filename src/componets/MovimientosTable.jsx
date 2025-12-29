@@ -243,19 +243,17 @@ export default function MovimientosTable({
             {[5,10,20,50].map(n => <option key={n} value={n}>{n}</option>)}
           </select>
 
-          {/* Botón Nuevo solo para ADMINISTRADORES */}
-          {isAdmin && (
-            <button
-              onClick={() => {
-                setMovimientoEditando(null);
-                setIsModalOpen(true);
-              }}
-              className="addButton"
-            >
-              <img src={add} className="iconButton" alt="Agregar" />
-              Nuevo traslado
-            </button>
-          )}
+          {/* Botón Nuevo traslado disponible para todos los usuarios */}
+          <button
+            onClick={() => {
+              setMovimientoEditando(null);
+              setIsModalOpen(true);
+            }}
+            className="addButton"
+          >
+            <img src={add} className="iconButton" alt="Agregar" />
+            Nuevo traslado
+          </button>
         </div>
       </div>
 

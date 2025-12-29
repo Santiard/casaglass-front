@@ -2337,7 +2337,13 @@ export default function OrdenEditarModal({
                       >
                         <td onDoubleClick={(e) => { e.stopPropagation(); addProducto(p); }}>{p.nombre}</td>
                         <td onDoubleClick={(e) => { e.stopPropagation(); addProducto(p); }}>{p.codigo ?? "-"}</td>
-                        <td onDoubleClick={(e) => { e.stopPropagation(); addProducto(p); }}>{p.color ?? "-"}</td>
+                        <td onDoubleClick={(e) => { e.stopPropagation(); addProducto(p); }}>
+                          <span className={`color-badge color-${(p.color || 'NA').toLowerCase().replace(/\s+/g, '-')}`}
+                            style={{ display: 'inline-block', minWidth: 48, textAlign: 'center' }}
+                          >
+                            {p.color ?? "N/A"}
+                          </span>
+                        </td>
                       </tr>
                     ))
                   )}

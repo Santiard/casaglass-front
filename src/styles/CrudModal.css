@@ -184,6 +184,10 @@
   flex-shrink: 0;
 }
 
+.modal-container-producto .modal-header h2 {
+  color: #fff;
+}
+
 .modal-container-producto .modal-body {
   padding: 0 2rem 2rem 2rem;
   overflow-y: auto;
