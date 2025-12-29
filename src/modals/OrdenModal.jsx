@@ -312,7 +312,6 @@ export default function OrdenEditarModal({
           items: productosCarrito.map((p) => {
             const item = {
               id: null,
-              // Cuando es un corte, p.id es string (corte_...) y el id real del producto viene en p.productoOriginal
               productoId: Number((p.productoOriginal ?? p.id) ?? 0) || null,
               codigo: p.codigo ?? "",
               nombre: p.nombre ?? "",
@@ -321,8 +320,8 @@ export default function OrdenEditarModal({
               precioUnitario: Number(p.precioUsado ?? 0),
               totalLinea: Number((p.precioUsado ?? 0) * (p.cantidadVender ?? 1)),
               eliminar: false,
+              color: p.color ?? '', // Copiar color explícitamente
             };
-            // Si es un corte que debe reutilizar un existente, agregar el ID
             if (p.reutilizarCorteSolicitadoId) {
               item.reutilizarCorteSolicitadoId = Number(p.reutilizarCorteSolicitadoId);
             }
@@ -2158,7 +2157,9 @@ export default function OrdenEditarModal({
             <table className="mini-table">
               <thead>
                 <tr>
-                  <th>Producto</th>
+                  <th>Nombre</th>
+                  <th>Código</th>
+                  <th>Color</th>
                   <th>Cant.</th>
                   <th>Precio</th>
                   <th>Total</th>
@@ -2166,15 +2167,22 @@ export default function OrdenEditarModal({
                 </tr>
               </thead>
               <tbody>
-                {form.items.map((i, idx) => (
-                  <tr
-                    key={idx}
-                    style={{
-                      textDecoration: i.eliminar ? "line-through" : "none",
-                      opacity: i.eliminar ? 0.6 : 1,
-                    }}
-                  >
+                {form.items.filter(i => !i.eliminar).map((i, idx) => (
+                  <tr key={idx}>
                     <td>{i.nombre}</td>
+                    <td>{i.codigo}</td>
+                    <td>
+                      <span
+                        className={`color-badge color-${(i.color || 'NA').toLowerCase().replace(/\s+/g, '-')}`}
+                        style={{
+                          display: 'inline-block',
+                          minWidth: 32,
+                          textAlign: 'center',
+                        }}
+                      >
+                        {(i.color ?? 'NA')}
+                      </span>
+                    </td>
                     <td>
                       <input
                         type="number"
@@ -2220,8 +2228,13 @@ export default function OrdenEditarModal({
                     <td>
                       <button
                         className="btnDelete"
-                        onClick={() => marcarEliminar(idx)}
-                        title={i.eliminar ? "Restaurar producto" : "Eliminar producto"}
+                        onClick={() => {
+                          setForm(prev => ({
+                            ...prev,
+                            items: prev.items.filter((item, j) => j !== idx)
+                          }));
+                        }}
+                        title="Eliminar producto"
                       >
                         <img src={eliminar} className="iconButton" alt="Eliminar" />
                       </button>
