@@ -78,9 +78,9 @@ export async function crearOrdenVenta(payload) {
     //     productoId: item.productoId,
     //     productoIdParsed: parseInt(item.productoId),
     //     cantidad: item.cantidad,
-        precioUnitario: item.precioUnitario
-      })) || []
-    });
+    //     precioUnitario: item.precioUnitario
+    //   })) || []
+    // });
     
     // Formato correcto para el backend actualizado
     const ordenData = {
