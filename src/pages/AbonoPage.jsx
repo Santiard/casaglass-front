@@ -161,7 +161,7 @@ const AbonoPage = () => {
       
       // Log específico de retención
       /*
-      console.log('Créditos con tieneRetencionFuente:', 
+      // console.log('Créditos con tieneRetencionFuente:', 
         creditosPendientes.filter(c => c.tieneRetencionFuente)
           .map(c => ({ 
             ordenId: c.ordenId, 

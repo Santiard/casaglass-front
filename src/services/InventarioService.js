@@ -45,8 +45,8 @@ function transformarInventarioDTO(productos, isAdmin = true, userSedeId = null, 
     
     //  DEBUG: Log completo de productos vidrio para identificar el ID correcto
     if (esVidrio) {
-      console.log(" Producto VIDRIO detectado - OBJETO COMPLETO del backend:", producto);
-      console.log(" Todos los campos disponibles:", Object.keys(producto));
+      // console.log(" Producto VIDRIO detectado - OBJETO COMPLETO del backend:", producto);
+      // console.log(" Todos los campos disponibles:", Object.keys(producto));
     }
 
     // Normalizar categoría: ahora TODOS los productos (normales y vidrios) vienen con objeto {id, nombre}

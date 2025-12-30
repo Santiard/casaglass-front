@@ -45,7 +45,7 @@ export default function ProductModal({ isOpen, onClose, onSave, product }) {
         const cats = await listarCategorias();
         setCategories(cats || []);
       } catch (e) {
-        console.error("Error cargando categorías:", e);
+        // console.error("Error cargando categorías:", e);
       }
     };
     fetchCategorias();

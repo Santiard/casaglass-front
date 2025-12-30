@@ -153,25 +153,25 @@ export async function crearIngresoDesdeForm(form) {
   payload.totalCosto = totalCostoOriginal; // Total del ingreso usando costos originales
   payload.procesado = false;
   
-  console.log("Payload del ingreso preparado con costos ponderados para actualizar productos");
+  // console.log("Payload del ingreso preparado con costos ponderados para actualizar productos");
   
   try {
     const { data } = await api.post("/ingresos", payload);
-    console.log("Ingreso creado. El backend debería haber actualizado el costo del producto con el promedio ponderado.");
+    // console.log("Ingreso creado. El backend debería haber actualizado el costo del producto con el promedio ponderado.");
     return data;
   } catch (error) {
-    console.error("Error completo al crear ingreso:", {
-      message: error.message,
-      status: error.response?.status,
-      statusText: error.response?.statusText,
-      data: error.response?.data,
-      headers: error.response?.headers,
-      config: {
-        url: error.config?.url,
-        method: error.config?.method,
-        data: error.config?.data
-      }
-    });
+    // console.error("Error completo al crear ingreso:", {
+    //   message: error.message,
+    //   status: error.response?.status,
+    //   statusText: error.response?.statusText,
+    //   data: error.response?.data,
+    //   headers: error.response?.headers,
+    //   config: {
+    //     url: error.config?.url,
+    //     method: error.config?.method,
+    //     data: error.config?.data
+    //   }
+    // });
     throw error;
   }
 }

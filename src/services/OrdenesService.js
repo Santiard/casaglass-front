@@ -69,15 +69,15 @@ export async function crearOrdenVenta(payload) {
     }
 
     //  LOG: Verificar payload antes de enviar
-    console.log(" Payload completo para crear orden:", {
-      fecha: payload.fecha,
-      clienteId: payload.clienteId,
-      sedeId: payload.sedeId,
-      totalItems: payload.items?.length || 0,
-      items: payload.items?.map(item => ({
-        productoId: item.productoId,
-        productoIdParsed: parseInt(item.productoId),
-        cantidad: item.cantidad,
+    // console.log(" Payload completo para crear orden:", {
+    //   fecha: payload.fecha,
+    //   clienteId: payload.clienteId,
+    //   sedeId: payload.sedeId,
+    //   totalItems: payload.items?.length || 0,
+    //   items: payload.items?.map(item => ({
+    //     productoId: item.productoId,
+    //     productoIdParsed: parseInt(item.productoId),
+    //     cantidad: item.cantidad,
         precioUnitario: item.precioUnitario
       })) || []
     });
