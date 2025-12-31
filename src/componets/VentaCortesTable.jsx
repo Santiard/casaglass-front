@@ -1,5 +1,6 @@
 // src/componets/VentaCortesTable.jsx
 import { useState } from "react";
+import CortarModal from "../modals/CortarModal.jsx";
 import "../styles/Table.css";
 
 export default function VentaCortesTable({ 
@@ -11,6 +12,36 @@ export default function VentaCortesTable({
 }) {
   const [cantidadesVenta, setCantidadesVenta] = useState({});
   const [preciosSeleccionados, setPreciosSeleccionados] = useState({});
+  const [modalCorte, setModalCorte] = useState({ isOpen: false, corte: null });
+  // Abrir modal para cortar un corte existente
+  const handleAbrirModalCorte = (corte) => {
+    // Calcular el precio según la sede del usuario (igual que en VentaTable)
+    const precioSegunSede = isAdmin ? corte.precio1 :
+      (userSede === "Insula" ? corte.precio1 :
+       userSede === "Centro" ? corte.precio2 :
+       userSede === "Patios" ? corte.precio3 : corte.precio1);
+    setModalCorte({
+      isOpen: true,
+      corte: {
+        ...corte,
+        precioUsado: precioSegunSede // Asegura que el modal siempre reciba el precio correcto
+      }
+    });
+  };
+
+  // Cerrar modal de corte
+  const handleCerrarModalCorte = () => {
+    setModalCorte({ isOpen: false, corte: null });
+  };
+
+  // Lógica para manejar el corte (igual que en VentaTable)
+  const handleCortar = async (corteParaVender, corteSobrante) => {
+    if (onAgregarProducto) {
+      // Agrega el corte generado al carrito (como producto a vender)
+      onAgregarProducto(corteParaVender, 1, corteParaVender.precioUsado);
+      // Aquí podrías manejar el corte sobrante si lo necesitas
+    }
+  };
 
   // Funciones para manejar la venta
   const handleCantidadChange = (corteId, cantidad) => {
@@ -181,8 +212,8 @@ export default function VentaCortesTable({
                   )}
                 </td>
                 
-                {/* Botón agregar al carrito */}
-                <td>
+                {/* Botón agregar al carrito y botón cortar */}
+                <td style={{ display: 'flex', gap: '4px' }}>
                   <button
                     onClick={() => handleAgregarCarrito(c, uniqueKey)}
                     className="agregar-btn"
@@ -201,7 +232,32 @@ export default function VentaCortesTable({
                   >
                     Agregar
                   </button>
+                  <button
+                    onClick={() => handleAbrirModalCorte(c)}
+                    className="agregar-btn"
+                    style={{
+                      background: '#007bff',
+                      color: 'white',
+                      border: 'none',
+                      padding: '6px 12px',
+                      borderRadius: '4px',
+                      cursor: 'pointer',
+                      fontSize: '12px'
+                    }}
+                    title="Cortar este corte"
+                  >
+                    Cortar
+                  </button>
                 </td>
+                    {/* Modal para cortar un corte existente */}
+                    {modalCorte.isOpen && (
+                      <CortarModal
+                        isOpen={modalCorte.isOpen}
+                        onClose={handleCerrarModalCorte}
+                        producto={modalCorte.corte}
+                        onCortar={handleCortar}
+                      />
+                    )}
               </tr>
             );
           })}

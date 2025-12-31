@@ -30,35 +30,24 @@ export default function CortarModal({
     };
   }, [isOpen]);
 
-  // Constantes del sistema
-  const LARGO_DEFAULT_PERFIL = 600; // 6 metros = 600 cm
-
   // Calcular medidas y precios usando useMemo para evitar recálculos innecesarios
   const cortesCalculados = useMemo(() => {
-    // Validar que el producto existe
-    if (!producto) {
-      return null;
-    }
+    if (!producto) return null;
+    if (!medidaCorte || isNaN(medidaCorte) || medidaCorte <= 0) return null;
 
-    if (!medidaCorte || isNaN(medidaCorte) || medidaCorte <= 0) {
-      return null;
-    }
-
+    // Usar el largo real del producto/corte como base
+    const largoBase = Number(producto.largoCm || producto.largo || 600);
     const medida = Number(medidaCorte);
-    const medidaSobrante = LARGO_DEFAULT_PERFIL - medida;
+    const medidaSobrante = largoBase - medida;
+    if (medidaSobrante < 0) return null;
 
-    if (medidaSobrante < 0) {
-      return null; // Medida inválida
-    }
-
-    // Calcular precios proporcionales
+    // Calcular precios proporcionales sobre el largo real
     const precioOriginal = producto.precioUsado || producto.precio || 0;
-    
-    const porcentajeCorte = medida / LARGO_DEFAULT_PERFIL;
-    const porcentajeSobrante = medidaSobrante / LARGO_DEFAULT_PERFIL;
-
-    const precioCorte = precioOriginal * porcentajeCorte;
-    const precioSobrante = precioOriginal * porcentajeSobrante;
+    const porcentajeCorte = medida / largoBase;
+    const porcentajeSobrante = medidaSobrante / largoBase;
+    // Redondear precios a enteros y evitar decimales grandes
+    const precioCorte = Math.round(precioOriginal * porcentajeCorte);
+    const precioSobrante = Math.round(precioOriginal * porcentajeSobrante);
 
     return {
       medidaCorte: medida,
@@ -66,7 +55,8 @@ export default function CortarModal({
       precioCorte,
       precioSobrante,
       porcentajeCorte: (porcentajeCorte * 100).toFixed(1),
-      porcentajeSobrante: (porcentajeSobrante * 100).toFixed(1)
+      porcentajeSobrante: (porcentajeSobrante * 100).toFixed(1),
+      largoBase
     };
   }, [producto, medidaCorte]);
 
@@ -231,14 +221,14 @@ export default function CortarModal({
                 <div>
                   <strong>🔪 Corte a Vender:</strong>
                   <div>Medida: {cortesCalculados.medidaCorte} cm</div>
-                  <div>Precio: ${cortesCalculados.precioCorte.toLocaleString('es-CO')}</div>
+                  <div>Precio: ${cortesCalculados.precioCorte.toLocaleString('es-CO', {minimumFractionDigits: 0})}</div>
                   <div>Porcentaje: {cortesCalculados.porcentajeCorte}%</div>
                 </div>
                 
                 <div>
                   <strong> Corte Sobrante:</strong>
                   <div>Medida: {cortesCalculados.medidaSobrante} cm</div>
-                  <div>Precio: ${cortesCalculados.precioSobrante.toLocaleString('es-CO')}</div>
+                  <div>Precio: ${cortesCalculados.precioSobrante.toLocaleString('es-CO', {minimumFractionDigits: 0})}</div>
                   <div>Porcentaje: {cortesCalculados.porcentajeSobrante}%</div>
                 </div>
               </div>

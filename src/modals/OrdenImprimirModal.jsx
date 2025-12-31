@@ -3,6 +3,7 @@ import "../styles/OrdenImprimirModal.css";
 import { obtenerOrden, obtenerOrdenDetalle } from "../services/OrdenesService.js";
 
 export default function OrdenImprimirModal({ orden, isOpen, onClose }) {
+  // Cargar SIEMPRE la orden detallada (con items completos)
   const [form, setForm] = useState(null);
   const [formato, setFormato] = useState("ambos"); // "orden" | "trabajadores" | "ambos"
   const [loading, setLoading] = useState(false);
@@ -13,60 +14,33 @@ export default function OrdenImprimirModal({ orden, isOpen, onClose }) {
       return;
     }
 
-    // Cargar la orden completa con todos los datos del producto (color, tipo)
-    const cargarOrdenCompleta = async () => {
+    // Cargar la orden detallada (con items completos)
+    const cargarOrdenDetallada = async () => {
       setLoading(true);
       try {
-        // Intentar primero con obtenerOrden
-        let ordenCompleta = await obtenerOrden(orden.id);
-        
-        // Verificar si los items tienen información completa del producto (color, tipo)
-        // Si no, intentar con el endpoint de detalle
-        if (ordenCompleta.items && ordenCompleta.items.length > 0) {
-          const primerItem = ordenCompleta.items[0];
-          const tieneColorYTipo = primerItem?.producto?.color !== null && 
-                                  primerItem?.producto?.color !== undefined &&
-                                  primerItem?.producto?.tipo !== null && 
-                                  primerItem?.producto?.tipo !== undefined;
-          
-          if (!tieneColorYTipo) {
-            console.log(" Orden sin datos completos del producto (color/tipo), usando endpoint de detalle...");
-            try {
-              const ordenDetalle = await obtenerOrdenDetalle(orden.id);
-              // Combinar información de ambos endpoints, priorizando el detalle
-              ordenCompleta = {
-                ...ordenCompleta,
-                items: ordenDetalle.items || ordenCompleta.items || []
-              };
-            } catch (detalleError) {
-              console.warn(" No se pudo obtener detalle, usando orden básica:", detalleError);
-            }
-          }
-        }
-
+        const ordenDetallada = await obtenerOrdenDetalle(orden.id);
         const base = {
-          id: ordenCompleta.id,
-          numero: ordenCompleta.numero,
-          fecha: ordenCompleta.fecha,
-          obra: ordenCompleta.obra ?? "",
-          venta: ordenCompleta.venta ?? false,
-          credito: ordenCompleta.credito ?? false,
-          estado: ordenCompleta.estado ?? "ACTIVA",
-          subtotal: typeof ordenCompleta.subtotal === "number" ? ordenCompleta.subtotal : null, // Base sin IVA
-          iva: typeof ordenCompleta.iva === "number" ? ordenCompleta.iva : null, // IVA calculado
-          descuentos: typeof ordenCompleta.descuentos === "number" ? ordenCompleta.descuentos : 0,
-          retencionFuente: typeof ordenCompleta.retencionFuente === "number" ? ordenCompleta.retencionFuente : 0,
-          tieneRetencionFuente: Boolean(ordenCompleta.tieneRetencionFuente ?? false),
-          total: typeof ordenCompleta.total === "number" ? ordenCompleta.total : null, // Total facturado
-          cliente: ordenCompleta.cliente || {},
-          sede: ordenCompleta.sede || {},
-          trabajador: ordenCompleta.trabajador || {},
-          items: ordenCompleta.items || [],
+          id: ordenDetallada.id,
+          numero: ordenDetallada.numero,
+          fecha: ordenDetallada.fecha,
+          obra: ordenDetallada.obra ?? "",
+          venta: ordenDetallada.venta ?? false,
+          credito: ordenDetallada.credito ?? false,
+          estado: ordenDetallada.estado ?? "ACTIVA",
+          subtotal: typeof ordenDetallada.subtotal === "number" ? ordenDetallada.subtotal : null, // Base sin IVA
+          iva: typeof ordenDetallada.iva === "number" ? ordenDetallada.iva : null, // IVA calculado
+          descuentos: typeof ordenDetallada.descuentos === "number" ? ordenDetallada.descuentos : 0,
+          retencionFuente: typeof ordenDetallada.retencionFuente === "number" ? ordenDetallada.retencionFuente : 0,
+          tieneRetencionFuente: Boolean(ordenDetallada.tieneRetencionFuente ?? false),
+          total: typeof ordenDetallada.total === "number" ? ordenDetallada.total : null, // Total facturado
+          cliente: ordenDetallada.cliente || {},
+          sede: ordenDetallada.sede || {},
+          trabajador: ordenDetallada.trabajador || {},
+          items: ordenDetallada.items || [],
         };
-
         setForm(base);
       } catch (error) {
-        console.error("Error cargando orden completa:", error);
+        console.error("Error cargando orden detallada:", error);
         // Si falla, usar los datos que vienen en la orden (aunque puedan estar incompletos)
         const base = {
           id: orden.id,
@@ -93,7 +67,7 @@ export default function OrdenImprimirModal({ orden, isOpen, onClose }) {
       }
     };
 
-    cargarOrdenCompleta();
+    cargarOrdenDetallada();
   }, [orden, isOpen]);
 
   if (!isOpen) return null;

@@ -61,8 +61,7 @@ export default function OrdenEditarModal({
   const tiposMetodoPago = [
     { value: "EFECTIVO", label: "Efectivo" },
     { value: "TRANSFERENCIA", label: "Transferencia" },
-    { value: "CHEQUE", label: "Cheque" },
-    { value: "OTRO", label: "Otro" }
+    { value: "CHEQUE", label: "Cheque" }
   ];
   
   // Función para parsear la descripción y extraer métodos de pago
@@ -362,7 +361,7 @@ export default function OrdenEditarModal({
     }
     
     if (!orden?.id) {
-      console.warn(" Orden sin ID, no se puede cargar:", orden);
+
       // Inicializar formulario vacío si no hay ID válido
       setForm({
         id: null,
@@ -475,7 +474,7 @@ export default function OrdenEditarModal({
         setRetefuenteRate(Number(settings.retefuenteRate) || 2.5);
       }
     }).catch((error) => {
-      console.error("Error cargando configuración de retención:", error);
+
     });
   }, [isOpen]);
 
@@ -492,25 +491,25 @@ export default function OrdenEditarModal({
         try {
           c = await listarClientes();
         } catch (e) {
-          console.error("Error cargando clientes:", e);
+
         }
         
         try {
           t = await listarTrabajadores();
         } catch (e) {
-          console.error("Error cargando trabajadores:", e);
+
         }
         
         try {
           s = await listarSedes();
         } catch (e) {
-          console.error("Error cargando sedes:", e);
+
         }
         
         try {
           cats = await listarCategorias();
         } catch (e) {
-          console.error("Error cargando categorías:", e);
+
         }
         
         // No cargar productos aquí - se cargarán al seleccionar categoría
@@ -522,7 +521,7 @@ export default function OrdenEditarModal({
         setCategorias(cats);
         setCatalogoProductos(prods);
       } catch (e) {
-        console.error("Error general cargando catálogos:", e);
+
       }
     })();
   }, [isOpen]);
@@ -538,18 +537,15 @@ export default function OrdenEditarModal({
       
       try {
         setLoadingProductos(true);
-        console.log("⏳ [OrdenModal] Cargando productos para categoría ID:", selectedCategoryId);
+
         const params = { categoriaId: selectedCategoryId };
         const productos = await listarInventarioCompleto(params, true, null);
         
-        console.log("[OrdenModal] Productos cargados:", {
-          categoriaId: selectedCategoryId,
-          total: productos?.length || 0
-        });
+
         
         setCatalogoProductos(productos || []);
       } catch (e) {
-        console.error("❌ [OrdenModal] Error cargando productos por categoría:", e);
+
         showError("No se pudieron cargar los productos");
         setCatalogoProductos([]);
       } finally {
@@ -569,7 +565,7 @@ export default function OrdenEditarModal({
       });
       
       if (categoriasValidas.length > 0) {
-        console.log("📌 [OrdenModal] Seleccionando primera categoría por defecto:", categoriasValidas[0]);
+
         setSelectedCategoryId(categoriasValidas[0].id);
       }
     }
@@ -824,11 +820,7 @@ export default function OrdenEditarModal({
       
       // Verificar que productoId esté presente
       if (!item.productoId && arr[idx].productoId) {
-        console.warn("⚠️ productoId se perdió al editar. Restaurando...", {
-          campo: field,
-          productoIdOriginal: arr[idx].productoId,
-          item: item
-        });
+
         item.productoId = arr[idx].productoId;
       }
       
@@ -847,22 +839,10 @@ export default function OrdenEditarModal({
       
       //  LOG: Verificar datos del producto antes de agregar
       const productoId = item.id || item.productoId;
-      console.log(" Agregando producto a la orden:", {
-        id: item.id,
-        productoId: item.productoId,
-        idFinal: productoId,
-        codigo: item.codigo,
-        nombre: item.nombre,
-        tieneId: !!productoId,
-        precio1: item.precio1
-      });
+
       
       if (!productoId) {
-        console.error(" ERROR: Producto sin ID:", {
-          codigo: item.codigo,
-          nombre: item.nombre,
-          itemCompleto: item
-        });
+
         showError(`El producto "${item.nombre || item.codigo}" no tiene un ID válido. Por favor, recarga la página.`);
         return prev;
       }
@@ -883,11 +863,7 @@ export default function OrdenEditarModal({
         color: item.color, // Incluir el color del producto
       };
       
-      console.log(" Producto agregado al formulario:", {
-        productoId: nuevo.productoId,
-        codigo: nuevo.codigo,
-        nombre: nuevo.nombre
-      });
+
       
       const nuevosItems = [...prev.items, nuevo];
       
@@ -937,24 +913,13 @@ export default function OrdenEditarModal({
       // Validar que todos los items tengan productoId válido
       const itemsInvalidos = itemsActivos.filter(i => !i.productoId || i.productoId === 0 || i.productoId === null);
       if (itemsInvalidos.length > 0) {
-        console.error(" ERROR: Items sin productoId válido:", itemsInvalidos.map(i => ({
-          codigo: i.codigo,
-          nombre: i.nombre,
-          productoId: i.productoId
-        })));
+
         showError(`Los siguientes productos no tienen un ID válido: ${itemsInvalidos.map(i => i.nombre || i.codigo).join(", ")}`);
         return;
       }
       
       //  LOG: Verificar items antes de crear la orden
-      console.log(" Items validados para crear orden:", itemsActivos.map(i => ({
-        productoId: i.productoId,
-        codigo: i.codigo,
-        nombre: i.nombre,
-        cantidad: i.cantidad,
-        precioUnitario: i.precioUnitario,
-        totalLinea: i.totalLinea
-      })));
+
 
       // Validar que las cantidades y precios sean válidos
       const itemsConDatosInvalidos = itemsActivos.filter(i => 
@@ -1085,8 +1050,7 @@ export default function OrdenEditarModal({
       
       // Crear nueva orden
       const fechaFormateada = toLocalDateOnly(form.fecha);
-      console.log("📅 [OrdenModal] Fecha del formulario:", form.fecha);
-      console.log("📅 [OrdenModal] Fecha formateada para enviar:", fechaFormateada);
+
       
       const payload = {
         fecha: fechaFormateada,
@@ -1110,12 +1074,7 @@ export default function OrdenEditarModal({
           //  LOG: Verificar cada item antes de enviar
           const productoId = Number(i.productoId);
           if (!productoId || productoId === 0) {
-            console.error(" ERROR: Item con productoId inválido:", {
-              codigo: i.codigo,
-              nombre: i.nombre,
-              productoId: i.productoId,
-              productoIdNumber: productoId
-            });
+
           }
           
           const item = {
@@ -1129,13 +1088,7 @@ export default function OrdenEditarModal({
             item.reutilizarCorteSolicitadoId = Number(i.reutilizarCorteSolicitadoId);
           }
           
-          console.log(" Item preparado para enviar:", {
-            productoId: item.productoId,
-            codigo: i.codigo,
-            nombre: i.nombre,
-            cantidad: item.cantidad,
-            precioUnitario: item.precioUnitario
-          });
+
           
           return item;
         }),

@@ -113,7 +113,7 @@ export default function HomePage(){
                 return stock < 30;
               }).length
           )}
-          subtitle="Productos con stock ≤ 5 unidades"
+          subtitle="Productos con stock &lt; 30 unidades"
           color="#ef4444"
         />
       </div>

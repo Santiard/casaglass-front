@@ -1,3 +1,19 @@
+// Normaliza la estructura de la orden para que siempre tenga los campos principales al tope
+function normalizarOrden(orden) {
+  if (!orden) return orden;
+  // Si la orden tiene un campo creditoDetalle y es de tipo CREDITO, extraer datos de ahí si existen
+  if (orden.tipo === 'CREDITO' && orden.creditoDetalle) {
+    return {
+      ...orden,
+      cliente: orden.creditoDetalle.cliente || orden.cliente,
+      items: orden.creditoDetalle.items || orden.items,
+      total: orden.creditoDetalle.totalCredito || orden.total,
+      // Puedes agregar aquí más campos si el backend los anida en creditoDetalle
+    };
+  }
+  // Si la estructura ya es la esperada, devolver tal cual
+  return orden;
+}
 import "../styles/Table.css";
 import "../styles/OrdenesTable.css";
 import { useMemo, useState, Fragment } from "react";
@@ -12,7 +28,7 @@ import HistoricoClienteModal from "../modals/HistoricoClienteModal.jsx";
 import HistoricoGeneralModal from "../modals/HistoricoGeneralModal.jsx";
 import FacturarOpcionesModal from "../componets/FacturarOpcionesModal.jsx";
 import { useToast } from "../context/ToastContext.jsx";
-import { obtenerOrden } from "../services/OrdenesService.js";
+import { obtenerOrden, obtenerOrdenDetalle } from "../services/OrdenesService.js";
 
 export default function OrdenesTable({
   data = [],
@@ -139,10 +155,20 @@ export default function OrdenesTable({
     );
   };
 
-  //  Imprimir orden
-  const handleImprimir = (orden) => {
-    setOrdenImprimir(orden);
-    setIsImprimirModalOpen(true);
+  //  Imprimir orden (usando detalle completo)
+  const handleImprimir = async (orden) => {
+    try {
+      const ordenDetallada = await obtenerOrdenDetalle(orden.id);
+      const ordenNorm = normalizarOrden(ordenDetallada);
+      console.log('[OrdenesTable] Imprimir orden (detallada):', ordenNorm);
+      setOrdenImprimir(ordenNorm);
+      setIsImprimirModalOpen(true);
+    } catch (error) {
+      console.error('Error obteniendo detalle de la orden para imprimir:', error);
+      // Fallback: usar la orden básica
+      setOrdenImprimir(normalizarOrden(orden));
+      setIsImprimirModalOpen(true);
+    }
   };
 
   //  Filtrar y paginar
@@ -469,13 +495,15 @@ export default function OrdenesTable({
                           className="btnEdit"
                           onClick={async () => {
                             try {
-                              // 🆕 OBTENER ORDEN COMPLETA con productoId, clienteId, etc.
-                              const ordenCompleta = await obtenerOrden(o.id);
-                              setOrdenEditando(ordenCompleta);
+                              // Usar SIEMPRE el endpoint de detalle
+                              const ordenDetallada = await obtenerOrdenDetalle(o.id);
+                              const ordenNorm = normalizarOrden(ordenDetallada);
+                              console.log('[OrdenesTable] Editar orden (detallada):', ordenNorm);
+                              setOrdenEditando(ordenNorm);
                               setIsModalOpen(true);
                             } catch (error) {
-                              console.error("Error cargando orden para editar:", error);
-                              showError("Error al cargar los datos de la orden. Intenta nuevamente.");
+                              console.error("Error cargando orden detallada para editar:", error);
+                              showError("Error al cargar los datos completos de la orden. Intenta nuevamente.");
                             }
                           }}
                           disabled={estaAnulada || yaFacturada || yaPagada}
