@@ -8,7 +8,8 @@ export default function VentaCortesTable({
   loading, 
   isAdmin = false, 
   userSede = "",
-  onAgregarProducto
+  onAgregarProducto,
+  onCortarProducto
 }) {
   const [cantidadesVenta, setCantidadesVenta] = useState({});
   const [preciosSeleccionados, setPreciosSeleccionados] = useState({});
@@ -34,12 +35,21 @@ export default function VentaCortesTable({
     setModalCorte({ isOpen: false, corte: null });
   };
 
-  // Lógica para manejar el corte (igual que en VentaTable)
+  // Lógica para manejar el corte cuando se corta un corte existente
   const handleCortar = async (corteParaVender, corteSobrante) => {
-    if (onAgregarProducto) {
-      // Agrega el corte generado al carrito (como producto a vender)
-      onAgregarProducto(corteParaVender, 1, corteParaVender.precioUsado);
-      // Aquí podrías manejar el corte sobrante si lo necesitas
+    if (onCortarProducto) {
+      // ✅ Marcar que este corte viene de cortar otro corte existente
+      const corteConMarca = {
+        ...corteParaVender,
+        esCorteExistente: true  // Nueva marca para identificar cortes de cortes
+      };
+      console.log('🔍 [VentaCortesTable] Cortando CORTE existente:', {
+        id: corteConMarca.id,
+        nombre: corteConMarca.nombre,
+        esCorteExistente: corteConMarca.esCorteExistente,
+        productoOriginal: corteConMarca.productoOriginal
+      });
+      onCortarProducto(corteConMarca, corteSobrante);
     }
   };
 
@@ -126,8 +136,10 @@ export default function VentaCortesTable({
             </tr>
           )}
           {!loading && data.map((c, index) => {
-            // Crear una clave única que combine ID, código y índice
-            const uniqueKey = `corte-${c.id || 'no-id'}-${c.codigo || 'no-codigo'}-${index}`;
+            // Priorizar código y nombre sobre id para cortes
+            const uniqueKey = c.codigo && c.nombre
+              ? `corte-${c.codigo}-${c.nombre}`
+              : `corte-${c.id || 'no-id'}-${index}`;
             
             const total = Number(c.cantidadTotal || 0) || 
               (Number(c.cantidadInsula || 0) + Number(c.cantidadCentro || 0) + Number(c.cantidadPatios || 0));
@@ -236,7 +248,7 @@ export default function VentaCortesTable({
                     onClick={() => handleAbrirModalCorte(c)}
                     className="agregar-btn"
                     style={{
-                      background: '#007bff',
+                      background: 'var(--color-light-blue)', // Azul empresarial
                       color: 'white',
                       border: 'none',
                       padding: '6px 12px',
@@ -249,20 +261,21 @@ export default function VentaCortesTable({
                     Cortar
                   </button>
                 </td>
-                    {/* Modal para cortar un corte existente */}
-                    {modalCorte.isOpen && (
-                      <CortarModal
-                        isOpen={modalCorte.isOpen}
-                        onClose={handleCerrarModalCorte}
-                        producto={modalCorte.corte}
-                        onCortar={handleCortar}
-                      />
-                    )}
               </tr>
             );
           })}
         </tbody>
       </table>
+      
+      {/* ✅ Modal fuera de la tabla para evitar errores de HTML inválido */}
+      {modalCorte.isOpen && (
+        <CortarModal
+          isOpen={modalCorte.isOpen}
+          onClose={handleCerrarModalCorte}
+          producto={modalCorte.corte}
+          onCortar={handleCortar}
+        />
+      )}
     </div>
   );
 }

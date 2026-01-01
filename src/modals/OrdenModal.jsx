@@ -1070,29 +1070,39 @@ export default function OrdenEditarModal({
         sedeId: Number(form.sedeId),
         // trabajadorId es opcional según la documentación
         ...(form.trabajadorId ? { trabajadorId: Number(form.trabajadorId) } : {}),
-        items: itemsActivos.map((i) => {
-          //  LOG: Verificar cada item antes de enviar
-          const productoId = Number(i.productoId);
-          if (!productoId || productoId === 0) {
+        // ✅ Separar items normales de cortes de cortes
+        items: itemsActivos
+          .filter(i => !i.esCorteDeCorte) // Excluir cortes de cortes del array items[]
+          .map((i) => {
+            //  LOG: Verificar cada item antes de enviar
+            const productoId = Number(i.productoId);
+            if (!productoId || productoId === 0) {
 
-          }
-          
-          const item = {
-            productoId: productoId,
-            descripcion: i.descripcion ?? "",
-            cantidad: Number(i.cantidad),
-            precioUnitario: Number(i.precioUnitario),
-          };
-          // Si es un corte que debe reutilizar un existente, agregar el ID
-          if (i.reutilizarCorteSolicitadoId) {
-            item.reutilizarCorteSolicitadoId = Number(i.reutilizarCorteSolicitadoId);
-          }
-          
+            }
+            
+            const item = {
+              productoId: productoId,
+              descripcion: i.descripcion ?? "",
+              cantidad: Number(i.cantidad),
+              precioUnitario: Number(i.precioUnitario),
+            };
+            // Si es un corte que debe reutilizar un existente, agregar el ID
+            if (i.reutilizarCorteSolicitadoId) {
+              item.reutilizarCorteSolicitadoId = Number(i.reutilizarCorteSolicitadoId);
+            }
+            
 
-          
-          return item;
-        }),
+            
+            return item;
+          }),
       };
+      
+      // ✅ Separar cortes del carrito (cortes de cortes)
+      const cortesDelCarrito = itemsActivos.filter(i => i.esCorteDeCorte === true);
+      console.log('🔍 [DEBUG] Cortes del carrito (esCorteDeCorte):', cortesDelCarrito);
+      console.log('🔍 [DEBUG] Items activos totales:', itemsActivos.length);
+      console.log('🔍 [DEBUG] Items NO cortes de cortes:', itemsActivos.filter(i => !i.esCorteDeCorte).length);
+      console.log('🔍 [DEBUG] Cortes pendientes:', cortesPendientes);
       
       // Incluir cortes pendientes SOLO si el item correspondiente NO está eliminado
       // IMPORTANTE: El backend ahora incrementa inventario de AMBOS cortes (+1 cada uno)
@@ -1103,7 +1113,8 @@ export default function OrdenEditarModal({
           // Verificar si existe un item activo que corresponda a este corte sobrante
           // El corte sobrante tiene productoId que coincide con el productoId del item del corte solicitado
           const itemCorrespondiente = itemsActivos.find(item => 
-            Number(item.productoId) === Number(corteSobrante.productoId)
+            Number(item.productoId) === Number(corteSobrante.productoId) ||
+            Number(item.productoOriginal) === Number(corteSobrante.productoId)
           );
           
           // Solo incluir el corte sobrante si el item correspondiente está activo (no eliminado)
@@ -1131,10 +1142,61 @@ export default function OrdenEditarModal({
           };
         });
 
+      // ✅ Construir array de cortes combinando:
+      // 1. Cortes solicitados del carrito (cortes de cortes)
+      // 2. Sobrantes de productos normales (excluyendo sobrantes de cortes de cortes ya incluidos)
+      const cortesFinales = [
+        // Cortes solicitados (del carrito - cortes de cortes)
+        ...cortesDelCarrito.map(c => {
+          console.log('🔍 [DEBUG] Procesando corte del carrito:', {
+            id: c.id,
+            productoOriginal: c.productoOriginal,
+            medidaCorte: c.medidaCorte,
+            precioUsado: c.precioUsado
+          });
+          const sobranteCorrespondiente = cortesPendientes.find(
+            s => Number(s.productoId) === Number(c.productoOriginal)
+          );
+          
+          const sedeId = Number(payload.sedeId);
+          return {
+            productoId: Number(c.productoOriginal), // ID del corte base que se está cortando
+            medidaSolicitada: Number(c.medidaCorte),
+            medidaSobrante: sobranteCorrespondiente ? Number(sobranteCorrespondiente.medidaSobrante) : 0,
+            precioUnitarioSolicitado: Number(c.precioUsado),
+            precioUnitarioSobrante: sobranteCorrespondiente ? Number(sobranteCorrespondiente.precioUnitarioSobrante) : 0,
+            cantidad: Number(c.cantidadVender || 1),
+            cantidadesPorSede: [
+              { sedeId: 1, cantidad: sedeId === 1 ? Number(c.cantidadVender || 1) : 0 },
+              { sedeId: 2, cantidad: sedeId === 2 ? Number(c.cantidadVender || 1) : 0 },
+              { sedeId: 3, cantidad: sedeId === 3 ? Number(c.cantidadVender || 1) : 0 }
+            ],
+            ...(c.reutilizarCorteSolicitadoId && {
+              reutilizarCorteId: Number(c.reutilizarCorteSolicitadoId)
+            }),
+            ...(sobranteCorrespondiente?.reutilizarCorteId && {
+              reutilizarCorteSobranteId: Number(sobranteCorrespondiente.reutilizarCorteId)
+            })
+          };
+        }),
+        // Sobrantes de productos normales (excluir los que ya se incluyeron arriba)
+        ...cortesEnriquecidos.filter(c => 
+          !cortesDelCarrito.some(cc => Number(cc.productoOriginal) === Number(c.productoId))
+        )
+      ];
+
       const payloadConCortes = {
         ...payload,
-        cortes: cortesEnriquecidos,
+        cortes: cortesFinales,
       };
+
+      console.log('🔍 [DEBUG] ========== PAYLOAD COMPLETO ==========');
+      console.log('🔍 [DEBUG] Payload:', JSON.stringify(payloadConCortes, null, 2));
+      console.log('🔍 [DEBUG] Items length:', payloadConCortes.items?.length);
+      console.log('🔍 [DEBUG] Cortes length:', payloadConCortes.cortes?.length);
+      console.log('🔍 [DEBUG] Items:', payloadConCortes.items);
+      console.log('🔍 [DEBUG] Cortes:', payloadConCortes.cortes);
+      console.log('🔍 [DEBUG] ==========================================');
 
       const data = await crearOrdenVenta(payloadConCortes);
       showSuccess(`Orden creada correctamente. Número: ${data.numero}`);
@@ -1314,7 +1376,11 @@ export default function OrdenEditarModal({
     // Solo cerrar el modal, la tabla se refrescará desde onClose
     onClose();
   } catch (e) {
-    console.error("Error al guardar orden:", e);
+    console.error("❌ [ERROR] Error al guardar orden:", e);
+    console.error("❌ [ERROR] Response:", e?.response);
+    console.error("❌ [ERROR] Response data:", e?.response?.data);
+    console.error("❌ [ERROR] Response status:", e?.response?.status);
+    console.error("❌ [ERROR] Response headers:", e?.response?.headers);
 
     const msg =
       e?.response?.data?.message ||

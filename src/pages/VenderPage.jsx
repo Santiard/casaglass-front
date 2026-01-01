@@ -275,8 +275,22 @@ export default function VenderPage() {
   const manejarCorte = async (corteParaVender, corteSobrante) => {
     
     try {
+      // ✅ Agregar marca especial si es un corte de otro corte
+      const corteConMarca = {
+        ...corteParaVender,
+        esCorteDeCorte: corteParaVender.esCorteExistente || false
+      };
+      
+      console.log('🔍 [VenderPage] manejarCorte:', {
+        id: corteConMarca.id,
+        nombre: corteConMarca.nombre,
+        esCorteExistente: corteParaVender.esCorteExistente,
+        esCorteDeCorte: corteConMarca.esCorteDeCorte,
+        productoOriginal: corteConMarca.productoOriginal
+      });
+      
       // 1. Agregar el corte al carrito
-      setProductosCarrito(prev => [...prev, corteParaVender]);
+      setProductosCarrito(prev => [...prev, corteConMarca]);
       
       // 2. Guardar el corte sobrante en el estado para enviarlo después de facturar
       setCortesPendientes(prev => [...prev, corteSobrante]);
@@ -618,6 +632,7 @@ export default function VenderPage() {
               isAdmin={isAdmin}
               userSede={sedeId === 1 ? "Insula" : sedeId === 2 ? "Centro" : sedeId === 3 ? "Patios" : ""}
               onAgregarProducto={agregarProducto}
+              onCortarProducto={manejarCorte}
             />
           </>
         )}

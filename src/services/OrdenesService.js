@@ -35,6 +35,23 @@ export async function obtenerOrden(id) {
 // GET /api/ordenes/{id}/detalle
 export async function obtenerOrdenDetalle(id) {
   const { data } = await api.get(`ordenes/${id}/detalle`);
+  console.log('📋 [obtenerOrdenDetalle] Orden completa desde backend:', {
+    ordenId: id,
+    endpoint: `/api/ordenes/${id}/detalle`,
+    orden: data,
+    items: data?.items,
+    cortes: data?.cortes,
+    totalItems: data?.items?.length || 0,
+    itemsDetalle: data?.items?.map(item => ({
+      id: item.id,
+      productoId: item.productoId,
+      producto: item.producto,
+      descripcion: item.descripcion,
+      cantidad: item.cantidad,
+      precioUnitario: item.precioUnitario,
+      totalLinea: item.totalLinea
+    }))
+  });
   return data;
 }
 
