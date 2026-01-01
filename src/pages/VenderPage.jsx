@@ -281,14 +281,6 @@ export default function VenderPage() {
         esCorteDeCorte: corteParaVender.esCorteExistente || false
       };
       
-      console.log('🔍 [VenderPage] manejarCorte:', {
-        id: corteConMarca.id,
-        nombre: corteConMarca.nombre,
-        esCorteExistente: corteParaVender.esCorteExistente,
-        esCorteDeCorte: corteConMarca.esCorteDeCorte,
-        productoOriginal: corteConMarca.productoOriginal
-      });
-      
       // 1. Agregar el corte al carrito
       setProductosCarrito(prev => [...prev, corteConMarca]);
       

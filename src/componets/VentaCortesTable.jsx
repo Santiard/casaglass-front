@@ -43,12 +43,6 @@ export default function VentaCortesTable({
         ...corteParaVender,
         esCorteExistente: true  // Nueva marca para identificar cortes de cortes
       };
-      console.log('🔍 [VentaCortesTable] Cortando CORTE existente:', {
-        id: corteConMarca.id,
-        nombre: corteConMarca.nombre,
-        esCorteExistente: corteConMarca.esCorteExistente,
-        productoOriginal: corteConMarca.productoOriginal
-      });
       onCortarProducto(corteConMarca, corteSobrante);
     }
   };

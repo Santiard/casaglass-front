@@ -1099,10 +1099,6 @@ export default function OrdenEditarModal({
       
       // ✅ Separar cortes del carrito (cortes de cortes)
       const cortesDelCarrito = itemsActivos.filter(i => i.esCorteDeCorte === true);
-      console.log('🔍 [DEBUG] Cortes del carrito (esCorteDeCorte):', cortesDelCarrito);
-      console.log('🔍 [DEBUG] Items activos totales:', itemsActivos.length);
-      console.log('🔍 [DEBUG] Items NO cortes de cortes:', itemsActivos.filter(i => !i.esCorteDeCorte).length);
-      console.log('🔍 [DEBUG] Cortes pendientes:', cortesPendientes);
       
       // Incluir cortes pendientes SOLO si el item correspondiente NO está eliminado
       // IMPORTANTE: El backend ahora incrementa inventario de AMBOS cortes (+1 cada uno)
@@ -1148,12 +1144,6 @@ export default function OrdenEditarModal({
       const cortesFinales = [
         // Cortes solicitados (del carrito - cortes de cortes)
         ...cortesDelCarrito.map(c => {
-          console.log('🔍 [DEBUG] Procesando corte del carrito:', {
-            id: c.id,
-            productoOriginal: c.productoOriginal,
-            medidaCorte: c.medidaCorte,
-            precioUsado: c.precioUsado
-          });
           const sobranteCorrespondiente = cortesPendientes.find(
             s => Number(s.productoId) === Number(c.productoOriginal)
           );
@@ -1189,14 +1179,6 @@ export default function OrdenEditarModal({
         ...payload,
         cortes: cortesFinales,
       };
-
-      console.log('🔍 [DEBUG] ========== PAYLOAD COMPLETO ==========');
-      console.log('🔍 [DEBUG] Payload:', JSON.stringify(payloadConCortes, null, 2));
-      console.log('🔍 [DEBUG] Items length:', payloadConCortes.items?.length);
-      console.log('🔍 [DEBUG] Cortes length:', payloadConCortes.cortes?.length);
-      console.log('🔍 [DEBUG] Items:', payloadConCortes.items);
-      console.log('🔍 [DEBUG] Cortes:', payloadConCortes.cortes);
-      console.log('🔍 [DEBUG] ==========================================');
 
       const data = await crearOrdenVenta(payloadConCortes);
       showSuccess(`Orden creada correctamente. Número: ${data.numero}`);
@@ -1376,11 +1358,7 @@ export default function OrdenEditarModal({
     // Solo cerrar el modal, la tabla se refrescará desde onClose
     onClose();
   } catch (e) {
-    console.error("❌ [ERROR] Error al guardar orden:", e);
-    console.error("❌ [ERROR] Response:", e?.response);
-    console.error("❌ [ERROR] Response data:", e?.response?.data);
-    console.error("❌ [ERROR] Response status:", e?.response?.status);
-    console.error("❌ [ERROR] Response headers:", e?.response?.headers);
+    console.error("Error al guardar orden:", e);
 
     const msg =
       e?.response?.data?.message ||

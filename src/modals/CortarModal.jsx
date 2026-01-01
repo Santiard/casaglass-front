@@ -219,14 +219,14 @@ export default function CortarModal({
               
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                 <div>
-                  <strong>🔪 Corte a Vender:</strong>
+                  <strong>Corte a Vender:</strong>
                   <div>Medida: {cortesCalculados.medidaCorte} cm</div>
                   <div>Precio: ${cortesCalculados.precioCorte.toLocaleString('es-CO', {minimumFractionDigits: 0})}</div>
                   <div>Porcentaje: {cortesCalculados.porcentajeCorte}%</div>
                 </div>
                 
                 <div>
-                  <strong> Corte Sobrante:</strong>
+                  <strong>Corte Sobrante:</strong>
                   <div>Medida: {cortesCalculados.medidaSobrante} cm</div>
                   <div>Precio: ${cortesCalculados.precioSobrante.toLocaleString('es-CO', {minimumFractionDigits: 0})}</div>
                   <div>Porcentaje: {cortesCalculados.porcentajeSobrante}%</div>
