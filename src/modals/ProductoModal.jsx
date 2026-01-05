@@ -389,8 +389,8 @@ export default function ProductModal({ isOpen, onClose, onSave, product }) {
   };
 
   return (
-    <div className="modal-overlay">
-      <div className="modal-container-producto">
+    <div className="modal-overlay" style={{ overflowY: 'auto', maxHeight: '100vh' }}>
+      <div className="modal-container-producto" style={{ maxHeight: '90vh', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
         <div className="modal-header">
           <h2>{isEditing ? "Editar Producto" : "Agregar Producto"}</h2>
           <button 

@@ -36,8 +36,8 @@ export default function IngresoDetalleModal({ ingreso, onClose }) {
   };
 
   return (
-  <div className="modal-overlay">
-    <div className="modal-container modal-tall ingreso-modal">
+  <div className="modal-overlay" style={{ overflowY: 'auto', maxHeight: '100vh' }}>
+    <div className="modal-container modal-tall ingreso-modal" style={{ maxHeight: '90vh', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
       {/* Header */}
       <div className="modal-header">
         <h2 style={{ color: 'white' }}>Detalles del ingreso #{ingreso.id ?? "—"}</h2>
@@ -79,6 +79,7 @@ export default function IngresoDetalleModal({ ingreso, onClose }) {
               <tr>
                 <th>CODIGO</th>
                 <th>Producto</th>
+                <th>Color</th>
                 <th>Cantidad</th>
                 <th>Costo unitario</th>
                 <th>Total línea</th>
@@ -96,13 +97,14 @@ export default function IngresoDetalleModal({ ingreso, onClose }) {
                   <tr
                     key={
                       d.id ??
-                      `${d.producto?.id ?? "noid"}-${
-                        d.producto?.codigo ?? "nocodigo"
+                      `${d.producto?.id ?? "noid"}-$
+                        {d.producto?.codigo ?? "nocodigo"}
                       }`
                     }
                   >
                     <td>{d.producto?.codigo ?? "-"}</td>
                     <td>{d.producto?.nombre ?? "-"}</td>
+                    <td>{d.producto?.color ?? "-"}</td>
                     <td>{d.cantidad ?? "-"}</td>
                     <td>{fmtCOP(Number(d.costoUnitario))}</td>
                     <td>{fmtCOP(Number(d.totalLinea))}</td>

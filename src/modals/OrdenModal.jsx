@@ -2471,47 +2471,56 @@ export default function OrdenEditarModal({
                         </tr>
                       </thead>
                       <tbody>
-                        {sorted.map((c) => (
-                          <tr
-                            key={c.id}
-                            style={{
-                              transition: 'background-color 0.2s'
-                            }}
-                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f9fbff'}
-                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                          >
-                            <td title={c.nombre || '-'} style={{ fontWeight: '500', color: '#1e2753' }}>
-                              {c.nombre || '-'}
-                            </td>
-                            <td title={c.nit || '-'}>
-                              {c.nit || '-'}
-                            </td>
-                            <td title={c.correo || '-'}>
-                              {c.correo || '-'}
-                            </td>
-                            <td title={c.ciudad || '-'}>
-                              {c.ciudad || '-'}
-                            </td>
-                            <td style={{ textAlign: 'center', padding: '0.75rem' }}>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  handleChange("clienteId", String(c.id));
-                                  setClienteSearch(c.nombre);
-                                  setClienteSearchModal(""); // Limpiar búsqueda del modal
-                                  setShowClienteModal(false);
-                                }}
-                                className="btn-guardar"
-                                style={{
-                                  padding: '0.5rem 1rem',
-                                  fontSize: '0.9rem'
-                                }}
-                              >
-                                Seleccionar
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
+                        {sorted.map((c) => {
+                          const handleSelect = () => {
+                            handleChange("clienteId", String(c.id));
+                            setClienteSearch(c.nombre);
+                            setClienteSearchModal("");
+                            setShowClienteModal(false);
+                          };
+                          return (
+                            <tr
+                              key={c.id}
+                              style={{
+                                transition: 'background-color 0.2s',
+                                cursor: 'pointer'
+                              }}
+                              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f9fbff'}
+                              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                              onClick={handleSelect}
+                              onDoubleClick={handleSelect}
+                            >
+                              <td title={c.nombre || '-'} style={{ fontWeight: '500', color: '#1e2753' }}>
+                                {c.nombre || '-'}
+                              </td>
+                              <td title={c.nit || '-'}>
+                                {c.nit || '-'}
+                              </td>
+                              <td title={c.correo || '-'}>
+                                {c.correo || '-'}
+                              </td>
+                              <td title={c.ciudad || '-'}>
+                                {c.ciudad || '-'}
+                              </td>
+                              <td style={{ textAlign: 'center', padding: '0.75rem' }}>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleSelect();
+                                  }}
+                                  className="btn-guardar"
+                                  style={{
+                                    padding: '0.5rem 1rem',
+                                    fontSize: '0.9rem'
+                                  }}
+                                >
+                                  Seleccionar
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>

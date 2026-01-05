@@ -32,8 +32,8 @@ export default function NuevaCategoriaModal({ isOpen, onClose, onCreate }) {
   if (!isOpen) return null;
 
   return (
-    <div className="modal-overlay">
-      <div className="modal-container">
+    <div className="modal-overlay" style={{ overflowY: 'auto', maxHeight: '100vh' }}>
+      <div className="modal-container" style={{ maxHeight: '90vh', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
         <h2>Nueva Categoría</h2>
         <form onSubmit={handleSubmit} className="form">
           <label>

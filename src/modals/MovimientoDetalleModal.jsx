@@ -25,8 +25,8 @@ export default function MovimientoDetalleModal({ movimiento, onClose }) {
   };
 
   return (
-    <div className="modal-overlay">
-      <div className="modal-container modal-tall ingreso-modal">
+    <div className="modal-overlay" style={{ overflowY: 'auto', maxHeight: '100vh' }}>
+      <div className="modal-container modal-tall ingreso-modal" style={{ maxHeight: '90vh', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
         {/* Header */}
         <div className="modal-header">
           <h2 style={{ color: 'white' }}>Detalles del traslado #{movimiento.id ?? "—"}</h2>

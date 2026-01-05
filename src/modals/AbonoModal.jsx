@@ -588,8 +588,8 @@ const AbonoModal = ({ isOpen, onClose, credito, onSuccess }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="modal-overlay">
-      <div className="modal-container modal-wide" style={{ maxWidth: '95vw', width: '1200px', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}>
+    <div className="modal-overlay" style={{ overflowY: 'auto', maxHeight: '100vh' }}>
+      <div className="modal-container modal-wide" style={{ maxWidth: '95vw', width: '1200px', maxHeight: '90vh', display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
         {/* Header con título y fecha */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', paddingBottom: '1rem', borderBottom: '2px solid #e0e0e0' }}>
           <h2 style={{ margin: 0, color: '#1e2753' }}>CRÉDITOS X CLIENTE</h2>
@@ -1233,44 +1233,53 @@ const AbonoModal = ({ isOpen, onClose, credito, onSuccess }) => {
                         </tr>
                       </thead>
                       <tbody>
-                        {sorted.map((c) => (
-                          <tr
-                            key={c.id}
-                            style={{
-                              transition: 'background-color 0.2s'
-                            }}
-                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f9fbff'}
-                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                          >
-                            <td title={c.nombre || '-'} style={{ fontWeight: '500', color: '#1e2753' }}>
-                              {c.nombre || '-'}
-                            </td>
-                            <td title={c.nit || '-'}>
-                              {c.nit || '-'}
-                            </td>
-                            <td title={c.ciudad || '-'}>
-                              {c.ciudad || '-'}
-                            </td>
-                            <td style={{ textAlign: 'center' }}>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setClienteSeleccionado(c);
-                                  setClienteSearch(c.nombre);
-                                  setClienteSearchModal("");
-                                  setShowClienteModal(false);
-                                }}
-                                className="btn-guardar"
-                                style={{
-                                  padding: '0.4rem 0.8rem',
-                                  fontSize: '0.85rem'
-                                }}
-                              >
-                                Seleccionar
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
+                        {sorted.map((c) => {
+                          const handleSelect = () => {
+                            setClienteSeleccionado(c);
+                            setClienteSearch(c.nombre);
+                            setClienteSearchModal("");
+                            setShowClienteModal(false);
+                          };
+                          return (
+                            <tr
+                              key={c.id}
+                              style={{
+                                transition: 'background-color 0.2s',
+                                cursor: 'pointer'
+                              }}
+                              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f9fbff'}
+                              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                              onClick={handleSelect}
+                              onDoubleClick={handleSelect}
+                            >
+                              <td title={c.nombre || '-'} style={{ fontWeight: '500', color: '#1e2753' }}>
+                                {c.nombre || '-'}
+                              </td>
+                              <td title={c.nit || '-'}>
+                                {c.nit || '-'}
+                              </td>
+                              <td title={c.ciudad || '-'}>
+                                {c.ciudad || '-'}
+                              </td>
+                              <td style={{ textAlign: 'center' }}>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleSelect();
+                                  }}
+                                  className="btn-guardar"
+                                  style={{
+                                    padding: '0.4rem 0.8rem',
+                                    fontSize: '0.85rem'
+                                  }}
+                                >
+                                  Seleccionar
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                   );

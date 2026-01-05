@@ -160,6 +160,11 @@ export default function ListadoOrden({ productosCarrito, subtotal, total, limpia
                 <div className="producto-info">
                   <h4>{item.nombre}</h4>
                   <p className="codigo">Código: {item.codigo}</p>
+                  {item.color && item.color !== 'N/A' && (
+                    <p className="color-info" style={{ margin: '0.25rem 0', fontSize: '0.85rem' }}>
+                      Color: <span className={`color-badge color-${item.color.toLowerCase().replace(/\s+/g, '-')}`}>{item.color}</span>
+                    </p>
+                  )}
                   <div className="cantidad-precio">
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                       <span>Cantidad:</span>

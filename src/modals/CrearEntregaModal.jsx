@@ -867,8 +867,8 @@ const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores, se
   const totales = calcularTotales();
 
   return (
-    <div className="crear-entrega-modal-overlay">
-      <div className="crear-entrega-modal">
+    <div className="crear-entrega-modal-overlay" style={{ overflowY: 'auto', maxHeight: '100vh' }}>
+      <div className="crear-entrega-modal" style={{ maxHeight: '90vh', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
         <div className="modal-header">
           <h2>Nueva Entrega de Dinero</h2>
           <button className="btn-close" onClick={onClose}>×</button>

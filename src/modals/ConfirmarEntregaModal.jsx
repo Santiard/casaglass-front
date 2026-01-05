@@ -44,8 +44,8 @@ const ConfirmarEntregaModal = ({ isOpen, entrega, onClose, onSuccess }) => {
   const suma = sumaDesglose();
 
   return (
-    <div className="confirmar-entrega-modal-overlay">
-      <div className="confirmar-entrega-modal">
+    <div className="confirmar-entrega-modal-overlay" style={{ overflowY: 'auto', maxHeight: '100vh' }}>
+      <div className="confirmar-entrega-modal" style={{ maxHeight: '90vh', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
         <div className="modal-header">
           <h2>Confirmar Entrega</h2>
           <button className="btn-close" onClick={onClose}>×</button>

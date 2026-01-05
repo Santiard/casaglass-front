@@ -876,10 +876,17 @@ export default function FacturarOrdenModal({ isOpen, onClose, onSave, orden }) {
                           <tr
                             key={c.id}
                             style={{
-                              transition: 'background-color 0.2s'
+                              transition: 'background-color 0.2s',
+                              cursor: 'pointer'
                             }}
                             onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f9fbff'}
                             onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                            onClick={() => {
+                              setClienteFactura(c);
+                              setClienteFacturaId(String(c.id));
+                              setClienteSearchModal("");
+                              setShowClienteModal(false);
+                            }}
                           >
                             <td title={c.nombre || '-'} style={{ fontWeight: '500', color: '#1e2753' }}>
                               {c.nombre || '-'}
@@ -896,7 +903,8 @@ export default function FacturarOrdenModal({ isOpen, onClose, onSave, orden }) {
                             <td style={{ textAlign: 'center', padding: '0.75rem' }}>
                               <button
                                 type="button"
-                                onClick={() => {
+                                onClick={(e) => {
+                                  e.stopPropagation();
                                   setClienteFactura(c);
                                   setClienteFacturaId(String(c.id));
                                   setClienteSearchModal("");

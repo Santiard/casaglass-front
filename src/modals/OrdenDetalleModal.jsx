@@ -130,8 +130,8 @@ export default function OrdenDetalleModal({ ordenId, facturaId, isOpen, onClose 
   const tieneRetencionFuente = orden?.tieneRetencionFuente || false;
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-container modal-tall ingreso-modal" onClick={(e) => e.stopPropagation()}>
+    <div className="modal-overlay" onClick={onClose} style={{ overflowY: 'auto', maxHeight: '100vh' }}>
+      <div className="modal-container modal-tall ingreso-modal" onClick={(e) => e.stopPropagation()} style={{ maxHeight: '90vh', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
         {/* Header */}
         <div className="modal-header">
           <h2>

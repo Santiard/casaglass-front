@@ -401,8 +401,8 @@ export default function IngresoModal({
   if (!isOpen) return null;
 
   return (
-    <div className="modal-overlay">
-      <div className="modal-container modal-wide">
+    <div className="modal-overlay" style={{ overflowY: 'auto', maxHeight: '100vh' }}>
+      <div className="modal-container modal-wide" style={{ maxHeight: '90vh', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
         <h2>
           {isEdit ? "Editar ingreso" : "Nuevo ingreso"}
           {isEdit && !editable && (

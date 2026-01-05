@@ -222,7 +222,8 @@ export default function VentaTable({
         <thead>
           <tr>
             <th>Código</th>
-            <th>Nombre</th>
+            <th style={{ minWidth: '16rem', maxWidth: '24rem' }}>Nombre</th>
+            <th>Color</th>
             {isVidrio && <th>mm</th>}
             {isVidrio && <th>m1</th>}
             {isVidrio && <th>m2</th>}
@@ -314,7 +315,14 @@ export default function VentaTable({
                 style={{ cursor: "pointer" }}
               >
                 <td>{p.codigo}</td>
-                <td>{p.nombre}</td>
+                <td style={{ minWidth: '16rem', maxWidth: '24rem', whiteSpace: 'normal' }}>{p.nombre}</td>
+                <td>
+                  {p.color ? (
+                    <span className={`color-badge color-${(p.color || 'NA').toLowerCase().replace(/\s+/g, '-')}`}>{p.color}</span>
+                  ) : (
+                    <span style={{ color: '#bbb', fontStyle: 'italic' }}>N/A</span>
+                  )}
+                </td>
                 {isVidrio && <td>{p.mm ?? "-"}</td>}
                 {isVidrio && <td>{p.m1 ?? "-"}</td>}
                 {isVidrio && <td>{p.m2 ?? "-"}</td>}

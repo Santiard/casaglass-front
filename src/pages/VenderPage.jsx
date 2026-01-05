@@ -209,7 +209,7 @@ export default function VenderPage() {
       console.log(`  Productos en carrito:`, prevCarrito.map(p => `${p.codigo} (${p.cantidadVender})`));
       
       const index = prevCarrito.findIndex(
-        (p) => p.id === producto.id && p.precioUsado === precioUsado
+        (p) => p.id === producto.id && p.precioUsado === precioUsado && (p.color || "") === (producto.color || "")
       );
 
       if (index !== -1) {
@@ -236,7 +236,8 @@ export default function VenderPage() {
           { 
             ...producto, 
             cantidadVender: cantidad,
-            precioUsado: precioUsado 
+            precioUsado: precioUsado,
+            color: producto.color || "N/A"
           }
         ];
       }

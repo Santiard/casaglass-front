@@ -3,7 +3,7 @@
   position: fixed;
   right: 1.25rem;                      /* 20px */
   bottom: 0;
-  width: 18.75rem;                     /* 300px */
+  width: 20rem;                        /* 320px */
   max-height: 25rem;                   /* 400px */
   transform: translateY(85%); /* Solo la pestaña visible */
   transition: transform 0.3s ease;
@@ -43,7 +43,7 @@
 
 /* Contenido interno del carrito */
 .main {
-  padding: 1rem;
+  padding: 0.8rem;
   flex: 1;
   overflow-y: auto;
 }

@@ -842,8 +842,8 @@ const FacturarMultiplesOrdenesModal = ({ isOpen, onClose, ordenInicial, onSucces
   });
 
   return (
-    <div className="modal-overlay">
-      <div className="modal-container modal-wide" style={{ maxWidth: '95vw', width: '1200px', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}>
+    <div className="modal-overlay" style={{ overflowY: 'auto', maxHeight: '100vh' }}>
+      <div className="modal-container modal-wide" style={{ maxWidth: '95vw', width: '1200px', maxHeight: '90vh', display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', paddingBottom: '1rem', borderBottom: '2px solid #e0e0e0' }}>
           <h2 style={{ margin: 0, color: '#1e2753' }}>FACTURAR MÚLTIPLES ÓRDENES</h2>
           <button className="close-btn" onClick={onClose} style={{ fontSize: '1.5rem', background: 'none', border: 'none', cursor: 'pointer', color: '#666' }}>
@@ -1162,13 +1162,26 @@ const FacturarMultiplesOrdenesModal = ({ isOpen, onClose, ordenInicial, onSucces
                       </thead>
                       <tbody>
                         {clientesFiltradosOrdenados.map((c) => (
-                          <tr key={c.id}>
+                          <tr
+                            key={c.id}
+                            style={{ cursor: 'pointer', transition: 'background-color 0.2s' }}
+                            onMouseEnter={e => e.currentTarget.style.backgroundColor = '#f9fbff'}
+                            onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
+                            onClick={() => {
+                              setClienteSeleccionado(c);
+                              setClienteFactura(c);
+                              setClienteSearch(c.nombre || '');
+                              setClienteSearchModal("");
+                              setShowClienteModal(false);
+                            }}
+                          >
                             <td>{c.nombre || '-'}</td>
                             <td>{c.nit || '-'}</td>
                             <td>
                               <button
                                 type="button"
-                                onClick={() => {
+                                onClick={e => {
+                                  e.stopPropagation();
                                   setClienteSeleccionado(c);
                                   setClienteFactura(c);
                                   setClienteSearch(c.nombre || '');
@@ -1226,13 +1239,24 @@ const FacturarMultiplesOrdenesModal = ({ isOpen, onClose, ordenInicial, onSucces
                       </thead>
                       <tbody>
                         {clientesFiltradosOrdenados.map((c) => (
-                          <tr key={c.id}>
+                          <tr
+                            key={c.id}
+                            style={{ cursor: 'pointer', transition: 'background-color 0.2s' }}
+                            onMouseEnter={e => e.currentTarget.style.backgroundColor = '#f9fbff'}
+                            onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
+                            onClick={() => {
+                              setClienteFactura(c);
+                              setClienteSearchModal("");
+                              setShowClienteFacturaModal(false);
+                            }}
+                          >
                             <td>{c.nombre || '-'}</td>
                             <td>{c.nit || '-'}</td>
                             <td>
                               <button
                                 type="button"
-                                onClick={() => {
+                                onClick={e => {
+                                  e.stopPropagation();
                                   setClienteFactura(c);
                                   setClienteSearchModal("");
                                   setShowClienteFacturaModal(false);

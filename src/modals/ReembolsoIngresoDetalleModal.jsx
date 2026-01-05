@@ -66,8 +66,8 @@ export default function ReembolsoIngresoDetalleModal({
   };
 
   return (
-    <div className="modal-overlay">
-      <div className="modal-container modal-wide" style={{ maxHeight: "90vh", overflowY: "auto" }}>
+    <div className="modal-overlay" style={{ overflowY: 'auto', maxHeight: '100vh' }}>
+      <div className="modal-container modal-wide" style={{ maxHeight: '90vh', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
         <h2>Detalles de la Devolución de Ingreso</h2>
 
         {loading && <p>Cargando...</p>}

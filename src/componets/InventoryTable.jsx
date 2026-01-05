@@ -24,13 +24,13 @@ export default function InventoryTable({ data = [], filters, loading, onEditar, 
             <th>Color</th>
             {isVidrio ? (
               <>
-                {/* Columnas específicas para VIDRIO */}
-                <th style={{ width: '60px' }}>mm</th>
-                <th style={{ width: '70px' }}>m1</th>
-                <th style={{ width: '70px' }}>m2</th>
+                {/* Columnas específicas para VIDRIO - responsivas */}
+                <th style={{ width: '12%' }}>mm</th>
+                <th style={{ width: '13%' }}>m1</th>
+                <th style={{ width: '13%' }}>m2</th>
                 {/* Mostrar precio y cantidad para admin y vendedor */}
-                <th style={{ width: '110px' }}>Precio</th>
-                <th style={{ width: '80px', textAlign: 'center' }}>Cantidad</th>
+                <th style={{ width: '50%' }}>Precio</th>
+                <th style={{ width: '8%', textAlign: 'center' }}>Cantidad</th>
               </>
             ) : (
               <>
@@ -61,7 +61,13 @@ export default function InventoryTable({ data = [], filters, loading, onEditar, 
                 )}
               </>
             )}
-            <th style={{ width: '60px', textAlign: 'center' }}>Acciones</th>
+            {/* Acciones: responsivo y más angosto para VIDRIO */}
+            <th
+              style={isVidrio
+                ? { width: '4px', minWidth: '4px', maxWidth: '8px', textAlign: 'center' }
+                : { width: '60px', textAlign: 'center' }
+              }
+            >Acciones</th>
           </tr>
         </thead>
         <tbody>
@@ -197,7 +203,13 @@ export default function InventoryTable({ data = [], filters, loading, onEditar, 
                 )}
                 
                 {/* Acciones disponibles para todos los roles */}
-                <td className="acciones" style={{ width: '60px', textAlign: 'center', padding: '0.25rem 0.25rem' }}>
+                <td
+                  className="acciones"
+                  style={isVidrio
+                    ? { width: '4px', minWidth: '4px', maxWidth: '8px', textAlign: 'center', padding: '0.01rem 0.01rem' }
+                    : { width: '60px', textAlign: 'center', padding: '0.25rem 0.25rem' }
+                  }
+                >
                   <button className="btnEdit" style={{ padding: '2px 4px', marginRight: 2 }} onClick={e => { e.stopPropagation(); onEditar?.(p); }}>
                     <img src={editar} className="iconButton" style={{ width: 18, height: 18 }} />
                   </button>

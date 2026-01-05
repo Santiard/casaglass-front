@@ -355,8 +355,8 @@ export default function OrdenImprimirModal({ orden, isOpen, onClose }) {
 
   return (
     <>
-      <div className="orden-imprimir-modal-overlay" onClick={onClose}>
-        <div className="orden-imprimir-modal-container" onClick={(e) => e.stopPropagation()}>
+      <div className="orden-imprimir-modal-overlay" onClick={onClose} style={{ overflowY: 'auto', maxHeight: '100vh' }}>
+        <div className="orden-imprimir-modal-container" onClick={(e) => e.stopPropagation()} style={{ maxHeight: '90vh', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
           <div className="orden-imprimir-modal-header">
             <h2>Imprimir Orden #{form.numero}</h2>
             <div className="orden-imprimir-modal-actions">
