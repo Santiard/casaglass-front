@@ -12,9 +12,9 @@ export default function EntregaDetalleModal({ entrega, isOpen, onClose }) {
     console.log(`  [${idx + 1}] Orden #${d.numeroOrden} - tipoMovimiento: "${d.tipoMovimiento}" - montoOrden: ${d.montoOrden} - reembolsoId: ${d.reembolsoId}`);
   });
   
-  // Separar detalles por tipo de movimiento
-  const ingresos = dets.filter(d => !d.tipoMovimiento || d.tipoMovimiento === 'INGRESO');
-  const egresos = dets.filter(d => d.tipoMovimiento === 'EGRESO');
+  // Separar detalles por tipo: devoluciones son las que tienen reembolsoId
+  const ingresos = dets.filter(d => !d.reembolsoId);
+  const egresos = dets.filter(d => Boolean(d.reembolsoId));
   
   console.log(`[EntregaDetalleModal] Ingresos: ${ingresos.length}, Egresos: ${egresos.length}`);
 

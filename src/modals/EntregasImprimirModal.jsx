@@ -442,8 +442,8 @@ export default function EntregasImprimirModal({ entregas = [], isOpen, onClose }
                         </tr>
                       ) : (
                         entrega.detalles?.map((detalle, idx) => {
-                          // 🆕 DETECTAR SI ES DEVOLUCIÓN (EGRESO)
-                          const esDevolucion = detalle.tipoMovimiento === 'EGRESO';
+                          // 🆕 DETECTAR SI ES DEVOLUCIÓN: solo si tiene reembolsoId (es un reembolso real)
+                          const esDevolucion = Boolean(detalle.reembolsoId);
                           
                           // Calcular valor entregado según tipo de venta
                           let valorEntregado = 0;
@@ -613,12 +613,56 @@ export default function EntregasImprimirModal({ entregas = [], isOpen, onClose }
                       const nombreCliente = detalle.clienteNombre || detalle.cliente?.nombre || "Cliente";
                       let metodoPagoStr = "";
                       
+                      // 🔍 DEBUG: Ver qué tiene cada detalle
+                      console.log(`🔍 [Impresión] Orden #${numeroOrden}:`, {
+                        esAbono,
+                        ventaCredito: detalle.ventaCredito,
+                        descripcion: detalle.descripcion,
+                        metodoPago: detalle.metodoPago,
+                        montoEfectivo: detalle.montoEfectivo,
+                        montoTransferencia: detalle.montoTransferencia
+                      });
+                      
                       // Obtener el string completo del método de pago
-                      if (!esAbono) {
-                        metodoPagoStr = detalle.descripcion || "";
-                      } else {
+                      if (esAbono) {
+                        // Para abonos: usar metodoPago
                         metodoPagoStr = detalle.metodoPago || "";
+                      } else {
+                        // Para órdenes a contado: usar descripcion
+                        metodoPagoStr = detalle.descripcion || "";
+                        
+                        // Normalizar formato alternativo del backend (con saltos de línea)
+                        if (metodoPagoStr.includes('\n') || metodoPagoStr.includes('Método de pago:')) {
+                          const lineas = metodoPagoStr.split('\n').map(l => l.trim()).filter(Boolean);
+                          const partes = [];
+                          
+                          lineas.forEach(linea => {
+                            // Parsear "Efectivo: $6.500.000"
+                            const efectivoMatch = linea.match(/Efectivo:\s*\$?([\d.,]+)/i);
+                            if (efectivoMatch) {
+                              partes.push(`EFECTIVO: ${efectivoMatch[1]}`);
+                            }
+                            
+                            // Parsear "Transferencia: BANCOLOMBIA - Monto: $30.000.000"
+                            const transferenciaMatch = linea.match(/Transferencia:\s*([A-Z\s]+)\s*-\s*Monto:\s*\$?([\d.,]+)/i);
+                            if (transferenciaMatch) {
+                              const banco = transferenciaMatch[1].trim();
+                              const monto = transferenciaMatch[2];
+                              partes.push(`TRANSFERENCIA: ${monto} (${banco})`);
+                            }
+                            
+                            // Parsear "Cheque: $100.000"
+                            const chequeMatch = linea.match(/Cheque:\s*\$?([\d.,]+)/i);
+                            if (chequeMatch) {
+                              partes.push(`CHEQUE: ${chequeMatch[1]}`);
+                            }
+                          });
+                          
+                          metodoPagoStr = partes.join(' | ');
+                        }
                       }
+                      
+                      console.log(`🔍 [Impresión] Orden #${numeroOrden} - metodoPagoStr:`, metodoPagoStr);
                       
                       if (!metodoPagoStr.trim()) return;
                       

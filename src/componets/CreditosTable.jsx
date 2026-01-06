@@ -5,6 +5,8 @@ import "../styles/Table.css";
 const CreditosTable = ({ 
   creditos, 
   onAbrirAbonoModal, 
+  clientes = [],
+  filtroCliente = null,
   rowsPerPage: rowsPerPageProp = 10,
   // Paginación del servidor
   totalElements = 0,
@@ -24,24 +26,34 @@ const CreditosTable = ({
 
   // Paginación
   const paginados = useMemo(() => {
+    let arr = Array.isArray(creditos) ? creditos : [];
+    // Filtrar por cliente si hay filtro activo
+    if (filtroCliente !== null) {
+      const clienteSeleccionado = clientes.find(c => c.id === filtroCliente);
+      if (clienteSeleccionado?.nombre) {
+        arr = arr.filter((c) => {
+          const nombreCliente = c.cliente?.nombre;
+          if (!nombreCliente) return false;
+          return nombreCliente.trim().toUpperCase() === clienteSeleccionado.nombre.trim().toUpperCase();
+        });
+      }
+    }
     // Si es paginación del servidor, usar valores del servidor directamente
     if (serverSidePagination) {
       const total = totalElements || 0;
       const maxPage = totalPages || 1;
       const curPage = currentPage || 1;
       const start = (curPage - 1) * pageSize;
-      
-      return { pageData: creditos, total, maxPage, curPage, start };
+      return { pageData: arr, total, maxPage, curPage, start };
     }
-    
-    // Paginación del lado del cliente (comportamiento anterior)
-    const total = creditos.length;
+    // Paginación del lado del cliente
+    const total = arr.length;
     const maxPage = Math.max(1, Math.ceil(total / rowsPerPage));
     const curPage = Math.min(page, maxPage);
     const start = (curPage - 1) * rowsPerPage;
-    const pageData = creditos.slice(start, start + rowsPerPage);
+    const pageData = arr.slice(start, start + rowsPerPage);
     return { pageData, total, maxPage, curPage, start };
-  }, [creditos, page, rowsPerPage, serverSidePagination, totalElements, totalPages, currentPage, pageSize]);
+  }, [creditos, page, rowsPerPage, serverSidePagination, totalElements, totalPages, currentPage, pageSize, filtroCliente, clientes]);
 
   const { pageData, total, maxPage, curPage, start } = paginados;
 

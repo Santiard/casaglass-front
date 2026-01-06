@@ -21,6 +21,12 @@ export default function MovimientosTable({
   onEliminar,
   onConfirmar,
   onVerDetalles,
+  onEditar,
+  // Control del modal desde el padre (opcional)
+  isModalOpen: externalIsModalOpen,
+  setIsModalOpen: externalSetIsModalOpen,
+  movimientoEditando: externalMovimientoEditando,
+  setMovimientoEditando: externalSetMovimientoEditando,
   // Paginación del servidor
   totalElements = 0,
   totalPages = 1,
@@ -36,8 +42,15 @@ export default function MovimientosTable({
   const [page, setPage] = useState(1);
   const [rowsPerPageLocal, setRowsPerPageLocal] = useState(rowsPerPage);
   const [expanded, setExpanded] = useState({});
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [movimientoEditando, setMovimientoEditando] = useState(null);
+  
+  // Usar estados externos si se proporcionan, sino usar internos
+  const [internalIsModalOpen, setInternalIsModalOpen] = useState(false);
+  const [internalMovimientoEditando, setInternalMovimientoEditando] = useState(null);
+  
+  const isModalOpen = externalIsModalOpen !== undefined ? externalIsModalOpen : internalIsModalOpen;
+  const setIsModalOpen = externalSetIsModalOpen || setInternalIsModalOpen;
+  const movimientoEditando = externalMovimientoEditando !== undefined ? externalMovimientoEditando : internalMovimientoEditando;
+  const setMovimientoEditando = externalSetMovimientoEditando || setInternalMovimientoEditando;
 
   const toggleExpand = (id) =>
     setExpanded((prev) => ({ ...prev, [id]: !prev[id] }));
@@ -322,10 +335,7 @@ export default function MovimientosTable({
                           <>
                             <button
                               className="btnEdit"
-                              onClick={() => {
-                                setMovimientoEditando(mov);
-                                setIsModalOpen(true);
-                              }}
+                              onClick={() => onEditar?.(mov)}
                               title="Editar traslado"
                               type="button"
                             >

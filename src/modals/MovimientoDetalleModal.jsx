@@ -73,13 +73,14 @@ export default function MovimientoDetalleModal({ movimiento, onClose }) {
                 <tr>
                   <th>Código</th>
                   <th>Producto</th>
+                  <th>Color</th>
                   <th>Cantidad</th>
                 </tr>
               </thead>
               <tbody>
                 {dets.length === 0 ? (
                   <tr>
-                    <td colSpan={3} className="empty">
+                    <td colSpan={4} className="empty">
                       Sin productos
                     </td>
                   </tr>
@@ -88,6 +89,7 @@ export default function MovimientoDetalleModal({ movimiento, onClose }) {
                     <tr key={d.id ?? idx}>
                       <td>{d.producto?.codigo ?? "-"}</td>
                       <td>{d.producto?.nombre ?? "-"}</td>
+                      <td>{d.producto?.color ?? "-"}</td>
                       <td style={{ textAlign: "center" }}>{d.cantidad ?? 0}</td>
                     </tr>
                   ))

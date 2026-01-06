@@ -14,6 +14,7 @@ import {
   actualizarCabecera,
   eliminarTraslado,
   confirmarTraslado,
+  obtenerTraslado,
 } from "../services/TrasladosService.js";
 import { useConfirm } from "../hooks/useConfirm.jsx";
 import { useToast } from "../context/ToastContext.jsx";
@@ -32,6 +33,8 @@ export default function MovimientosPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
+  const [isModalEditOpen, setIsModalEditOpen] = useState(false);
+  const [movimientoEditando, setMovimientoEditando] = useState(null);
 
   const loadTraslados = useCallback(async (page = 1, size = 20) => {
     try {
@@ -166,6 +169,35 @@ export default function MovimientosPage() {
     }
   }, [pageSize, loadTraslados]);
 
+  // Función para cargar detalle completo del traslado
+  const handleVerDetalles = async (movimiento) => {
+    try {
+      // Obtener el traslado completo con todos los detalles
+      const trasladoCompleto = await obtenerTraslado(movimiento.id);
+      console.log('🔍 [MovimientosPage] Traslado completo recibido:', trasladoCompleto);
+      console.log('🔍 [MovimientosPage] Primer detalle completo:', trasladoCompleto?.detalles?.[0]);
+      console.log('🔍 [MovimientosPage] Producto del primer detalle:', trasladoCompleto?.detalles?.[0]?.producto);
+      console.log('🔍 [MovimientosPage] Color del producto:', trasladoCompleto?.detalles?.[0]?.producto?.color);
+      setSeleccionado(trasladoCompleto);
+    } catch (error) {
+      console.error("Error obteniendo detalles del traslado:", error);
+      showError("No se pudo obtener el detalle del traslado.");
+    }
+  };
+
+  // Función para editar traslado con detalles completos
+  const handleEditar = async (movimiento) => {
+    try {
+      const trasladoCompleto = await obtenerTraslado(movimiento.id);
+      console.log('🔍 [MovimientosPage] Editando traslado completo:', trasladoCompleto);
+      setMovimientoEditando(trasladoCompleto);
+      setIsModalEditOpen(true);
+    } catch (error) {
+      console.error("Error obteniendo traslado para editar:", error);
+      showError("No se pudo cargar el traslado para editar.");
+    }
+  };
+
   return (
     <div>
       <MovimientosTable
@@ -178,7 +210,13 @@ export default function MovimientosPage() {
         onActualizar={onActualizar}
         onEliminar={onEliminar}
         onConfirmar={onConfirmar}
-        onVerDetalles={(movimiento) => setSeleccionado(movimiento)}
+        onVerDetalles={handleVerDetalles}
+        onEditar={handleEditar}
+        // Control del modal de edición desde el padre
+        isModalOpen={isModalEditOpen}
+        setIsModalOpen={setIsModalEditOpen}
+        movimientoEditando={movimientoEditando}
+        setMovimientoEditando={setMovimientoEditando}
         // Paginación del servidor
         totalElements={totalElements}
         totalPages={totalPages}

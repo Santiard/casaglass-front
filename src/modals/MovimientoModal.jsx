@@ -67,6 +67,7 @@ export default function MovimientoModal({
               id: d.producto?.id ?? "",
               nombre: d.producto?.nombre ?? "",
               sku: d.producto?.codigo ?? "",
+              color: d.producto?.color ?? "",
               cantidad: d.cantidad && Number(d.cantidad) > 0 ? Number(d.cantidad) : "",
             }))
           : [],
@@ -197,6 +198,7 @@ export default function MovimientoModal({
             id: item.id,
             nombre: item.nombre,
             sku: item.codigo ?? "",
+            color: item.color ?? "",
             cantidad: "", // Inicia vacío, no 0
           },
         ],
@@ -392,7 +394,8 @@ export default function MovimientoModal({
                 <thead>
                   <tr>
                     <th>Nombre</th>
-                    <th>SKU</th>
+                    <th>Código</th>
+                    <th>Color</th>
                     <th style={{ width: 120 }}>Cantidad</th>
                     <th style={{ width: 60 }}></th>
                   </tr>
@@ -402,6 +405,7 @@ export default function MovimientoModal({
                     <tr key={String(p.id)}>
                       <td>{p.nombre}</td>
                       <td>{p.sku ?? "-"}</td>
+                      <td>{p.color ?? "-"}</td>
                       <td>
                         <input
                           type="text"

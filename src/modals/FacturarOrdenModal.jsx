@@ -227,11 +227,6 @@ export default function FacturarOrdenModal({ isOpen, onClose, onSave, orden }) {
       return;
     }
 
-    if (creditoPendiente) {
-      showError("Esta orden es a crédito y tiene saldo pendiente. No se puede facturar hasta completar el pago.");
-      return;
-    }
-
     if (isAnulada) {
       showError("Esta orden está anulada. No se puede facturar.");
       return;
