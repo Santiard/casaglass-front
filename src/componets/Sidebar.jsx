@@ -16,6 +16,8 @@ import orden from "../assets/order.png";
 import credito from "../assets/credito.png";
 import facturas from "../assets/check.png";
 import devolucion from "../assets/devolucion.png";
+import especial from "../assets/especial.png";
+import estado from "../assets/estado.png";
 import { Link } from 'react-router-dom';
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
@@ -66,15 +68,14 @@ export default function Sidebar({isOpen, isCollapsed}){
               <span className="text">Ingresos Producto</span>
             </Link>
           </li>
-        
+
                 {/* Entregas -  DISPONIBLE PARA TODOS*/}
- 
-          <li>
-            <Link to="/entregas" title="Entregas Dinero">
-              <img src={entrega } alt="Entregas " className="logos"/>
-              <span className="text">Entregas Dinero</span>
-            </Link>
-          </li>
+                <li>
+                  <Link to="/entregas" title="Entregas Dinero">
+                    <img src={entrega } alt="Entregas " className="logos"/>
+                    <span className="text">Entregas Dinero</span>
+                  </Link>
+                </li>
 
         <li>
           <Link to="/venderpage" title="Vender">
@@ -130,6 +131,21 @@ export default function Sidebar({isOpen, isCollapsed}){
             <Link to ="/proveedores" title="Proveedores">
               <img src={proveedor} alt="Proveedores " className="logos"/>
               <span className="text">Proveedores</span>
+            </Link>
+          </li>
+
+        {/* Estado de Cuenta - Disponible para todos */}
+          <li>
+              <Link to="/estado-cuenta" title="Estado de Cuenta">
+                <img src={estado} alt="Estado de Cuenta" className="logos"/>
+                <span className="text">Estado de Cuenta</span>
+            </Link>
+          </li>
+
+        <li>
+            <Link to ="/creditos-especiales" title="Especiales">
+              <img src={especial} alt="Especiales " className="logos"/>
+              <span className="text">Especiales</span>
             </Link>
           </li>
         <div className="SideBar-Space">

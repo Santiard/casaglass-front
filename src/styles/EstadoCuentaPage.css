@@ -1,0 +1,182 @@
+.estado-cuenta-container {
+  min-height: 100vh;
+  background: #f6f8fa;
+}
+
+.estado-cuenta-title {
+  color: var(--color-dark-blue);
+  margin-bottom: 24px;
+  font-weight: 700;
+}
+
+.estado-cuenta-filtros {
+  background: #25316D;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px #e6e8f0;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  display: flex;
+  gap: 18px;
+  align-items: center;
+  margin: 0;
+  width: 100%;
+  flex-wrap: nowrap;
+}
+
+.estado-cuenta-table-wrapper {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px #e6e8f0;
+  padding: 18px;
+  min-height: 250px;
+  margin-top: 8px;
+}
+
+.estado-cuenta-error {
+  margin-bottom: 16px;
+}
+
+.estado-cuenta-loading {
+  color: #25316D;
+  font-weight: 600;
+  text-align: center;
+  padding: 2rem;
+}
+
+.estado-cuenta-empty {
+  color: #888;
+  text-align: center;
+  padding: 2rem;
+}
+
+.estado-cuenta-resumen {
+  margin-bottom: 24px;
+  background: #fff;
+  padding: 18px;
+  border-radius: 10px;
+  display: flex;
+  gap: 32px;
+  flex-wrap: wrap;
+  box-shadow: 0 2px 8px #e6e8f0;
+  align-items: center;
+}
+
+.estado-cuenta-resumen span {
+  border-radius: 8px;
+  padding: 8px 18px;
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.estado-cuenta-resumen .activos {
+  background: #25316D;
+  color: #fff;
+}
+
+.estado-cuenta-resumen .total {
+  background: #f1f5f9;
+  color: #1e2753;
+}
+
+.estado-cuenta-resumen .deuda {
+  background: #ffeaea;
+  color: #c0392b;
+  font-weight: 700;
+}
+
+/* Estilos para impresión */
+@media print {
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  body {
+    background: white;
+  }
+
+  .estado-cuenta-container {
+    background: white !important;
+    min-height: auto;
+    display: block !important;
+    visibility: visible !important;
+  }
+
+  /* Ocultar elementos no necesarios en la impresión */
+  .estado-cuenta-filtros,
+  .btn-imprimir,
+  .modal-overlay,
+  .sidebar,
+  .header,
+  .footer,
+  nav {
+    display: none !important;
+  }
+
+  /* Mostrar título y contenido */
+  .estado-cuenta-title {
+    text-align: center;
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+    color: #1e2753 !important;
+    display: block !important;
+    visibility: visible !important;
+  }
+
+  /* Mostrar tabla wrapper */
+  .estado-cuenta-table-wrapper {
+    box-shadow: none;
+    padding: 1rem;
+    display: block !important;
+    visibility: visible !important;
+    background: white !important;
+  }
+
+  /* Ajustar scroll para impresión */
+  .estado-cuenta-table-wrapper > div {
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    page-break-inside: auto;
+    display: table !important;
+    visibility: visible !important;
+  }
+
+  thead {
+    display: table-header-group !important;
+  }
+
+  tbody {
+    display: table-row-group !important;
+  }
+
+  tr {
+    page-break-inside: avoid;
+    page-break-after: auto;
+    display: table-row !important;
+  }
+
+  th, td {
+    display: table-cell !important;
+    padding: 0.5rem;
+    border: 1px solid #ddd;
+  }
+
+  /* Ocultar columna de acciones */
+  th:last-child,
+  td:last-child {
+    display: none !important;
+  }
+
+  /* Estilos de resumen para impresión */
+  .estado-cuenta-resumen {
+    page-break-before: avoid;
+    margin-top: 1rem;
+    display: block !important;
+    visibility: visible !important;
+  }
+}
