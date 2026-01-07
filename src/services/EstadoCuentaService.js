@@ -1,3 +1,23 @@
+/**
+ * Marca créditos del cliente especial como pagados
+ * @param {Array<number>} creditoIds - IDs de los créditos a marcar como pagados
+ * @returns {Promise<{mensaje: string, creditosPagados: number, detalles: string}>}
+ */
+export async function marcarCreditosEspecialPagados(creditoIds) {
+  if (!Array.isArray(creditoIds) || creditoIds.length === 0) {
+    throw new Error("Debes enviar al menos un ID de crédito");
+  }
+  try {
+    const response = await axios.post('/api/creditos/cliente-especial/marcar-pagados', { creditoIds });
+    return response.data;
+  } catch (error) {
+    if (error.response) {
+      // Errores controlados del backend
+      throw new Error(error.response.data?.mensaje || error.response.data?.error || 'Error al marcar créditos como pagados');
+    }
+    throw new Error('Error de red o inesperado');
+  }
+}
 import axios from "axios";
 
 /**

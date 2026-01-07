@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import CreditosTable from "../componets/CreditosTable";
+import { marcarCreditosEspecialPagados } from "../services/EstadoCuentaService";
 import { listarCreditosClienteEspecial } from "../services/CreditosService";
 import { listarClientes } from "../services/ClientesService";
 import HistoricoAbonosClienteModal from "../modals/HistoricoAbonosClienteModal.jsx";
@@ -28,12 +29,29 @@ const CreditosEspecialesPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(50);
 
-  // Handler for abono action
-  const handleAbrirAbonoPage = (credito) => {
-    if (credito?.cliente?.id) {
-      window.location.href = `/web/abono?clienteId=${credito.cliente.id}&creditoId=${credito.id}`;
-    } else {
-      window.location.href = '/web/abono';
+  // Selección de créditos para marcar como pagados
+  const [creditosSeleccionados, setCreditosSeleccionados] = useState([]);
+
+  const handleSeleccionarCredito = (creditoId) => {
+    setCreditosSeleccionados((prev) =>
+      prev.includes(creditoId)
+        ? prev.filter((id) => id !== creditoId)
+        : [...prev, creditoId]
+    );
+  };
+
+  const handleMarcarPagados = async () => {
+    if (creditosSeleccionados.length === 0) return;
+    setIsReloading(true);
+    try {
+      const res = await marcarCreditosEspecialPagados(creditosSeleccionados);
+      alert(res.mensaje + '\n' + res.detalles);
+      setCreditosSeleccionados([]);
+      await loadData(currentPage, pageSize);
+    } catch (err) {
+      alert('Error: ' + err.message);
+    } finally {
+      setIsReloading(false);
     }
   };
 
@@ -244,7 +262,9 @@ const CreditosEspecialesPage = () => {
             creditos={creditos}
             clientes={clientes}
             filtroCliente={filtroCliente}
-            onAbrirAbonoModal={handleAbrirAbonoPage}
+            onSeleccionarCredito={handleSeleccionarCredito}
+            creditosSeleccionados={creditosSeleccionados}
+            modoEspecial={true}
             rowsPerPage={pageSize}
             totalElements={totalElements}
             totalPages={totalPages}
@@ -253,6 +273,26 @@ const CreditosEspecialesPage = () => {
             onPageChange={handlePageChange}
             serverSidePagination={true}
           />
+          <button
+            disabled={creditosSeleccionados.length === 0 || isReloading}
+            onClick={handleMarcarPagados}
+            style={{
+              marginTop: '1.5rem',
+              padding: '0.7rem 1.5rem',
+              background: '#27ae60',
+              color: 'white',
+              fontWeight: '600',
+              border: 'none',
+              borderRadius: '9999px',
+              cursor: creditosSeleccionados.length === 0 ? 'not-allowed' : 'pointer',
+              fontSize: '1rem',
+              boxShadow: '0 2px 8px #e6e8f0',
+              transition: 'background 0.2s',
+              opacity: isReloading ? 0.7 : 1
+            }}
+          >
+            {isReloading ? 'Marcando...' : `Pagar seleccionados (${creditosSeleccionados.length})`}
+          </button>
         </>
       )}
 

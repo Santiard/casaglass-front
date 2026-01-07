@@ -478,7 +478,7 @@ const EstadoCuentaPage = () => {
             setAbonosDetalleModalOpen(true);
           }}
         />
-        <ResumenEstadoCuenta resumen={estadoCuenta?.resumen} loading={loading} />
+        {/* <ResumenEstadoCuenta resumen={estadoCuenta?.resumen} loading={loading} /> */}
         </div>
       </div>
 
@@ -533,26 +533,13 @@ const EstadoCuentaPage = () => {
   );
 }
 
-function ResumenEstadoCuenta({ resumen, loading }) {
-  return (
-    <div style={{ marginTop: 24, background: '#fff', padding: 18, borderRadius: 10, display: 'flex', gap: 32, flexWrap: 'wrap', boxShadow: '0 2px 8px #e6e8f0', alignItems: 'center' }}>
-      {loading ? (
-        <span style={{ color: '#888', fontStyle: 'italic' }}>Cargando resumen...</span>
-      ) : resumen ? (
-        <>
-          <span style={{ background: '#25316D', color: '#fff', borderRadius: 8, padding: '8px 18px', fontWeight: 600, fontSize: 16 }}>Créditos activos: {resumen.cantidadCreditos}</span>
-          <span style={{ background: '#f1f5f9', color: '#1e2753', borderRadius: 8, padding: '8px 18px', fontWeight: 600, fontSize: 16 }}>Total crédito: ${resumen.totalCreditos.toLocaleString()}</span>
-          <span style={{ background: '#f1f5f9', color: '#1e2753', borderRadius: 8, padding: '8px 18px', fontWeight: 600, fontSize: 16 }}>Total abonado: ${resumen.totalAbonado.toLocaleString()}</span>
-          <span style={{ background: '#ffeaea', color: '#c0392b', borderRadius: 8, padding: '8px 18px', fontWeight: 700, fontSize: 16 }}>Deuda pendiente: ${resumen.totalDeuda.toLocaleString()}</span>
-        </>
-      ) : (
-        <span style={{ color: '#888', fontStyle: 'italic' }}>Selecciona un cliente para ver el resumen</span>
-      )}
-    </div>
-  );
-}
 
 function TablaCreditosEstadoCuenta({ creditos, loading, onVerOrden, onVerAbonos }) {
+  // Calcular totales
+  const totalCredito = creditos.reduce((sum, c) => sum + (c.totalCredito || 0), 0);
+  const totalAbonado = creditos.reduce((sum, c) => sum + (c.totalAbonado || 0), 0);
+  const totalSaldo = creditos.reduce((sum, c) => sum + (c.saldoPendiente || 0), 0);
+
   return (
     <div style={{ overflowX: "auto", overflowY: "auto", maxHeight: "500px" }}>
       <table className="table" style={{ width: "100%", borderCollapse: "separate", borderSpacing: 0, background: "#fff", borderRadius: 12, boxShadow: '0 2px 8px #e6e8f0', fontSize: 15 }}>
@@ -583,42 +570,52 @@ function TablaCreditosEstadoCuenta({ creditos, loading, onVerOrden, onVerAbonos 
               </td>
             </tr>
           ) : (
-            creditos.map((credito, idx) => (
-              <tr key={credito.id} style={{ background: idx % 2 === 0 ? '#f8fafc' : '#fff' }}>
-                <td style={{ textAlign: 'center' }}>{credito.fechaInicio}</td>
-                <td>{credito.orden?.obra || "-"}</td>
-                <td style={{ textAlign: 'right', fontWeight: 500 }}>${credito.totalCredito.toLocaleString()}</td>
-                <td style={{ textAlign: 'right', color: '#1e2753' }}>${credito.totalAbonado.toLocaleString()}</td>
-                <td style={{ color: '#c0392b', fontWeight: 700, textAlign: 'right' }}>${credito.saldoPendiente.toLocaleString()}</td>
-                <td style={{ textAlign: 'center' }}>{credito.estado}</td>
-                <td>{credito.observaciones || "-"}</td>
-                <td><AbonosTable abonos={credito.abonos} /></td>
-                <td style={{ textAlign: 'center' }}>
-                  <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', flexWrap: 'wrap' }}>
-                    {credito.orden?.id && (
-                      <button
-                        onClick={() => onVerOrden(credito.orden.id)}
-                        className="btn-save"
-                        style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem' }}
-                        title="Ver detalles de la orden"
-                      >
-                        Ver Orden
-                      </button>
-                    )}
-                    {credito.abonos && credito.abonos.length > 0 && (
-                      <button
-                        onClick={() => onVerAbonos(credito.abonos)}
-                        className="btn-save"
-                        style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem', background: '#27ae60' }}
-                        title="Ver detalles de abonos"
-                      >
-                        Ver Abonos
-                      </button>
-                    )}
-                  </div>
-                </td>
+            <>
+              {creditos.map((credito, idx) => (
+                <tr key={credito.id} style={{ background: idx % 2 === 0 ? '#f8fafc' : '#fff' }}>
+                  <td style={{ textAlign: 'center' }}>{credito.fechaInicio}</td>
+                  <td>{credito.orden?.obra || "-"}</td>
+                  <td style={{ textAlign: 'right', fontWeight: 500 }}>${credito.totalCredito.toLocaleString()}</td>
+                  <td style={{ textAlign: 'right', color: '#1e2753' }}>${credito.totalAbonado.toLocaleString()}</td>
+                  <td style={{ color: '#c0392b', fontWeight: 700, textAlign: 'right' }}>${credito.saldoPendiente.toLocaleString()}</td>
+                  <td style={{ textAlign: 'center' }}>{credito.estado}</td>
+                  <td>{credito.observaciones || "-"}</td>
+                  <td><AbonosTable abonos={credito.abonos} /></td>
+                  <td style={{ textAlign: 'center' }}>
+                    <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', flexWrap: 'wrap' }}>
+                      {credito.orden?.id && (
+                        <button
+                          onClick={() => onVerOrden(credito.orden.id)}
+                          className="btn-save"
+                          style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem' }}
+                          title="Ver detalles de la orden"
+                        >
+                          Ver Orden
+                        </button>
+                      )}
+                      {credito.abonos && credito.abonos.length > 0 && (
+                        <button
+                          onClick={() => onVerAbonos(credito.abonos)}
+                          className="btn-save"
+                          style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem', background: '#27ae60' }}
+                          title="Ver detalles de abonos"
+                        >
+                          Ver Abonos
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+              {/* Fila de totales */}
+              <tr style={{ background: '#e6e8f0', fontWeight: 700 }}>
+                <td colSpan={2} style={{ textAlign: 'right' }}>Totales:</td>
+                <td style={{ textAlign: 'right' }}>${totalCredito.toLocaleString()}</td>
+                <td style={{ textAlign: 'right' }}>${totalAbonado.toLocaleString()}</td>
+                <td style={{ textAlign: 'right', color: '#c0392b' }}>${totalSaldo.toLocaleString()}</td>
+                <td colSpan={4}></td>
               </tr>
-            ))
+            </>
           )}
         </tbody>
       </table>

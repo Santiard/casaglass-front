@@ -15,6 +15,9 @@ const CreditosTable = ({
   pageSize = 50,
   onPageChange = null,
   serverSidePagination = false,
+  modoEspecial = false,
+  onSeleccionarCredito,
+  creditosSeleccionados = [],
 }) => {
   const [expandido, setExpandido] = useState(null);
   const [page, setPage] = useState(1);
@@ -147,14 +150,25 @@ const CreditosTable = ({
                       {expandido === credito.id ? "Ocultar" : "Ver"}
                     </button>
                     
-                    {credito.estado === "ABIERTO" && (
-                      <button 
-                        className="btn-abonar"
-                        onClick={() => onAbrirAbonoModal(credito)}
-                        title="Registrar abono"
+                    {modoEspecial && credito.estado === "ABIERTO" ? (
+                      <button
+                        className={creditosSeleccionados?.includes(credito.id) ? "btn-abonar seleccionado" : "btn-abonar"}
+                        onClick={() => onSeleccionarCredito(credito.id)}
+                        title="Marcar para pagar"
+                        style={{ background: creditosSeleccionados?.includes(credito.id) ? '#27ae60' : undefined }}
                       >
-                        Abonar
+                        {creditosSeleccionados?.includes(credito.id) ? "Marcado" : "Marcar"}
                       </button>
+                    ) : (
+                      credito.estado === "ABIERTO" && (
+                        <button
+                          className="btn-abonar"
+                          onClick={() => onAbrirAbonoModal(credito)}
+                          title="Registrar abono"
+                        >
+                          Abonar
+                        </button>
+                      )
                     )}
                   </td>
                 </tr>
