@@ -4,15 +4,19 @@ import KPICard from "../componets/KPICard.jsx";
 import DashboardSection from "../componets/DashboardSection.jsx";
 import LowStockPanel from "../componets/LowStockPanel.jsx";
 import MovimientosPanel from "../componets/MovimientosPanel.jsx";
+import VentasDiaTable from "../componets/VentasDiaTable.jsx";
 import { DashboardService } from "../services/DashboardService.js";
+import { obtenerVentasDiaSede, obtenerVentasDiaTodasSedes } from "../services/OrdenesService.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import "../styles/HomeWidgets.css";
 import "../styles/DashboardPage.css";
 
 export default function HomePage(){
-  const { sedeId, user } = useAuth();
+  const { sedeId, user, isAdmin } = useAuth();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [ventasDiaLoading, setVentasDiaLoading] = useState(true);
+  const [ventasDia, setVentasDia] = useState([]);
   const [dashboardData, setDashboardData] = useState({
     sede: {},
     ventasHoy: {},
@@ -57,6 +61,35 @@ export default function HomePage(){
 
     loadDashboardData();
   }, [sedeId, user]);
+
+  // Cargar ventas del día
+  useEffect(() => {
+    const loadVentasDia = async () => {
+      try {
+        setVentasDiaLoading(true);
+        let ordenes = [];
+        
+        if (isAdmin) {
+          // Administrador: ver todas las sedes
+          ordenes = await obtenerVentasDiaTodasSedes();
+        } else if (sedeId) {
+          // Usuario normal: solo su sede
+          ordenes = await obtenerVentasDiaSede(sedeId);
+        }
+        
+        setVentasDia(ordenes);
+      } catch (err) {
+        console.error(' Error loading ventas del día:', err);
+        setVentasDia([]);
+      } finally {
+        setVentasDiaLoading(false);
+      }
+    };
+
+    if (sedeId || isAdmin) {
+      loadVentasDia();
+    }
+  }, [sedeId, isAdmin]);
 
   // Formatear traslados para el componente MovimientosPanel
   const trasladosFormateados = DashboardService.formatTrasladosForPanel(dashboardData.trasladosPendientes);
@@ -117,6 +150,14 @@ export default function HomePage(){
           color="#ef4444"
         />
       </div>
+
+      {/* Ventas del Día */}
+      <DashboardSection 
+        title="Ventas del Día" 
+        description={isAdmin ? "Todas las sedes" : dashboardData.sede?.nombre || "Sede actual"}
+      >
+        <VentasDiaTable ordenes={ventasDia} loading={ventasDiaLoading} />
+      </DashboardSection>
 
       {/* Paneles estilo AdminPage */}
       <DashboardSection title="Operación" description="Alertas y movimientos pendientes">

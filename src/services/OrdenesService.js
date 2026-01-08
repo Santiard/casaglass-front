@@ -488,6 +488,63 @@ export async function eliminarItem(ordenId, itemId) {
 }
 
 /* ================================================
+   ORDENES - VENTAS DEL DÍA
+   ================================================ */
+
+// GET /api/ordenes/ventas-dia/sede/{sedeId} → Ventas del día por sede
+export async function obtenerVentasDiaSede(sedeId) {
+  if (!sedeId) {
+    throw new Error("sedeId es obligatorio para obtener ventas del día por sede");
+  }
+  
+  // Obtener fecha de hoy en formato YYYY-MM-DD
+  const hoy = new Date();
+  const fechaHoy = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}-${String(hoy.getDate()).padStart(2, '0')}`;
+  
+  console.log('📅 [obtenerVentasDiaSede] Enviando fecha al backend:', {
+    fechaHoy,
+    sedeId,
+    endpoint: `/api/ordenes/ventas-dia/sede/${sedeId}`,
+    params: { fecha: fechaHoy }
+  });
+  
+  const { data } = await api.get(`ordenes/ventas-dia/sede/${sedeId}`, {
+    params: { fecha: fechaHoy }
+  });
+  
+  console.log('📦 [obtenerVentasDiaSede] Respuesta del backend:', {
+    totalOrdenes: data?.length || 0,
+    fechas: data?.map(o => o.fecha) || []
+  });
+  
+  return data || [];
+}
+
+// GET /api/ordenes/ventas-dia/todas → Ventas del día en todas las sedes
+export async function obtenerVentasDiaTodasSedes() {
+  // Obtener fecha de hoy en formato YYYY-MM-DD
+  const hoy = new Date();
+  const fechaHoy = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}-${String(hoy.getDate()).padStart(2, '0')}`;
+  
+  console.log('📅 [obtenerVentasDiaTodasSedes] Enviando fecha al backend:', {
+    fechaHoy,
+    endpoint: '/api/ordenes/ventas-dia/todas',
+    params: { fecha: fechaHoy }
+  });
+  
+  const { data } = await api.get("ordenes/ventas-dia/todas", {
+    params: { fecha: fechaHoy }
+  });
+  
+  console.log('📦 [obtenerVentasDiaTodasSedes] Respuesta del backend:', {
+    totalOrdenes: data?.length || 0,
+    fechas: data?.map(o => o.fecha) || []
+  });
+  
+  return data || [];
+}
+
+/* ================================================
    ORDENES - FACTURACIÓN
    ================================================ */
 
