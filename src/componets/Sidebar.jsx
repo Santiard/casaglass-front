@@ -125,7 +125,7 @@ export default function Sidebar({isOpen, isCollapsed}){
           </Link>
         </li>       
         
-        {/* Proveedores - Solo ADMIN */}
+        
 
           <li>
             <Link to ="/proveedores" title="Proveedores">
@@ -142,12 +142,26 @@ export default function Sidebar({isOpen, isCollapsed}){
             </Link>
           </li>
 
+        {isAdmin && (
         <li>
-            <Link to ="/creditos-especiales" title="Especiales">
-              <img src={especial} alt="Especiales " className="logos"/>
-              <span className="text">Especiales</span>
-            </Link>
-          </li>
+          <a
+            href="#especiales"
+            title="Especiales"
+            onClick={e => {
+              e.preventDefault();
+              const clave = window.prompt("Ingrese la clave para acceder a Especiales:");
+              if (clave === "JJVC") {
+                navigate("/creditos-especiales");
+              } else if (clave !== null) {
+                window.alert("Clave incorrecta");
+              }
+            }}
+          >
+            <img src={especial} alt="Especiales " className="logos"/>
+            <span className="text">Especiales</span>
+          </a>
+        </li>
+        )}
         <div className="SideBar-Space">
 
         </div>

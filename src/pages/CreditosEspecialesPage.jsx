@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import Toast from "../componets/Toast";
 import { useNavigate } from "react-router-dom";
 import CreditosTable from "../componets/CreditosTable";
 import { marcarCreditosEspecialPagados } from "../services/EstadoCuentaService";
@@ -17,6 +18,7 @@ const CreditosEspecialesPage = () => {
   const [isReloading, setIsReloading] = useState(false);
   const [error, setError] = useState("");
   const [filtroCliente, setFiltroCliente] = useState(null);
+  const [toast, setToast] = useState({ isVisible: false, message: '', type: 'success' });
   const [clienteSeleccionado, setClienteSeleccionado] = useState(null);
   const [showClienteModal, setShowClienteModal] = useState(false);
   const [clienteSearchModal, setClienteSearchModal] = useState("");
@@ -45,11 +47,19 @@ const CreditosEspecialesPage = () => {
     setIsReloading(true);
     try {
       const res = await marcarCreditosEspecialPagados(creditosSeleccionados);
-      alert(res.mensaje + '\n' + res.detalles);
+      setToast({
+        isVisible: true,
+        message: `✔ ${res.creditosPagados} crédito(s) marcados como pagados. ${res.detalles}`,
+        type: 'success'
+      });
       setCreditosSeleccionados([]);
       await loadData(currentPage, pageSize);
     } catch (err) {
-      alert('Error: ' + err.message);
+      setToast({
+        isVisible: true,
+        message: 'Error: ' + err.message,
+        type: 'error'
+      });
     } finally {
       setIsReloading(false);
     }
@@ -109,6 +119,15 @@ const CreditosEspecialesPage = () => {
 
   return (
     <div className="creditos-container">
+
+      <Toast
+        isVisible={toast.isVisible}
+        message={toast.message}
+        type={toast.type}
+        onClose={() => setToast(t => ({ ...t, isVisible: false }))}
+        duration={3500}
+      />
+
       {error && (
         <div className="error-message">
           {error}
@@ -122,7 +141,7 @@ const CreditosEspecialesPage = () => {
         <>
           {isReloading && (
             <div className="reloading-indicator">
-              🔄 Actualizando créditos después de crear abono...
+              Actualizando créditos después de crear abono...
             </div>
           )}
 
