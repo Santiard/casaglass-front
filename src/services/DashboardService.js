@@ -57,9 +57,35 @@ export const DashboardService = {
   formatTrasladosForPanel(trasladosPendientes) {
     if (!trasladosPendientes) return [];
     const { trasladosRecibir = [], trasladosEnviar = [] } = trasladosPendientes;
+    const mapTraslado = (traslado, tipo, referencia, direccion) => {
+      // Si el backend ya envía los campos, usarlos; si no, calcularlos
+      let totalVidrio = traslado.totalProductosVidrio ?? 0;
+      let totalOtros = traslado.totalProductosOtros ?? 0;
+      if ((totalVidrio === 0 && totalOtros === 0) && Array.isArray(traslado.detalles)) {
+        traslado.detalles.forEach(det => {
+          const esVidrio = (det.producto?.categoria || '').toLowerCase() === 'vidrio' || det.producto?.esVidrio;
+          if (esVidrio) {
+            totalVidrio += Number(det.cantidad) || 0;
+          } else {
+            totalOtros += Number(det.cantidad) || 0;
+          }
+        });
+      }
+      return {
+        id: `${direccion[0]}-${traslado.trasladoId}`,
+        tipo,
+        referencia,
+        fechaEntrega: traslado.fecha,
+        estado: 'PENDIENTE',
+        totalProductosVidrio: totalVidrio,
+        totalProductosOtros: totalOtros,
+        trasladoId: traslado.trasladoId,
+        direccion
+      };
+    };
     const trasladosFormateados = [
-      ...trasladosRecibir.map(traslado => ({ id: `R-${traslado.trasladoId}`, tipo: 'RECEPCIÓN', referencia: `De ${traslado.sedeOrigen}`, fechaEntrega: traslado.fecha, estado: 'PENDIENTE', totalProductos: traslado.totalProductos, trasladoId: traslado.trasladoId, direccion: 'ENTRADA' })),
-      ...trasladosEnviar.map(traslado => ({ id: `E-${traslado.trasladoId}`, tipo: 'ENVÍO', referencia: `A ${traslado.sedeDestino}`, fechaEntrega: traslado.fecha, estado: 'PENDIENTE', totalProductos: traslado.totalProductos, trasladoId: traslado.trasladoId, direccion: 'SALIDA' })),
+      ...trasladosRecibir.map(traslado => mapTraslado(traslado, 'RECEPCIÓN', `De ${traslado.sedeOrigen}`, 'ENTRADA')),
+      ...trasladosEnviar.map(traslado => mapTraslado(traslado, 'ENVÍO', `A ${traslado.sedeDestino}`, 'SALIDA')),
     ];
     return trasladosFormateados.sort((a, b) => new Date(a.fechaEntrega) - new Date(b.fechaEntrega));
   },

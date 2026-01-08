@@ -133,11 +133,11 @@ export default function InventoryTable({ data = [], filters, loading, onEditar, 
                       return "";
                     })()}>
                       {isAdmin
-                        ? (p.cantidadInsula ?? 0)
-                        : userSede === "Insula" ? (p.cantidadInsula ?? 0)
-                        : userSede === "Centro" ? (p.cantidadCentro ?? 0)
-                        : userSede === "Patios" ? (p.cantidadPatios ?? 0)
-                        : 0
+                        ? (p.cantidadInsula !== undefined && p.cantidadInsula !== null ? (isVidrio ? Number(p.cantidadInsula).toFixed(2) + ' m²' : (Number(p.cantidadInsula) % 1 === 0 ? Number(p.cantidadInsula).toFixed(0) : Number(p.cantidadInsula).toFixed(2))) : '0')
+                        : userSede === "Insula" ? (p.cantidadInsula !== undefined && p.cantidadInsula !== null ? (isVidrio ? Number(p.cantidadInsula).toFixed(2) + ' m²' : (Number(p.cantidadInsula) % 1 === 0 ? Number(p.cantidadInsula).toFixed(0) : Number(p.cantidadInsula).toFixed(2))) : '0')
+                        : userSede === "Centro" ? (p.cantidadCentro !== undefined && p.cantidadCentro !== null ? (isVidrio ? Number(p.cantidadCentro).toFixed(2) + ' m²' : (Number(p.cantidadCentro) % 1 === 0 ? Number(p.cantidadCentro).toFixed(0) : Number(p.cantidadCentro).toFixed(2))) : '0')
+                        : userSede === "Patios" ? (p.cantidadPatios !== undefined && p.cantidadPatios !== null ? (isVidrio ? Number(p.cantidadPatios).toFixed(2) + ' m²' : (Number(p.cantidadPatios) % 1 === 0 ? Number(p.cantidadPatios).toFixed(0) : Number(p.cantidadPatios).toFixed(2))) : '0')
+                        : '0'
                       }
                       {(() => {
                         if (isAdmin) return Number(p.cantidadInsula || 0) < 0 ? <span className="badge-negativo"> </span> : null;
@@ -155,19 +155,19 @@ export default function InventoryTable({ data = [], filters, loading, onEditar, 
                     {isAdmin ? (
                       <>
                         <td className={Number(p.cantidadInsula || 0) < 0 ? "stock-negativo" : ""}>
-                          {p.cantidadInsula ?? 0}
+                          {p.cantidadInsula !== undefined && p.cantidadInsula !== null ? (isVidrio ? Number(p.cantidadInsula).toFixed(2) + ' m²' : (Number(p.cantidadInsula) % 1 === 0 ? Number(p.cantidadInsula).toFixed(0) : Number(p.cantidadInsula).toFixed(2))) : '0'}
                           {Number(p.cantidadInsula || 0) < 0 && <span className="badge-negativo"> </span>}
                         </td>
                         <td className={Number(p.cantidadCentro || 0) < 0 ? "stock-negativo" : ""}>
-                          {p.cantidadCentro ?? 0}
+                          {p.cantidadCentro !== undefined && p.cantidadCentro !== null ? (isVidrio ? Number(p.cantidadCentro).toFixed(2) + ' m²' : (Number(p.cantidadCentro) % 1 === 0 ? Number(p.cantidadCentro).toFixed(0) : Number(p.cantidadCentro).toFixed(2))) : '0'}
                           {Number(p.cantidadCentro || 0) < 0 && <span className="badge-negativo"> </span>}
                         </td>
                         <td className={Number(p.cantidadPatios || 0) < 0 ? "stock-negativo" : ""}>
-                          {p.cantidadPatios ?? 0}
+                          {p.cantidadPatios !== undefined && p.cantidadPatios !== null ? (isVidrio ? Number(p.cantidadPatios).toFixed(2) + ' m²' : (Number(p.cantidadPatios) % 1 === 0 ? Number(p.cantidadPatios).toFixed(0) : Number(p.cantidadPatios).toFixed(2))) : '0'}
                           {Number(p.cantidadPatios || 0) < 0 && <span className="badge-negativo"> </span>}
                         </td>
                         <td className={stockNegativo ? "stock-negativo" : ""}>
-                          <strong>{total}</strong>
+                          <strong>{isVidrio ? Number(total).toFixed(2) + ' m²' : (Number(total) % 1 === 0 ? Number(total).toFixed(0) : Number(total).toFixed(2))}</strong>
                           {stockNegativo && <span className="badge-negativo">  Faltan {Math.abs(total)}</span>}
                         </td>
                       </>

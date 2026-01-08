@@ -304,7 +304,27 @@ export default function MovimientosTable({
                       <td>{fmtFecha(mov.fecha)}</td>
                       <td>{diaDeSemana(mov.fecha)}</td>
                       <td>
-                        <span className="badge">{detalles.length}</span>
+                        {/* Mostrar suma de cantidades, diferenciando vidrio y otros */}
+                        {(() => {
+                          if (!detalles.length) return <span className="badge">0</span>;
+                          // Sumar cantidades por tipo
+                          let totalVidrio = 0, totalOtros = 0;
+                          detalles.forEach(det => {
+                            const esVidrio = (det.producto?.categoria || '').toLowerCase() === 'vidrio' || det.producto?.esVidrio;
+                            if (esVidrio) {
+                              totalVidrio += Number(det.cantidad) || 0;
+                            } else {
+                              totalOtros += Number(det.cantidad) || 0;
+                            }
+                          });
+                          return (
+                            <span className="badge">
+                              {totalVidrio > 0 && `${totalVidrio.toFixed(2)} m²`}
+                              {totalVidrio > 0 && totalOtros > 0 ? ' + ' : ''}
+                              {totalOtros > 0 && `${totalOtros.toFixed(0)} u.`}
+                            </span>
+                          );
+                        })()}
                       </td>
                       <td>
                         {mov.trabajadorConfirmacion ? (

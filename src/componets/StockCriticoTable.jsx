@@ -23,6 +23,7 @@ export default function StockCriticoTable({ productos = [] }) {
           <tr>
             <th>Producto</th>
             <th>Código</th>
+            <th>Color</th>
             <th>Stock Actual</th>
             <th>Stock Mínimo</th>
             <th>Estado</th>
@@ -35,6 +36,11 @@ export default function StockCriticoTable({ productos = [] }) {
               <tr key={producto.id}>
                 <td>{producto.nombre}</td>
                 <td>{producto.codigo}</td>
+                <td>{producto.color ? (
+                  <span className={`color-badge color-${(producto.color || 'NA').toLowerCase().replace(/\s+/g, '-')}`}>{producto.color}</span>
+                ) : (
+                  <span style={{ color: '#bbb', fontStyle: 'italic' }}>N/A</span>
+                )}</td>
                 <td>{producto.stockActual || 0}</td>
                 <td>{producto.stockMinimo || 0}</td>
                 <td>

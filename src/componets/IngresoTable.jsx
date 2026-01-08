@@ -318,6 +318,8 @@ export default function IngresosTable({
                 // Calcular suma total de cantidades de productos
                 const totalProductos = dets.reduce((sum, det) => sum + (Number(det.cantidad) || 0), 0);
                 // Usar cantidadTotal del backend si existe, sino calcular de detalles
+                // Detectar si el ingreso contiene vidrio
+                const esVidrioIngreso = dets.some(det => (det.producto?.categoria || '').toLowerCase() === 'vidrio' || det.producto?.esVidrio);
                 const cantidadMostrar = ing.cantidadTotal ?? (dets.length > 0 ? totalProductos : null);
 
                 return (
@@ -331,7 +333,11 @@ export default function IngresosTable({
                     <td>{ing.numeroFactura ?? "-"}</td>
                     <td>
                       {cantidadMostrar !== null ? (
-                        <span className="badge">{cantidadMostrar}</span>
+                        <span className="badge">
+                          {esVidrioIngreso
+                            ? Number(cantidadMostrar).toFixed(2) + ' m²'
+                            : (Number(cantidadMostrar) % 1 === 0 ? Number(cantidadMostrar).toFixed(0) : Number(cantidadMostrar).toFixed(2))}
+                        </span>
                       ) : (
                         <span style={{ color: '#999', fontSize: '0.85rem' }}>-</span>
                       )}

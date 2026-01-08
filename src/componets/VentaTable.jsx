@@ -31,10 +31,10 @@ export default function VentaTable({
   const isCategoriaVidrio = categoryId === 26;
 
   // Funciones para manejar la venta
-  const handleCantidadChange = (productId, cantidad) => {
+  const handleCantidadChange = (productId, cantidad, esVidrio = false) => {
     setCantidadesVenta(prev => ({
       ...prev,
-      [productId]: cantidad === "" ? "" : parseInt(cantidad) || ""
+      [productId]: cantidad === "" ? "" : esVidrio ? cantidad : parseInt(cantidad) || ""
     }));
   };
 
@@ -77,7 +77,10 @@ export default function VentaTable({
   };
 
   const handleAgregarCarrito = (producto, uniqueKey) => {
-    const cantidad = parseInt(cantidadesVenta[uniqueKey]) || 1;
+    const esVidrio = (producto.categoria || "").toLowerCase() === "vidrio" || producto.esVidrio;
+    let cantidad = cantidadesVenta[uniqueKey];
+    cantidad = esVidrio ? (parseFloat(cantidad) || 0) : (parseInt(cantidad) || 1);
+    cantidad = Math.round(cantidad * 100) / 100;
     // Usar siempre el precio correspondiente a la sede (admin usa precio1, vendedores su sede)
     const precioSeleccionado = isAdmin ? producto.precio1 :
       (userSede === "Insula" ? producto.precio1 :
@@ -382,13 +385,15 @@ export default function VentaTable({
                 <td>
                   <input
                     type="number"
-                    min="1"
+                    min={((p.categoria || "").toLowerCase() === "vidrio" || p.esVidrio) ? "0.01" : "1"}
+                    step={((p.categoria || "").toLowerCase() === "vidrio" || p.esVidrio) ? "0.01" : "1"}
                     value={cantidadesVenta[uniqueKey] ?? ""}
-                    placeholder="1"
-                    onChange={(e) => handleCantidadChange(uniqueKey, e.target.value)}
+                    placeholder={((p.categoria || "").toLowerCase() === "vidrio" || p.esVidrio) ? "0.01" : "1"}
+                    onChange={(e) => handleCantidadChange(uniqueKey, e.target.value, (p.categoria || "").toLowerCase() === "vidrio" || p.esVidrio)}
                     className="cantidad-input"
                     style={{ width: '60px', textAlign: 'center' }}
                     title={stockNegativo ? ` Stock negativo: Faltan ${Math.abs(cantidadDisponible)} unidades. Puedes vender anticipadamente.` : ""}
+                    pattern={((p.categoria || "").toLowerCase() === "vidrio" || p.esVidrio) ? "^\\d+(\\.\\d{1,2})?$" : undefined}
                   />
                   {stockNegativo && (
                     <small style={{ display: 'block', color: '#ff9800', fontSize: '10px', marginTop: '2px' }}>

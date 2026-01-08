@@ -18,8 +18,10 @@ export default function MovimientosPanel({ entregasPendientes = [] }) {
                 <div className="list__meta">
                   Programado para{" "}
                   {new Date(m.fechaEntrega).toLocaleDateString("es-CO")}
-                  {m.totalProductos &&
-                    ` — ${m.totalProductos} productos`}
+                  {m.totalProductosVidrio &&
+                    ` — ${Number(m.totalProductosVidrio).toFixed(2)} m² de vidrio`}
+                  {m.totalProductosOtros &&
+                    ` — ${Number(m.totalProductosOtros).toFixed(0)} productos`}
                   {m.montoEntregar &&
                     ` — ${new Intl.NumberFormat("es-CO", {
                       style: "currency",
