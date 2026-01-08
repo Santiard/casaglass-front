@@ -1,7 +1,11 @@
+
 .category-list {
   display: flex;
   flex-direction: column;
   gap: 0.375rem;                      /* 6px */
+  width: 100px;
+  min-width: 100px;
+  max-width: 100px;
 }
 
 .category-item {
@@ -15,5 +19,23 @@
   transition: background 0.15s;
 }
 
+
+.category-sidebar-container {
+  width: 90px;
+  min-width: 90px;
+  max-width: 90px;
+  flex-shrink: 0;
+}
+
+aside.vender-categories {
+  width: 100px !important;
+  min-width: 100px !important;
+  max-width: 100px !important;
+  flex-shrink: 0;
+  padding: 0 !important;
+  border-radius: 0 !important;
+  background: #fff;
+  box-shadow: none;
+}
 .category-item:hover { background: #f0f0f0; }
 .category-item.active { background: #344490; color: white; font-weight: 600; }

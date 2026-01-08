@@ -2,7 +2,7 @@
 .inventory-layout {
   display: flex;
   gap: 1rem; /* 16px */
-  padding: 1rem; /* 16px */
+  padding: 0 1rem 1rem 0; /* Sin padding izquierdo, mantener arriba/derecha/abajo */
   align-items: flex-start;
   min-height: calc(100vh - 5rem); /* 80px ajusta según header */
   width: 100%; /* Usar todo el ancho disponible */
@@ -10,13 +10,17 @@
 }
 
 /* SIDEBAR izquierdo (categorías) */
+
 .inventory-categories {
-  width: 13.75rem; /* 220px ancho fijo */
-  background: #f7f7f7;
-  padding: 0.75rem; /* 12px */
-  border-radius: 0.5rem; /* 8px */
-  border: 0.0625rem solid #e6e6e6; /* 1px */
-  max-height: calc(100vh - 7.5rem); /* 120px */
+  width: 120px !important;
+  min-width: 120px !important;
+  max-width: 120px !important;
+  background: #fff;
+  padding: 0 !important;
+  border-radius: 0 !important;
+  border: none !important;
+  box-shadow: none !important;
+  max-height: calc(100vh - 7.5rem);
   overflow-y: auto;
 }
 

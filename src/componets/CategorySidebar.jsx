@@ -25,7 +25,7 @@ export default function CategorySidebar({
     : categoriasOrdenadas;
 
   return (
-    <div>
+    <div className="category-sidebar-container">
       <h4 style={{ marginBottom: 8 }}>Categorías</h4>
       {onAddCategory && (
         <button

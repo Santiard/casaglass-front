@@ -21,7 +21,7 @@ export default function InventoryTable({ data = [], filters, loading, onEditar, 
           <tr>
             <th>Código</th>
             <th>Nombre</th>
-            <th>Color</th>
+            <th className="th-color">Color</th>
             {isVidrio ? (
               <>
                 {/* Columnas específicas para VIDRIO - responsivas */}
@@ -104,7 +104,7 @@ export default function InventoryTable({ data = [], filters, loading, onEditar, 
               >
                 <td>{p.codigo}</td>
                 <td>{p.nombre}</td>
-                <td>
+                <td className="td-color">
                   <span className={`color-badge color-${(p.color || 'NA').toLowerCase().replace(/\s+/g, '-')}`}>
                     {p.color ?? "N/A"}
                   </span>
@@ -166,7 +166,7 @@ export default function InventoryTable({ data = [], filters, loading, onEditar, 
                           {p.cantidadPatios !== undefined && p.cantidadPatios !== null ? (isVidrio ? Number(p.cantidadPatios).toFixed(2) + ' m²' : (Number(p.cantidadPatios) % 1 === 0 ? Number(p.cantidadPatios).toFixed(0) : Number(p.cantidadPatios).toFixed(2))) : '0'}
                           {Number(p.cantidadPatios || 0) < 0 && <span className="badge-negativo"> </span>}
                         </td>
-                        <td className={stockNegativo ? "stock-negativo" : ""}>
+                        <td className={stockNegativo ? "stock-negativo" : ""} style={{ width: '12%', minWidth: '120px', maxWidth: '220px' }}>
                           <strong>{isVidrio ? Number(total).toFixed(2) + ' m²' : (Number(total) % 1 === 0 ? Number(total).toFixed(0) : Number(total).toFixed(2))}</strong>
                           {stockNegativo && <span className="badge-negativo">  Faltan {Math.abs(total)}</span>}
                         </td>

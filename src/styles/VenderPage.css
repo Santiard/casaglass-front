@@ -52,9 +52,9 @@
 /* Layout de 3 columnas para VenderPage */
 .vender-page {
   display: grid;
-  grid-template-columns: 13.75rem 1fr 20rem; /* Aumentar ancho del sidebar del carrito */
+  grid-template-columns: 100px 1fr 20rem; /* Sidebar de categorías más angosta, tabla más ancha */
   gap: 0.5rem;
-  padding: 0.5rem;
+  padding: 0 0.5rem 0.5rem 0;
   height: calc(100vh - 4rem);
   max-height: calc(100vh - 4rem); /* Limitar altura máxima */
   align-items: stretch; /* Hacer que todas las columnas tengan la misma altura */
