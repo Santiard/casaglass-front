@@ -6,6 +6,7 @@ import { listarSedes } from "../services/SedesService.js";
 import { listarTrabajadores } from "../services/TrabajadoresService.js";
 import { listarCategorias } from "../services/CategoriasService.js";
 import { actualizarOrden, obtenerOrden, actualizarOrdenVenta, crearOrdenVenta } from "../services/OrdenesService.js";
+import { listarBancos } from "../services/BancosService.js";
 import { useToast } from "../context/ToastContext.jsx";
 import { useConfirm } from "../hooks/useConfirm.jsx";
 import eliminar from "../assets/eliminar.png";
@@ -47,14 +48,8 @@ export default function OrdenEditarModal({
   const [retefuenteThreshold, setRetefuenteThreshold] = useState(0); // Umbral de retención de fuente
   const [retefuenteRate, setRetefuenteRate] = useState(2.5); // Porcentaje de retención de fuente
   
-  // Lista de bancos
-  const bancos = [
-    "BANCOLOMBIA",
-    "DAVIVIENDA",
-    "BANCO DE BOGOTA",
-    "NEQUI",
-    "DAVIPLATA"
-  ];
+  // Lista de bancos (dinámica desde API)
+  const [bancos, setBancos] = useState([]);
 
   // Métodos de pago disponibles
   // NOTA: Nequi y Daviplata están disponibles como bancos cuando se selecciona TRANSFERENCIA
@@ -286,8 +281,19 @@ export default function OrdenEditarModal({
       setClienteSearchModal("");
       setShowClienteModal(false);
       matchHechoRef.current = { ordenId: null, hecho: false }; // Resetear el flag cuando se cierra el modal
+      setBancos([]); // Limpiar bancos al cerrar
       return;
     }
+
+    // Cargar bancos al abrir el modal
+    console.log(" [OrdenModal] Cargando bancos...");
+    listarBancos().then((bancosData) => {
+      console.log(" [OrdenModal] Bancos cargados:", bancosData);
+      setBancos(Array.isArray(bancosData) ? bancosData : []);
+    }).catch((err) => {
+      console.error(" [OrdenModal] Error cargando bancos:", err);
+      setBancos([]);
+    });
     
     // Si no hay orden, es modo creación desde el carrito
     if (!orden) {
@@ -1508,9 +1514,9 @@ export default function OrdenEditarModal({
                                   }}
                                 >
                                   <option value="">Seleccione banco...</option>
-                                  {bancos.map((bancoItem) => (
-                                    <option key={bancoItem} value={bancoItem}>
-                                      {bancoItem}
+                                  {bancos.map((banco) => (
+                                    <option key={banco.id || banco.nombre} value={banco.nombre}>
+                                      {banco.nombre}
                                     </option>
                                   ))}
                                 </select>

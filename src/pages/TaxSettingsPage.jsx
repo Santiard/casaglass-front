@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import TrabajadoresSection from "../componets/TrabajadoresSection.jsx";
+import BancosSection from "../componets/BancosSection.jsx";
 import { listarTrabajadoresTabla, cambiarPasswordTrabajador, crearTrabajador } from "../services/TrabajadoresService.js";
 import { getBusinessSettings, updateBusinessSettings } from "../services/businessSettingsService.js";
 import "../styles/TaxSettingsPage.css";
@@ -125,6 +126,8 @@ onChange={(e)=>setPreSub(Number(e.target.value))} />
 </div>
 </form>
 </section>
+
+<BancosSection />
 
 <TrabajadoresSection
   fetchTabla={listarTrabajadoresTabla}

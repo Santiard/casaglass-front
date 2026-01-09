@@ -410,6 +410,7 @@ export default function OrdenesTable({
               <th>Crédito</th>
               <th>Estado</th>
               <th>Total</th>
+              <th>N° Factura</th>
               <th>Acciones</th>
             </tr>
           </thead>
@@ -430,7 +431,7 @@ export default function OrdenesTable({
                 const totalOrden = calcularTotal(o);
                 const id = o.id;
 
-                const yaFacturada = Boolean(o.facturada || o.numeroFactura || (o.factura && (o.factura.id || o.factura.numero)));
+                const yaFacturada = Boolean(o.facturada === true);
                 const yaPagada = Boolean(o.pagada || o.factura?.pagada || (o.factura && o.factura.fechaPago));
                 const estaAnulada = o.estado?.toLowerCase() === 'anulada';
                 // Solo mostrar botón anular si NO está facturada, NO está pagada y NO está anulada
@@ -447,6 +448,7 @@ export default function OrdenesTable({
                       <td>{o.credito ? "Sí" : "No"}</td>
                       <td>{formatearEstado(o.estado)}</td>
                       <td>${totalOrden.toLocaleString("es-CO")}</td>
+                      <td>{o.numeroFactura || '-'}</td>
                       <td className="actions-cell">
                         <button
                           className="btnLink"

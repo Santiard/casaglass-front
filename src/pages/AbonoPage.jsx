@@ -5,6 +5,7 @@ import { listarClientes } from '../services/ClientesService.js';
 import { listarCreditosPendientes } from '../services/AbonosService.js';
 import { actualizarRetencionFuente } from '../services/OrdenesService.js';
 import { getBusinessSettings } from '../services/businessSettingsService.js';
+import { listarBancos } from '../services/BancosService.js';
 import { useToast } from '../context/ToastContext.jsx';
 import '../styles/CrudModal.css';
 import '../styles/Creditos.css';
@@ -54,13 +55,7 @@ const AbonoPage = () => {
   const [retefuenteRate, setRetefuenteRate] = useState(2.5);
   const [retefuenteThreshold, setRetefuenteThreshold] = useState(1000000);
 
-  const bancos = [
-    "BANCOLOMBIA",
-    "DAVIVIENDA",
-    "BANCO DE BOGOTA",
-    "NEQUI",
-    "DAVIPLATA"
-  ];
+  const [bancos, setBancos] = useState([]);
 
   // Métodos de pago disponibles (RETEFUENTE se calcula automáticamente, no se agrega manualmente)
   const tiposMetodoPago = [
@@ -83,6 +78,19 @@ const AbonoPage = () => {
       }
     };
     cargarConfiguracion();
+  }, []);
+
+  // Cargar bancos desde la base de datos
+  useEffect(() => {
+    const cargarBancos = async () => {
+      try {
+        const bancosData = await listarBancos();
+        setBancos(bancosData);
+      } catch (err) {
+        console.error(" [AbonoPage] Error cargando bancos:", err);
+      }
+    };
+    cargarBancos();
   }, []);
 
   // Cargar clientes al montar
@@ -1326,8 +1334,8 @@ const AbonoPage = () => {
                                 style={{ width: '100%', padding: '0.4rem', fontSize: '0.85rem', border: '1px solid #c2c2c3', borderRadius: '4px' }}
                               >
                                 <option value="">Seleccione banco...</option>
-                                {bancos.map((bancoItem) => (
-                                  <option key={bancoItem} value={bancoItem}>{bancoItem}</option>
+                                {bancos.map((banco) => (
+                                  <option key={banco.id || banco.nombre} value={banco.nombre}>{banco.nombre}</option>
                                 ))}
                               </select>
                             )}

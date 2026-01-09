@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { listarBancos } from '../services/BancosService.js';
 import { api } from '../lib/api.js';
 import { listarClientes } from '../services/ClientesService.js';
 import { listarOrdenesCredito, actualizarOrden } from '../services/OrdenesService.js';
@@ -122,14 +123,20 @@ const AbonoModal = ({ isOpen, onClose, credito, onSuccess }) => {
   const [loadingOrdenes, setLoadingOrdenes] = useState(false);
   const [error, setError] = useState('');
 
-  // Lista de bancos
-  const bancos = [
-    "BANCOLOMBIA",
-    "DAVIVIENDA",
-    "BANCO DE BOGOTA",
-    "NEQUI",
-    "DAVIPLATA"
-  ];
+  // Lista de bancos (dinámica desde API)
+  const [bancos, setBancos] = useState([]);
+  // Cargar bancos al abrir el modal
+  useEffect(() => {
+    if (isOpen) {
+      listarBancos().then((bancosData) => {
+        console.log(" [AbonoModal] Bancos cargados:", bancosData);
+        setBancos(Array.isArray(bancosData) ? bancosData : []);
+      }).catch((err) => {
+        console.error(" [AbonoModal] Error cargando bancos:", err);
+        setBancos([]);
+      });
+    }
+  }, [isOpen]);
 
   // Métodos de pago disponibles
   const tiposMetodoPago = [
@@ -1064,16 +1071,21 @@ const AbonoModal = ({ isOpen, onClose, credito, onSuccess }) => {
                                 ))}
                               </select>
                               {metodo.tipo === "TRANSFERENCIA" && (
-                                <select
-                                  value={metodo.banco}
-                                  onChange={(e) => actualizarMetodoPago(index, 'banco', e.target.value)}
-                                  style={{ width: '100%', padding: '0.25rem', fontSize: '0.8rem', marginTop: '0.25rem' }}
-                                >
-                                  <option value="">Banco...</option>
-                                  {bancos.map((bancoItem) => (
-                                    <option key={bancoItem} value={bancoItem}>{bancoItem}</option>
-                                  ))}
-                                </select>
+                                <div>
+                                  <select
+                                    value={metodo.banco}
+                                    onChange={(e) => actualizarMetodoPago(index, 'banco', e.target.value)}
+                                    style={{ width: '100%', padding: '0.25rem', fontSize: '0.8rem', marginTop: '0.25rem' }}
+                                    required
+                                  >
+                                    <option value="">Banco...</option>
+                                    {bancos.map((banco) => (
+                                      <option key={banco.id || banco.nombre} value={banco.id || banco.nombre}>
+                                        {banco.nombre}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </div>
                               )}
                               <input
                                 type="number"

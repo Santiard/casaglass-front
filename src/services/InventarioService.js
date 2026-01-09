@@ -117,7 +117,7 @@ export async function listarInventarioCompleto(params = {}, isAdmin = true, user
     // El endpoint /inventario-completo retorna todos los productos (normales y vidrios)
     const { data } = await api.get("/inventario-completo", { params });
     
-    console.log(` Inventario completo - Productos obtenidos: ${data?.length || 0}`);
+    // console.log(` Inventario completo - Productos obtenidos: ${data?.length || 0}`);
     
     const transformados = transformarInventarioDTO(data || [], isAdmin, userSedeId, categoriasMap);
     

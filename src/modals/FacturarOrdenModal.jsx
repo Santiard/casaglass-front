@@ -212,6 +212,12 @@ export default function FacturarOrdenModal({ isOpen, onClose, onSave, orden }) {
           [name]: parseFloat(value) || 0,
         }));
       }
+    } else if (name === "formaPago") {
+      // Reset banco seleccionado si cambia la forma de pago
+      setForm((prev) => ({ ...prev, [name]: value }));
+      if (value !== "TRANSFERENCIA") {
+        setBancoSeleccionado("");
+      }
     } else {
       // Campos de texto se convierten a mayúsculas
       const processedValue = value.toUpperCase();
@@ -750,7 +756,6 @@ export default function FacturarOrdenModal({ isOpen, onClose, onSave, orden }) {
                 (parseFloat(form.descuentos) || 0) > subtotalOrden ||
                 (Number(form.iva) || 0) < 0 ||
                 (Number(form.retencionFuente) || 0) < 0 ||
-                creditoPendiente ||
                 isAnulada
               }
             >

@@ -117,6 +117,7 @@ const CreditosTable = ({
               <th>Abonado</th>
               <th>Retefuente</th>
               <th>Saldo</th>
+              <th>N° Factura</th>
               <th>Estado</th>
               <th>Acciones</th>
             </tr>
@@ -129,7 +130,7 @@ const CreditosTable = ({
           ) : (
             pageData.map((credito) => (
               <Fragment key={credito.id}>
-                <tr className={`fila-credito ${credito.estado.toLowerCase()}`}>
+                <tr className={`fila-credito ${credito.estado.toLowerCase()}`}> 
                   <td>{credito.id}</td>
                   <td>{credito.cliente?.nombre}</td>
                   <td>{credito.orden?.numero || "-"}</td>
@@ -139,6 +140,7 @@ const CreditosTable = ({
                   <td>${credito.totalAbonado.toLocaleString()}</td>
                   <td>{credito.orden?.retencionFuente ? `$${credito.orden.retencionFuente.toLocaleString()}` : "-"}</td>
                   <td>${credito.saldoPendiente.toLocaleString()}</td>
+                  <td>{credito.orden?.numeroFactura || '-'}</td>
                   <td>
                     <span className={`estado-badge ${credito.estado.toLowerCase()}`}>{credito.estado}</span>
                   </td>

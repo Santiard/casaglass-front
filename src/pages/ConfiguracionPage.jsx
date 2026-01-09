@@ -1,5 +1,6 @@
 import { useState } from "react";
 import TrabajadoresModal from "../modals/TrabajadoresModal.jsx";
+import BancosConfigTable from "../componets/BancosConfigTable.jsx";
 import { listarTrabajadoresTabla, cambiarPasswordTrabajador, crearTrabajador } from "../services/TrabajadoresService.js";
 
 export default function ConfigurarPage(){
@@ -21,6 +22,9 @@ export default function ConfigurarPage(){
           <button className="btn-guardar" onClick={()=>setOpenTrab(true)}>Gestionar trabajadores</button>
         </div>
       </div>
+
+      {/* Gestión de bancos */}
+      <BancosConfigTable />
 
       <TrabajadoresModal
         isOpen={openTrab}
