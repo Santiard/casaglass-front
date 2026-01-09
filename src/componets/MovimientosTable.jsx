@@ -89,7 +89,6 @@ export default function MovimientosTable({
       setIsModalOpen(false);
       setMovimientoEditando(null);
     } catch (e) {
-      console.error(e);
       showError(e?.response?.data || e?.message || "Error al guardar el traslado.");
     }
   };
@@ -114,7 +113,6 @@ export default function MovimientosTable({
         showSuccess("Traslado confirmado exitosamente");
       }
     } catch (e) {
-      console.error("Error confirmando traslado:", e);
       const errorMsg = e?.response?.data?.message || e?.message || "Error al confirmar el traslado";
       showError(errorMsg);
     }

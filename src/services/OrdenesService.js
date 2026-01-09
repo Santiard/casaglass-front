@@ -35,23 +35,6 @@ export async function obtenerOrden(id) {
 // GET /api/ordenes/{id}/detalle
 export async function obtenerOrdenDetalle(id) {
   const { data } = await api.get(`ordenes/${id}/detalle`);
-  console.log('📋 [obtenerOrdenDetalle] Orden completa desde backend:', {
-    ordenId: id,
-    endpoint: `/api/ordenes/${id}/detalle`,
-    orden: data,
-    items: data?.items,
-    cortes: data?.cortes,
-    totalItems: data?.items?.length || 0,
-    itemsDetalle: data?.items?.map(item => ({
-      id: item.id,
-      productoId: item.productoId,
-      producto: item.producto,
-      descripcion: item.descripcion,
-      cantidad: item.cantidad,
-      precioUnitario: item.precioUnitario,
-      totalLinea: item.totalLinea
-    }))
-  });
   return data;
 }
 
@@ -128,7 +111,7 @@ export async function crearOrdenVenta(payload) {
         
         return {
           productoId: productoId,
-          cantidad: parseInt(item.cantidad),
+          cantidad: parseFloat(item.cantidad),
           descripcion: String(item.descripcion || ""),
           precioUnitario: parseFloat(item.precioUnitario),
           // reutilizarCorteSolicitadoId es opcional
@@ -175,21 +158,7 @@ export async function crearOrdenVenta(payload) {
       }) : []
     };
     
-    console.log(" Enviando ordenData al backend:", {
-      fecha: ordenData.fecha,
-      tipoFecha: typeof ordenData.fecha,
-      clienteId: ordenData.clienteId,
-      totalItems: ordenData.items?.length
-    });
-    
     const { data } = await api.post("ordenes/venta", ordenData);
-    
-    console.log(" Respuesta del backend:", {
-      id: data?.id,
-      numero: data?.numero,
-      fecha: data?.fecha,
-      fechaRecibida: data?.fecha
-    });
     
     return data;
   } catch (error) {

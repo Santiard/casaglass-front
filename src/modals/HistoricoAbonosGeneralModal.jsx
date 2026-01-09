@@ -43,7 +43,6 @@ export default function HistoricoAbonosGeneralModal({ isOpen, onClose }) {
       const abonosData = await listarAbonos(params);
       setAbonos(Array.isArray(abonosData) ? abonosData : []);
     } catch (err) {
-      console.error("Error cargando abonos:", err);
       showError("No se pudieron cargar los abonos.");
       setAbonos([]);
     } finally {

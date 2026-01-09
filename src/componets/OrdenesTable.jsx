@@ -160,11 +160,9 @@ export default function OrdenesTable({
     try {
       const ordenDetallada = await obtenerOrdenDetalle(orden.id);
       const ordenNorm = normalizarOrden(ordenDetallada);
-      console.log('[OrdenesTable] Imprimir orden (detallada):', ordenNorm);
       setOrdenImprimir(ordenNorm);
       setIsImprimirModalOpen(true);
     } catch (error) {
-      console.error('Error obteniendo detalle de la orden para imprimir:', error);
       // Fallback: usar la orden básica
       setOrdenImprimir(normalizarOrden(orden));
       setIsImprimirModalOpen(true);
@@ -299,7 +297,6 @@ export default function OrdenesTable({
       setIsModalOpen(false);
       setOrdenEditando(null);
     } catch (e) {
-      console.error("Error guardando orden", e);
       showError("Error guardando orden. Revisa consola.");
     }
   };
@@ -418,7 +415,7 @@ export default function OrdenesTable({
           <tbody>
             {loading && (
               <tr>
-                <td colSpan={9} className="empty">
+                <td colSpan={10} className="empty">
                   Cargando...
                 </td>
               </tr>
@@ -500,11 +497,9 @@ export default function OrdenesTable({
                               // Usar SIEMPRE el endpoint de detalle
                               const ordenDetallada = await obtenerOrdenDetalle(o.id);
                               const ordenNorm = normalizarOrden(ordenDetallada);
-                              console.log('[OrdenesTable] Editar orden (detallada):', ordenNorm);
                               setOrdenEditando(ordenNorm);
                               setIsModalOpen(true);
                             } catch (error) {
-                              console.error("Error cargando orden detallada para editar:", error);
                               showError("Error al cargar los datos completos de la orden. Intenta nuevamente.");
                             }
                           }}
@@ -530,12 +525,12 @@ export default function OrdenesTable({
 
                     {expanded[id] && (
                       <tr key={`detalles-${id}`}>
-                        <td colSpan={9}>
+                        <td colSpan={10} style={{ padding: 0 }}>
                           {detalles.length === 0 ? (
                             <div className="empty-sub">Sin ítems.</div>
                           ) : (
-                            <div className="orden-detalles-container">
-                              <table className="orden-detalles-table">
+                            <div className="orden-detalles-container" style={{ width: '100%', padding: '1rem' }}>
+                              <table className="orden-detalles-table" style={{ width: '100%' }}>
                                 <thead>
                                   <tr>
                                     <th>Código</th>
@@ -581,14 +576,6 @@ export default function OrdenesTable({
                                     // El total facturado viene del backend (o.total), si no está disponible usar totalOrden calculado
                                     const totalFacturado = (typeof o.total === 'number' && o.total !== null && o.total !== undefined) ? o.total : totalOrden;
                                     
-                                    // LOG: Valores que se van a mostrar
-                                    console.log(`[OrdenesTable] Valores calculados para mostrar (orden ${id}):`, {
-                                      subtotal,
-                                      descuentos,
-                                      iva,
-                                      retencionFuente,
-                                      totalFacturado
-                                    });
                                     
                                     return (
                                       <>
@@ -673,7 +660,6 @@ export default function OrdenesTable({
           try {
             await onEditar(null, true);
           } catch (e) {
-            console.error("Error refrescando tabla:", e);
           }
         }}
         onSave={handleGuardar}
@@ -736,7 +722,6 @@ export default function OrdenesTable({
               // Simular una llamada para refrescar (onFacturar maneja el refresh)
               await onFacturar(null, true);
             } catch (e) {
-              console.error("Error refrescando tabla:", e);
             }
           }
         }}

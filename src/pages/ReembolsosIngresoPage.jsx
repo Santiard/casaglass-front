@@ -23,7 +23,6 @@ export default function ReembolsosIngresoPage() {
       const lista = await ReembolsosIngresoService.listarReembolsos(params);
       setReembolsos(lista || []);
     } catch (error) {
-      console.error("Error cargando reembolsos:", error);
       showError("No se pudieron cargar los reembolsos.");
     } finally {
       setLoading(false);
@@ -40,7 +39,6 @@ export default function ReembolsosIngresoPage() {
       await cargarReembolsos();
       showSuccess("Reembolso creado exitosamente.");
     } catch (error) {
-      console.error("Error creando reembolso:", error);
       const msg = error?.response?.data?.error || error?.message || "No se pudo crear el reembolso.";
       showError(msg);
       throw error;
@@ -53,7 +51,6 @@ export default function ReembolsosIngresoPage() {
       await cargarReembolsos();
       showSuccess("Reembolso procesado exitosamente.");
     } catch (error) {
-      console.error("Error procesando reembolso:", error);
       const msg = error?.response?.data?.error || error?.message || "No se pudo procesar el reembolso.";
       showError(msg);
     }
@@ -65,7 +62,6 @@ export default function ReembolsosIngresoPage() {
       await cargarReembolsos();
       showSuccess("Reembolso anulado exitosamente.");
     } catch (error) {
-      console.error("Error anulando reembolso:", error);
       const msg = error?.response?.data?.error || error?.message || "No se pudo anular el reembolso.";
       showError(msg);
     }
@@ -77,7 +73,6 @@ export default function ReembolsosIngresoPage() {
       await cargarReembolsos();
       showSuccess("Reembolso eliminado exitosamente.");
     } catch (error) {
-      console.error("Error eliminando reembolso:", error);
       const msg = error?.response?.data?.error || error?.message || "No se pudo eliminar el reembolso.";
       showError(msg);
     }
@@ -91,7 +86,6 @@ export default function ReembolsosIngresoPage() {
       // TODO: Abrir modal de detalles (crear componente si es necesario)
       alert(`Reembolso #${completo.id}\nTotal: ${new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP" }).format(completo.totalReembolso)}\nEstado: ${completo.estado}`);
     } catch (error) {
-      console.error("Error cargando detalles:", error);
       showError("No se pudieron cargar los detalles del reembolso.");
     }
   };

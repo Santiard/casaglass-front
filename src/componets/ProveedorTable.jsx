@@ -33,7 +33,6 @@ export default function ProveedorTable({
       setIsModalOpen(false);
       setPage(1); // vuelve a la primera página para ver el nuevo
     } catch (e) {
-      console.error("Error guardando proveedor", e);
       const msg = e?.response?.data?.message || "No se pudo guardar el proveedor.";
       showError(msg);
     }

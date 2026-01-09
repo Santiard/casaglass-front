@@ -9,7 +9,6 @@ const ReembolsosVentaService = {
       const { data } = await api.get("reembolsos-venta", { params });
       return Array.isArray(data) ? data : [];
     } catch (error) {
-      console.error("Error listando reembolsos de venta:", error);
       throw error;
     }
   },
@@ -20,7 +19,6 @@ const ReembolsosVentaService = {
       const { data } = await api.get(`reembolsos-venta/${id}`);
       return data;
     } catch (error) {
-      console.error(`Error obteniendo reembolso ${id}:`, error);
       throw error;
     }
   },
@@ -31,7 +29,6 @@ const ReembolsosVentaService = {
       const { data } = await api.get(`reembolsos-venta/orden/${ordenId}`);
       return Array.isArray(data) ? data : [];
     } catch (error) {
-      console.error(`Error obteniendo reembolsos de la orden ${ordenId}:`, error);
       throw error;
     }
   },
@@ -42,7 +39,6 @@ const ReembolsosVentaService = {
       const { data } = await api.post("reembolsos-venta", reembolsoData);
       return data;
     } catch (error) {
-      console.error("Error creando reembolso de venta:", error);
       throw error;
     }
   },
@@ -57,7 +53,6 @@ const ReembolsosVentaService = {
       const { data } = await api.post("reembolsos-venta", reembolsoData);
       return data;
     } catch (error) {
-      console.error(`Error actualizando reembolso ${id}:`, error);
       throw error;
     }
   },
@@ -68,7 +63,6 @@ const ReembolsosVentaService = {
       const { data } = await api.put(`reembolsos-venta/${id}/procesar`);
       return data;
     } catch (error) {
-      console.error(`Error procesando reembolso ${id}:`, error);
       throw error;
     }
   },
@@ -79,7 +73,6 @@ const ReembolsosVentaService = {
       const { data } = await api.put(`reembolsos-venta/${id}/anular`);
       return data;
     } catch (error) {
-      console.error(`Error anulando reembolso ${id}:`, error);
       throw error;
     }
   },
@@ -90,7 +83,6 @@ const ReembolsosVentaService = {
       const { data } = await api.delete(`reembolsos-venta/${id}`);
       return data;
     } catch (error) {
-      console.error(`Error eliminando reembolso ${id}:`, error);
       throw error;
     }
   }

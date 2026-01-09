@@ -28,7 +28,6 @@ export default function HistoricoClienteModal({ isOpen, onClose }) {
           const clientesData = await listarClientes();
           setClientes(Array.isArray(clientesData) ? clientesData : []);
         } catch (err) {
-          console.error("Error cargando clientes:", err);
           showError("No se pudieron cargar los clientes.");
         }
       };
@@ -81,8 +80,6 @@ export default function HistoricoClienteModal({ isOpen, onClose }) {
   const cargarOrdenesCliente = async (clienteId) => {
     setLoading(true);
     try {
-      console.log(" [HISTÓRICO] Buscando órdenes para clienteId:", clienteId, "Tipo:", typeof clienteId);
-      
       // Intentar primero con listarOrdenesTabla (endpoint optimizado)
       // Si no es admin, también filtrar por sede
       const params = {
@@ -92,17 +89,12 @@ export default function HistoricoClienteModal({ isOpen, onClose }) {
         params.sedeId = sedeId;
       }
       
-      console.log(" [HISTÓRICO] Parámetros enviados:", params);
-      
       let ordenesData;
       try {
         ordenesData = await listarOrdenesTabla(params);
-        console.log(" [HISTÓRICO] Órdenes recibidas de listarOrdenesTabla:", ordenesData?.length || 0);
       } catch (tablaError) {
-        console.warn(" [HISTÓRICO] Error con listarOrdenesTabla, intentando con listarOrdenes:", tablaError);
         // Fallback a listarOrdenes
         ordenesData = await listarOrdenes(params);
-        console.log(" [HISTÓRICO] Órdenes recibidas de listarOrdenes:", ordenesData?.length || 0);
       }
       
       // Filtrar por cliente si el backend no lo hace automáticamente
@@ -113,12 +105,10 @@ export default function HistoricoClienteModal({ isOpen, onClose }) {
         const primeraOrden = ordenesFiltradas[0];
         const tieneClienteId = primeraOrden.clienteId || primeraOrden.cliente?.id;
         if (!tieneClienteId || primeraOrden.clienteId !== Number(clienteId)) {
-          console.log(" [HISTÓRICO] Filtrando en frontend por clienteId:", clienteId);
           ordenesFiltradas = ordenesFiltradas.filter(orden => {
             const ordenClienteId = orden.clienteId || orden.cliente?.id;
             return Number(ordenClienteId) === Number(clienteId);
           });
-          console.log(" [HISTÓRICO] Órdenes después de filtrar:", ordenesFiltradas.length);
         }
       }
       
@@ -131,13 +121,9 @@ export default function HistoricoClienteModal({ isOpen, onClose }) {
         return diffFechas;
       });
       
-      console.log(" [HISTÓRICO] Órdenes finales ordenadas:", ordenesOrdenadas.length);
       setOrdenesCompletas(ordenesOrdenadas);
       // setOrdenes se actualizará automáticamente por el useEffect de filtrado
     } catch (err) {
-      console.error(" [HISTÓRICO] Error cargando órdenes del cliente:", err);
-      console.error(" [HISTÓRICO] Error response:", err.response?.data);
-      console.error(" [HISTÓRICO] Error status:", err.response?.status);
       showError("No se pudieron cargar las órdenes del cliente.");
       setOrdenes([]);
     } finally {

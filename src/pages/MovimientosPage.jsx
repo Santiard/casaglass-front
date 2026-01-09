@@ -168,7 +168,6 @@ export default function MovimientosPage() {
     try {
       // Obtener el traslado completo con todos los detalles
       const trasladoCompleto = await obtenerTraslado(movimiento.id);
-      console.log('🔍 [MovimientosPage] Traslado completo recibido:', trasladoCompleto);
       setSeleccionado(trasladoCompleto);
     } catch (error) {
       showError("No se pudo obtener el detalle del traslado.");

@@ -613,16 +613,7 @@ export default function EntregasImprimirModal({ entregas = [], isOpen, onClose }
                       const nombreCliente = detalle.clienteNombre || detalle.cliente?.nombre || "Cliente";
                       let metodoPagoStr = "";
                       
-                      // 🔍 DEBUG: Ver qué tiene cada detalle
-                      console.log(`🔍 [Impresión] Orden #${numeroOrden}:`, {
-                        esAbono,
-                        ventaCredito: detalle.ventaCredito,
-                        descripcion: detalle.descripcion,
-                        metodoPago: detalle.metodoPago,
-                        montoEfectivo: detalle.montoEfectivo,
-                        montoTransferencia: detalle.montoTransferencia
-                      });
-                      
+
                       // Obtener el string completo del método de pago
                       if (esAbono) {
                         // Para abonos: usar metodoPago
@@ -661,8 +652,6 @@ export default function EntregasImprimirModal({ entregas = [], isOpen, onClose }
                           metodoPagoStr = partes.join(' | ');
                         }
                       }
-                      
-                      console.log(`🔍 [Impresión] Orden #${numeroOrden} - metodoPagoStr:`, metodoPagoStr);
                       
                       if (!metodoPagoStr.trim()) return;
                       

@@ -286,12 +286,9 @@ export default function OrdenEditarModal({
     }
 
     // Cargar bancos al abrir el modal
-    console.log(" [OrdenModal] Cargando bancos...");
     listarBancos().then((bancosData) => {
-      console.log(" [OrdenModal] Bancos cargados:", bancosData);
       setBancos(Array.isArray(bancosData) ? bancosData : []);
     }).catch((err) => {
-      console.error(" [OrdenModal] Error cargando bancos:", err);
       setBancos([]);
     });
     
@@ -1317,22 +1314,8 @@ export default function OrdenEditarModal({
         // Validar que productoId sea válido antes de enviar
         const productoId = Number(i.productoId);
         if (!productoId || productoId === 0) {
-          console.error(" ERROR: Producto sin ID válido en edición:", {
-            codigo: i.codigo,
-            nombre: i.nombre,
-            productoId: i.productoId,
-            productoIdNumber: productoId
-          });
           throw new Error(`El producto "${i.nombre || i.codigo}" no tiene un ID válido. Por favor, recarga la página e intenta nuevamente.`);
         }
-        
-        console.log(" Item preparado para actualizar orden:", {
-          productoId: productoId,
-          codigo: i.codigo,
-          nombre: i.nombre,
-          cantidad: Number(i.cantidad ?? 1),
-          precioUnitario: Number(i.precioUnitario ?? 0)
-        });
         
         return {
           id: i.id ?? null,
@@ -2192,7 +2175,8 @@ export default function OrdenEditarModal({
                       <input
                         type="number"
                         value={i.cantidad || ""}
-                        min={1}
+                        min={0.01}
+                        step={0.01}
                         placeholder="1"
                         onChange={(e) =>
                           handleItemChange(idx, "cantidad", e.target.value)

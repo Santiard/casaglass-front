@@ -135,7 +135,6 @@ export default function OrdenesPage() {
           ordenCompleta = detalleResponse;
         }
       } catch (err) {
-        console.warn(" No se pudo obtener la orden completa, usando la de la tabla:", err);
         // Continuar con la orden de la tabla si falla
       }
       
@@ -215,7 +214,6 @@ export default function OrdenesPage() {
               await marcarFacturaComoPagada(facturaExistente.id, hoy);
             }
           } catch (lookupErr) {
-            console.warn(" No se pudo marcar como pagada la factura existente:", lookupErr?.response?.data || lookupErr?.message);
           }
         } else {
           throw err;

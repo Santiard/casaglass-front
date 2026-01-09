@@ -104,17 +104,10 @@ export default function VentaTable({
 
   // Función para agregar todos los productos del kit al carrito
   const handleAgregarKit = (producto, uniqueKey) => {
-    console.log("🔧 DEBUG handleAgregarKit - Inicio");
-    console.log("Producto recibido:", producto);
-    console.log("Producto completo:", JSON.stringify(producto, null, 2));
-    console.log("uniqueKey:", uniqueKey);
-    
     // Obtener la cantidad del input (por defecto 1 si está vacío)
     const cantidad = parseInt(cantidadesVenta[uniqueKey]) || 1;
-    console.log("Cantidad:", cantidad);
     
     if (cantidad <= 0) {
-      console.warn("La cantidad debe ser mayor a 0");
       return;
     }
     
@@ -122,32 +115,24 @@ export default function VentaTable({
     const categoriaNombre = typeof producto.categoria === 'string' 
       ? producto.categoria 
       : (producto.categoria?.nombre || '');
-    console.log("Categoría extraída:", categoriaNombre);
     
     // Obtener el código y color del producto actual para buscar productos del mismo color
     const codigoProductoActual = producto.codigo || '';
     const colorProductoActual = producto.color || '';
-    console.log("Código producto actual:", codigoProductoActual);
-    console.log("Color producto actual:", colorProductoActual);
     
     // Obtener los códigos de productos que componen el kit
     const codigosKit = obtenerCodigosKit(categoriaNombre);
-    console.log("Códigos del kit obtenidos:", codigosKit);
     
     if (codigosKit.length === 0) {
-      console.warn(`No hay productos configurados para el kit de categoría: ${categoriaNombre}`);
       return;
     }
     
     // Buscar los productos del kit en el catálogo completo
     // IMPORTANTE: Buscar por código Y color para que coincidan con el producto actual
     const catalogo = todosLosProductos.length > 0 ? todosLosProductos : data;
-    console.log("Catálogo usado:", catalogo.length > 0 ? `todosLosProductos (${todosLosProductos.length} items)` : `data (${data.length} items)`);
-    console.log("Primeros 3 productos del catálogo:", catalogo.slice(0, 3).map(p => ({ codigo: p.codigo, color: p.color, categoria: p.categoria })));
     
     const productosKit = codigosKit
       .map(codigo => {
-        console.log(`Buscando código: ${codigo}`);
         // Buscar producto que coincida en código Y color
         const productoEncontrado = catalogo.find(p => {
           // Normalizar código: convertir a string y limpiar espacios
@@ -160,39 +145,18 @@ export default function VentaTable({
           const colorBuscado = String(colorProductoActual || '').toUpperCase().trim();
           const colorCoincide = colorProducto === colorBuscado;
           
-          console.log(`  - Producto: ${codigoProducto} (${colorProducto}) - Código coincide: ${codigoCoincide}, Color coincide: ${colorCoincide}`);
-          
           return codigoCoincide && colorCoincide;
         });
-        
-        if (productoEncontrado) {
-          console.log(`   Encontrado: ${productoEncontrado.codigo} - ${productoEncontrado.nombre} (Color: ${productoEncontrado.color})`);
-        } else {
-          console.log(`   No encontrado para código ${codigo} con color ${colorProductoActual}`);
-          // Intentar buscar sin filtro de color para debug
-          const sinColor = catalogo.find(p => String(p.codigo || '').trim() === String(codigo).trim());
-          if (sinColor) {
-            console.log(`    Producto encontrado SIN color: ${sinColor.codigo} - Color del producto: ${sinColor.color}, Color buscado: ${colorProductoActual}`);
-          }
-        }
         
         return productoEncontrado;
       })
       .filter(p => p !== undefined && p !== null); // Filtrar productos no encontrados
     
-    console.log("Productos del kit encontrados:", productosKit.length);
-    console.log("Productos encontrados:", productosKit.map(p => ({ codigo: p.codigo, nombre: p.nombre, color: p.color })));
-    
     if (productosKit.length === 0) {
-      console.warn(`No se encontraron productos del kit para la categoría ${categoriaNombre} con código ${codigoProductoActual} y color ${colorProductoActual}`);
       return;
     }
     
     // Agregar cada producto del kit al carrito con la cantidad especificada
-    console.log("Agregando productos al carrito...");
-    console.log(`Cantidad de kits a agregar: ${cantidad}`);
-    console.log(`Productos en el kit: ${productosKit.length}`);
-    
     // Agregar todos los productos del kit uno por uno de forma síncrona
     // Esto asegura que cada actualización de estado se procese antes de la siguiente
     productosKit.forEach((productoKit, index) => {
@@ -201,17 +165,10 @@ export default function VentaTable({
          userSede === "Centro" ? productoKit.precio2 :
          userSede === "Patios" ? productoKit.precio3 : productoKit.precio1);
       
-      console.log(`  [${index + 1}/${productosKit.length}] Agregando: ${productoKit.codigo} - ${productoKit.nombre} (Cantidad: ${cantidad}, Precio: ${precioSeleccionado})`);
-      
       if (onAgregarProducto) {
-        console.log(`    → Llamando onAgregarProducto para ${productoKit.codigo} con cantidad ${cantidad}`);
         onAgregarProducto(productoKit, cantidad, precioSeleccionado);
-      } else {
-        console.error(" onAgregarProducto no está definido!");
       }
     });
-    
-    console.log(` Kit agregado correctamente - ${productosKit.length} productos agregados`);
     
     // Limpiar el input de cantidad después de agregar
     setCantidadesVenta(prev => ({ ...prev, [uniqueKey]: "" }));
@@ -436,7 +393,6 @@ export default function VentaTable({
                             onClick={(e) => {
                               e.preventDefault();
                               e.stopPropagation();
-                              console.log("🔘 Botón Kit clickeado - Producto:", p);
                               handleAgregarKit(p, uniqueKey);
                             }}
                             disabled={!cantidadesVenta[uniqueKey] || cantidadesVenta[uniqueKey] <= 0}

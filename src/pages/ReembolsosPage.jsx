@@ -39,7 +39,6 @@ export default function ReembolsosPage() {
       const lista = await ReembolsosIngresoService.listarReembolsos();
       setReembolsosIngreso(lista || []);
     } catch (error) {
-      console.error("Error cargando reembolsos de ingreso:", error);
       showError("No se pudieron cargar las devoluciones de ingreso.");
     } finally {
       setLoadingIngreso(false);
@@ -53,7 +52,6 @@ export default function ReembolsosPage() {
       const lista = await ReembolsosVentaService.listarReembolsos();
       setReembolsosVenta(lista || []);
     } catch (error) {
-      console.error("Error cargando reembolsos de venta:", error);
       showError("No se pudieron cargar las devoluciones de venta.");
     } finally {
       setLoadingVenta(false);
@@ -82,7 +80,6 @@ export default function ReembolsosPage() {
       }
       await cargarReembolsosIngreso();
     } catch (error) {
-      console.error("Error guardando reembolso de ingreso:", error);
       const msg = error?.response?.data?.error || error?.message || "No se pudo guardar la devolución.";
       showError(msg);
       throw error;
@@ -95,7 +92,6 @@ export default function ReembolsosPage() {
       await cargarReembolsosIngreso();
       showSuccess("Devolución procesada exitosamente.");
     } catch (error) {
-      console.error("Error procesando reembolso:", error);
       const msg = error?.response?.data?.error || error?.message || "No se pudo procesar la devolución.";
       showError(msg);
     }
@@ -107,7 +103,6 @@ export default function ReembolsosPage() {
       await cargarReembolsosIngreso();
       showSuccess("Devolución eliminada exitosamente.");
     } catch (error) {
-      console.error("Error eliminando reembolso:", error);
       const msg = error?.response?.data?.error || error?.message || "No se pudo eliminar la devolución.";
       showError(msg);
     }
@@ -141,7 +136,6 @@ export default function ReembolsosPage() {
       }
       await cargarReembolsosVenta();
     } catch (error) {
-      console.error("Error guardando reembolso de venta:", error);
       const msg = error?.response?.data?.error || error?.message || "No se pudo guardar la devolución.";
       showError(msg);
       throw error;
@@ -154,7 +148,6 @@ export default function ReembolsosPage() {
       await cargarReembolsosVenta();
       showSuccess("Devolución procesada exitosamente.");
     } catch (error) {
-      console.error("Error procesando reembolso:", error);
       const msg = error?.response?.data?.error || error?.message || "No se pudo procesar la devolución.";
       showError(msg);
     }
@@ -166,7 +159,6 @@ export default function ReembolsosPage() {
       await cargarReembolsosVenta();
       showSuccess("Devolución eliminada exitosamente.");
     } catch (error) {
-      console.error("Error eliminando reembolso:", error);
       const msg = error?.response?.data?.error || error?.message || "No se pudo eliminar la devolución.";
       showError(msg);
     }

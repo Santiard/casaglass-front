@@ -42,8 +42,6 @@ const FacturarMultiplesOrdenesModal = ({ isOpen, onClose, ordenInicial, onSucces
   // Cargar configuración, clientes y orden completa al abrir
   useEffect(() => {
     if (isOpen) {
-      console.log(" [useEffect principal] Modal abierto, ordenInicial:", ordenInicial);
-      
       // Cargar configuración de impuestos
       getBusinessSettings().then((settings) => {
         if (settings) {
@@ -60,22 +58,17 @@ const FacturarMultiplesOrdenesModal = ({ isOpen, onClose, ordenInicial, onSucces
           const clientesData = await listarClientes();
           const clientesArray = Array.isArray(clientesData) ? clientesData : [];
           setClientes(clientesArray);
-          console.log(" Clientes cargados:", clientesArray.length);
           
           // Si viene una orden inicial, obtener la orden completa
           if (ordenInicial?.id) {
-            console.log(" [cargarDatos] Hay ordenInicial con ID:", ordenInicial.id);
             try {
               // Intentar primero con obtenerOrdenDetalle (más ligero y confiable)
               let ordenCompleta;
               try {
                 ordenCompleta = await obtenerOrdenDetalle(ordenInicial.id);
-                console.log(" Orden completa obtenida (detalle):", ordenCompleta);
               } catch (detalleErr) {
-                console.warn(" No se pudo obtener detalle, intentando obtenerOrden completo:", detalleErr);
                 // Fallback: usar obtenerOrden completo
                 ordenCompleta = await obtenerOrden(ordenInicial.id);
-                console.log(" Orden completa obtenida (completo):", ordenCompleta);
               }
               setOrdenInicialCompleta(ordenCompleta); // IMPORTANTE: Guardar la orden completa
               
@@ -83,20 +76,17 @@ const FacturarMultiplesOrdenesModal = ({ isOpen, onClose, ordenInicial, onSucces
               if (ordenCompleta?.cliente) {
                 // Buscar el cliente completo en la lista cargada
                 const clienteCompleto = clientesArray.find(c => c.id === ordenCompleta.cliente.id) || ordenCompleta.cliente;
-                console.log(" Cliente seteado automáticamente:", clienteCompleto);
                 setClienteSeleccionado(clienteCompleto);
                 setClienteFactura(clienteCompleto);
                 setClienteSearch(clienteCompleto.nombre || '');
               } else if (ordenInicial?.cliente) {
                 // Fallback: usar el cliente de la orden inicial
                 const clienteCompleto = clientesArray.find(c => c.id === ordenInicial.cliente.id) || ordenInicial.cliente;
-                console.log(" Usando cliente de ordenInicial (fallback):", clienteCompleto);
                 setClienteSeleccionado(clienteCompleto);
                 setClienteFactura(clienteCompleto);
                 setClienteSearch(clienteCompleto.nombre || '');
               }
             } catch (ordenErr) {
-              console.warn("No se pudo obtener la orden completa, usando la inicial:", ordenErr);
               setOrdenInicialCompleta(ordenInicial); // Guardar orden inicial como fallback
               // Fallback: usar la orden inicial
               if (ordenInicial?.cliente) {
@@ -117,7 +107,6 @@ const FacturarMultiplesOrdenesModal = ({ isOpen, onClose, ordenInicial, onSucces
             setOrdenInicialCompleta(null);
           }
         } catch (err) {
-          console.error("Error cargando datos:", err);
           setClientes([]);
           // Fallback: usar datos de ordenInicial si están disponibles
           if (ordenInicial?.cliente) {
@@ -136,11 +125,9 @@ const FacturarMultiplesOrdenesModal = ({ isOpen, onClose, ordenInicial, onSucces
   // Este useEffect se ejecuta cuando clienteSeleccionado cambia
   useEffect(() => {
     if (isOpen && clienteSeleccionado?.id) {
-      console.log(" [useEffect clienteSeleccionado] Cargando órdenes facturables para cliente:", clienteSeleccionado.id, clienteSeleccionado.nombre);
       cargarOrdenesFacturables(clienteSeleccionado.id);
     } else if (isOpen && !clienteSeleccionado) {
       // Si se abre sin cliente, limpiar órdenes
-      console.log(" [useEffect clienteSeleccionado] No hay cliente seleccionado, limpiando órdenes");
       setOrdenesFacturables([]);
       setOrdenesSeleccionadas(new Set());
       setOrdenesConRetencion(new Set());
@@ -208,7 +195,6 @@ const FacturarMultiplesOrdenesModal = ({ isOpen, onClose, ordenInicial, onSucces
 
       setOrdenesConRetencion(nuevasOrdenesConRetencion);
     } catch (err) {
-      console.error("Error cargando órdenes facturables:", err);
       setError('Error cargando órdenes facturables del cliente');
       setOrdenesFacturables([]);
     } finally {
@@ -221,18 +207,14 @@ const FacturarMultiplesOrdenesModal = ({ isOpen, onClose, ordenInicial, onSucces
     if (isOpen && ordenInicialCompleta && ordenesFacturables.length > 0) {
       const ordenIdInicial = ordenInicialCompleta.id;
       const ordenEncontrada = ordenesFacturables.find(o => o.id === ordenIdInicial);
-      console.log(" [useEffect ordenInicialCompleta] ordenIdInicial:", ordenIdInicial, "ordenEncontrada:", ordenEncontrada ? "SÍ" : "NO");
       
       if (ordenEncontrada) {
-        console.log(" Preseleccionando orden inicial desde useEffect:", ordenIdInicial);
         // Preseleccionar la orden inicial
         setOrdenesSeleccionadas(new Set([ordenIdInicial]));
         // Actualizar retefuente basado en ordenInicialCompleta
         const tieneRetencion = Boolean(ordenInicialCompleta.tieneRetencionFuente);
-        console.log(" [useEffect ordenInicialCompleta] tieneRetencion:", tieneRetencion);
         
         if (tieneRetencion) {
-          console.log(" Marcando orden con retefuente:", ordenIdInicial);
           setOrdenesConRetencion(new Set([ordenIdInicial]));
         } else {
           setOrdenesConRetencion(new Set());
@@ -441,13 +423,10 @@ const FacturarMultiplesOrdenesModal = ({ isOpen, onClose, ordenInicial, onSucces
             
             // Si no tiene sedeId en el detalle, obtener del endpoint completo
             if (!tieneSedeIdEnDetalle) {
-              console.log(` [FacturarMultiples] Orden ${ordenId} no tiene sedeId en detalle, obteniendo del endpoint completo...`);
               try {
                 const res = await api.get(`/ordenes/${ordenId}`);
                 ordenCompleta = res.data;
-                console.log(` [FacturarMultiples] Orden ${ordenId} obtenida del endpoint completo, sedeId:`, ordenCompleta.sedeId || ordenCompleta.sede?.id);
               } catch (fullErr) {
-                console.warn(` [FacturarMultiples] No se pudo obtener orden completa para ${ordenId}, usando detalle:`, fullErr);
                 // Continuar con ordenDetalle aunque no tenga sedeId
               }
             }
@@ -481,7 +460,6 @@ const FacturarMultiplesOrdenesModal = ({ isOpen, onClose, ordenInicial, onSucces
               })
             };
           } catch (detalleErr) {
-            console.warn(` No se pudo obtener detalle de orden ${ordenId}, intentando endpoint completo:`, detalleErr);
             // Fallback: usar el endpoint completo solo si /detalle falla
             try {
               const res = await api.get(`/ordenes/${ordenId}`);
@@ -489,7 +467,6 @@ const FacturarMultiplesOrdenesModal = ({ isOpen, onClose, ordenInicial, onSucces
             } catch (fullErr) {
               // Si ambos fallan, usar la orden de la lista (tiene menos datos pero es mejor que nada)
               if (ordenEnLista) {
-                console.warn(` Usando orden de la lista para ${ordenId} (sin items completos)`);
                 return ordenEnLista;
               }
               throw new Error(`No se pudo obtener la orden ${ordenId}`);
@@ -498,18 +475,9 @@ const FacturarMultiplesOrdenesModal = ({ isOpen, onClose, ordenInicial, onSucces
         })
       );
 
-      // Actualizar IVA, tieneRetencionFuente y retencionFuente en las órdenes que lo necesiten
-      console.log(` [FacturarMultiples] Iniciando actualización de órdenes. Total: ${ordenesCompletas.length}`);
-      console.log(` [FacturarMultiples] Órdenes con retención marcada:`, Array.from(ordenesConRetencion));
       
       for (const orden of ordenesCompletas) {
         const tieneRetencion = ordenesConRetencion.has(orden.id);
-        console.log(` [FacturarMultiples] Procesando orden ${orden.numero} (ID: ${orden.id}):`, {
-          tieneRetencion,
-          ordenTieneRetencionFuente: orden.tieneRetencionFuente,
-          ordenRetencionFuente: orden.retencionFuente,
-          ordenVenta: orden.venta
-        });
         
         // Calcular totales para verificar si necesitamos actualizar
         const totales = calcularTotalesOrden(orden);
@@ -542,39 +510,12 @@ const FacturarMultiplesOrdenesModal = ({ isOpen, onClose, ordenInicial, onSucces
           );
           
           if (!sedeId || sedeId === 0 || isNaN(sedeId)) {
-            // Log detallado de todas las propiedades de la orden para debug
-            console.error(` [FacturarMultiples] ERROR: Orden ${orden.numero} (ID: ${orden.id}) no tiene sedeId válido.`, {
-              orden: {
-                id: orden.id,
-                numero: orden.numero,
-                sedeId: orden.sedeId,
-                sede: orden.sede,
-                venta: orden.venta,
-                // Mostrar todas las propiedades de la orden para debug
-                todasLasPropiedades: Object.keys(orden),
-                sedeId_directo: orden.sedeId,
-                sedeId_de_sede: orden.sede?.id,
-                sede_completo: orden.sede
-              },
-              necesitaActualizarIva,
-              debeActualizarPorRetencion,
-              tieneRetencion,
-              // Mostrar también qué valores se intentaron obtener
-              intentosSedeId: {
-                'orden.sedeId': orden.sedeId,
-                'orden.sede?.id': orden.sede?.id,
-                'orden.sede && orden.sede.id': (orden.sede && orden.sede.id)
-              }
-            });
             // NO continuar con la actualización, pero permitir que se cree la factura
             // El backend debería poder manejar esto, pero es mejor tener el sedeId
-            console.warn(` [FacturarMultiples] La orden ${orden.numero} no tiene sede asignada. La factura se creará pero la orden no se actualizará con los valores de retención.`);
             // Continuar con la facturación aunque no se pueda actualizar la orden
             // El backend calculará los valores correctamente al crear la factura
             continue;
           }
-          
-          console.log(` [FacturarMultiples] Orden ${orden.numero} tiene sedeId válido: ${sedeId}`);
           
           try {
             const valorRetencionFuente = tieneRetencion ? totales.reteVal : 0;
@@ -604,22 +545,9 @@ const FacturarMultiplesOrdenesModal = ({ isOpen, onClose, ordenInicial, onSucces
               }))
             };
             
-            console.log(` [FacturarMultiples] Actualizando orden ${orden.numero} con:`, {
-              tieneRetencionFuente: tieneRetencion,
-              retencionFuente: valorRetencionFuente,
-              iva: totales.ivaVal,
-              subtotal: totales.subtotal,
-              ordenTieneRetencionFuenteAntes: orden.tieneRetencionFuente,
-              ordenRetencionFuenteAntes: orden.retencionFuente,
-              necesitaActualizarRetencion,
-              necesitaActualizarValorRetencion
-            });
-            
             const endpoint = orden.venta ? `/ordenes/venta/${orden.id}` : `/ordenes/tabla/${orden.id}`;
-            console.log(` [FacturarMultiples] Enviando PUT a ${endpoint} con payload:`, ordenUpdatePayload);
             
             const response = await api.put(endpoint, ordenUpdatePayload);
-            console.log(` [FacturarMultiples] Orden ${orden.numero} actualizada exitosamente:`, response.data);
             
             // Actualizar el objeto orden local con los nuevos valores para que el backend los use al crear la factura
             orden.iva = totales.ivaVal;
@@ -627,26 +555,11 @@ const FacturarMultiplesOrdenesModal = ({ isOpen, onClose, ordenInicial, onSucces
             orden.tieneRetencionFuente = tieneRetencion;
             orden.subtotal = totales.subtotal;
           } catch (updateError) {
-            console.error(` [FacturarMultiples] ERROR al actualizar la orden ${orden.id}:`, {
-              error: updateError,
-              response: updateError?.response?.data,
-              status: updateError?.response?.status,
-              payload: ordenUpdatePayload
-            });
             // Continuar con la facturación aunque falle la actualización de la orden
             // El backend debería calcular los valores correctamente al crear la factura
           }
         } else {
-          // Log para debug: por qué no se está actualizando
-          console.log(` [FacturarMultiples] Orden ${orden.numero} NO necesita actualización:`, {
-            venta: orden.venta,
-            tieneRetencion,
-            ordenTieneRetencionFuente: orden.tieneRetencionFuente,
-            ordenRetencionFuente: orden.retencionFuente,
-            necesitaActualizarIva,
-            necesitaActualizarRetencion,
-            necesitaActualizarValorRetencion
-          });
+          // La orden NO necesita actualización
         }
       }
 
@@ -657,20 +570,17 @@ const FacturarMultiplesOrdenesModal = ({ isOpen, onClose, ordenInicial, onSucces
       for (const orden of ordenesCompletas) {
         // Validar que la orden tenga todos los datos necesarios
         if (!orden || !orden.id) {
-          console.error(` Orden inválida (sin ID):`, orden);
           ordenesConError.push({ orden: orden?.numero || 'N/A', error: 'Orden sin ID válido' });
           continue;
         }
         
         // Verificar nuevamente que la orden no esté ya facturada (doble verificación)
         if (orden.facturada || orden.numeroFactura || orden.factura) {
-          console.warn(` La orden ${orden.numero} ya está facturada, saltando...`);
           continue;
         }
         
         // Validar que el cliente de factura tenga ID
         if (!clienteFactura || !clienteFactura.id) {
-          console.error(` Cliente de factura inválido:`, clienteFactura);
           ordenesConError.push({ orden: orden.numero, error: 'Cliente de factura inválido' });
           continue;
         }
@@ -689,22 +599,8 @@ const FacturarMultiplesOrdenesModal = ({ isOpen, onClose, ordenInicial, onSucces
         const valorIvaRedondeado = totales.ivaVal;
         const valorRetencionRedondeado = tieneRetencion ? totales.reteVal : 0;
         
-        // Log de depuración usando los valores ya calculados en totales
-        console.log(`[FacturarMultiples] Orden ${orden.numero} - Impuestos:`, {
-          tieneRetencion,
-          subtotalFacturado: totales.subtotal,
-          baseConIva: totales.base,
-          subtotalSinIva: totales.subtotalSinIva,
-          valorIva: valorIvaRedondeado,
-          valorRetencionFuente: valorRetencionRedondeado,
-          retefuenteRate,
-          rateValido,
-          retefuenteThreshold
-        });
-        
         // Validar que retefuenteRate esté definido si se necesita
         if (tieneRetencion && totales.reteVal > 0 && !rateValido) {
-          console.error(`[FacturarMultiples] retefuenteRate no está definido o es inválido para orden ${orden.numero}:`, retefuenteRate);
           ordenesConError.push({ orden: orden.numero, error: `retefuenteRate inválido: ${retefuenteRate}` });
           continue;
         }
@@ -724,20 +620,15 @@ const FacturarMultiplesOrdenesModal = ({ isOpen, onClose, ordenInicial, onSucces
         
         // Validar que todos los campos requeridos estén presentes
         if (!facturaPayload.ordenId || !facturaPayload.clienteId || !facturaPayload.fecha) {
-          console.error(` Payload inválido para orden ${orden.numero}:`, facturaPayload);
           ordenesConError.push({ orden: orden.numero, error: 'Payload inválido (faltan campos requeridos)' });
           continue;
         }
         
         // Validar que retencionFuente no sea negativo o inválido
         if (facturaPayload.retencionFuente < 0 || isNaN(facturaPayload.retencionFuente)) {
-          console.error(` retencionFuente inválido para orden ${orden.numero}:`, facturaPayload.retencionFuente);
           facturaPayload.retencionFuente = 0;
         }
         
-        // Log del payload para debugging
-        console.log(` [FacturarMultiples] Enviando factura para orden ${orden.numero}:`, facturaPayload);
-
         try {
           const facturaResponse = await api.post('/facturas', facturaPayload);
           
@@ -749,7 +640,7 @@ const FacturarMultiplesOrdenesModal = ({ isOpen, onClose, ordenInicial, onSucces
               });
             }
           } catch (pagoErr) {
-            console.warn(` No se pudo marcar como pagada la factura ${facturaResponse.data?.id}:`, pagoErr);
+            // Silenciar error si no se puede marcar como pagada (no es crítico)
           }
           
           // NOTA: El backend automáticamente marca la orden como facturada al crear la factura
@@ -783,7 +674,6 @@ const FacturarMultiplesOrdenesModal = ({ isOpen, onClose, ordenInicial, onSucces
           // Si es un error 500, registrar pero continuar con las demás
           if (factErr.response?.status === 500) {
             const errorMsg = String(factErr.response?.data?.error || factErr.response?.data?.message || '');
-            console.error(` Error 500 al facturar orden ${orden.numero}:`, errorMsg);
             ordenesConError.push({ 
               orden: orden.numero, 
               error: `Error del servidor: ${errorMsg}` 
@@ -792,7 +682,6 @@ const FacturarMultiplesOrdenesModal = ({ isOpen, onClose, ordenInicial, onSucces
           }
           
           // Para otros errores, registrar y continuar
-          console.error(` Error al facturar orden ${orden.numero}:`, factErr);
           ordenesConError.push({ 
             orden: orden.numero, 
             error: factErr.response?.data?.error || factErr.response?.data?.message || 'Error desconocido' 
@@ -818,7 +707,6 @@ const FacturarMultiplesOrdenesModal = ({ isOpen, onClose, ordenInicial, onSucces
       onClose();
     } catch (err) {
       const errorMessage = err.response?.data?.message || err.message || 'Error al crear las facturas';
-      console.error("Error al facturar órdenes:", errorMessage);
       setError(errorMessage);
       showError(errorMessage);
     } finally {

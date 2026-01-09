@@ -123,7 +123,6 @@ export async function listarInventarioCompleto(params = {}, isAdmin = true, user
     
     return transformados;
   } catch (error) {
-    console.error("Error obteniendo inventario completo:", error);
     throw error;
   }
 }

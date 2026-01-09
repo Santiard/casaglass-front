@@ -28,7 +28,6 @@ export default function HistoricoFacturasClienteModal({ isOpen, onClose }) {
           const clientesData = await listarClientes();
           setClientes(Array.isArray(clientesData) ? clientesData : []);
         } catch (err) {
-          console.error("Error cargando clientes:", err);
           showError("No se pudieron cargar los clientes.");
         }
       };
@@ -81,18 +80,14 @@ export default function HistoricoFacturasClienteModal({ isOpen, onClose }) {
   const cargarFacturasCliente = async (clienteId) => {
     setLoading(true);
     try {
-      console.log(" [HistoricoFacturasCliente] Buscando facturas para clienteId:", clienteId, "Tipo:", typeof clienteId);
       let facturasData;
       try {
         // Intentar primero con el endpoint específico por cliente
         facturasData = await listarFacturasPorCliente(clienteId);
-        console.log(" [HistoricoFacturasCliente] Facturas recibidas de listarFacturasPorCliente:", facturasData?.length || 0);
       } catch (error) {
         // Fallback: obtener todas y filtrar por cliente
-        console.warn(" [HistoricoFacturasCliente] Error con listarFacturasPorCliente, usando fallback:", error);
         const params = isAdmin ? {} : { sedeId };
         const todasFacturas = await listarFacturasTabla(params);
-        console.log(" [HistoricoFacturasCliente] Total facturas obtenidas:", todasFacturas?.length || 0);
         
         // Filtrar por cliente - comparar tanto por ID como por nombre
         facturasData = Array.isArray(todasFacturas) ? todasFacturas.filter(f => {
@@ -107,25 +102,8 @@ export default function HistoricoFacturasClienteModal({ isOpen, onClose }) {
           const coincidePorNombre = facturaClienteNombre && clienteNombre && 
             facturaClienteNombre.trim().toUpperCase() === clienteNombre.trim().toUpperCase();
           
-          const coincide = coincidePorId || coincidePorNombre;
-          
-          if (!coincide) {
-            console.log(" [HistoricoFacturasCliente] Factura filtrada:", {
-              facturaId: f.id,
-              facturaNumero: f.numeroFactura || f.numero,
-              facturaClienteId,
-              facturaClienteNombre,
-              clienteIdBuscado: clienteId,
-              clienteNombreBuscado: clienteNombre,
-              coincidePorId,
-              coincidePorNombre
-            });
-          }
-          
-          return coincide;
+          return coincidePorId || coincidePorNombre;
         }) : [];
-        
-        console.log(" [HistoricoFacturasCliente] Facturas después de filtrar:", facturasData.length);
       }
       
       // Ordenar por fecha descendente (más recientes primero)
@@ -137,13 +115,9 @@ export default function HistoricoFacturasClienteModal({ isOpen, onClose }) {
         return diffFechas;
       }) : [];
       
-      console.log(" [HistoricoFacturasCliente] Facturas finales ordenadas:", facturasOrdenadas.length);
       setFacturasCompletas(facturasOrdenadas);
       // setFacturas se actualizará automáticamente por el useEffect de filtrado
     } catch (err) {
-      console.error(" [HistoricoFacturasCliente] Error cargando facturas del cliente:", err);
-      console.error(" [HistoricoFacturasCliente] Error response:", err.response?.data);
-      console.error(" [HistoricoFacturasCliente] Error status:", err.response?.status);
       showError("No se pudieron cargar las facturas del cliente.");
       setFacturas([]);
     } finally {

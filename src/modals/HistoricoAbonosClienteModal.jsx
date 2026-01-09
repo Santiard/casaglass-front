@@ -31,7 +31,6 @@ export default function HistoricoAbonosClienteModal({ isOpen, onClose }) {
           const clientesData = await listarClientes();
           setClientes(Array.isArray(clientesData) ? clientesData : []);
         } catch (err) {
-          console.error("Error cargando clientes:", err);
           showError("No se pudieron cargar los clientes.");
         }
       };
