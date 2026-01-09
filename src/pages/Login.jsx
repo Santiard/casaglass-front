@@ -40,9 +40,6 @@ export default function Login() {
         navigate("/venderpage", { replace: true });
       }
     } catch (err) {
-      console.error("Error login", err);
-      console.error("Error response data:", err?.response?.data);
-      
       // Extraer mensaje de error del backend según el código de estado
       let errorMessage = "Error al iniciar sesión";
       

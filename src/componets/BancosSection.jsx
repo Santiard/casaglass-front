@@ -17,7 +17,6 @@ export default function BancosSection() {
       const data = await listarBancos();
       setBancos(Array.isArray(data) ? data : []);
     } catch (e) {
-      console.error("Error cargando bancos", e);
       showError("No se pudieron cargar los bancos");
     } finally {
       setLoading(false);

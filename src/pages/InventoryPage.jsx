@@ -74,7 +74,6 @@ export default function InventoryPage() {
       const cats = await listarCategorias();
       setCategories(cats || []);
     } catch (e) {
-      console.error("Error cargando categorías:", e);
       showError("No se pudieron cargar las categorías desde el servidor.");
     }
   }, []);
@@ -168,42 +167,22 @@ export default function InventoryPage() {
       // Buscar la categoría "VIDRIO" específicamente
       const categoriaVidrio = categories.find(c => c.nombre?.toLowerCase() === 'vidrio');
       if (categoriaVidrio) {
-        console.log(" Categoría VIDRIO encontrada:", categoriaVidrio);
+        // Categoría VIDRIO encontrada
       } else {
-        console.warn(" Categoría VIDRIO NO encontrada en la lista de categorías");
+        // Categoría VIDRIO NO encontrada
       }
       
       // Construir filtros para el endpoint
       const params = {};
       if (filters.categoryId) {
         params.categoriaId = filters.categoryId;
-        console.log(" Filtrando por categoría ID:", filters.categoryId);
       }
       
       // Pasar información de autenticación para filtrar según rol
       // Pasar también el mapa de categorías para mapear nombres a IDs
       let productos = await listarInventarioCompleto(params, isAdmin, sedeId, categoriasMap);
-      console.log(" Productos obtenidos de /inventario-completo:", productos?.length || 0);
       
       const vidrios = productos?.filter(p => p.esVidrio || (typeof p.categoria === 'string' && p.categoria.toLowerCase().includes('vidrio'))) || [];
-      console.log(" Productos vidrio encontrados:", vidrios.length);
-      if (vidrios.length > 0) {
-        console.log(" Vidrios:", vidrios.map(v => ({ 
-          id: v.id, 
-          nombre: v.nombre, 
-          categoria: v.categoria, 
-          categoriaId: v.categoriaId,
-          esVidrio: v.esVidrio 
-        })));
-      }
-      
-      console.log(" Primeros 3 productos:", productos?.slice(0, 3).map(p => ({ 
-        id: p.id, 
-        nombre: p.nombre, 
-        categoria: p.categoria, 
-        categoriaId: p.categoriaId,
-        esVidrio: p.esVidrio 
-      })));
       
       // FILTRAR productos que tienen categoría VIDRIO pero NO son ProductoVidrio reales
       // Estos son productos con categoria.nombre="VIDRIO" pero esVidrio=false/undefined y sin campos mm/m1/m2
@@ -219,25 +198,14 @@ export default function InventoryPage() {
           if (tieneCamposVidrio) return true;
           
           // Si NO es vidrio real, excluirlo
-          console.warn("EXCLUYENDO producto falso con categoría VIDRIO:", {
-            id: p.id,
-            codigo: p.codigo,
-            nombre: p.nombre,
-            esVidrio: p.esVidrio,
-            mm: p.mm,
-            m1: p.m1,
-            m2: p.m2
-          });
           return false;
         }) || [];
         
-        console.log(`Productos REALES de vidrio después del filtro: ${productosFiltrados.length} (antes: ${productos?.length || 0})`);
         productos = productosFiltrados;
       }
       
       setData(productos || []);
     } catch (e) {
-      console.error("Error cargando inventario completo", e);
       showError(e?.response?.data?.message || "No se pudo cargar el inventario.");
     } finally {
       setLoading(false);
@@ -249,7 +217,6 @@ export default function InventoryPage() {
   // Escuchar evento de actualización de inventario (cuando se actualiza un producto desde ingresos)
   useEffect(() => {
     const handleInventoryUpdate = () => {
-      console.log("🔄 Evento de actualización de inventario recibido, refrescando datos...");
       fetchData();
     };
 
@@ -268,7 +235,6 @@ export default function InventoryPage() {
       const cortesData = await listarCortesInventarioCompleto({}, isAdmin, sedeId);
       setCortes(cortesData || []);
     } catch (e) {
-      console.error("Error cargando inventario completo de cortes", e);
       showError(e?.response?.data?.message || "No se pudo cargar el inventario de cortes.");
     } finally {
       setLoading(false);
@@ -278,16 +244,7 @@ export default function InventoryPage() {
   useEffect(() => { fetchCortesData(); }, [fetchCortesData]);
 
   const handleAddProduct = () => { setEditingProduct(null); setModalOpen(true); };
-  const handleEditProduct = (product) => { 
-    console.log("Editando producto - Datos completos:", product);
-    console.log("  - id:", product.id);
-    console.log("  - productoVidrioId:", product.productoVidrioId);
-    console.log("  - esVidrio:", product.esVidrio);
-    console.log("  - categoria:", product.categoria);
-    console.log("  - categoriaObj:", product.categoriaObj);
-    console.log("  - mm:", product.mm);
-    console.log("  - m1:", product.m1);
-    console.log("  - m2:", product.m2);
+  const handleEditProduct = (product) => {
     setEditingProduct(product); 
     setModalOpen(true); 
   };
@@ -299,7 +256,6 @@ export default function InventoryPage() {
       await fetchCategorias(); // Refrescar lista de categorías
       // alert("Categoría creada exitosamente"); // Reemplazado por toast
     } catch (e) {
-      console.error("Error creando categoría", e);
       throw e; // El modal maneja el error
     }
   };
@@ -317,20 +273,12 @@ export default function InventoryPage() {
                        tieneCamposVidrio;
       const editando = !!editingProduct?.id;
 
-      console.log(" handleSaveProduct - Verificando si es vidrio:");
-      console.log("  - categoriaNombre:", categoriaNombre);
-      console.log("  - product.esVidrio:", product.esVidrio);
-      console.log("  - tieneCamposVidrio (mm/m1/m2):", tieneCamposVidrio);
-      console.log("  - esVidrio calculado:", esVidrio);
-      console.log("  - Endpoint a usar:", esVidrio ? "POST /productos-vidrio" : "POST /productos");
-
       if (esVidrio) {
         //  Producto vidrio: usar endpoint /productos-vidrio
         if (editando) {
           // Para productos vidrio, el id retornado por /inventario-completo ES el ID correcto
           // debido a la herencia JOINED en el backend (@PrimaryKeyJoinColumn)
           const vidrioId = editingProduct.id;
-          console.log("📝 Actualizando producto vidrio con ID:", vidrioId);
           
           // 1. Actualizar el producto vidrio (campos del producto)
           // IMPORTANTE: El payload NO debe incluir cantidadInsula, cantidadCentro, cantidadPatios
@@ -348,12 +296,6 @@ export default function InventoryPage() {
           
           // 2. Actualizar el inventario por sede (siempre, porque el endpoint de producto vidrio NO actualiza inventario)
           // El endpoint PUT /productos-vidrio/{id} NO actualiza el inventario, necesitamos hacerlo por separado
-          console.log(" Actualizando inventario por sede para producto vidrio:", {
-            productoId: vidrioId,
-            cantidadInsula,
-            cantidadCentro,
-            cantidadPatios
-          });
           await actualizarInventarioPorProducto(vidrioId, {
             cantidadInsula,
             cantidadCentro,
@@ -361,17 +303,7 @@ export default function InventoryPage() {
           });
         } else {
           // CREAR NUEVO VIDRIO
-          console.log("✨ CREANDO NUEVO PRODUCTO VIDRIO:");
-          console.log("  - Payload completo:", JSON.stringify(product, null, 2));
-          console.log("  - mm:", product.mm, "(tipo:", typeof product.mm, ")");
-          console.log("  - m1:", product.m1, "(tipo:", typeof product.m1, ")");
-          console.log("  - m2:", product.m2, "(tipo:", typeof product.m2, ")");
-          console.log("  - categoria:", product.categoria);
-          
           const resultado = await crearProductoVidrio(product);
-          console.log("VIDRIO CREADO - Respuesta del backend:", resultado);
-          console.log("  - ID retornado:", resultado?.id);
-          console.log("  - esVidrio:", resultado?.esVidrio);
         }
       } else {
         //  Producto normal: usar endpoint /productos
@@ -380,12 +312,10 @@ export default function InventoryPage() {
       }
 
       // Refrescar datos después de guardar
-      console.log("🔄 Refrescando inventario después de guardar producto...");
       await fetchData();
       setModalOpen(false);
       showSuccess(editando ? "Producto actualizado correctamente" : "Producto creado correctamente");
     } catch (e) {
-      console.error("Error guardando producto", e);
       showError(e?.response?.data?.message || "No se pudo guardar el producto.");
     }
   };
@@ -412,7 +342,6 @@ export default function InventoryPage() {
 
       await fetchData();
     } catch (e) {
-      console.error("Error eliminando producto", e);
       showError(e?.response?.data?.message || "No se pudo eliminar el producto.");
     }
   };
@@ -431,12 +360,6 @@ export default function InventoryPage() {
     // Debug: mostrar qué categoría está seleccionada
     if (categoryId) {
       const selectedCategory = categories.find(cat => cat.id === categoryId);
-      console.log(` Filtro activo - Categoría seleccionada:`, {
-        categoryId,
-        categoryNombre: selectedCategory?.nombre,
-        totalProductos: data?.length || 0,
-        productosVidrio: data?.filter(p => p.esVidrio).length || 0
-      });
     }
     
     let productosDespuesCategoria = (data || []);
@@ -461,34 +384,7 @@ export default function InventoryPage() {
           
           const coincide = coincidePorId || coincidePorNombre;
           
-          // Debug detallado para vidrios
-          if (item.esVidrio) {
-            console.log(` Filtro categoría - Vidrio (${coincide ? '' : ''}):`, {
-              itemId: item.id,
-              itemNombre: item.nombre,
-              itemCategoria: item.categoria,
-              itemCategoriaObj: item.categoriaObj,
-              itemCategoriaId: item.categoriaId,
-              itemCategoriaNombre,
-              selectedCategoryId: categoryId,
-              selectedCategoryNombre: selectedCategory.nombre,
-              coincidePorId,
-              coincidePorNombre,
-              coincide,
-              tipoCategoria: typeof item.categoria,
-              tieneCategoriaObj: !!item.categoriaObj,
-              categoriaObjId: item.categoriaObj?.id,
-              categoriaObjNombre: item.categoriaObj?.nombre
-            });
-          }
-          
           return coincide;
-        });
-        
-        console.log(` Después del filtro de categoría (ID: ${categoryId}):`, {
-          totalAntes: data?.length || 0,
-          totalDespues: productosDespuesCategoria.length,
-          vidriosDespues: productosDespuesCategoria.filter(p => p.esVidrio).length
         });
       }
     }
@@ -500,15 +396,6 @@ export default function InventoryPage() {
         const nombre = (item.nombre || "").toLowerCase();
         const codigo = (item.codigo || "").toLowerCase();
         const pasa = nombre.includes(search) || codigo.includes(search);
-        if (item.esVidrio && !pasa && categoryId === 26) {
-          console.log(` Filtro búsqueda - Vidrio filtrado:`, {
-            itemId: item.id,
-            itemNombre: item.nombre,
-            search,
-            nombreIncluye: nombre.includes(search),
-            codigoIncluye: codigo.includes(search)
-          });
-        }
         return pasa;
       })
       // Filtro por status (Disponible/Agotado)
@@ -524,44 +411,18 @@ export default function InventoryPage() {
         // Agotado: stock === 0 exactamente
         const estado = total !== 0 ? "Disponible" : "Agotado";
         const pasa = estado === status;
-        if (item.esVidrio && !pasa && categoryId === 26) {
-          console.log(` Filtro status - Vidrio filtrado:`, {
-            itemId: item.id,
-            itemNombre: item.nombre,
-            total,
-            estado,
-            statusFiltro: status
-          });
-        }
         return pasa;
       })
       // Filtro por color
       .filter((item) => {
         if (!color) return true;
         const pasa = (item.color || "").toUpperCase() === color.toUpperCase();
-        if (item.esVidrio && !pasa && categoryId === 26) {
-          console.log(` Filtro color - Vidrio filtrado:`, {
-            itemId: item.id,
-            itemNombre: item.nombre,
-            itemColor: item.color,
-            colorFiltro: color
-          });
-        }
         return pasa;
       })
       // Filtro por rango de precios
       .filter((item) => {
         const precio = Number(item.precio1 || 0);
         const pasa = precio >= min && precio <= max;
-        if (item.esVidrio && !pasa && categoryId === 26) {
-          console.log(` Filtro precio - Vidrio filtrado:`, {
-            itemId: item.id,
-            itemNombre: item.nombre,
-            precio,
-            min,
-            max
-          });
-        }
         return pasa;
       });
   }, [view, data, categories, filters.categoryId, filters.search, filters.status, filters.color, filters.priceMin, filters.priceMax]);
@@ -569,30 +430,7 @@ export default function InventoryPage() {
   // Log del resultado final del filtro
   useEffect(() => {
     if (view === "producto" && filters.categoryId === 26) {
-      console.log(` Resultado final del filtro (VIDRIO):`, {
-        totalProductos: data?.length || 0,
-        productosFiltrados: filteredData.length,
-        vidriosFiltrados: filteredData.filter(p => p.esVidrio).length,
-        filtrosActivos: {
-          categoryId: filters.categoryId,
-          search: filters.search,
-          status: filters.status,
-          color: filters.color,
-          priceMin: filters.priceMin,
-          priceMax: filters.priceMax
-        }
-      });
-      if (filteredData.length > 0) {
-        console.log(` Productos que pasaron todos los filtros:`, filteredData.map(p => ({
-          id: p.id,
-          nombre: p.nombre,
-          categoria: p.categoria,
-          categoriaId: p.categoriaId,
-          esVidrio: p.esVidrio
-        })));
-      } else {
-        console.warn(` NO HAY PRODUCTOS DESPUÉS DE TODOS LOS FILTROS`);
-      }
+      // Filtro aplicado
     }
   }, [view, filteredData, filters, data]);
 
@@ -741,7 +579,6 @@ export default function InventoryPage() {
       // Refrescar página después de eliminar
       window.location.reload();
     } catch (e) {
-      console.error("Error eliminando corte", e);
       showError(e?.response?.data?.message || "No se pudo eliminar el corte.");
     }
   };
@@ -759,7 +596,6 @@ export default function InventoryPage() {
       setCorteModalOpen(false);
       window.location.reload();
     } catch (e) {
-      console.error("Error guardando corte", e);
       showError(e?.response?.data?.message || "No se pudo guardar el corte.");
     }
   };

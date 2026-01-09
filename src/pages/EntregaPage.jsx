@@ -81,10 +81,6 @@ export default function EntregasPage() {
       
       
     } catch (err) {
-      console.error("Error cargando datos:", err);
-      console.error("Error response data:", err.response?.data);
-      console.error("Error response status:", err.response?.status);
-      
       const errorMessage = err.response?.data?.message || err.message || 'Error desconocido';
       setError(`Error cargando datos: ${errorMessage}`);
     } finally {
@@ -117,10 +113,6 @@ export default function EntregasPage() {
       setEntregas(entregasOrdenadas);
       
     } catch (err) {
-      console.error("Error cargando entregas:", err);
-      console.error("Error response data:", err.response?.data);
-      console.error("Error response status:", err.response?.status);
-      
       const errorMessage = err.response?.data?.message || err.message || 'Error desconocido';
       setError(`Error cargando entregas: ${errorMessage}`);
     }
@@ -160,7 +152,6 @@ export default function EntregasPage() {
       setEntregas(entregasOrdenadas);
       
     } catch (err) {
-      console.error("Error cargando entregas:", err);
       const errorMessage = err.response?.data?.message || err.message || 'Error desconocido';
       setError(`Error cargando entregas: ${errorMessage}`);
     } finally {
@@ -214,7 +205,6 @@ export default function EntregasPage() {
         // Recargar entregas después de confirmar
         await cargarEntregas();
       } catch (err) {
-        console.error("Error confirmando entrega:", err);
         const errorMsg = err?.response?.data?.error || err?.response?.data?.message || err.message || "Error desconocido";
         showToastError(`Error confirmando entrega: ${errorMsg}`);
       } finally {
@@ -243,7 +233,6 @@ export default function EntregasPage() {
       await EntregasService.eliminarEntrega(entrega.id);
       await cargarEntregas();
     } catch (err) {
-      console.error("Error eliminando entrega:", err);
       const msg = err?.response?.data?.message || err?.response?.data?.error || err.message || "No se pudo eliminar";
       setError(`Error eliminando entrega: ${msg}`);
     }
@@ -256,7 +245,6 @@ export default function EntregasPage() {
       setEntregasParaImprimir([entregaCompleta]);
       setMostrarImprimirModal(true);
     } catch (err) {
-      console.error("Error obteniendo entrega para imprimir:", err);
       setError(`Error cargando entrega: ${err.message}`);
     }
   };
@@ -278,7 +266,6 @@ export default function EntregasPage() {
       setEntregasParaImprimir(entregasCompletas);
       setMostrarImprimirModal(true);
     } catch (err) {
-      console.error("Error obteniendo entregas para imprimir:", err);
       setError(`Error cargando entregas: ${err.message}`);
     }
   };

@@ -185,28 +185,23 @@ export async function crearIngresoDesdeForm(form) {
  */
 function calcularCostosPonderados(detalles, productosAntes = []) {
   if (!Array.isArray(detalles) || detalles.length === 0) {
-    console.warn("No hay detalles para calcular costos ponderados");
     return detalles;
   }
 
   if (!Array.isArray(productosAntes) || productosAntes.length === 0) {
-    console.warn("No hay productos para calcular costos ponderados, usando costos originales");
     return detalles;
   }
 
-  console.log("Calculando costos ponderados ANTES de crear el ingreso...");
   const productosMap = new Map(productosAntes.map(p => [p.id, p]));
 
   const detallesConCostoCalculado = detalles.map((detalle, idx) => {
     const productoId = detalle.producto?.id;
     if (!productoId) {
-      console.warn(`Detalle #${idx + 1} sin producto.id, usando costo original`);
       return detalle;
     }
 
     const producto = productosMap.get(productoId);
     if (!producto) {
-      console.warn(`Producto con ID ${productoId} no encontrado, usando costo original`);
       return detalle;
     }
 
@@ -221,7 +216,6 @@ function calcularCostosPonderados(detalles, productosAntes = []) {
 
     // Validar que tenemos datos válidos
     if (cantidadNueva <= 0 || costoNuevoIngreso <= 0) {
-      console.warn(`Detalle #${idx + 1} con cantidad o costo inválido, usando costo original`);
       return detalle;
     }
 
@@ -229,21 +223,15 @@ function calcularCostosPonderados(detalles, productosAntes = []) {
     let nuevoCosto;
     if (cantidadAntes <= 0) {
       nuevoCosto = costoNuevoIngreso;
-      console.log(`   Producto ${productoId}: No había cantidad previa, usando costo del ingreso: ${nuevoCosto}`);
     } else {
       const totalCostoAntes = cantidadAntes * costoActual;
       const totalCostoNuevo = cantidadNueva * costoNuevoIngreso;
       const cantidadTotal = cantidadAntes + cantidadNueva;
       nuevoCosto = (totalCostoAntes + totalCostoNuevo) / cantidadTotal;
-      console.log(`   Producto ${productoId} (${producto.nombre}):`);
-      console.log(`      - Cantidad antes: ${cantidadAntes}, Costo actual: ${costoActual}`);
-      console.log(`      - Cantidad nueva: ${cantidadNueva}, Costo ingreso: ${costoNuevoIngreso}`);
-      console.log(`      - Cálculo: (${cantidadAntes} * ${costoActual} + ${cantidadNueva} * ${costoNuevoIngreso}) / ${cantidadTotal} = ${nuevoCosto}`);
     }
 
     // Redondear a número entero (sin decimales)
     nuevoCosto = Math.round(nuevoCosto);
-    console.log(`   Costo calculado (redondeado a entero): ${nuevoCosto}`);
 
     // Crear nuevo detalle con el costo calculado
     // IMPORTANTE: Mantenemos costoUnitario con el costo ORIGINAL del ingreso (para calcular el total del ingreso)
@@ -271,21 +259,15 @@ function calcularCostosPonderados(detalles, productosAntes = []) {
  */
 async function actualizarCostosProductosPromedioPonderado(detalles, productosAntes = null) {
   if (!Array.isArray(detalles) || detalles.length === 0) {
-    console.warn("No hay detalles para actualizar costos");
     return;
   }
-
-  console.log("Iniciando actualización de costos con promedio ponderado...");
-  console.log("Detalles recibidos:", detalles);
 
   // Usar productos obtenidos antes del ingreso, o obtenerlos ahora
   let productos;
   if (productosAntes && Array.isArray(productosAntes) && productosAntes.length > 0) {
     productos = productosAntes;
-    console.log("Usando productos obtenidos ANTES del ingreso");
   } else {
     productos = await listarProductos();
-    console.log("Obteniendo productos DESPUÉS del ingreso (puede haber inconsistencias)");
   }
   
   const productosMap = new Map(productos.map(p => [p.id, p]));
@@ -294,22 +276,18 @@ async function actualizarCostosProductosPromedioPonderado(detalles, productosAnt
   let categorias = [];
   try {
     categorias = await listarCategorias();
-    console.log(`Categorías obtenidas: ${categorias.length}`);
   } catch (error) {
-    console.warn("No se pudieron obtener categorías, se intentará formatear sin ellas");
   }
 
   // Actualizar cada producto
   const actualizaciones = detalles.map(async (detalle) => {
     const productoId = detalle.producto?.id;
     if (!productoId) {
-      console.warn("Detalle sin producto.id, saltando actualización de costo");
       return;
     }
 
     const producto = productosMap.get(productoId);
     if (!producto) {
-      console.warn(`Producto con ID ${productoId} no encontrado, saltando actualización de costo`);
       return;
     }
 
@@ -323,23 +301,8 @@ async function actualizarCostosProductosPromedioPonderado(detalles, productosAnt
     const cantidadNueva = Number(detalle.cantidad || 0);
     const costoNuevo = Number(detalle.costoUnitario || 0);
 
-    // Debug: mostrar todas las cantidades
-    console.log(`   Debug cantidades del producto:`);
-    console.log(`      - cantidadInsula: ${cantidadInsula} (${producto.cantidadInsula})`);
-    console.log(`      - cantidadCentro: ${cantidadCentro} (${producto.cantidadCentro})`);
-    console.log(`      - cantidadPatios: ${cantidadPatios} (${producto.cantidadPatios})`);
-    console.log(`      - cantidad (campo directo): ${producto.cantidad || 'no existe'}`);
-
-    console.log(`Producto ${productoId} (${producto.nombre}):`);
-    console.log(`   - Cantidad antes del ingreso: ${cantidadAntes}`);
-    console.log(`   - Costo actual: ${costoActual}`);
-    console.log(`   - Cantidad nueva: ${cantidadNueva}`);
-    console.log(`   - Costo nuevo: ${costoNuevo}`);
-    console.log(`   - Cantidad total después del ingreso: ${cantidadAntes + cantidadNueva}`);
-
     // Validar que tenemos datos válidos
     if (cantidadNueva <= 0 || costoNuevo <= 0) {
-      console.warn(`Detalle con cantidad o costo inválido, saltando actualización de costo para producto ${productoId}`);
       return;
     }
 
@@ -349,22 +312,17 @@ async function actualizarCostosProductosPromedioPonderado(detalles, productosAnt
     let nuevoCosto;
     if (cantidadAntes <= 0) {
       nuevoCosto = costoNuevo;
-      console.log(`   No había cantidad previa, usando costo nuevo: ${nuevoCosto}`);
     } else {
       const totalCostoAntes = cantidadAntes * costoActual;
       const totalCostoNuevo = cantidadNueva * costoNuevo;
       const cantidadTotal = cantidadAntes + cantidadNueva;
       nuevoCosto = (totalCostoAntes + totalCostoNuevo) / cantidadTotal;
-      console.log(`   Cálculo: (${cantidadAntes} * ${costoActual} + ${cantidadNueva} * ${costoNuevo}) / ${cantidadTotal}`);
-      console.log(`   Cálculo: (${totalCostoAntes} + ${totalCostoNuevo}) / ${cantidadTotal} = ${nuevoCosto}`);
     }
 
     // Redondear al entero más cercano (sin decimales) - SIEMPRE número entero
     nuevoCosto = Math.ceil(nuevoCosto);
     // Asegurarse de que sea un número entero (sin decimales)
     nuevoCosto = Math.round(nuevoCosto);
-    console.log(`   Nuevo costo calculado (redondeado a entero): ${nuevoCosto}`);
-    console.log(`   Tipo de dato: ${typeof nuevoCosto}, Valor: ${nuevoCosto}`);
 
     // Preparar payload para actualizar el producto
     // Incluir todos los campos necesarios para evitar errores
@@ -432,9 +390,6 @@ async function actualizarCostosProductosPromedioPonderado(detalles, productosAnt
       version: producto.version || 0
     };
     
-    console.log(`   Categoría formateada:`, categoriaFormateada);
-    console.log(`   Categoría original:`, producto.categoria);
-
     // IMPORTANTE: Obtener el producto actualizado del backend DESPUÉS de crear el ingreso
     // para tener las cantidades correctas (ya actualizadas por el backend)
     // El backend podría requerir las cantidades actualizadas para guardar el costo correctamente
@@ -445,24 +400,17 @@ async function actualizarCostosProductosPromedioPonderado(detalles, productosAnt
       productoActualizado = productosActualizados.find(p => p.id === productoId);
       
       if (productoActualizado) {
-        console.log(`   Producto actualizado obtenido del backend:`);
-        console.log(`      - cantidadInsula: ${productoActualizado.cantidadInsula}`);
-        console.log(`      - cantidadCentro: ${productoActualizado.cantidadCentro}`);
-        console.log(`      - cantidadPatios: ${productoActualizado.cantidadPatios}`);
-        
         // Incluir las cantidades actualizadas en el payload
         payloadActualizacion.cantidadInsula = Number(productoActualizado.cantidadInsula || 0);
         payloadActualizacion.cantidadCentro = Number(productoActualizado.cantidadCentro || 0);
         payloadActualizacion.cantidadPatios = Number(productoActualizado.cantidadPatios || 0);
       } else {
-        console.warn(`   No se pudo obtener el producto actualizado del backend, usando cantidades anteriores`);
         // Si no podemos obtener el producto actualizado, calcular las cantidades nuevas
         // basándonos en las cantidades anteriores + la cantidad nueva del ingreso
         // Pero necesitamos saber a qué sede se hizo el ingreso...
         // Por ahora, no incluimos las cantidades si no podemos obtenerlas actualizadas
       }
     } catch (error) {
-      console.warn(`   Error al obtener producto actualizado del backend:`, error);
       // Continuar sin las cantidades actualizadas
     }
 
@@ -471,22 +419,12 @@ async function actualizarCostosProductosPromedioPonderado(detalles, productosAnt
     const costoEntero = Math.ceil(nuevoCosto);
     
     try {
-      console.log(`   Enviando actualización SOLO del costo del producto ${productoId}: ${costoEntero}`);
-      console.log(`   Usando endpoint específico: PUT /productos/${productoId}/costo`);
-      console.log(`   Costo calculado: ${nuevoCosto} → redondeado a entero: ${costoEntero}`);
-      
       // Intentar primero con el endpoint específico para actualizar solo el costo
       const resultado = await actualizarCostoProducto(productoId, costoEntero);
       
-      console.log(`   Respuesta del backend:`, resultado);
-      console.log(`   Verificando costo en respuesta:`, resultado.costo);
-      
       // Verificar que el costo se guardó correctamente
       if (resultado.costo !== costoEntero) {
-        console.warn(`   ADVERTENCIA: El costo en la respuesta (${resultado.costo}) no coincide con el enviado (${costoEntero})`);
       }
-      
-      console.log(`Costo actualizado para producto ${productoId} (${producto.nombre}): ${costoActual} → ${costoEntero} (cantidad antes: ${cantidadAntes} + cantidad nueva: ${cantidadNueva} = ${cantidadAntes + cantidadNueva})`);
       
       // Esperar un momento antes de disparar el evento para asegurar que el backend guardó el cambio
       await new Promise(resolve => setTimeout(resolve, 200));
@@ -496,18 +434,11 @@ async function actualizarCostosProductosPromedioPonderado(detalles, productosAnt
         detail: { productoId, nuevoCosto: costoEntero } 
       }));
     } catch (updateError) {
-      console.error(`Error al actualizar costo del producto ${productoId}:`, updateError);
-      console.error(`Detalles del error:`, updateError?.response?.data || updateError?.message);
-      console.error(`Status:`, updateError?.response?.status);
-      
       // Si el endpoint específico no existe, intentar con el método completo como fallback
       if (updateError.response?.status === 404) {
-        console.warn(`   Endpoint específico no encontrado, intentando con actualización completa...`);
         try {
           const resultado = await actualizarProducto(productoId, payloadActualizacion);
-          console.log(`   Actualización completa exitosa:`, resultado);
         } catch (fallbackError) {
-          console.error(`Error en fallback también:`, fallbackError);
           throw fallbackError;
         }
       } else {
@@ -534,14 +465,6 @@ export async function actualizarIngresoDesdeForm(id, form) {
     const { data } = await api.put(`/ingresos/${id}`, payload);
     return data;
   } catch (error) {
-    console.error("Error en PUT /ingresos/{id}:", {
-      url: `/ingresos/${id}`,
-      status: error.response?.status,
-      statusText: error.response?.statusText,
-      message: error.message
-    });
-    console.error("Detalle completo del error del backend:", error.response?.data);
-    
     // Manejar error específico de ingreso procesado
     if (error.response?.status === 404 && 
         typeof error.response?.data === 'string' && 
@@ -570,12 +493,6 @@ export async function procesarIngreso(id) {
     const { data } = await api.put(`/ingresos/${numericId}/procesar`);
     return data;
   } catch (error) {
-    console.error(`Error al procesar ingreso ${numericId}:`, {
-      status: error.response?.status,
-      statusText: error.response?.statusText,
-      message: error.message
-    });
-    console.error("Detalle completo del error del backend:", error.response?.data);
     throw error;
   }
 }
@@ -591,12 +508,6 @@ export async function marcarProcesado(id) {
     const { data } = await api.put(`/ingresos/${numericId}/marcar-procesado`);
     return data;
   } catch (error) {
-    console.error(`Error al marcar ingreso ${numericId} como procesado:`, {
-      status: error.response?.status,
-      statusText: error.response?.statusText,
-      message: error.message
-    });
-    console.error("Detalle completo del error del backend:", error.response?.data);
     throw error;
   }
 }
@@ -612,12 +523,6 @@ export async function reprocesarIngreso(id) {
     const { data } = await api.put(`/ingresos/${numericId}/reprocesar`);
     return data;
   } catch (error) {
-    console.error(`Error al reprocesar ingreso ${numericId}:`, {
-      status: error.response?.status,
-      statusText: error.response?.statusText,
-      message: error.message
-    });
-    console.error("Detalle completo del error del backend:", error.response?.data);
     throw error;
   }
 }

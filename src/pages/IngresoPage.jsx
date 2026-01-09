@@ -55,19 +55,8 @@ export default function IngresosPage() {
       
       // Si es el error de lazy initialization, mostrar mensaje más específico
       if (errorMessage.includes("lazily initialize") || errorMessage.includes("no Session")) {
-        console.error("Error del backend (lazy initialization):", {
-          status: e?.response?.status,
-          message: errorMessage,
-          url: e?.config?.url,
-        });
         showError("Error del servidor: El backend no puede cargar los detalles de los ingresos. Por favor, contacte al administrador del sistema.");
       } else {
-        console.error("Error listar ingresos:", {
-          status: e?.response?.status,
-          data: e?.response?.data,
-          url: e?.config?.url,
-          params: e?.config?.params,
-        });
         showError(errorMessage);
       }
       
@@ -88,7 +77,6 @@ export default function IngresosPage() {
       // No cargar productos aquí - se cargarán en el modal al seleccionar categoría
       setCatalogo([]);
     } catch (e) {
-      console.error("Error cargando datos:", e);
       showError(e?.response?.data?.message || "No se pudieron cargar los datos");
     }
   };
@@ -125,7 +113,6 @@ export default function IngresosPage() {
       await crearIngresoDesdeForm(payload);
       await loadIngresos(currentPage, pageSize);
     } catch (e) {
-      console.error("Error en onCrear:", e);
       throw e; // Re-lanza el error para que lo maneje el componente padre
     }
   };
@@ -134,7 +121,6 @@ export default function IngresosPage() {
       await actualizarIngresoDesdeForm(id, payload);
       await loadIngresos(currentPage, pageSize);
     } catch (e) {
-      console.error("Error en onActualizar:", e);
       throw e; // Re-lanza el error para que lo maneje el componente padre
     }
   };
@@ -159,9 +145,6 @@ export default function IngresosPage() {
       await loadIngresos(currentPage, pageSize); // Recargar la tabla
       showSuccess(`Ingreso #${id} marcado como procesado correctamente`);
     } catch (e) {
-      console.error("Error al procesar ingreso:", e);
-      console.error(" Detalle del error:", e?.response?.data);
-      
       let errorMsg = "Error desconocido";
       if (e?.response?.data) {
         if (typeof e.response.data === 'string') {
@@ -184,10 +167,8 @@ export default function IngresosPage() {
     try {
       setLoading(true);
       const ingresoCompleto = await obtenerIngreso(ing.id);
-      console.log("📦 Ingreso completo obtenido:", ingresoCompleto);
       setSeleccionado(ingresoCompleto);
     } catch (e) {
-      console.error("Error al obtener detalles del ingreso:", e);
       showError("No se pudieron cargar los detalles del ingreso");
     } finally {
       setLoading(false);

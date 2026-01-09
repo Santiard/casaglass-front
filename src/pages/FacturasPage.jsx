@@ -43,12 +43,6 @@ export default function FacturasPage() {
         if (response && typeof response === 'object' && 'content' in response) {
           // Respuesta paginada
           const content = Array.isArray(response.content) ? response.content : [];
-          console.log("FacturasPage - Respuesta paginada:", {
-            contentLength: content.length,
-            totalElements: response.totalElements,
-            totalPages: response.totalPages,
-            page: response.page
-          });
           setData(content);
           setTotalElements(response.totalElements || 0);
           setTotalPages(response.totalPages || 1);
@@ -61,14 +55,12 @@ export default function FacturasPage() {
           setCurrentPage(1);
         } else {
           // Respuesta inesperada
-          console.warn("Respuesta inesperada de listarFacturasTabla:", response);
           setData([]);
           setTotalElements(0);
           setTotalPages(1);
           setCurrentPage(1);
         }
       } catch (tablaError) {
-        console.warn("Endpoint /facturas/tabla no disponible, usando /facturas básico:", tablaError);
         const arr = await listarFacturas();
         setData(Array.isArray(arr) ? arr : []);
         setTotalElements(Array.isArray(arr) ? arr.length : 0);
@@ -76,7 +68,7 @@ export default function FacturasPage() {
         setCurrentPage(1);
       }
     } catch (e) {
-      console.error("Error listando facturas", e);
+      // Error listando facturas
     } finally {
       setLoading(false);
     }
@@ -87,7 +79,7 @@ export default function FacturasPage() {
       const arr = await listarClientes();
       setClientes(arr);
     } catch (e) {
-      console.error("Error listando clientes", e);
+      // Error listando clientes
     }
   }, []);
 
@@ -124,7 +116,6 @@ export default function FacturasPage() {
       showSuccess("Factura marcada como pagada.");
       await fetchData(currentPage, pageSize);
     } catch (e) {
-      console.error("Error marcando factura como pagada", e);
       const msg = e?.response?.data?.message || "No se pudo marcar como pagada.";
       showError(msg);
     }
@@ -147,7 +138,6 @@ export default function FacturasPage() {
       showSuccess("Factura eliminada exitosamente.");
       await fetchData(currentPage, pageSize);
     } catch (e) {
-      console.error("Error eliminando factura", e);
       const msg = e?.response?.data?.message || e?.response?.data?.error || "No se pudo eliminar la factura.";
       showError(msg);
     }
@@ -187,7 +177,6 @@ export default function FacturasPage() {
           await marcarFacturaComoPagada(factura.id, fechaPago);
           confirmadas++;
         } catch (e) {
-          console.error(`Error confirmando factura ${factura.id}:`, e);
           errores++;
         }
       }
@@ -199,7 +188,6 @@ export default function FacturasPage() {
         showError("No se pudo confirmar ninguna factura.");
       }
     } catch (e) {
-      console.error("Error confirmando facturas", e);
       const msg = e?.response?.data?.message || "No se pudieron confirmar las facturas.";
       showError(msg);
     }

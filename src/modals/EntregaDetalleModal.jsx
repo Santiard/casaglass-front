@@ -6,17 +6,9 @@ export default function EntregaDetalleModal({ entrega, isOpen, onClose }) {
   const dets = Array.isArray(entrega.detalles) ? entrega.detalles : [];
   // gastos eliminado - ya no se usan gastos en entregas
   
-  // 🔍 DEBUG: Ver todos los detalles y sus tipos de movimiento
-  console.log('🔍 [EntregaDetalleModal] Total detalles:', dets.length);
-  dets.forEach((d, idx) => {
-    console.log(`  [${idx + 1}] Orden #${d.numeroOrden} - tipoMovimiento: "${d.tipoMovimiento}" - montoOrden: ${d.montoOrden} - reembolsoId: ${d.reembolsoId}`);
-  });
-  
   // Separar detalles por tipo: devoluciones son las que tienen reembolsoId
   const ingresos = dets.filter(d => !d.reembolsoId);
   const egresos = dets.filter(d => Boolean(d.reembolsoId));
-  
-  console.log(`[EntregaDetalleModal] Ingresos: ${ingresos.length}, Egresos: ${egresos.length}`);
 
   const fmtCOP = (n) => new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(Number(n||0));
   const fmtFecha = (iso) => {

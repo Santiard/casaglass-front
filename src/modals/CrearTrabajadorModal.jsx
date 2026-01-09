@@ -51,7 +51,6 @@ export default function CrearTrabajadorModal({ isOpen, onClose, onCreate }) {
       onClose?.();
       setForm({ nombre: "", correo: "", username: "", password: "", rol: "VENDEDOR", sedeId: "" });
     } catch (e) {
-      console.error("Error creando trabajador", e);
       const msg = e?.response?.status === 409 ? "Username o correo ya existe" : (e?.response?.data?.message || "No se pudo crear el trabajador");
       showError(msg);
     } finally {

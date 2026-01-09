@@ -87,7 +87,6 @@ export default function CrearReembolsoIngresoModal({
         detalles: detallesReembolso,
       });
     } catch (error) {
-      console.error("Error cargando reembolso para editar:", error);
       showError("Error al cargar los datos del reembolso.");
     }
   };
@@ -97,7 +96,6 @@ export default function CrearReembolsoIngresoModal({
       const lista = await listarIngresos();
       setIngresos(lista || []);
     } catch (error) {
-      console.error("Error cargando ingresos:", error);
       showError("No se pudieron cargar los ingresos.");
     }
   };
@@ -126,7 +124,6 @@ export default function CrearReembolsoIngresoModal({
       
       setForm(prev => ({ ...prev, detalles: detallesIniciales }));
     } catch (error) {
-      console.error("Error cargando detalle de ingreso:", error);
       showError("No se pudo cargar el detalle del ingreso.");
       setIngresoDetalle(null);
     } finally {
@@ -207,7 +204,6 @@ export default function CrearReembolsoIngresoModal({
       resetForm();
       onClose();
     } catch (error) {
-      console.error("Error creando reembolso:", error);
       const msg = error?.response?.data?.error || error?.message || "No se pudo crear la devolución.";
       showError(msg);
     } finally {

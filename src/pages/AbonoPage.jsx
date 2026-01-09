@@ -87,7 +87,7 @@ const AbonoPage = () => {
         const bancosData = await listarBancos();
         setBancos(bancosData);
       } catch (err) {
-        console.error(" [AbonoPage] Error cargando bancos:", err);
+        // Error cargando bancos
       }
     };
     cargarBancos();

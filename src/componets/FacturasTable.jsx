@@ -469,13 +469,11 @@ export default function FacturasTable({
                           // Usar primero el id que viene dentro de f.orden (nuevo DTO), 
                           // y mantener compatibilidad con f.ordenId si existiera.
                           const ordenId = f.orden?.id || f.ordenId;
-                          console.log("Factura clickeada:", { facturaId: f.id, ordenId, factura: f });
                           if (ordenId) {
                             setOrdenIdSeleccionada(ordenId);
                             setFacturaIdSeleccionada(f.id); // Pasar el facturaId para usar valores de la factura
                             setOrdenDetalleModalOpen(true);
                           } else {
-                            console.log("Factura sin ordenId:", f);
                             alert("Esta factura no tiene una orden asociada.");
                           }
                         }} 

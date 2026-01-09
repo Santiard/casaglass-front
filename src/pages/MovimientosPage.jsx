@@ -63,7 +63,6 @@ export default function MovimientosPage() {
         setCurrentPage(1);
       }
     } catch (e) {
-      console.error("Error cargando traslados:", e);
       showError("No se pudieron cargar los traslados.");
     } finally {
       setLoading(false);
@@ -95,7 +94,6 @@ export default function MovimientosPage() {
         // Cargar traslados con paginación
         await loadTraslados(1, pageSize);
       } catch (e) {
-        console.error("Error cargando datos:", e);
         showError("No se pudieron cargar traslados/sedes/productos.");
       }
     })();
@@ -118,7 +116,6 @@ export default function MovimientosPage() {
       await crearTraslado(payload);
       await reloadTraslados();
     } catch (e) {
-      console.error("Error creando traslado:", e);
       throw new Error(e?.response?.data || e?.message || "No se pudo crear el traslado.");
     }
   };
@@ -129,7 +126,6 @@ export default function MovimientosPage() {
       await actualizarCabecera(id, payload);
       await reloadTraslados();
     } catch (e) {
-      console.error("Error actualizando traslado:", e);
       throw new Error(e?.response?.data || e?.message || "No se pudo actualizar el traslado.");
     }
   };
@@ -141,7 +137,6 @@ export default function MovimientosPage() {
       await reloadTraslados();
       return response; // Retornamos la respuesta para mostrar el mensaje de éxito
     } catch (e) {
-      console.error("Error confirmando traslado:", e);
       throw e; // Re-lanzamos el error para que lo maneje el componente
     }
   };
@@ -152,7 +147,6 @@ export default function MovimientosPage() {
       await eliminarTraslado(id);
       await reloadTraslados();
     } catch (e) {
-      console.error("Error eliminando traslado:", e);
       showError(e?.response?.data || "No se pudo eliminar el traslado.");
     }
   };
@@ -175,12 +169,8 @@ export default function MovimientosPage() {
       // Obtener el traslado completo con todos los detalles
       const trasladoCompleto = await obtenerTraslado(movimiento.id);
       console.log('🔍 [MovimientosPage] Traslado completo recibido:', trasladoCompleto);
-      console.log('🔍 [MovimientosPage] Primer detalle completo:', trasladoCompleto?.detalles?.[0]);
-      console.log('🔍 [MovimientosPage] Producto del primer detalle:', trasladoCompleto?.detalles?.[0]?.producto);
-      console.log('🔍 [MovimientosPage] Color del producto:', trasladoCompleto?.detalles?.[0]?.producto?.color);
       setSeleccionado(trasladoCompleto);
     } catch (error) {
-      console.error("Error obteniendo detalles del traslado:", error);
       showError("No se pudo obtener el detalle del traslado.");
     }
   };
@@ -189,11 +179,9 @@ export default function MovimientosPage() {
   const handleEditar = async (movimiento) => {
     try {
       const trasladoCompleto = await obtenerTraslado(movimiento.id);
-      console.log('🔍 [MovimientosPage] Editando traslado completo:', trasladoCompleto);
       setMovimientoEditando(trasladoCompleto);
       setIsModalEditOpen(true);
     } catch (error) {
-      console.error("Error obteniendo traslado para editar:", error);
       showError("No se pudo cargar el traslado para editar.");
     }
   };

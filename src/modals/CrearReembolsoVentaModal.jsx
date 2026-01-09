@@ -66,7 +66,6 @@ export default function CrearReembolsoVentaModal({
       
       // Si la orden no tiene items completos, usar el endpoint de detalle
       if (!orden.items || orden.items.length === 0 || !orden.items[0]?.producto) {
-        console.log(" Orden sin items completos, usando endpoint de detalle...");
         const ordenDetalle = await obtenerOrdenDetalle(reembolsoAEditar.ordenOriginal.id);
         // Crear nuevo objeto con los items del detalle
         orden = {
@@ -106,7 +105,6 @@ export default function CrearReembolsoVentaModal({
         detalles: detallesReembolso,
       });
     } catch (error) {
-      console.error("Error cargando reembolso para editar:", error);
       showError("Error al cargar los datos del reembolso.");
     }
   };
@@ -120,7 +118,6 @@ export default function CrearReembolsoVentaModal({
       );
       setOrdenes(ordenesVendidas);
     } catch (error) {
-      console.error("Error cargando órdenes:", error);
       showError("No se pudieron cargar las órdenes.");
     }
   };
@@ -139,7 +136,6 @@ export default function CrearReembolsoVentaModal({
       
       // Si la orden no tiene items o los items no tienen información del producto, usar el endpoint de detalle
       if (!orden.items || orden.items.length === 0 || !orden.items[0]?.producto) {
-        console.log(" Orden sin items completos, usando endpoint de detalle...");
         try {
           const ordenDetalle = await obtenerOrdenDetalle(ordenId);
           // Combinar información de ambos endpoints
@@ -148,7 +144,7 @@ export default function CrearReembolsoVentaModal({
             items: ordenDetalle.items || orden.items || []
           };
         } catch (detalleError) {
-          console.warn(" No se pudo obtener detalle, usando orden básica:", detalleError);
+          // No se pudo obtener detalle, usando orden básica
         }
       }
       
@@ -165,12 +161,6 @@ export default function CrearReembolsoVentaModal({
       // Inicializar detalles con cantidades disponibles (considerando reembolsos previos)
       const detallesIniciales = orden.items.map((item) => {
         // Validar que el item tenga la información necesaria
-        if (!item.id) {
-          console.warn(" Item sin ID:", item);
-        }
-        if (!item.producto) {
-          console.warn(" Item sin información de producto:", item);
-        }
         
         return {
           ordenItemId: item.id,
@@ -185,7 +175,6 @@ export default function CrearReembolsoVentaModal({
       
       setForm(prev => ({ ...prev, detalles: detallesIniciales }));
     } catch (error) {
-      console.error("Error cargando detalle de orden:", error);
       const errorMsg = error?.response?.data?.message || error?.message || "No se pudo cargar el detalle de la orden.";
       showError(errorMsg);
       setOrdenDetalle(null);
@@ -301,7 +290,6 @@ export default function CrearReembolsoVentaModal({
       resetForm();
       onClose();
     } catch (error) {
-      console.error("Error creando reembolso:", error);
       const msg = error?.response?.data?.error || error?.message || "No se pudo crear la devolución.";
       showError(msg);
     } finally {

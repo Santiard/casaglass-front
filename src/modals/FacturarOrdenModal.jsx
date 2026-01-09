@@ -39,17 +39,7 @@ export default function FacturarOrdenModal({ isOpen, onClose, onSave, orden }) {
 
   // Cargar configuración de impuestos y clientes al abrir el modal
   useEffect(() => {
-    console.log(" [FacturarOrdenModal] useEffect ejecutado - isOpen:", isOpen, "orden:", orden ? { id: orden.id, numero: orden.numero } : null);
-    
     if (isOpen && orden) {
-      console.log(" [FacturarOrdenModal] Modal abierto, orden recibida:", {
-        id: orden.id,
-        numero: orden.numero,
-        tieneCliente: !!orden.cliente,
-        clienteId: orden.clienteId || orden.cliente?.id,
-        ordenCompleta: orden
-      });
-      
       getBusinessSettings().then((settings) => {
         if (settings) {
           setIvaRate(Number(settings.ivaRate) || 19);
@@ -65,16 +55,14 @@ export default function FacturarOrdenModal({ isOpen, onClose, onSave, orden }) {
           const clientesData = await listarClientes();
           const clientesArray = Array.isArray(clientesData) ? clientesData : [];
           setClientes(clientesArray);
-          console.log(" [FacturarOrdenModal] Clientes cargados:", clientesArray.length);
           
           // 2. Si la orden no tiene cliente completo, obtener la orden completa del backend
           let ordenCompleta = orden;
           if (!orden.cliente && orden.id) {
             try {
               ordenCompleta = await obtenerOrden(orden.id);
-              console.log(" [FacturarOrdenModal] Orden completa obtenida del backend:", ordenCompleta);
             } catch (err) {
-              console.warn(" [FacturarOrdenModal] No se pudo obtener orden completa, usando la inicial:", err);
+              // Error obteniendo orden completa, se usa la inicial
             }
           }
           
@@ -82,23 +70,19 @@ export default function FacturarOrdenModal({ isOpen, onClose, onSave, orden }) {
           if (ordenCompleta?.cliente) {
             // Si la orden tiene el objeto cliente completo, usarlo
             const clienteCompleto = clientesArray.find(c => c.id === ordenCompleta.cliente.id) || ordenCompleta.cliente;
-            console.log(" [FacturarOrdenModal] Cliente seteado:", clienteCompleto);
             setClienteFactura(clienteCompleto);
             setClienteFacturaId(String(clienteCompleto.id));
           } else if (ordenCompleta?.clienteId) {
             // Si solo tiene clienteId, buscar el cliente en la lista cargada
             const clienteEncontrado = clientesArray.find(c => c.id === ordenCompleta.clienteId);
             if (clienteEncontrado) {
-              console.log(" [FacturarOrdenModal] Cliente seteado desde clienteId:", clienteEncontrado);
               setClienteFactura(clienteEncontrado);
               setClienteFacturaId(String(clienteEncontrado.id));
             } else {
-              console.warn(" [FacturarOrdenModal] Cliente no encontrado con ID:", ordenCompleta.clienteId);
               setClienteFactura(null);
               setClienteFacturaId("");
             }
           } else {
-            console.warn(" [FacturarOrdenModal] Orden sin cliente ni clienteId");
             setClienteFactura(null);
             setClienteFacturaId("");
           }
@@ -110,7 +94,6 @@ export default function FacturarOrdenModal({ isOpen, onClose, onSave, orden }) {
             setTieneRetencion(false);
           }
         } catch (err) {
-          console.error(" [FacturarOrdenModal] Error cargando datos:", err);
           setClientes([]);
           // Fallback: intentar usar cliente de la orden si existe
           if (orden?.cliente) {
@@ -141,7 +124,6 @@ export default function FacturarOrdenModal({ isOpen, onClose, onSave, orden }) {
       
       setTieneRetencion(tieneRetefuente);
     } catch (error) {
-      console.error("Error buscando abonos para verificar retefuente:", error);
       // Si hay error, dejar el checkbox desmarcado
       setTieneRetencion(false);
     }
@@ -249,15 +231,6 @@ export default function FacturarOrdenModal({ isOpen, onClose, onSave, orden }) {
       const valorIva = Number(form.iva || 0); // Ya es valor monetario, no porcentaje
       const valorRetencionFuente = Number(form.retencionFuente || 0); // Ya es valor monetario, no porcentaje
       
-      console.log(`[FacturarOrden] Usando valores de la orden:`, {
-        subtotal: form.subtotal,
-        descuentos: descuentosNum,
-        iva: valorIva,
-        retencionFuente: valorRetencionFuente,
-        totalOrden: orden?.total,
-        tieneRetencionFuente: orden?.tieneRetencionFuente
-      });
-      
       const payloadToSend = {
         ...form,
         descuentos: descuentosNum,
@@ -272,7 +245,6 @@ export default function FacturarOrdenModal({ isOpen, onClose, onSave, orden }) {
       await onSave(payloadToSend, false);
       onClose();
     } catch (error) {
-      console.error("Error creando factura:", error);
       showError(error?.message || "No se pudo crear la factura.");
     } finally {
       setLoading(false);

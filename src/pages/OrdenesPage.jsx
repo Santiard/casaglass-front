@@ -67,7 +67,6 @@ export default function OrdenesPage() {
         setCurrentPage(1);
       }
     } catch (e) {
-      console.error("Error listando órdenes", e);
     } finally {
       setLoading(false);
     }
@@ -96,9 +95,6 @@ export default function OrdenesPage() {
 
       await fetchData(); // refrescar tabla
     } catch (e) {
-      console.error("Error guardando orden", e);
-      console.error("Response data:", e?.response?.data);
-      console.error("Status:", e?.response?.status);
       showError("No se pudo guardar la orden. Revisa consola.");
     }
   };
@@ -153,7 +149,6 @@ export default function OrdenesPage() {
       
       await fetchData(); // Refrescar tabla
     } catch (e) {
-      console.error("Error confirmando venta", e);
       const msg = e?.response?.data?.message || e?.message || "No se pudo confirmar la venta.";
       showError(msg);
     }
@@ -179,7 +174,6 @@ export default function OrdenesPage() {
       
       await fetchData(); // Refrescar tabla
     } catch (e) {
-      console.error("Error anulando orden", e);
       const msg = e?.response?.data?.message || "No se pudo anular la orden.";
       showError(msg);
     }
@@ -207,7 +201,6 @@ export default function OrdenesPage() {
             await marcarFacturaComoPagada(facturaResponse.id, hoy);
           }
         } catch (pagoErr) {
-          console.warn(" No se pudo marcar como pagada inmediatamente:", pagoErr?.response?.data || pagoErr?.message);
         }
       } catch (err) {
         const status = err?.response?.status;
@@ -239,14 +232,12 @@ export default function OrdenesPage() {
       } catch (err) {
         // Si ya tenía factura, podemos ignorar este error; de lo contrario, reportar
         if (!yaTeniaFactura) {
-          console.warn(" Error al marcar como facturada:", err?.response?.data || err?.message);
         }
       }
 
       // Refrescar tabla de órdenes SIEMPRE
       await fetchData();
     } catch (e) {
-      console.error("Error facturando orden", e);
       const msg = e?.response?.data?.error || e?.response?.data?.message || "No se pudo crear la factura.";
       if (!/ya tiene una factura/i.test(String(msg))) {
         showError(msg);

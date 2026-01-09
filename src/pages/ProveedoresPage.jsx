@@ -21,7 +21,6 @@ export default function ProveedoresPage() {
       const arr = await listarProveedores();
       setData(arr);
     } catch (e) {
-      console.error("Error listando proveedores", e);
       showError("No se pudieron cargar los proveedores.");
     } finally {
       setLoading(false);
@@ -36,7 +35,6 @@ export default function ProveedoresPage() {
       else       await crearProveedor(prov);
       await fetchData();
     } catch (e) {
-      console.error("Error guardando proveedor", e);
       const msg = e?.response?.data?.message || "No se pudo guardar el proveedor.";
       showError(msg);
     }
@@ -61,7 +59,6 @@ export default function ProveedoresPage() {
       await fetchData();
       showSuccess(`Proveedor "${prov.nombre || 'el proveedor'}" eliminado correctamente.`);
     } catch (e) {
-      console.error("Error eliminando proveedor", e);
       const backendMsg = e?.response?.data?.message;
       if (backendMsg) showError(backendMsg);
       else if (e?.response?.status === 409)

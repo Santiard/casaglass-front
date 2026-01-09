@@ -129,10 +129,8 @@ const AbonoModal = ({ isOpen, onClose, credito, onSuccess }) => {
   useEffect(() => {
     if (isOpen) {
       listarBancos().then((bancosData) => {
-        console.log(" [AbonoModal] Bancos cargados:", bancosData);
         setBancos(Array.isArray(bancosData) ? bancosData : []);
       }).catch((err) => {
-        console.error(" [AbonoModal] Error cargando bancos:", err);
         setBancos([]);
       });
     }

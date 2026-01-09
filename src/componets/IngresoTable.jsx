@@ -55,7 +55,6 @@ export default function IngresosTable({
       setIngresoEditando(ing);
       setIsModalOpen(true);
     } catch (e) {
-      console.error("Error al abrir ingreso para editar:", e);
       showError?.("No se pudo cargar el ingreso para editar");
     }
   };
@@ -71,7 +70,6 @@ export default function IngresosTable({
       setIngresoEditando(null);
       setPage(1);
     } catch (e) {
-      console.error("Error en handleGuardarIngreso:", e);
       throw new Error(
         e?.message || e?.response?.data?.message || "No se pudo guardar el ingreso."
       );

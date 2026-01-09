@@ -123,7 +123,6 @@ const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores, se
       const fechaUnica = fechaActual;
       
       // Cargar órdenes, abonos y reembolsos en paralelo
-      console.log(`🔍 [CrearEntrega] Cargando datos para fecha: ${fechaUnica}, sede: ${sedeIdActual}`);
       const [ordenes, reembolsos] = await Promise.all([
         EntregasService.obtenerOrdenesDisponibles(sedeIdActual, fechaUnica, fechaUnica),
         ReembolsosVentaService.listarReembolsos({
@@ -133,9 +132,6 @@ const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores, se
           estado: 'PROCESADO'
         })
       ]);
-      
-      console.log(`📦 [CrearEntrega] Reembolsos recibidos del backend:`, reembolsos);
-      console.log(`📦 [CrearEntrega] Total reembolsos: ${Array.isArray(reembolsos) ? reembolsos.length : 0}`);
       
       // Extraer órdenes y abonos de la estructura de respuesta del backend
       let ordenesArray = [];
@@ -223,11 +219,9 @@ const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores, se
               const fechaSeleccionada = fechaUnica;
               
               if (fechaReembolso !== fechaSeleccionada) {
-                console.warn(`⚠️ Reembolso #${r.id} (Orden #${r.ordenOriginal?.numero || '?'}) EXCLUIDO - Fecha ${fechaReembolso} != ${fechaSeleccionada}`);
                 return false;
               }
               
-              console.log(`Reembolso #${r.id} (Orden #${r.ordenOriginal?.numero || '?'}) INCLUIDO - Fecha ${fechaReembolso} coincide`);
               return true;
             })
             .map(reembolso => ({
@@ -248,11 +242,6 @@ const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores, se
       setAbonosDisponibles(abonosArray);
       setReembolsosDisponibles(reembolsosArray);
       
-      console.log(`[CrearEntrega] Reembolsos FILTRADOS por fecha ${fechaUnica}: ${reembolsosArray.length}`);
-      if (reembolsosArray.length > 0) {
-        console.log(`   IDs incluidos: [${reembolsosArray.map(r => `#${r.id}`).join(', ')}]`);
-      }
-      
       // Seleccionar automáticamente todas las órdenes, abonos y reembolsos disponibles
       const todasLasOrdenesIds = ordenesArray.map(o => o.id);
       const todosLosAbonosIds = abonosArray.map(a => a.id);
@@ -265,7 +254,6 @@ const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores, se
         reembolsosIds: todosLosReembolsosIds
       }));
     } catch (err) {
-      console.error('Error cargando órdenes:', err);
       setError('Error cargando órdenes disponibles');
       setOrdenesDisponibles([]);
       setAbonosDisponibles([]);
@@ -457,10 +445,6 @@ const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores, se
     // Monto total = (órdenes a contado + abonos) - reembolsos
     const montoTotal = montoOrdenes + montoAbonos - montoReembolsos;
     
-    console.log('═══════════════════════════════════════════════════════');
-    console.log('📊 CÁLCULO DETALLADO DE ENTREGA');
-    console.log('═══════════════════════════════════════════════════════');
-    
     // Calcular desglose de montos según método de pago de las órdenes
     let montoEfectivo = 0;
     let montoTransferencia = 0;
@@ -468,7 +452,6 @@ const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores, se
     let montoRetencion = 0; // Agregar acumulador para retención
     
     // Procesar cada orden seleccionada
-    console.log('\n🛒 ÓRDENES A CONTADO SELECCIONADAS:');
     ordenesSeleccionadas.forEach(orden => {
       // 🆕 PRIORIZAR CAMPOS NUMÉRICOS del backend
       const tieneMontos = (orden.montoEfectivo || 0) > 0 || (orden.montoTransferencia || 0) > 0 || (orden.montoCheque || 0) > 0;
@@ -481,59 +464,36 @@ const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores, se
           montoTransferencia: Number(orden.montoTransferencia) || 0,
           montoCheque: Number(orden.montoCheque) || 0
         };
-        console.log(`  Orden #${orden.numero} (usando campos numéricos):`);
       } else {
         // Fallback: parsear descripción (registros antiguos)
         montosOrden = parsearMetodoPagoOrden(orden.descripcion || '', orden.total || 0);
-        console.log(`  Orden #${orden.numero} (parseando descripción):`);
       }
-      
-      console.log(`    Total orden: $${orden.total.toLocaleString('es-CO', { minimumFractionDigits: 2 })}`);
-      console.log(`    - Efectivo: $${montosOrden.montoEfectivo.toLocaleString('es-CO', { minimumFractionDigits: 2 })}`);
-      console.log(`    - Transferencia: $${montosOrden.montoTransferencia.toLocaleString('es-CO', { minimumFractionDigits: 2 })}`);
-      console.log(`    - Cheque: $${montosOrden.montoCheque.toLocaleString('es-CO', { minimumFractionDigits: 2 })}`);
       
       montoEfectivo += montosOrden.montoEfectivo;
       montoTransferencia += montosOrden.montoTransferencia;
       montoCheque += montosOrden.montoCheque;
     });
-    console.log(`  📌 Total Órdenes: $${montoOrdenes.toLocaleString('es-CO', { minimumFractionDigits: 2 })}`);
-    
+
     // Los abonos tienen método de pago en el campo metodoPago como string complejo
     // Formato: "EFECTIVO: 100.000 | TRANSFERENCIA: 50.000 (Banco de Bogotá) | RETEFUENTE Orden #1057: 12.500"
-    console.log('\n💰 ABONOS SELECCIONADOS:');
     abonosSeleccionados.forEach((abono, idx) => {
       const montoAbono = Number(abono.montoAbono) || 0;
       
       // 🆕 PRIORIZAR CAMPOS NUMÉRICOS del backend
       const tieneMontos = (abono.montoEfectivo || 0) > 0 || (abono.montoTransferencia || 0) > 0 || (abono.montoCheque || 0) > 0;
-      
-      // Log RAW data del abono para diagnóstico
-      console.log(`\n  🔍 [${idx + 1}/${abonosSeleccionados.length}] ABONO #${abono.id} - Orden #${abono.numeroOrden} - RAW DATA:`);
-      console.log(`    - montoAbono: ${abono.montoAbono}`);
-      console.log(`    - montoEfectivo (campo): ${abono.montoEfectivo}`);
-      console.log(`    - montoTransferencia (campo): ${abono.montoTransferencia}`);
-      console.log(`    - montoCheque (campo): ${abono.montoCheque}`);
-      console.log(`    - montoRetencion (campo): ${abono.montoRetencion}`);
-      console.log(`    - metodoPago (string): "${abono.metodoPago}"`);
-      console.log(`    - tieneMontos evaluado como: ${tieneMontos}`);
 
       let montosAbono = {};
       if (tieneMontos) {
-        // Usar campos numéricos del backend
         montosAbono = {
           montoEfectivo: Number(abono.montoEfectivo) || 0,
           montoTransferencia: Number(abono.montoTransferencia) || 0,
           montoCheque: Number(abono.montoCheque) || 0,
           montoRetencion: Number(abono.montoRetencion) || 0
         };
-        console.log(`  Usando campos numéricos`);
       } else {
         // Fallback: parsear metodoPago string (registros antiguos)
         const metodoPagoString = abono.metodoPago || '';
         montosAbono = parsearMetodoPagoAbono(metodoPagoString);
-        console.log(`  ⚠️ Parseando string metodoPago`);
-        console.log(`  🔍 Resultado del parsing:`, montosAbono);
         
         // 🚨 VALIDACIÓN: Detectar datos corruptos en metodoPago
         const sumaMetodosParsed = montosAbono.montoEfectivo + montosAbono.montoTransferencia + montosAbono.montoCheque;
@@ -542,14 +502,7 @@ const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores, se
         const montoMaximo = montoAbono * (1 + diferenciaTolerada);
         
         if (sumaMetodosParsed > montoMaximo) {
-          console.error(`  ❌ DATOS CORRUPTOS DETECTADOS en Abono #${abono.id}:`);
-          console.error(`     - Monto real del abono: $${montoAbono.toLocaleString('es-CO', { minimumFractionDigits: 2 })}`);
-          console.error(`     - Suma de métodos parseados: $${sumaMetodosParsed.toLocaleString('es-CO', { minimumFractionDigits: 2 })}`);
-          console.error(`     - EXCEDE en: $${(sumaMetodosParsed - montoAbono).toLocaleString('es-CO', { minimumFractionDigits: 2 })} (${((sumaMetodosParsed / montoAbono - 1) * 100).toFixed(1)}%)`);
-          console.error(`     - El campo 'metodoPago' en la base de datos contiene información incorrecta`);
-          
           // ⚠️ ADVERTENCIA: Usar solo el monto del abono, distribuir proporcionalmente
-          console.warn(`  ⚠️ CORRECCIÓN APLICADA: Ignorando string corrupto, usando monto total como TRANSFERENCIA`);
           montosAbono = {
             montoEfectivo: 0,
             montoTransferencia: montoAbono, // Asignar todo a transferencia por defecto
@@ -559,26 +512,15 @@ const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores, se
         }
       }
       
-      console.log(`    Monto abono: $${montoAbono.toLocaleString('es-CO', { minimumFractionDigits: 2 })}`);
-      console.log(`    - Efectivo: $${montosAbono.montoEfectivo.toLocaleString('es-CO', { minimumFractionDigits: 2 })}`);
-      console.log(`    - Transferencia: $${montosAbono.montoTransferencia.toLocaleString('es-CO', { minimumFractionDigits: 2 })}`);
-      console.log(`    - Cheque: $${montosAbono.montoCheque.toLocaleString('es-CO', { minimumFractionDigits: 2 })}`);
-      console.log(`    - Retención: $${montosAbono.montoRetencion.toLocaleString('es-CO', { minimumFractionDigits: 2 })}`);
-      
       montoEfectivo += montosAbono.montoEfectivo;
       montoTransferencia += montosAbono.montoTransferencia;
       montoCheque += montosAbono.montoCheque;
       montoRetencion += montosAbono.montoRetencion; // Acumular retención
     });
-    console.log(`  📌 Total Abonos: $${montoAbonos.toLocaleString('es-CO', { minimumFractionDigits: 2 })}`);
     
     // Procesar reembolsos (EGRESOS)
-    console.log('\n📤 REEMBOLSOS (EGRESOS):');
     reembolsosSeleccionados.forEach(reembolso => {
       const montoReembolso = Number(reembolso.totalReembolso) || 0;
-      console.log(`  Reembolso #${reembolso.id} - Orden #${reembolso.numeroOrden}:`);
-      console.log(`    Forma: ${reembolso.formaReembolso}`);
-      console.log(`    Monto: -$${montoReembolso.toLocaleString('es-CO', { minimumFractionDigits: 2 })}`);
       
       // Restar según forma de reembolso
       if (reembolso.formaReembolso === 'EFECTIVO') {
@@ -587,17 +529,6 @@ const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores, se
         montoTransferencia -= montoReembolso;
       }
     });
-    console.log(`  📌 Total Reembolsos: -$${montoReembolsos.toLocaleString('es-CO', { minimumFractionDigits: 2 })}`);
-    
-    console.log('\n📊 TOTALES ACUMULADOS:');
-    console.log(`  💵 Efectivo: $${montoEfectivo.toLocaleString('es-CO', { minimumFractionDigits: 2 })}`);
-    console.log(`  💳 Transferencia: $${montoTransferencia.toLocaleString('es-CO', { minimumFractionDigits: 2 })}`);
-    console.log(`  📝 Cheque: $${montoCheque.toLocaleString('es-CO', { minimumFractionDigits: 2 })}`);
-    console.log(`  🧾 Retención: $${montoRetencion.toLocaleString('es-CO', { minimumFractionDigits: 2 })}`);
-    console.log(`  💰 Suma métodos de pago: $${(montoEfectivo + montoTransferencia + montoCheque).toLocaleString('es-CO', { minimumFractionDigits: 2 })}`);
-    console.log(`  📦 Monto total esperado: $${montoTotal.toLocaleString('es-CO', { minimumFractionDigits: 2 })}`);
-    console.log(`  Diferencia: $${Math.abs((montoEfectivo + montoTransferencia + montoCheque) - montoTotal).toLocaleString('es-CO', { minimumFractionDigits: 2 })}`);
-    console.log('═══════════════════════════════════════════════════════\n');
     
     const desglose = {
       montoEfectivo,
@@ -614,23 +545,7 @@ const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores, se
     // Validar que el desglose coincida con el monto total (con tolerancia del 1%)
     const sumaDesglose = montoEfectivo + montoTransferencia + montoCheque + 0;
     
-    // DEBUG: Log del cálculo final
-    console.log(` [DEBUG Entrega] Cálculo de totales:`, {
-      montoOrdenes,
-      montoAbonos,
-      montoTotal: monto,
-      desglose: {
-        montoEfectivo,
-        montoTransferencia,
-        montoCheque,
-        montoDeposito: 0
-      },
-      sumaDesglose,
-      diferencia: Math.abs(sumaDesglose - monto)
-    });
-    
     if (Math.abs(sumaDesglose - monto) > monto * 0.01) {
-      console.warn(` Desglose no coincide con monto total. Desglose: ${sumaDesglose}, Total: ${monto}. Ajustando proporcionalmente.`);
       const factor = monto / sumaDesglose;
       montoEfectivo = montoEfectivo * factor;
       montoTransferencia = montoTransferencia * factor;
@@ -759,7 +674,6 @@ const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores, se
           return;
         }
       } catch (revalErr) {
-        console.warn('No se pudo revalidar órdenes disponibles antes de crear.', revalErr);
         // Continuar, backend validará también
       }
 
@@ -771,16 +685,6 @@ const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores, se
         fechaEntrega: formData.fechaEntrega || obtenerFechaLocal()
       };
       
-      // DEBUG: Verificar qué fecha se está enviando exactamente
-      console.log('═══════════════════════════════════════════════════════');
-      console.log('📅 FECHA SIENDO ENVIADA AL BACKEND:');
-      console.log('  - formData.fechaEntrega:', formData.fechaEntrega);
-      console.log('  - Tipo:', typeof formData.fechaEntrega);
-      console.log('  - entregaData.fechaEntrega:', entregaData.fechaEntrega);
-      console.log('  - Tipo:', typeof entregaData.fechaEntrega);
-      console.log('  - Payload completo:', JSON.stringify(entregaData, null, 2));
-      console.log('═══════════════════════════════════════════════════════');
-
       // Campos opcionales - solo agregar si tienen valor
       const ordenesIds = Array.isArray(formData.ordenesIds) ? formData.ordenesIds : [];
       const abonosIds = Array.isArray(formData.abonosIds) ? formData.abonosIds : [];
@@ -826,10 +730,6 @@ const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores, se
       onClose();
       
     } catch (err) {
-      console.error('Error creando entrega:', err);
-      console.error('Error response data:', err.response?.data);
-      console.error('Error response status:', err.response?.status);
-      
       // Extraer mensaje de error del backend
       let errorMessage = 'Error desconocido al crear la entrega';
       
