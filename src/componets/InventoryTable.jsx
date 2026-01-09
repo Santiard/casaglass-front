@@ -16,7 +16,7 @@ export default function InventoryTable({ data = [], filters, loading, onEditar, 
   return (
     <div className="table-container">
       <div className="table-wrapper">
-        <table className="table">
+        <table className={`table ${isVidrio ? 'vidrio-table' : ''}`}>
         <thead>
           <tr>
             <th>Código</th>
@@ -25,12 +25,16 @@ export default function InventoryTable({ data = [], filters, loading, onEditar, 
             {isVidrio ? (
               <>
                 {/* Columnas específicas para VIDRIO - responsivas */}
-                <th style={{ width: '12%' }}>mm</th>
-                <th style={{ width: '13%' }}>m1</th>
-                <th style={{ width: '13%' }}>m2</th>
+                <th style={{ width: '8%' }}>mm</th>
+                <th style={{ width: '10%' }}>m1</th>
+                <th style={{ width: '10%' }}>m2</th>
+                {/* Mostrar Costo solo para VIDRIO y solo para admin */}
+                {isAdmin && (
+                  <th style={{ width: '15%' }}>Costo</th>
+                )}
                 {/* Mostrar precio y cantidad para admin y vendedor */}
-                <th style={{ width: '50%' }}>Precio</th>
-                <th style={{ width: '8%', textAlign: 'center' }}>Cantidad</th>
+                <th style={{ width: '20%' }}>Precio</th>
+                <th style={{ width: '10%', textAlign: 'center' }}>Cantidad</th>
               </>
             ) : (
               <>
@@ -58,24 +62,23 @@ export default function InventoryTable({ data = [], filters, loading, onEditar, 
                   </>
                 ) : (
                   <th>Precio</th>
-                )}
-              </>
+                )}              </>
             )}
-            {/* Acciones: responsivo y más angosto para VIDRIO */}
+            {/* Acciones: más angosto y centrado */}
             <th
               style={isVidrio
-                ? { width: '4px', minWidth: '4px', maxWidth: '8px', textAlign: 'center' }
-                : { width: '60px', textAlign: 'center' }
+                ? { width: '90px', minWidth: '90px', textAlign: 'center' }
+                : { width: '120px', textAlign: 'center' }
               }
             >Acciones</th>
           </tr>
         </thead>
         <tbody>
           {loading && (
-            <tr><td colSpan={isAdmin ? (isVidrio ? 9 : 13) : (isVidrio ? 6 : 6)} className="empty">Cargando…</td></tr>
+            <tr><td colSpan={isAdmin ? (isVidrio ? 10 : 13) : (isVidrio ? 6 : 6)} className="empty">Cargando…</td></tr>
           )}
           {!loading && data.length === 0 && (
-            <tr><td colSpan={isAdmin ? (isVidrio ? 9 : 13) : (isVidrio ? 6 : 6)} className="empty">Sin resultados</td></tr>
+            <tr><td colSpan={isAdmin ? (isVidrio ? 10 : 13) : (isVidrio ? 6 : 6)} className="empty">Sin resultados</td></tr>
           )}
           {!loading && data.map((p) => {
             const total = Number(p.cantidadTotal || 0) || 
@@ -115,6 +118,12 @@ export default function InventoryTable({ data = [], filters, loading, onEditar, 
                     <td style={{ textAlign: 'center' }}>{p.mm ?? "-"}</td>
                     <td style={{ textAlign: 'center' }}>{p.m1 ?? "-"}</td>
                     <td style={{ textAlign: 'center' }}>{p.m2 ?? "-"}</td>
+                    {/* Mostrar Costo solo para VIDRIO y solo para admin */}
+                    {isAdmin && (
+                      <td style={{ textAlign: 'right' }}>
+                        {p.costo ? new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(p.costo) : "-"}
+                      </td>
+                    )}
                     {/* Mostrar precio y cantidad según el rol y sede */}
                     <td style={{ textAlign: 'right' }}>
                       {isAdmin
@@ -133,10 +142,10 @@ export default function InventoryTable({ data = [], filters, loading, onEditar, 
                       return "";
                     })()}>
                       {isAdmin
-                        ? (p.cantidadInsula !== undefined && p.cantidadInsula !== null ? (isVidrio ? Number(p.cantidadInsula).toFixed(2) + ' m²' : (Number(p.cantidadInsula) % 1 === 0 ? Number(p.cantidadInsula).toFixed(0) : Number(p.cantidadInsula).toFixed(2))) : '0')
-                        : userSede === "Insula" ? (p.cantidadInsula !== undefined && p.cantidadInsula !== null ? (isVidrio ? Number(p.cantidadInsula).toFixed(2) + ' m²' : (Number(p.cantidadInsula) % 1 === 0 ? Number(p.cantidadInsula).toFixed(0) : Number(p.cantidadInsula).toFixed(2))) : '0')
-                        : userSede === "Centro" ? (p.cantidadCentro !== undefined && p.cantidadCentro !== null ? (isVidrio ? Number(p.cantidadCentro).toFixed(2) + ' m²' : (Number(p.cantidadCentro) % 1 === 0 ? Number(p.cantidadCentro).toFixed(0) : Number(p.cantidadCentro).toFixed(2))) : '0')
-                        : userSede === "Patios" ? (p.cantidadPatios !== undefined && p.cantidadPatios !== null ? (isVidrio ? Number(p.cantidadPatios).toFixed(2) + ' m²' : (Number(p.cantidadPatios) % 1 === 0 ? Number(p.cantidadPatios).toFixed(0) : Number(p.cantidadPatios).toFixed(2))) : '0')
+                        ? (p.cantidadInsula !== undefined && p.cantidadInsula !== null ? (Number(p.cantidadInsula) % 1 === 0 ? Number(p.cantidadInsula).toFixed(0) : Number(p.cantidadInsula).toFixed(2)) : '0')
+                        : userSede === "Insula" ? (p.cantidadInsula !== undefined && p.cantidadInsula !== null ? (Number(p.cantidadInsula) % 1 === 0 ? Number(p.cantidadInsula).toFixed(0) : Number(p.cantidadInsula).toFixed(2)) : '0')
+                        : userSede === "Centro" ? (p.cantidadCentro !== undefined && p.cantidadCentro !== null ? (Number(p.cantidadCentro) % 1 === 0 ? Number(p.cantidadCentro).toFixed(0) : Number(p.cantidadCentro).toFixed(2)) : '0')
+                        : userSede === "Patios" ? (p.cantidadPatios !== undefined && p.cantidadPatios !== null ? (Number(p.cantidadPatios) % 1 === 0 ? Number(p.cantidadPatios).toFixed(0) : Number(p.cantidadPatios).toFixed(2)) : '0')
                         : '0'
                       }
                       {(() => {
@@ -155,19 +164,19 @@ export default function InventoryTable({ data = [], filters, loading, onEditar, 
                     {isAdmin ? (
                       <>
                         <td className={Number(p.cantidadInsula || 0) < 0 ? "stock-negativo" : ""}>
-                          {p.cantidadInsula !== undefined && p.cantidadInsula !== null ? (isVidrio ? Number(p.cantidadInsula).toFixed(2) + ' m²' : (Number(p.cantidadInsula) % 1 === 0 ? Number(p.cantidadInsula).toFixed(0) : Number(p.cantidadInsula).toFixed(2))) : '0'}
+                          {p.cantidadInsula !== undefined && p.cantidadInsula !== null ? (Number(p.cantidadInsula) % 1 === 0 ? Number(p.cantidadInsula).toFixed(0) : Number(p.cantidadInsula).toFixed(2)) : '0'}
                           {Number(p.cantidadInsula || 0) < 0 && <span className="badge-negativo"> </span>}
                         </td>
                         <td className={Number(p.cantidadCentro || 0) < 0 ? "stock-negativo" : ""}>
-                          {p.cantidadCentro !== undefined && p.cantidadCentro !== null ? (isVidrio ? Number(p.cantidadCentro).toFixed(2) + ' m²' : (Number(p.cantidadCentro) % 1 === 0 ? Number(p.cantidadCentro).toFixed(0) : Number(p.cantidadCentro).toFixed(2))) : '0'}
+                          {p.cantidadCentro !== undefined && p.cantidadCentro !== null ? (Number(p.cantidadCentro) % 1 === 0 ? Number(p.cantidadCentro).toFixed(0) : Number(p.cantidadCentro).toFixed(2)) : '0'}
                           {Number(p.cantidadCentro || 0) < 0 && <span className="badge-negativo"> </span>}
                         </td>
                         <td className={Number(p.cantidadPatios || 0) < 0 ? "stock-negativo" : ""}>
-                          {p.cantidadPatios !== undefined && p.cantidadPatios !== null ? (isVidrio ? Number(p.cantidadPatios).toFixed(2) + ' m²' : (Number(p.cantidadPatios) % 1 === 0 ? Number(p.cantidadPatios).toFixed(0) : Number(p.cantidadPatios).toFixed(2))) : '0'}
+                          {p.cantidadPatios !== undefined && p.cantidadPatios !== null ? (Number(p.cantidadPatios) % 1 === 0 ? Number(p.cantidadPatios).toFixed(0) : Number(p.cantidadPatios).toFixed(2)) : '0'}
                           {Number(p.cantidadPatios || 0) < 0 && <span className="badge-negativo"> </span>}
                         </td>
                         <td className={stockNegativo ? "stock-negativo" : ""} style={{ width: '12%', minWidth: '120px', maxWidth: '220px' }}>
-                          <strong>{isVidrio ? Number(total).toFixed(2) + ' m²' : (Number(total) % 1 === 0 ? Number(total).toFixed(0) : Number(total).toFixed(2))}</strong>
+                          <strong>{Number(total) % 1 === 0 ? Number(total).toFixed(0) : Number(total).toFixed(2)}</strong>
                           {stockNegativo && <span className="badge-negativo">  Faltan {Math.abs(total)}</span>}
                         </td>
                       </>

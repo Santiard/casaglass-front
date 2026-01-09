@@ -442,6 +442,70 @@
   font-weight: 600;
 }
 
+/* ===== ESTILOS ESPECÍFICOS PARA CATEGORÍA VIDRIO ===== */
+/* Cuando es VIDRIO, las columnas cambian:
+   Col 3: mm (8%)
+   Col 4: m1 (10%)  
+   Col 5: m2 (10%)
+   Col 6: Costo (15%) - Solo admin
+   Col 7: Precio (20%)
+   Col 8: Cantidad (10%)
+   Col 9: Acciones (90px) - Si admin
+   Col 8: Acciones (90px) - Si vendedor (no tiene Costo)
+*/
+.inventory-content .table-container .table.vidrio-table th:nth-child(3),
+.inventory-content .table-container .table.vidrio-table td:nth-child(3) {
+  width: 8% !important;
+  min-width: 3rem !important;
+  text-align: center;
+}
+
+.inventory-content .table-container .table.vidrio-table th:nth-child(4),
+.inventory-content .table-container .table.vidrio-table td:nth-child(4) {
+  width: 10% !important;
+  min-width: 3rem !important;
+  text-align: center;
+}
+
+.inventory-content .table-container .table.vidrio-table th:nth-child(5),
+.inventory-content .table-container .table.vidrio-table td:nth-child(5) {
+  width: 10% !important;
+  min-width: 3rem !important;
+  text-align: center;
+}
+
+/* Columna 6: Costo (solo para admin) */
+.inventory-content .table-container .table.vidrio-table th:nth-child(6),
+.inventory-content .table-container .table.vidrio-table td:nth-child(6) {
+  width: 15% !important;
+  min-width: 5rem !important;
+  text-align: right;
+}
+
+/* Columna 7: Precio */
+.inventory-content .table-container .table.vidrio-table th:nth-child(7),
+.inventory-content .table-container .table.vidrio-table td:nth-child(7) {
+  width: 20% !important;
+  min-width: 6rem !important;
+  text-align: right;
+}
+
+/* Columna 8: Cantidad */
+.inventory-content .table-container .table.vidrio-table th:nth-child(8),
+.inventory-content .table-container .table.vidrio-table td:nth-child(8) {
+  width: 10% !important;
+  min-width: 4rem !important;
+  text-align: center;
+}
+
+/* Columna 9: Acciones (cuando admin tiene Costo) */
+.inventory-content .table-container .table.vidrio-table th:nth-child(9),
+.inventory-content .table-container .table.vidrio-table td:nth-child(9) {
+  width: 90px !important;
+  min-width: 90px !important;
+  max-width: 90px !important;
+}
+
 /* Ajustar otras columnas para mantener proporción */
 /* Código - columna 1 */
 .inventory-content .table-container .table th:nth-child(1),
