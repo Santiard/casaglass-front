@@ -26,7 +26,7 @@ const AbonoPage = () => {
   const [clienteSearchModal, setClienteSearchModal] = useState("");
   const [showClienteModal, setShowClienteModal] = useState(false);
   const [ordenesCredito, setOrdenesCredito] = useState([]);
-  const [ordenesSeleccionadas, setOrdenesSeleccionadas] = useState(new Set());
+  const [ordenesSeleccionadas, setOrdenesSeleccionadas] = useState([]); // Cambiado a Array para mantener orden de selección
   const [ordenesConRetencion, setOrdenesConRetencion] = useState(new Set()); // Órdenes a las que se aplica retención
   const [updatingRetencion, setUpdatingRetencion] = useState(new Set()); // Órdenes con actualización de retención en curso
   const [distribucion, setDistribucion] = useState([]);
@@ -150,7 +150,7 @@ const AbonoPage = () => {
       });
     } else {
       setOrdenesCredito([]);
-      setOrdenesSeleccionadas(new Set());
+      setOrdenesSeleccionadas([]);
       setDistribucion([]);
       // Limpiar número de abono cuando no hay cliente
       setFormData(prev => ({ ...prev, factura: '' }));
@@ -193,6 +193,7 @@ const AbonoPage = () => {
         // Datos de la orden
         id: credito.ordenId,
         numero: credito.ordenNumero,
+        numeroFactura: credito.numeroFactura,
         fecha: credito.ordenFecha,
         obra: credito.ordenObra,
         
@@ -228,7 +229,7 @@ const AbonoPage = () => {
       }));
       
       setOrdenesCredito(ordenesConSaldo);
-      setOrdenesSeleccionadas(new Set());
+      setOrdenesSeleccionadas([]);
       
       // Inicializar órdenes con retención basándose en tieneRetencionFuente del backend
       const ordenesConRetencionInicial = new Set();
@@ -261,7 +262,7 @@ const AbonoPage = () => {
 
   // Calcular distribución automática cuando cambia el total de métodos de pago, las órdenes seleccionadas o las órdenes con retención
   useEffect(() => {
-    if (totalMetodosPago > 0 && ordenesSeleccionadas.size > 0) {
+    if (totalMetodosPago > 0 && ordenesSeleccionadas.length > 0) {
       calcularDistribucion();
     } else {
       setDistribucion([]);
@@ -278,14 +279,10 @@ const AbonoPage = () => {
     const metodosNormales = metodosPago.filter(m => m.tipo && m.tipo !== "RETEFUENTE" && m.monto > 0);
     const montoTotalSinRetencion = metodosNormales.reduce((sum, m) => sum + (parseFloat(m.monto) || 0), 0);
 
-    const ordenesSeleccionadasArray = Array.from(ordenesSeleccionadas)
+    // Mantener el orden de selección (NO ordenar por fecha)
+    const ordenesSeleccionadasArray = ordenesSeleccionadas
       .map(ordenId => ordenesCredito.find(o => o.id === ordenId))
-      .filter(Boolean)
-      .sort((a, b) => {
-        const fechaA = new Date(a.fecha || 0);
-        const fechaB = new Date(b.fecha || 0);
-        return fechaA - fechaB;
-      });
+      .filter(Boolean);
 
     const nuevaDistribucion = [];
     let montoDisponible = montoTotalSinRetencion;
@@ -342,15 +339,19 @@ const AbonoPage = () => {
   };
 
   const toggleOrdenSeleccionada = (ordenId) => {
-    const nuevasSeleccionadas = new Set(ordenesSeleccionadas);
-    if (nuevasSeleccionadas.has(ordenId)) {
-      nuevasSeleccionadas.delete(ordenId);
+    const index = ordenesSeleccionadas.indexOf(ordenId);
+    if (index !== -1) {
+      // Deseleccionar: remover del array
+      const nuevasSeleccionadas = ordenesSeleccionadas.filter(id => id !== ordenId);
+      setOrdenesSeleccionadas(nuevasSeleccionadas);
       // Si se deselecciona la orden, también quitar la retención
       const nuevasConRetencion = new Set(ordenesConRetencion);
       nuevasConRetencion.delete(ordenId);
       setOrdenesConRetencion(nuevasConRetencion);
     } else {
-      nuevasSeleccionadas.add(ordenId);
+      // Seleccionar: agregar al final del array (mantiene orden de selección)
+      const nuevasSeleccionadas = [...ordenesSeleccionadas, ordenId];
+      setOrdenesSeleccionadas(nuevasSeleccionadas);
       // Al seleccionar una orden, si tiene tieneRetencionFuente = true, marcarla automáticamente
       const orden = ordenesCredito.find(o => o.id === ordenId);
       if (orden && orden.tieneRetencionFuente === true) {
@@ -359,14 +360,13 @@ const AbonoPage = () => {
         setOrdenesConRetencion(nuevasConRetencion);
       }
     }
-    setOrdenesSeleccionadas(nuevasSeleccionadas);
   };
 
   const toggleSeleccionarTodas = () => {
-    if (ordenesSeleccionadas.size === ordenesCredito.length) {
-      setOrdenesSeleccionadas(new Set());
+    if (ordenesSeleccionadas.length === ordenesCredito.length) {
+      setOrdenesSeleccionadas([]);
     } else {
-      setOrdenesSeleccionadas(new Set(ordenesCredito.map(o => o.id)));
+      setOrdenesSeleccionadas(ordenesCredito.map(o => o.id));
     }
   };
 
@@ -1020,6 +1020,7 @@ const AbonoPage = () => {
                           <th style={{ padding: '0.5rem', textAlign: 'left', borderRight: '1px solid #fff' }}>FECHA</th>
                           <th style={{ padding: '0.5rem', textAlign: 'center', borderRight: '1px solid #fff' }}>ORDEN</th>
                           <th style={{ padding: '0.5rem', textAlign: 'center', borderRight: '1px solid #fff' }}>FACTURA</th>
+                          <th style={{ padding: '0.5rem', textAlign: 'center', borderRight: '1px solid #fff' }}>NUMERO ABONO</th>
                           <th style={{ padding: '0.5rem', textAlign: 'right', borderRight: '1px solid #fff' }}>VALOR</th>
                           <th style={{ padding: '0.5rem', textAlign: 'right', borderRight: '1px solid #fff' }}>SALDO</th>
                           <th style={{ padding: '0.5rem', textAlign: 'right', borderRight: '1px solid #fff' }}>ABONO</th>
@@ -1034,7 +1035,7 @@ const AbonoPage = () => {
                           const saldoPendiente = orden.creditoDetalle?.saldoPendiente || 0;
                           const montoAbono = dist?.montoAbono || 0;
                           const montoRetencion = dist?.montoRetencion || 0;
-                          const estaSeleccionada = ordenesSeleccionadas.has(orden.id);
+                          const estaSeleccionada = ordenesSeleccionadas.includes(orden.id);
                           const totalOrden = orden.total || 0;
                           // Calcular subtotal sin IVA para verificar umbral
                           const subtotalSinIva = totalOrden > 0 ? totalOrden / 1.19 : 0;
@@ -1073,6 +1074,9 @@ const AbonoPage = () => {
                               </td>
                               <td style={{ padding: '0.5rem', textAlign: 'center', borderRight: '1px solid #e0e0e0' }}>
                                 {orden.numero}
+                              </td>
+                              <td style={{ padding: '0.5rem', textAlign: 'center', borderRight: '1px solid #e0e0e0' }}>
+                                {orden.numeroFactura || '-'}
                               </td>
                               <td style={{ padding: '0.5rem', textAlign: 'center', borderRight: '1px solid #e0e0e0' }}>
                                 {formData.factura || '-'}

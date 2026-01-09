@@ -10,6 +10,7 @@ import {
   marcarOrdenComoFacturada,
   confirmarVenta,
   obtenerOrden,
+  obtenerOrdenDetalle,
 } from "../services/OrdenesService";
 import { crearFactura, marcarFacturaComoPagada, obtenerFacturaPorOrden } from "../services/FacturasService";
 import { useConfirm } from "../hooks/useConfirm.jsx";
@@ -121,11 +122,22 @@ export default function OrdenesPage() {
     
     try {
       // Obtener la orden completa antes de confirmarla para asegurar que tenemos todos los datos
-      // La orden de la tabla puede no tener todos los campos necesarios (como productoId en items)
+      // USAR obtenerOrdenDetalle en lugar de obtenerOrden para tener los productoId completos
       let ordenCompleta = orden;
       try {
-        ordenCompleta = await obtenerOrden(orden.id);
-        console.log(" Orden completa obtenida para confirmar:", ordenCompleta);
+        const detalleResponse = await obtenerOrdenDetalle(orden.id);
+        // El endpoint detalle puede devolver {orden, items, ...} o directamente la orden
+        // Validar la estructura antes de usar
+        if (detalleResponse && detalleResponse.orden) {
+          ordenCompleta = detalleResponse.orden;
+          // Asegurarse de que los items estén en la orden
+          if (detalleResponse.items && Array.isArray(detalleResponse.items)) {
+            ordenCompleta.items = detalleResponse.items;
+          }
+        } else if (detalleResponse) {
+          // Si la respuesta es directamente la orden
+          ordenCompleta = detalleResponse;
+        }
       } catch (err) {
         console.warn(" No se pudo obtener la orden completa, usando la de la tabla:", err);
         // Continuar con la orden de la tabla si falla

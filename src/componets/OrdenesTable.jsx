@@ -403,6 +403,7 @@ export default function OrdenesTable({
           <thead>
             <tr>
               <th>Número</th>
+              <th>N° Factura</th>
               <th>Fecha</th>
               <th>Cliente</th>
               <th>Sede</th>
@@ -410,7 +411,6 @@ export default function OrdenesTable({
               <th>Crédito</th>
               <th>Estado</th>
               <th>Total</th>
-              <th>N° Factura</th>
               <th>Acciones</th>
             </tr>
           </thead>
@@ -441,6 +441,7 @@ export default function OrdenesTable({
                   <Fragment key={`orden-${id}`}>
                     <tr>
                       <td>{o.numero}</td>
+                      <td>{o.numeroFactura || '-'}</td>
                       <td>{fmtFecha(o.fecha)}</td>
                       <td>{o.cliente?.nombre ?? "-"}</td>
                       <td>{o.sede?.nombre ?? "-"}</td>
@@ -448,7 +449,6 @@ export default function OrdenesTable({
                       <td>{o.credito ? "Sí" : "No"}</td>
                       <td>{formatearEstado(o.estado)}</td>
                       <td>${totalOrden.toLocaleString("es-CO")}</td>
-                      <td>{o.numeroFactura || '-'}</td>
                       <td className="actions-cell">
                         <button
                           className="btnLink"

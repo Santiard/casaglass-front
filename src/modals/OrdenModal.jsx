@@ -389,6 +389,7 @@ export default function OrdenEditarModal({
           productoId: i.producto?.id ?? null,
           codigo: i.producto?.codigo ?? "",
           nombre: i.producto?.nombre ?? "",
+          color: i.producto?.color ?? "", // Agregar color del producto
           descripcion: i.descripcion ?? "",
           cantidad: Number(i.cantidad ?? 1),
           precioUnitario: Number(i.precioUnitario ?? 0),
@@ -416,7 +417,7 @@ export default function OrdenEditarModal({
       ? String(orden.sede.id) 
       : "";
     
-    const base = {
+      const base = {
       id: Number(orden.id) || null,
       fecha: toLocalDateOnly(orden.fecha),
       obra: orden.obra ?? "",
@@ -440,6 +441,7 @@ export default function OrdenEditarModal({
             productoId: i.producto?.id ?? null, // Puede ser null si viene de /api/ordenes/tabla
             codigo: i.producto?.codigo ?? "",
             nombre: i.producto?.nombre ?? "",
+            color: i.producto?.color ?? "", // Agregar color del producto
             descripcion: i.descripcion ?? "",
             cantidad: Number(i.cantidad ?? 1),
             precioUnitario: Number(i.precioUnitario ?? 0),

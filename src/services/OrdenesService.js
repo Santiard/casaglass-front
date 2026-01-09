@@ -250,6 +250,7 @@ export async function actualizarRetencionFuente(ordenId, payload) {
 //  Confirmar venta (cambiar venta de false a true)
 export async function confirmarVenta(id, ordenCompleta) {
   if (!id) throw new Error("ID de la orden no proporcionado");
+  if (!ordenCompleta) throw new Error("Datos de la orden no proporcionados");
   
   // Si la orden era una cotización (venta === false), al confirmarla como venta
   // automáticamente se convierte en crédito ya que no se pueden agregar métodos de pago

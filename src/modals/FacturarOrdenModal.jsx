@@ -513,10 +513,10 @@ export default function FacturarOrdenModal({ isOpen, onClose, onSave, orden }) {
             )}
             {creditoPendiente && (
               <div style={{
-                background: '#FEF2F2', border: '1px solid #FCA5A5', color: '#991B1B',
+                background: '#FEF9E7', border: '1px solid #F9E79F', color: '#7D6608',
                 padding: '0.5rem', borderRadius: '0.5rem', marginBottom: '0.5rem'
               }}>
-                Orden a crédito con saldo pendiente de ${Number(orden?.creditoDetalle?.saldoPendiente || 0).toLocaleString('es-CO')}. No se puede facturar hasta que el crédito esté pagado.
+                Orden a crédito con saldo pendiente de ${Number(orden?.creditoDetalle?.saldoPendiente || 0).toLocaleString('es-CO')}.
               </div>
             )}
             <div className="calculo-grid">
