@@ -14,6 +14,7 @@ export default function VentaCortesTable({
   const [cantidadesVenta, setCantidadesVenta] = useState({});
   const [preciosSeleccionados, setPreciosSeleccionados] = useState({});
   const [modalCorte, setModalCorte] = useState({ isOpen: false, corte: null });
+  const [productoSeleccionado, setProductoSeleccionado] = useState(null);
   // Abrir modal para cortar un corte existente
   const handleAbrirModalCorte = (corte) => {
     // Calcular el precio según la sede del usuario (igual que en VentaTable)
@@ -107,8 +108,6 @@ export default function VentaCortesTable({
               <th>Precio de venta</th>
             )}
             
-            <th>Observación</th>
-            
             {/* Columnas específicas de venta */}
             <th>Cantidad</th>
             <th>Acción</th>
@@ -117,14 +116,14 @@ export default function VentaCortesTable({
         <tbody>
           {loading && (
             <tr>
-              <td colSpan={isAdmin ? 11 : 8} className="empty">
+              <td colSpan={isAdmin ? 10 : 7} className="empty">
                 Cargando…
               </td>
             </tr>
           )}
           {!loading && data.length === 0 && (
             <tr>
-              <td colSpan={isAdmin ? 11 : 8} className="empty">
+              <td colSpan={isAdmin ? 10 : 7} className="empty">
                 Sin resultados
               </td>
             </tr>
@@ -153,7 +152,12 @@ export default function VentaCortesTable({
             const stockNegativo = isAdmin ? total < 0 : cantidadDisponible < 0;
 
             return (
-              <tr key={uniqueKey} className={sinStock ? "row-sin-stock" : stockNegativo ? "row-stock-negativo" : ""}>
+              <tr 
+                key={uniqueKey} 
+                className={`${sinStock ? "row-sin-stock" : stockNegativo ? "row-stock-negativo" : ""} ${productoSeleccionado?.codigo === c.codigo && productoSeleccionado?.nombre === c.nombre ? "row-selected" : ""}`}
+                onClick={() => setProductoSeleccionado(c)}
+                style={{ cursor: 'pointer' }}
+              >
                 <td>{c.codigo}</td>
                 <td>{c.nombre}</td>
                 <td>{c.largoCm ?? "-"}</td>
@@ -186,18 +190,18 @@ export default function VentaCortesTable({
                   </td>
                 )}
                 
-                {/* Precios según el rol */}
+                {/* Precios según el rol - FORMATEADO CON SEPARADOR DE MILES */}
                 {isAdmin ? (
-                  <td><strong>${c.precio1 ?? "-"}</strong></td>
+                  <td><strong>
+                    {c.precio1 ? new Intl.NumberFormat('es-CO', { minimumFractionDigits: 0 }).format(c.precio1) : "-"}
+                  </strong></td>
                 ) : (
                   <td><strong>
-                    ${userSede === "Insula" ? (c.precio1 ?? "-") : 
-                      userSede === "Centro" ? (c.precio2 ?? "-") :
-                      userSede === "Patios" ? (c.precio3 ?? "-") : "-"}
+                    {userSede === "Insula" ? (c.precio1 ? new Intl.NumberFormat('es-CO', { minimumFractionDigits: 0 }).format(c.precio1) : "-") : 
+                      userSede === "Centro" ? (c.precio2 ? new Intl.NumberFormat('es-CO', { minimumFractionDigits: 0 }).format(c.precio2) : "-") :
+                      userSede === "Patios" ? (c.precio3 ? new Intl.NumberFormat('es-CO', { minimumFractionDigits: 0 }).format(c.precio3) : "-") : "-"}
                   </strong></td>
                 )}
-                
-                <td>{c.observacion || "-"}</td>
                 
                 {/* Input de cantidad a vender */}
                 <td>
@@ -270,6 +274,16 @@ export default function VentaCortesTable({
           onCortar={handleCortar}
         />
       )}
+      
+      {/* Pie de página con descripción */}
+      <div className="table-description-footer">
+        <div className="table-description-content">
+          <span className="table-description-label">Descripción: </span>
+          <span className="table-description-text">
+            {productoSeleccionado?.descripcion || "Seleccione un corte para ver su descripción"}
+          </span>
+        </div>
+      </div>
     </div>
   );
 }

@@ -137,37 +137,35 @@ export default function CorteModal({ isOpen, onClose, onSave, corte }) {
       return;
     }
 
-    // Preparar datos según esquema del backend
-    const backendPayload = {
-      codigo: formData.codigo,
-      nombre: formData.nombre,
-      posicion: formData.posicion || "",
-      tipo: formData.tipo,
-      color: formData.color,
-      cantidad: 0, // Siempre 0 como especificaste
-      costo: parseFloat(formData.costo) || 0,
-      precio1: parseFloat(formData.precio1) || 0,
-      precio2: parseFloat(formData.precio2) || 0,
-      precio3: parseFloat(formData.precio3) || 0,
-      descripcion: formData.descripcion || "",
-      largoCm: parseFloat(formData.largoCm) || 0,
-      precio: parseFloat(formData.precio) || 0,
-      observacion: formData.observacion || "",
-      version: null // Nulo como especificaste
-    };
-
-    // Convertir categoría a objeto si es string
+    // Convertir categoría PRIMERO
+    let categoriaFinal;
     if (formData.categoria && typeof formData.categoria === 'string') {
       const categoriaObj = categories.find(cat => cat.nombre === formData.categoria);
       if (categoriaObj) {
-        backendPayload.categoria = {
-          id: categoriaObj.id,
-          nombre: categoriaObj.nombre
-        };
+        categoriaFinal = { id: categoriaObj.id };
       }
     } else if (formData.categoria && typeof formData.categoria === 'object') {
-      backendPayload.categoria = formData.categoria;
+      categoriaFinal = { id: formData.categoria.id };
     }
+
+    // Preparar payload según el ejemplo del backend
+    const backendPayload = {
+      codigo: formData.codigo,
+      nombre: formData.nombre,
+      categoria: categoriaFinal,
+      tipo: formData.tipo,
+      color: formData.color,
+      largoCm: parseFloat(formData.largoCm) || 0,
+      observacion: formData.observacion || "",
+      precio1: parseFloat(formData.precio1) || 0,
+      precio2: parseFloat(formData.precio2) || 0,
+      precio3: parseFloat(formData.precio3) || 0,
+      cantidad: 0,
+      costo: parseFloat(formData.costo) || 0,
+      precio: parseFloat(formData.precio) || 0,
+      descripcion: formData.descripcion || "",
+      posicion: formData.posicion || ""
+    };
 
     // Si es edición, incluir el id
     if (isEditing && formData.id) {
