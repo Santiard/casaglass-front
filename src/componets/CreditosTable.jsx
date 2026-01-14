@@ -18,6 +18,7 @@ const CreditosTable = ({
   modoEspecial = false,
   onSeleccionarCredito,
   creditosSeleccionados = [],
+  totalSeleccionado = 0,
 }) => {
   const [expandido, setExpandido] = useState(null);
   const [page, setPage] = useState(1);
@@ -111,13 +112,9 @@ const CreditosTable = ({
               <th>#</th>
               <th>Cliente</th>
               <th>Orden</th>
+              <th>Obra</th>
               <th>Fecha Inicio</th>
-              <th>Fecha Cierre</th>
               <th>Total</th>
-              <th>Abonado</th>
-              <th>Retefuente</th>
-              <th>Saldo</th>
-              <th>N° Factura</th>
               <th>Estado</th>
               <th>Acciones</th>
             </tr>
@@ -125,22 +122,20 @@ const CreditosTable = ({
           <tbody>
           {total === 0 ? (
             <tr>
-              <td colSpan="11" className="sin-datos">No hay créditos registrados.</td>
+              <td colSpan="8" className="sin-datos">No hay créditos registrados.</td>
             </tr>
           ) : (
-            pageData.map((credito) => (
+            pageData.map((credito) => {
+              const estaSeleccionado = creditosSeleccionados?.includes(credito.id);
+              return (
               <Fragment key={credito.id}>
-                <tr className={`fila-credito ${credito.estado.toLowerCase()}`}> 
+                <tr className={`fila-credito ${credito.estado.toLowerCase()} ${estaSeleccionado ? 'credito-seleccionado' : ''}`}> 
                   <td>{credito.id}</td>
                   <td>{credito.cliente?.nombre}</td>
                   <td>{credito.orden?.numero || "-"}</td>
+                  <td>{credito.orden?.obra || "-"}</td>
                   <td>{credito.fechaInicio}</td>
-                  <td>{credito.fechaCierre || "-"}</td>
                   <td>${credito.totalCredito.toLocaleString()}</td>
-                  <td>${credito.totalAbonado.toLocaleString()}</td>
-                  <td>{credito.orden?.retencionFuente ? `$${credito.orden.retencionFuente.toLocaleString()}` : "-"}</td>
-                  <td>${credito.saldoPendiente.toLocaleString()}</td>
-                  <td>{credito.orden?.numeroFactura || '-'}</td>
                   <td>
                     <span className={`estado-badge ${credito.estado.toLowerCase()}`}>{credito.estado}</span>
                   </td>
@@ -210,11 +205,28 @@ const CreditosTable = ({
                   </tr>
                 )}
               </Fragment>
-            ))
+            );
+            })
           )}
         </tbody>
         </table>
       </div>
+
+      {/* Panel de totales - Solo en modo especial */}
+      {modoEspecial && creditosSeleccionados.length > 0 && (
+        <div className="panel-totales-seleccionados">
+          <div className="totales-content">
+            <div className="totales-item">
+              <span className="totales-label">Créditos seleccionados:</span>
+              <span className="totales-valor">{creditosSeleccionados.length}</span>
+            </div>
+            <div className="totales-item totales-destacado">
+              <span className="totales-label">Total a pagar:</span>
+              <span className="totales-valor-grande">${totalSeleccionado.toLocaleString('es-CO')}</span>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Barra de paginación */}
       {total > 0 && (
@@ -246,6 +258,24 @@ const CreditosTable = ({
             })}
             <button className="pg-btn" onClick={goNext} disabled={!canNext}>›</button>
             <button className="pg-btn" onClick={goLast} disabled={!canNext}>»</button>
+          </div>
+        </div>
+      )}
+
+      {/* Panel de totales - solo visible en modo especial con créditos seleccionados */}
+      {modoEspecial && creditosSeleccionados.length > 0 && (
+        <div className="panel-totales-seleccionados">
+          <div className="totales-info">
+            <div className="total-item">
+              <span className="total-label">Créditos seleccionados:</span>
+              <span className="total-valor">{creditosSeleccionados.length}</span>
+            </div>
+            <div className="total-item destacado">
+              <span className="total-label">Total a pagar:</span>
+              <span className="total-valor">
+                ${totalSeleccionado.toLocaleString('es-CO')}
+              </span>
+            </div>
           </div>
         </div>
       )}

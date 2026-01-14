@@ -2,16 +2,24 @@ import { useEffect, useState } from "react";
 import Toast from "../componets/Toast";
 import { useNavigate } from "react-router-dom";
 import CreditosTable from "../componets/CreditosTable";
-import { marcarCreditosEspecialPagados } from "../services/EstadoCuentaService";
+import EntregasEspecialesTable from "../componets/EntregasEspecialesTable";
+import { marcarCreditosEspecialPagados, obtenerEntregasEspeciales } from "../services/EstadoCuentaService";
 import { listarCreditosClienteEspecial } from "../services/CreditosService";
 import { listarClientes } from "../services/ClientesService";
 import HistoricoAbonosClienteModal from "../modals/HistoricoAbonosClienteModal.jsx";
 import HistoricoAbonosGeneralModal from "../modals/HistoricoAbonosGeneralModal.jsx";
+import MarcarPagadosModal from "../modals/MarcarPagadosModal.jsx";
+import DetalleEntregaEspecialModal from "../modals/DetalleEntregaEspecialModal.jsx";
 import estado from "../assets/estado.png";
 import "../styles/Creditos.css";
 
 const CreditosEspecialesPage = () => {
   const navigate = useNavigate();
+  
+  // Estado para tabs
+  const [view, setView] = useState("creditos"); // "creditos" | "entregas"
+  
+  // Estados para créditos
   const [creditos, setCreditos] = useState([]);
   const [clientes, setClientes] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -33,6 +41,18 @@ const CreditosEspecialesPage = () => {
 
   // Selección de créditos para marcar como pagados
   const [creditosSeleccionados, setCreditosSeleccionados] = useState([]);
+  const [isMarcarPagadosModalOpen, setIsMarcarPagadosModalOpen] = useState(false);
+  
+  // Estados para entregas especiales
+  const [entregas, setEntregas] = useState([]);
+  const [loadingEntregas, setLoadingEntregas] = useState(false);
+  const [isDetalleEntregaOpen, setIsDetalleEntregaOpen] = useState(false);
+  const [entregaSeleccionada, setEntregaSeleccionada] = useState(null);
+
+  // Calcular total de créditos seleccionados
+  const totalSeleccionado = creditos
+    .filter(c => creditosSeleccionados.includes(c.id))
+    .reduce((sum, c) => sum + (c.totalCredito || 0), 0);
 
   const handleSeleccionarCredito = (creditoId) => {
     setCreditosSeleccionados((prev) =>
@@ -42,18 +62,25 @@ const CreditosEspecialesPage = () => {
     );
   };
 
-  const handleMarcarPagados = async () => {
+  const handleMarcarPagados = async (ejecutadoPor, observaciones) => {
     if (creditosSeleccionados.length === 0) return;
     setIsReloading(true);
     try {
-      const res = await marcarCreditosEspecialPagados(creditosSeleccionados);
+      const res = await marcarCreditosEspecialPagados(creditosSeleccionados, ejecutadoPor, observaciones);
+      
+      // Mensaje mejorado con info de la entrega creada
+      const mensaje = `✔ ${res.creditosPagados} crédito(s) marcados como pagados. Entrega especial #${res.entregaEspecialId} creada exitosamente.`;
+      
       setToast({
         isVisible: true,
-        message: `✔ ${res.creditosPagados} crédito(s) marcados como pagados. ${res.detalles}`,
+        message: mensaje,
         type: 'success'
       });
       setCreditosSeleccionados([]);
+      
+      // Recargar tanto créditos como entregas
       await loadData(currentPage, pageSize);
+      cargarEntregas(); // Actualizar historial sin await para no bloquear
     } catch (err) {
       setToast({
         isVisible: true,
@@ -112,10 +139,36 @@ const CreditosEspecialesPage = () => {
     }
   };
 
+  // Cargar entregas especiales
+  const cargarEntregas = async () => {
+    setLoadingEntregas(true);
+    try {
+      const data = await obtenerEntregasEspeciales();
+      setEntregas(data || []);
+    } catch (err) {
+      setToast({
+        isVisible: true,
+        message: `Error cargando entregas: ${err.message}`,
+        type: 'error'
+      });
+    } finally {
+      setLoadingEntregas(false);
+    }
+  };
+
+  const handleVerDetalleEntrega = (entrega) => {
+    setEntregaSeleccionada(entrega);
+    setIsDetalleEntregaOpen(true);
+  };
+
   useEffect(() => {
-    loadData(1, pageSize);
+    if (view === "creditos") {
+      loadData(1, pageSize);
+    } else {
+      cargarEntregas();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filtroEstado, pageSize]);
+  }, [view, filtroEstado, pageSize]);
 
   return (
     <div className="creditos-container">
@@ -145,9 +198,52 @@ const CreditosEspecialesPage = () => {
             </div>
           )}
 
-
-          <div className="filtros-creditos" style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap', marginBottom: '1.5rem' }}>
+          {/* Sistema de Tabs */}
+          <div style={{ 
+            display: 'flex', 
+            gap: '0.5rem', 
+            marginBottom: '1.5rem',
+            borderBottom: '2px solid #e0e0e0'
+          }}>
             <button
+              onClick={() => setView("creditos")}
+              style={{
+                padding: '0.75rem 1.5rem',
+                background: view === "creditos" ? '#1e2753' : 'transparent',
+                color: view === "creditos" ? 'white' : '#1e2753',
+                border: 'none',
+                borderBottom: view === "creditos" ? '3px solid #27ae60' : '3px solid transparent',
+                cursor: 'pointer',
+                fontSize: '1rem',
+                fontWeight: '600',
+                transition: 'all 0.2s ease'
+              }}
+            >
+              Créditos Especiales
+            </button>
+            <button
+              onClick={() => setView("entregas")}
+              style={{
+                padding: '0.75rem 1.5rem',
+                background: view === "entregas" ? '#1e2753' : 'transparent',
+                color: view === "entregas" ? 'white' : '#1e2753',
+                border: 'none',
+                borderBottom: view === "entregas" ? '3px solid #27ae60' : '3px solid transparent',
+                cursor: 'pointer',
+                fontSize: '1rem',
+                fontWeight: '600',
+                transition: 'all 0.2s ease'
+              }}
+            >
+              Historial de Entregas
+            </button>
+          </div>
+
+          {/* Contenido según la vista */}
+          {view === "creditos" ? (
+            <>
+              <div className="filtros-creditos" style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap', marginBottom: '1.5rem' }}>
+                <button
               onClick={() => window.location.href = '/web/abono'}
               className="btn-agregar-abono"
               style={{
@@ -291,10 +387,11 @@ const CreditosEspecialesPage = () => {
             pageSize={pageSize}
             onPageChange={handlePageChange}
             serverSidePagination={true}
+            totalSeleccionado={totalSeleccionado}
           />
           <button
             disabled={creditosSeleccionados.length === 0 || isReloading}
-            onClick={handleMarcarPagados}
+            onClick={() => setIsMarcarPagadosModalOpen(true)}
             style={{
               marginTop: '1.5rem',
               padding: '0.7rem 1.5rem',
@@ -312,6 +409,15 @@ const CreditosEspecialesPage = () => {
           >
             {isReloading ? 'Marcando...' : `Pagar seleccionados (${creditosSeleccionados.length})`}
           </button>
+            </>
+          ) : (
+            /* Vista de Historial de Entregas */
+            <EntregasEspecialesTable
+              entregas={entregas}
+              loading={loadingEntregas}
+              onVerDetalle={handleVerDetalleEntrega}
+            />
+          )}
         </>
       )}
 
@@ -322,6 +428,21 @@ const CreditosEspecialesPage = () => {
       <HistoricoAbonosGeneralModal
         isOpen={isHistoricoGeneralModalOpen}
         onClose={() => setIsHistoricoGeneralModalOpen(false)}
+      />
+      <MarcarPagadosModal
+        isOpen={isMarcarPagadosModalOpen}
+        onClose={() => setIsMarcarPagadosModalOpen(false)}
+        onConfirm={handleMarcarPagados}
+        cantidadCreditos={creditosSeleccionados.length}
+        totalMonto={totalSeleccionado}
+      />
+      <DetalleEntregaEspecialModal
+        isOpen={isDetalleEntregaOpen}
+        onClose={() => {
+          setIsDetalleEntregaOpen(false);
+          setEntregaSeleccionada(null);
+        }}
+        entregaId={entregaSeleccionada?.id}
       />
     </div>
   );

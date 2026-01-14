@@ -71,3 +71,73 @@
 @media (max-width: 30em) { /* 480px */
 .modal-card { width: 95vw; }
 }
+/* Estilos para MarcarPagadosModal */
+.confirmation-summary {
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.summary-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0;
+}
+
+.summary-item.total {
+  border-top: 2px solid #27ae60;
+  margin-top: 0.5rem;
+  padding-top: 0.75rem;
+  font-weight: 600;
+  font-size: 1.1rem;
+}
+
+.summary-label {
+  color: #495057;
+  font-weight: 500;
+}
+
+.summary-value {
+  color: #1e2753;
+  font-weight: 600;
+  font-size: 1.05rem;
+}
+
+.summary-item.total .summary-value {
+  color: #27ae60;
+  font-size: 1.2rem;
+}
+
+.info-box {
+  background: #fff3cd;
+  border: 1px solid #ffc107;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-top: 1rem;
+}
+
+.info-box p {
+  margin: 0.5rem 0;
+  color: #856404;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.info-box p:first-child {
+  margin-top: 0;
+}
+
+.info-box p:last-child {
+  margin-bottom: 0;
+}
+
+.char-count {
+  display: block;
+  text-align: right;
+  color: #6c757d;
+  font-size: 0.85rem;
+  margin-top: 0.25rem;
+}

@@ -516,7 +516,7 @@ const EstadoCuentaPage = () => {
                     {abonosSeleccionados.map((abono) => (
                       <tr key={abono.id}>
                         <td>{abono.fechaAbono}</td>
-                        <td style={{ textAlign: 'right', fontWeight: 500 }}>${abono.montoAbono.toLocaleString()}</td>
+                        <td style={{ textAlign: 'right', fontWeight: 500 }}>${(abono.montoAbono || 0).toLocaleString()}</td>
                         <td>{abono.metodoPago}</td>
                         <td>{abono.numeroFactura || "-"}</td>
                         <td>{abono.observaciones || "-"}</td>
@@ -639,7 +639,7 @@ function AbonosTable({ abonos }) {
         {abonos.map(a => (
           <tr key={a.id}>
             <td>{a.fechaAbono}</td>
-            <td style={{ textAlign: 'right', fontWeight: 500 }}>${a.montoAbono.toLocaleString()}</td>
+            <td style={{ textAlign: 'right', fontWeight: 500 }}>${(a.montoAbono || 0).toLocaleString()}</td>
             <td>{a.metodoPago}</td>
             <td>{a.numeroFactura || "-"}</td>
           </tr>

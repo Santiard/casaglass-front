@@ -12,6 +12,7 @@ export default function EntregasTable({
   onImprimirSeleccionadas, // (entregas[]) => void - nuevo prop para imprimir múltiples
   entregasSeleccionadasCount = 0, // Contador de entregas seleccionadas para mostrar en el header
   onImprimirSeleccionadasClick, // Handler para el botón de imprimir seleccionadas
+  isAdmin = false, // Prop para controlar visibilidad de botón Confirmar
 }) {
   const [entregas, setEntregas] = useState([]);
   const [entregasSeleccionadas, setEntregasSeleccionadas] = useState([]); // IDs de entregas seleccionadas
@@ -245,17 +246,19 @@ export default function EntregasTable({
                   </td>
                   <td className="clientes-actions" style={{ display: "flex", gap: 6 }}>
                     <button className="btn" onClick={() => onImprimir?.(ent)} title="Imprimir">Imprimir</button>
-                    <button 
-                      className="btn" 
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        openConfirmar(ent);
-                      }} 
-                      disabled={ent.estado !== "PENDIENTE"}
-                    >
-                      Confirmar
-                    </button>
+                    {isAdmin && (
+                      <button 
+                        className="btn" 
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          openConfirmar(ent);
+                        }} 
+                        disabled={ent.estado !== "PENDIENTE"}
+                      >
+                        Confirmar
+                      </button>
+                    )}
                     <button className="btn" onClick={() => handleEliminar(ent)} disabled={ent.estado === "ENTREGADA"}>Eliminar</button>
                   </td>
                 </tr>

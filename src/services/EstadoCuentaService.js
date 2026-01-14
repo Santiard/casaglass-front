@@ -1,14 +1,22 @@
+import axios from "axios";
+
 /**
  * Marca créditos del cliente especial como pagados
  * @param {Array<number>} creditoIds - IDs de los créditos a marcar como pagados
- * @returns {Promise<{mensaje: string, creditosPagados: number, detalles: string}>}
+ * @param {string} ejecutadoPor - (opcional) Nombre de quien ejecuta la acción
+ * @param {string} observaciones - (opcional) Observaciones adicionales
+ * @returns {Promise<{mensaje: string, creditosPagados: number, entregaEspecialId: number, registro: Object}>}
  */
-export async function marcarCreditosEspecialPagados(creditoIds) {
+export async function marcarCreditosEspecialPagados(creditoIds, ejecutadoPor = null, observaciones = null) {
   if (!Array.isArray(creditoIds) || creditoIds.length === 0) {
     throw new Error("Debes enviar al menos un ID de crédito");
   }
   try {
-    const response = await axios.post('/api/creditos/cliente-especial/marcar-pagados', { creditoIds });
+    const payload = { creditoIds };
+    if (ejecutadoPor) payload.ejecutadoPor = ejecutadoPor;
+    if (observaciones) payload.observaciones = observaciones;
+    
+    const response = await axios.post('/api/creditos/cliente-especial/marcar-pagados', payload);
     return response.data;
   } catch (error) {
     if (error.response) {
@@ -18,7 +26,6 @@ export async function marcarCreditosEspecialPagados(creditoIds) {
     throw new Error('Error de red o inesperado');
   }
 }
-import axios from "axios";
 
 /**
  * Obtiene el estado de cuenta de un cliente (créditos activos con saldo pendiente > 0)
@@ -65,4 +72,43 @@ export async function fetchEstadoCuentaEspecial(sedeId = null) {
       cantidadCreditos: estadoCuenta.length
     }
   };
+}
+
+/**
+ * Obtiene el historial de entregas especiales (lotes de créditos cerrados)
+ * @param {string} desde - (opcional) Fecha inicial en formato YYYY-MM-DD
+ * @param {string} hasta - (opcional) Fecha final en formato YYYY-MM-DD
+ * @returns {Promise<Array>} Lista de entregas especiales
+ */
+export async function obtenerEntregasEspeciales(desde = null, hasta = null) {
+  try {
+    const params = {};
+    if (desde) params.desde = desde;
+    if (hasta) params.hasta = hasta;
+    
+    const response = await axios.get('/api/creditos/cliente-especial/entregas', { params });
+    return response.data;
+  } catch (error) {
+    if (error.response) {
+      throw new Error(error.response.data?.mensaje || error.response.data?.error || 'Error al obtener entregas especiales');
+    }
+    throw new Error('Error de red o inesperado');
+  }
+}
+
+/**
+ * Obtiene el detalle de una entrega especial por ID
+ * @param {number} id - ID de la entrega especial
+ * @returns {Promise<Object>} Detalle completo de la entrega con sus créditos
+ */
+export async function obtenerDetalleEntregaEspecial(id) {
+  try {
+    const response = await axios.get(`/api/creditos/cliente-especial/entregas/${id}`);
+    return response.data;
+  } catch (error) {
+    if (error.response) {
+      throw new Error(error.response.data?.mensaje || error.response.data?.error || 'Error al obtener detalle de entrega especial');
+    }
+    throw new Error('Error de red o inesperado');
+  }
 }

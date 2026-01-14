@@ -407,6 +407,7 @@ export default function EntregasPage() {
           onImprimir={handleImprimirEntrega}
           onImprimirSeleccionadas={handleImprimirSeleccionadas}
           onImprimirSeleccionadasClick={handleSetInfoSeleccionadas}
+          isAdmin={isAdmin}
         />
       </div>
 
