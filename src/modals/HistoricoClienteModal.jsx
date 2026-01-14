@@ -532,157 +532,117 @@ export default function HistoricoClienteModal({ isOpen, onClose }) {
             </div>
           </header>
 
-          {/* Selección de Cliente y Filtros de Fecha */}
-          <div style={{ 
-            padding: '1.5rem', 
+          {/* Selección de Cliente y Filtros de Fecha en una sola fila */}
+          <div style={{
+            padding: '1.5rem',
             borderBottom: '2px solid #1e2753',
             backgroundColor: '#f8f9fa'
           }}>
-            <div style={{ marginBottom: '1rem' }}>
-              <label style={{ 
-                display: 'block', 
-                marginBottom: '0.5rem', 
-                fontWeight: '600',
-                color: '#1e2753'
-              }}>
-                Seleccionar Cliente
-              </label>
-              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                <input
-                  type="text"
-                  value={clienteSeleccionado?.nombre || ""}
-                  readOnly
-                  onClick={() => setShowClienteModal(true)}
-                  placeholder="Haz clic para buscar cliente..."
-                  className="clientes-input"
-                  style={{
-                    flex: 1,
-                    cursor: 'pointer',
-                    fontSize: '1rem',
-                    padding: '0.5rem'
-                  }}
-                />
-                {clienteSeleccionado && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setClienteSeleccionado(null);
-                      setOrdenes([]);
-                      setOrdenesCompletas([]);
-                      setFechaDesde("");
-                      setFechaHasta("");
-                      setExpanded({});
-                    }}
-                    className="btn-cancelar"
-                    style={{
-                      padding: '0.5rem 0.75rem',
-                      fontSize: '0.85rem',
-                      minWidth: 'auto'
-                    }}
-                    title="Limpiar selección"
-                  >
-                    ✕
-                  </button>
-                )}
+            <label style={{
+              display: 'block',
+              marginBottom: '0.5rem',
+              fontWeight: '600',
+              color: '#1e2753'
+            }}>
+              Seleccionar Cliente
+            </label>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'nowrap', overflowX: 'auto' }}>
+              <input
+                type="text"
+                value={clienteSeleccionado?.nombre || ""}
+                readOnly
+                onClick={() => setShowClienteModal(true)}
+                placeholder="Haz clic para buscar cliente..."
+                className="clientes-input"
+                style={{
+                  width: '200px',
+                  minWidth: '150px',
+                  cursor: 'pointer',
+                  fontSize: '0.95rem',
+                  padding: '0.5rem'
+                }}
+              />
+              {clienteSeleccionado && (
                 <button
                   type="button"
-                  onClick={() => setShowClienteModal(true)}
-                  className="btn-guardar"
-                  style={{
-                    whiteSpace: 'nowrap',
-                    padding: '0.5rem 1rem',
-                    fontSize: '0.9rem'
+                  onClick={() => {
+                    setClienteSeleccionado(null);
+                    setOrdenes([]);
+                    setOrdenesCompletas([]);
+                    setFechaDesde("");
+                    setFechaHasta("");
+                    setExpanded({});
                   }}
+                  className="btn-cancelar"
+                  style={{
+                    padding: '0.5rem 0.75rem',
+                    fontSize: '0.85rem',
+                    minWidth: 'auto'
+                  }}
+                  title="Limpiar selección"
                 >
-                  Buscar Cliente
+                  ✕
                 </button>
-              </div>
-            </div>
-
-            {/* Filtros de Fecha */}
-            {clienteSeleccionado && (
-              <div style={{
-                padding: '1rem',
-                backgroundColor: '#fff',
-                borderRadius: '6px',
-                border: '1px solid #d2d5e2'
-              }}>
-                <label style={{ 
-                  display: 'block', 
-                  marginBottom: '0.5rem', 
-                  fontWeight: '600',
-                  color: '#1e2753',
+              )}
+              <button
+                type="button"
+                onClick={() => setShowClienteModal(true)}
+                className="btn-guardar"
+                style={{
+                  whiteSpace: 'nowrap',
+                  padding: '0.5rem 1rem',
                   fontSize: '0.9rem'
-                }}>
-                  Filtrar por Fechas (Opcional)
-                </label>
-                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
-                  <div style={{ flex: 1, minWidth: '200px' }}>
-                    <label style={{ 
-                      display: 'block', 
-                      marginBottom: '0.25rem', 
-                      fontSize: '0.85rem',
-                      color: '#666'
-                    }}>
-                      Desde:
-                    </label>
-                    <input
-                      type="date"
-                      value={fechaDesde}
-                      onChange={(e) => setFechaDesde(e.target.value)}
-                      className="clientes-input"
-                      style={{
-                        width: '100%',
-                        fontSize: '0.9rem',
-                        padding: '0.5rem'
-                      }}
-                    />
-                  </div>
-                  <div style={{ flex: 1, minWidth: '200px' }}>
-                    <label style={{ 
-                      display: 'block', 
-                      marginBottom: '0.25rem', 
-                      fontSize: '0.85rem',
-                      color: '#666'
-                    }}>
-                      Hasta:
-                    </label>
-                    <input
-                      type="date"
-                      value={fechaHasta}
-                      onChange={(e) => setFechaHasta(e.target.value)}
-                      min={fechaDesde || undefined}
-                      className="clientes-input"
-                      style={{
-                        width: '100%',
-                        fontSize: '0.9rem',
-                        padding: '0.5rem'
-                      }}
-                    />
-                  </div>
-                  {(fechaDesde || fechaHasta) && (
-                    <div style={{ display: 'flex', alignItems: 'flex-end' }}>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setFechaDesde("");
-                          setFechaHasta("");
-                        }}
-                        className="btn-cancelar"
-                        style={{
-                          padding: '0.5rem 1rem',
-                          fontSize: '0.85rem',
-                          whiteSpace: 'nowrap'
-                        }}
-                        title="Limpiar filtros de fecha"
-                      >
-                        Limpiar Filtros
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
+                }}
+              >
+                Buscar Cliente
+              </button>
+              {/* Filtros de Fecha */}
+              <input
+                type="date"
+                value={fechaDesde}
+                onChange={(e) => setFechaDesde(e.target.value)}
+                className="clientes-input"
+                style={{
+                  width: '150px',
+                  minWidth: '120px',
+                  fontSize: '0.95rem',
+                  padding: '0.5rem'
+                }}
+                placeholder="Desde"
+              />
+              <input
+                type="date"
+                value={fechaHasta}
+                onChange={(e) => setFechaHasta(e.target.value)}
+                min={fechaDesde || undefined}
+                className="clientes-input"
+                style={{
+                  width: '150px',
+                  minWidth: '120px',
+                  fontSize: '0.95rem',
+                  padding: '0.5rem'
+                }}
+                placeholder="Hasta"
+              />
+              {(fechaDesde || fechaHasta) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFechaDesde("");
+                    setFechaHasta("");
+                  }}
+                  className="btn-cancelar"
+                  style={{
+                    padding: '0.5rem 1rem',
+                    fontSize: '0.85rem',
+                    whiteSpace: 'nowrap'
+                  }}
+                  title="Limpiar filtros de fecha"
+                >
+                  Limpiar Filtros
+                </button>
+              )}
+            </div>
           </div>
 
           {/* Contenido imprimible (oculto) */}

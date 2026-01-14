@@ -46,6 +46,9 @@ export default function OrdenesTable({
   pageSize = 20,
   onPageChange = null,
   serverSidePagination = false,
+  clienteSeleccionado,
+  setClienteSeleccionado,
+  setShowClienteModal,
 }) {
   const { showError } = useToast();
   const [query, setQuery] = useState("");
@@ -329,9 +332,37 @@ export default function OrdenesTable({
             <option value="">Todos los estados</option>
             <option value="ACTIVA">Activas</option>
             <option value="ANULADA">Anuladas</option>
-            <option value="PENDIENTE">Pendientes</option>
-            <option value="COMPLETADA">Completadas</option>
           </select>
+          {/* Filtro por cliente */}
+          <label style={{ fontWeight: 600, color: '#1e2753', marginRight: 4, whiteSpace: 'nowrap' }}>Cliente:</label>
+          <input
+            type="text"
+            value={typeof clienteSeleccionado === 'object' && clienteSeleccionado ? clienteSeleccionado.nombre : ''}
+            readOnly
+            onClick={() => setShowClienteModal(true)}
+            placeholder="Haz clic para buscar cliente..."
+            className="clientes-input"
+            style={{ width: '180px', minWidth: '120px', cursor: 'pointer', fontSize: '0.95rem', padding: '0.4rem', marginRight: 4, background: '#f8f9fa' }}
+          />
+          {clienteSeleccionado && (
+            <button
+              type="button"
+              onClick={() => setClienteSeleccionado(null)}
+              className="btn-cancelar"
+              style={{ padding: '0.3rem 0.6rem', fontSize: '0.85rem', minWidth: 'auto', marginRight: 4 }}
+              title="Limpiar selección"
+            >
+              ✕
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => setShowClienteModal(true)}
+            className="btn-guardar"
+            style={{ whiteSpace: 'nowrap', padding: '0.4rem 0.8rem', fontSize: '0.9rem' }}
+          >
+            Buscar Cliente
+          </button>
           
           {(query || filtroEstado) && (
             <button

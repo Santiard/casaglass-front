@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback } from "react";
+import { listarClientes } from "../services/ClientesService";
 import OrdenesTable from "../componets/OrdenesTable";
 import "../styles/Table.css";
 import {
@@ -23,25 +24,28 @@ export default function OrdenesPage() {
   const { showSuccess, showError } = useToast();
   const { isAdmin, sedeId } = useAuth(); // Obtener info del usuario logueado
   const [data, setData] = useState([]);
+  const [clientes, setClientes] = useState([]);
+  const [clienteSeleccionado, setClienteSeleccionado] = useState(null);
+  const [clienteSearchModal, setClienteSearchModal] = useState("");
+  const [showClienteModal, setShowClienteModal] = useState(false);
   const [loading, setLoading] = useState(false);
   const [totalElements, setTotalElements] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
 
-  const fetchData = useCallback(async (page = 1, size = 20) => {
+  const fetchData = useCallback(async (page = 1, size = 20, clienteId = null) => {
     setLoading(true);
     try {
       // Si no es admin, filtrar por sede del usuario
       const params = {
         ...(isAdmin ? {} : { sedeId }),
+        ...(clienteId ? { clienteId } : {}),
         page: page,
         size: size
       };
       // Usar SIEMPRE el endpoint de tabla con paginación
       const response = await listarOrdenesTabla(params);
-      
-      // El backend retorna un objeto con paginación si se envían page y size
       if (response && typeof response === 'object' && 'content' in response) {
         // Respuesta paginada
         const norm = Array.isArray(response.content)
@@ -50,7 +54,7 @@ export default function OrdenesPage() {
             facturada: Boolean(o.facturada ?? o.factura ?? o.facturaId ?? o.numeroFactura),
           }))
         : [];
-      setData(norm);
+        setData(norm);
         setTotalElements(response.totalElements || 0);
         setTotalPages(response.totalPages || 1);
         setCurrentPage(response.page || page);
@@ -73,9 +77,17 @@ export default function OrdenesPage() {
   }, [isAdmin, sedeId]);
 
   // Cargar datos iniciales
+  // Cargar clientes al abrir modal de búsqueda
   useEffect(() => {
-    fetchData(1, pageSize);
-  }, [isAdmin, sedeId]); // Solo recargar si cambian estos valores
+    if (showClienteModal) {
+      listarClientes().then(setClientes);
+    }
+  }, [showClienteModal]);
+
+  // Cargar datos iniciales y cuando cambia el cliente seleccionado
+  useEffect(() => {
+    fetchData(1, pageSize, clienteSeleccionado?.id || null);
+  }, [isAdmin, sedeId, clienteSeleccionado, pageSize]);
 
   //  Guardar (editar o crear)
   const handleGuardar = async (orden, isEdit) => {
@@ -248,12 +260,12 @@ export default function OrdenesPage() {
     if (newSize !== pageSize) {
       setPageSize(newSize);
       setCurrentPage(1);
-      fetchData(1, newSize); // Resetear a página 1 si cambia el tamaño
+      fetchData(1, newSize, clienteSeleccionado?.id || null);
     } else {
       setCurrentPage(newPage);
-      fetchData(newPage, newSize);
+      fetchData(newPage, newSize, clienteSeleccionado?.id || null);
     }
-  }, [pageSize, fetchData]);
+  }, [pageSize, fetchData, clienteSeleccionado]);
 
   return (
     <div className="clientes-page">
@@ -273,8 +285,67 @@ export default function OrdenesPage() {
           pageSize={pageSize}
           onPageChange={handlePageChange}
           serverSidePagination={true}
+          clienteSeleccionado={clienteSeleccionado}
+          setClienteSeleccionado={setClienteSeleccionado}
+          setShowClienteModal={setShowClienteModal}
         />
       </div>
+      {/* Modal de búsqueda de clientes */}
+      {showClienteModal && (
+        <div className="modal-overlay" style={{ zIndex: 10001 }} onClick={() => setShowClienteModal(false)}>
+          <div className="modal-container" style={{ maxWidth: '600px', width: '95vw', maxHeight: '80vh', overflow: 'auto' }} onClick={e => e.stopPropagation()}>
+            <header className="modal-header" style={{ background: '#1e2753', color: '#fff', padding: '1rem 1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderRadius: '8px 8px 0 0' }}>
+              <h2 style={{ margin: 0, color: '#fff', fontSize: '1.2rem', fontWeight: '600' }}>Buscar Cliente</h2>
+              <button className="close-btn" onClick={() => setShowClienteModal(false)} style={{ background: 'none', border: 'none', color: '#fff', fontSize: '1.5rem', cursor: 'pointer' }}>✕</button>
+            </header>
+            <div style={{ padding: '1.2rem' }}>
+              <input
+                type="text"
+                value={clienteSearchModal}
+                onChange={e => setClienteSearchModal(e.target.value)}
+                placeholder="Buscar cliente por nombre, NIT, correo, ciudad o dirección..."
+                className="clientes-input"
+                style={{ width: '100%', fontSize: '1rem', padding: '0.5rem', border: '1px solid #d2d5e2', borderRadius: '5px', marginBottom: '1rem' }}
+                autoFocus
+              />
+              <div style={{ maxHeight: '350px', overflowY: 'auto' }}>
+                {clientes.filter(c => {
+                  const q = clienteSearchModal.trim().toLowerCase();
+                  if (!q) return true;
+                  return (
+                    c.nombre?.toLowerCase().includes(q) ||
+                    c.nit?.toLowerCase().includes(q) ||
+                    c.ciudad?.toLowerCase().includes(q) ||
+                    c.direccion?.toLowerCase().includes(q) ||
+                    c.correo?.toLowerCase().includes(q)
+                  );
+                }).map(c => (
+                  <div
+                    key={c.id}
+                    onClick={() => {
+                      setClienteSeleccionado(c);
+                      setShowClienteModal(false);
+                      setClienteSearchModal("");
+                    }}
+                    style={{
+                      padding: '0.7rem 1rem',
+                      borderBottom: '1px solid #e0e0e0',
+                      cursor: 'pointer',
+                      background: clienteSeleccionado?.id === c.id ? '#e7f3ff' : 'transparent',
+                      fontWeight: clienteSeleccionado?.id === c.id ? 600 : 400
+                    }}
+                  >
+                    <span style={{ color: '#1e2753', fontWeight: 500 }}>{c.nombre}</span> <span style={{ color: '#888', fontSize: '0.95em' }}>({c.nit})</span> <span style={{ color: '#888', fontSize: '0.95em' }}>{c.ciudad}</span>
+                  </div>
+                ))}
+                {clientes.length === 0 && (
+                  <div style={{ color: '#999', textAlign: 'center', padding: '2rem' }}>No hay clientes registrados.</div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       <ConfirmDialog />
     </div>
   );
