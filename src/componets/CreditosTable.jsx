@@ -261,24 +261,6 @@ const CreditosTable = ({
           </div>
         </div>
       )}
-
-      {/* Panel de totales - solo visible en modo especial con créditos seleccionados */}
-      {modoEspecial && creditosSeleccionados.length > 0 && (
-        <div className="panel-totales-seleccionados">
-          <div className="totales-info">
-            <div className="total-item">
-              <span className="total-label">Créditos seleccionados:</span>
-              <span className="total-valor">{creditosSeleccionados.length}</span>
-            </div>
-            <div className="total-item destacado">
-              <span className="total-label">Total a pagar:</span>
-              <span className="total-valor">
-                ${totalSeleccionado.toLocaleString('es-CO')}
-              </span>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

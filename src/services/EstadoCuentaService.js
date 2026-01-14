@@ -87,10 +87,24 @@ export async function obtenerEntregasEspeciales(desde = null, hasta = null) {
     if (hasta) params.hasta = hasta;
     
     const response = await axios.get('/api/creditos/cliente-especial/entregas', { params });
-    return response.data;
+    
+    // Manejar diferentes estructuras de respuesta
+    if (Array.isArray(response.data)) {
+      return response.data;
+    } else if (response.data && typeof response.data === 'object') {
+      // Si viene envuelta en un objeto
+      return response.data.entregas || response.data.content || [];
+    }
+    
+    return [];
   } catch (error) {
+    console.error('Error completo:', error);
+    console.error('Response data:', error.response?.data);
+    console.error('Response status:', error.response?.status);
+    
     if (error.response) {
-      throw new Error(error.response.data?.mensaje || error.response.data?.error || 'Error al obtener entregas especiales');
+      const errorMsg = error.response.data?.mensaje || error.response.data?.error || `Error del servidor: ${error.response.status}`;
+      throw new Error(errorMsg);
     }
     throw new Error('Error de red o inesperado');
   }

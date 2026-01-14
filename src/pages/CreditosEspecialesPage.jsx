@@ -142,15 +142,20 @@ const CreditosEspecialesPage = () => {
   // Cargar entregas especiales
   const cargarEntregas = async () => {
     setLoadingEntregas(true);
+    setError(""); // Limpiar errores previos
     try {
       const data = await obtenerEntregasEspeciales();
-      setEntregas(data || []);
+      setEntregas(Array.isArray(data) ? data : []);
     } catch (err) {
+      console.error('Error al cargar entregas:', err);
+      const errorMessage = err.message || "Error al cargar historial de entregas";
+      setError(errorMessage);
       setToast({
         isVisible: true,
-        message: `Error cargando entregas: ${err.message}`,
+        message: `${errorMessage}. Verifica que el backend esté funcionando correctamente.`,
         type: 'error'
       });
+      setEntregas([]); // Asegurar que se muestra lista vacía en caso de error
     } finally {
       setLoadingEntregas(false);
     }
@@ -199,41 +204,16 @@ const CreditosEspecialesPage = () => {
           )}
 
           {/* Sistema de Tabs */}
-          <div style={{ 
-            display: 'flex', 
-            gap: '0.5rem', 
-            marginBottom: '1.5rem',
-            borderBottom: '2px solid #e0e0e0'
-          }}>
+          <div className="creditos-tabs">
             <button
+              className={`tab ${view === "creditos" ? "active" : ""}`}
               onClick={() => setView("creditos")}
-              style={{
-                padding: '0.75rem 1.5rem',
-                background: view === "creditos" ? '#1e2753' : 'transparent',
-                color: view === "creditos" ? 'white' : '#1e2753',
-                border: 'none',
-                borderBottom: view === "creditos" ? '3px solid #27ae60' : '3px solid transparent',
-                cursor: 'pointer',
-                fontSize: '1rem',
-                fontWeight: '600',
-                transition: 'all 0.2s ease'
-              }}
             >
               Créditos Especiales
             </button>
             <button
+              className={`tab ${view === "entregas" ? "active" : ""}`}
               onClick={() => setView("entregas")}
-              style={{
-                padding: '0.75rem 1.5rem',
-                background: view === "entregas" ? '#1e2753' : 'transparent',
-                color: view === "entregas" ? 'white' : '#1e2753',
-                border: 'none',
-                borderBottom: view === "entregas" ? '3px solid #27ae60' : '3px solid transparent',
-                cursor: 'pointer',
-                fontSize: '1rem',
-                fontWeight: '600',
-                transition: 'all 0.2s ease'
-              }}
             >
               Historial de Entregas
             </button>

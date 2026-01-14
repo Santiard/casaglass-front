@@ -35,20 +35,76 @@ export default function DetalleEntregaEspecialModal({ isOpen, onClose, entregaId
   if (!isOpen) return null;
 
   return (
-    <div className="modal-overlay" onClick={handleClose}>
+    <div 
+      style={{
+        position: "fixed",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        background: "rgba(0, 0, 0, 0.5)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        zIndex: 1000,
+        padding: "1rem"
+      }}
+      onClick={handleClose}
+    >
       <div 
-        className="modal-content" 
         onClick={(e) => e.stopPropagation()}
-        style={{ maxWidth: "900px", width: "90vw" }}
+        style={{ 
+          maxWidth: "900px", 
+          width: "90vw",
+          background: "white",
+          borderRadius: "12px",
+          boxShadow: "0 10px 40px rgba(0, 0, 0, 0.2)",
+          maxHeight: "90vh",
+          display: "flex",
+          flexDirection: "column",
+          overflow: "hidden"
+        }}
       >
-        <div className="modal-header">
-          <h2>Detalle de Entrega Especial #{entregaId}</h2>
-          <button className="modal-close-btn" onClick={handleClose}>
+        <div style={{
+          padding: "1.5rem",
+          background: "#1e2753",
+          color: "white",
+          borderRadius: "12px 12px 0 0",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center"
+        }}>
+          <h2 style={{ margin: 0, fontSize: "1.4rem", fontWeight: "600" }}>Detalle de Entrega Especial #{entregaId}</h2>
+          <button 
+            onClick={handleClose}
+            style={{
+              background: "none",
+              border: "none",
+              color: "white",
+              fontSize: "2rem",
+              cursor: "pointer",
+              padding: "0",
+              lineHeight: "1",
+              width: "32px",
+              height: "32px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              borderRadius: "4px",
+              transition: "background 0.2s"
+            }}
+            onMouseEnter={(e) => e.target.style.background = "rgba(255,255,255,0.1)"}
+            onMouseLeave={(e) => e.target.style.background = "none"}
+          >
             ×
           </button>
         </div>
 
-        <div className="modal-body">
+        <div style={{
+          padding: "1.5rem",
+          overflowY: "auto",
+          flex: 1
+        }}>
           {loading && (
             <div style={{ padding: "2rem", textAlign: "center" }}>
               <p>Cargando detalle...</p>
@@ -136,6 +192,7 @@ export default function DetalleEntregaEspecialModal({ isOpen, onClose, entregaId
                       <tr>
                         <th style={{ padding: "0.75rem", textAlign: "left" }}>Crédito ID</th>
                         <th style={{ padding: "0.75rem", textAlign: "left" }}>N° Orden</th>
+                        <th style={{ padding: "0.75rem", textAlign: "left", minWidth: "180px" }}>Obra</th>
                         <th style={{ padding: "0.75rem", textAlign: "left" }}>Fecha Crédito</th>
                         <th style={{ padding: "0.75rem", textAlign: "right" }}>Total Crédito</th>
                         <th style={{ padding: "0.75rem", textAlign: "right" }}>Saldo Anterior</th>
@@ -154,6 +211,9 @@ export default function DetalleEntregaEspecialModal({ isOpen, onClose, entregaId
                           >
                             <td style={{ padding: "0.75rem" }}>{item.creditoId}</td>
                             <td style={{ padding: "0.75rem" }}>{item.numeroOrden}</td>
+                            <td style={{ padding: "0.75rem", fontWeight: "500", color: "#1e2753" }}>
+                              {item.obra || "-"}
+                            </td>
                             <td style={{ padding: "0.75rem" }}>
                               {new Date(item.fechaCredito).toLocaleDateString("es-CO")}
                             </td>
@@ -170,7 +230,7 @@ export default function DetalleEntregaEspecialModal({ isOpen, onClose, entregaId
                         ))
                       ) : (
                         <tr>
-                          <td colSpan="6" style={{ padding: "2rem", textAlign: "center", color: "#999" }}>
+                          <td colSpan="7" style={{ padding: "2rem", textAlign: "center", color: "#999" }}>
                             No hay detalles disponibles
                           </td>
                         </tr>
@@ -183,8 +243,37 @@ export default function DetalleEntregaEspecialModal({ isOpen, onClose, entregaId
           )}
         </div>
 
-        <div className="modal-footer">
-          <button className="btn-secondary" onClick={handleClose}>
+        <div style={{
+          padding: "1rem 1.5rem",
+          background: "#f8f9fa",
+          borderTop: "1px solid #e0e0e0",
+          display: "flex",
+          justifyContent: "flex-end",
+          gap: "0.5rem"
+        }}>
+          <button 
+            onClick={handleClose}
+            style={{
+              padding: "0.625rem 1.5rem",
+              background: "white",
+              color: "#1e2753",
+              border: "1px solid #d1d5db",
+              borderRadius: "8px",
+              cursor: "pointer",
+              fontSize: "0.95rem",
+              fontWeight: "600",
+              transition: "all 0.2s ease",
+              fontFamily: "'Roboto', sans-serif"
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.background = "#f3f4f6";
+              e.target.style.borderColor = "#9ca3af";
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.background = "white";
+              e.target.style.borderColor = "#d1d5db";
+            }}
+          >
             Cerrar
           </button>
         </div>

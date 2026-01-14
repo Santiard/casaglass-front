@@ -30,16 +30,51 @@ export default function MarcarPagadosModal({ isOpen, onClose, onConfirm, cantida
   if (!isOpen) return null;
 
   return (
-    <div className="modal-overlay" onClick={handleClose}>
-      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-header">
-          <h2>Confirmar Pago de Créditos</h2>
-          <button className="modal-close-btn" onClick={handleClose}>
+    <div className="modal-overlay" onClick={handleClose} style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 10000
+    }}>
+      <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{
+        backgroundColor: 'white',
+        borderRadius: '12px',
+        maxWidth: '600px',
+        width: '90%',
+        maxHeight: '90vh',
+        overflow: 'auto',
+        boxShadow: '0 10px 40px rgba(0, 0, 0, 0.3)'
+      }}>
+        <div className="modal-header" style={{
+          padding: '1.5rem',
+          borderBottom: '1px solid #e0e0e0',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          backgroundColor: '#1e2753',
+          borderRadius: '12px 12px 0 0'
+        }}>
+          <h2 style={{ margin: 0, color: 'white', fontSize: '1.5rem' }}>Confirmar Pago de Créditos</h2>
+          <button className="modal-close-btn" onClick={handleClose} style={{
+            background: 'transparent',
+            border: 'none',
+            color: 'white',
+            fontSize: '2rem',
+            cursor: 'pointer',
+            lineHeight: 1,
+            padding: 0
+          }}>
             ×
           </button>
         </div>
 
-        <div className="modal-body">
+        <div className="modal-body" style={{ padding: '1.5rem' }}>
           <div className="confirmation-summary">
             <div className="summary-item">
               <span className="summary-label">Créditos seleccionados:</span>
@@ -73,7 +108,7 @@ export default function MarcarPagadosModal({ isOpen, onClose, onConfirm, cantida
 
           <div className="info-box">
             <p>
-              ⚠️ Esta acción cerrará los créditos seleccionados y creará un registro de entrega especial
+              Esta acción cerrará los créditos seleccionados y creará un registro de entrega especial
               para trazabilidad.
             </p>
             <p>
@@ -82,11 +117,29 @@ export default function MarcarPagadosModal({ isOpen, onClose, onConfirm, cantida
           </div>
         </div>
 
-        <div className="modal-footer">
+        <div className="modal-footer" style={{
+          padding: '1rem 1.5rem',
+          borderTop: '1px solid #e0e0e0',
+          display: 'flex',
+          justifyContent: 'flex-end',
+          gap: '1rem',
+          backgroundColor: '#f8f9fa'
+        }}>
           <button 
             className="btn-secondary" 
             onClick={handleClose}
             disabled={isSubmitting}
+            style={{
+              padding: '0.7rem 1.5rem',
+              background: 'white',
+              color: '#1e2753',
+              border: '2px solid #1e2753',
+              borderRadius: '8px',
+              cursor: isSubmitting ? 'not-allowed' : 'pointer',
+              fontSize: '1rem',
+              fontWeight: '600',
+              opacity: isSubmitting ? 0.6 : 1
+            }}
           >
             Cancelar
           </button>
@@ -94,6 +147,17 @@ export default function MarcarPagadosModal({ isOpen, onClose, onConfirm, cantida
             className="btn-primary" 
             onClick={handleConfirmar}
             disabled={isSubmitting}
+            style={{
+              padding: '0.7rem 1.5rem',
+              background: '#27ae60',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              cursor: isSubmitting ? 'not-allowed' : 'pointer',
+              fontSize: '1rem',
+              fontWeight: '600',
+              opacity: isSubmitting ? 0.6 : 1
+            }}
           >
             {isSubmitting ? "Procesando..." : "Confirmar Pago"}
           </button>

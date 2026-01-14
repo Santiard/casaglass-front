@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import "../styles/Table.css";
+import "../styles/Creditos.css";
 
 export default function EntregasEspecialesTable({ 
   entregas, 
@@ -11,7 +12,7 @@ export default function EntregasEspecialesTable({
 
   if (loading) {
     return (
-      <div style={{ padding: "2rem", textAlign: "center" }}>
+      <div className="loading-message" style={{ padding: "2rem", textAlign: "center" }}>
         <p>Cargando historial de entregas...</p>
       </div>
     );
@@ -19,8 +20,10 @@ export default function EntregasEspecialesTable({
 
   if (!entregas || entregas.length === 0) {
     return (
-      <div style={{ padding: "2rem", textAlign: "center" }}>
-        <p>No hay entregas especiales registradas.</p>
+      <div className="tabla-creditos" style={{ padding: "3rem" }}>
+        <p className="sin-datos">
+          No hay entregas especiales registradas.
+        </p>
       </div>
     );
   }
@@ -38,25 +41,25 @@ export default function EntregasEspecialesTable({
   };
 
   return (
-    <div className="table-container">
+    <div className="tabla-creditos">
       <div className="table-wrapper">
-        <table className="data-table">
+        <table>
           <thead>
             <tr>
-              <th>#</th>
-              <th>Fecha Registro</th>
-              <th>Ejecutado Por</th>
-              <th>Créditos Cerrados</th>
-              <th>Total Monto</th>
-              <th>Total Retención</th>
-              <th>Observaciones</th>
-              <th>Acciones</th>
+              <th style={{ width: "80px", textAlign: "center" }}>#</th>
+              <th style={{ minWidth: "200px" }}>Fecha Registro</th>
+              <th style={{ minWidth: "200px" }}>Ejecutado Por</th>
+              <th style={{ width: "150px", textAlign: "center" }}>Créditos Cerrados</th>
+              <th style={{ minWidth: "180px", textAlign: "right" }}>Total Monto</th>
+              <th style={{ minWidth: "180px", textAlign: "right" }}>Total Retención</th>
+              <th style={{ minWidth: "250px" }}>Observaciones</th>
+              <th style={{ width: "150px", textAlign: "center" }}>Acciones</th>
             </tr>
           </thead>
           <tbody>
             {currentData.map((entrega) => (
               <tr key={entrega.id}>
-                <td>{entrega.id}</td>
+                <td style={{ textAlign: "center", fontWeight: "600", color: "#1e2753" }}>{entrega.id}</td>
                 <td>
                   {new Date(entrega.fechaRegistro).toLocaleString("es-CO", {
                     year: "numeric",
@@ -66,34 +69,31 @@ export default function EntregasEspecialesTable({
                     minute: "2-digit"
                   })}
                 </td>
-                <td>{entrega.ejecutadoPor || "SISTEMA"}</td>
-                <td style={{ textAlign: "center", fontWeight: "600" }}>
+                <td style={{ fontWeight: "500" }}>{entrega.ejecutadoPor || "SISTEMA"}</td>
+                <td style={{ textAlign: "center", fontWeight: "700", color: "#27ae60", fontSize: "1.05rem" }}>
                   {entrega.totalCreditos}
                 </td>
-                <td style={{ textAlign: "right", fontWeight: "600" }}>
+                <td style={{ textAlign: "right", fontWeight: "600", fontSize: "1rem" }}>
                   ${(entrega.totalMontoCredito || 0).toLocaleString("es-CO")}
                 </td>
-                <td style={{ textAlign: "right", color: "#e74c3c" }}>
+                <td style={{ textAlign: "right", color: "#e74c3c", fontWeight: "600", fontSize: "1rem" }}>
                   ${(entrega.totalRetencion || 0).toLocaleString("es-CO")}
                 </td>
-                <td style={{ maxWidth: "200px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                <td style={{ 
+                  maxWidth: "300px", 
+                  overflow: "hidden", 
+                  textOverflow: "ellipsis", 
+                  whiteSpace: "nowrap",
+                  color: "#555"
+                }}>
                   {entrega.observaciones || "-"}
                 </td>
-                <td>
+                <td style={{ textAlign: "center" }}>
                   <button
                     onClick={() => onVerDetalle(entrega)}
-                    style={{
-                      padding: "0.4rem 0.8rem",
-                      background: "#3498db",
-                      color: "white",
-                      border: "none",
-                      borderRadius: "6px",
-                      cursor: "pointer",
-                      fontSize: "0.85rem",
-                      fontWeight: "500"
-                    }}
+                    className="btn-ver-detalle"
                   >
-                    Ver Detalle
+                    Ver
                   </button>
                 </td>
               </tr>
@@ -104,26 +104,14 @@ export default function EntregasEspecialesTable({
 
       {/* Paginación */}
       {totalPages > 1 && (
-        <div className="pagination-controls" style={{ 
-          display: "flex", 
-          justifyContent: "space-between", 
-          alignItems: "center",
-          marginTop: "1rem",
-          padding: "0.5rem"
-        }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-            <span style={{ fontSize: "0.9rem", color: "#666" }}>Filas por página:</span>
+        <div className="pagination-entregas">
+          <div className="pagination-entregas-left">
+            <label>Filas por página:</label>
             <select
               value={rowsPerPage}
               onChange={(e) => {
                 setRowsPerPage(Number(e.target.value));
                 setCurrentPage(1);
-              }}
-              style={{
-                padding: "0.3rem 0.5rem",
-                border: "1px solid #ddd",
-                borderRadius: "4px",
-                fontSize: "0.9rem"
               }}
             >
               <option value={5}>5</option>
@@ -133,38 +121,24 @@ export default function EntregasEspecialesTable({
             </select>
           </div>
 
-          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-            <span style={{ fontSize: "0.9rem", color: "#666" }}>
-              Página {currentPage} de {totalPages}
+          <div className="pagination-entregas-right">
+            <span className="pagination-entregas-counter">
+              Mostrando {startIndex + 1}-{Math.min(endIndex, entregas.length)} de {entregas.length}
             </span>
-            <button
-              onClick={() => handlePageChange(currentPage - 1)}
-              disabled={currentPage === 1}
-              style={{
-                padding: "0.3rem 0.7rem",
-                background: currentPage === 1 ? "#e0e0e0" : "#3498db",
-                color: currentPage === 1 ? "#999" : "white",
-                border: "none",
-                borderRadius: "4px",
-                cursor: currentPage === 1 ? "not-allowed" : "pointer"
-              }}
-            >
-              Anterior
-            </button>
-            <button
-              onClick={() => handlePageChange(currentPage + 1)}
-              disabled={currentPage === totalPages}
-              style={{
-                padding: "0.3rem 0.7rem",
-                background: currentPage === totalPages ? "#e0e0e0" : "#3498db",
-                color: currentPage === totalPages ? "#999" : "white",
-                border: "none",
-                borderRadius: "4px",
-                cursor: currentPage === totalPages ? "not-allowed" : "pointer"
-              }}
-            >
-              Siguiente
-            </button>
+            <div className="pagination-entregas-buttons">
+              <button
+                onClick={() => handlePageChange(currentPage - 1)}
+                disabled={currentPage === 1}
+              >
+                Anterior
+              </button>
+              <button
+                onClick={() => handlePageChange(currentPage + 1)}
+                disabled={currentPage === totalPages}
+              >
+                Siguiente
+              </button>
+            </div>
           </div>
         </div>
       )}

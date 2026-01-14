@@ -579,3 +579,120 @@
   font-weight: 600;
   background-color: rgba(30, 39, 83, 0.03);
 }
+
+/* ================================================
+   PAGINACIÓN PARA ENTREGAS ESPECIALES
+   ================================================ */
+
+.pagination-entregas {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  background: white;
+  border-top: 1px solid #e0e0e0;
+  font-family: 'Roboto', sans-serif;
+}
+
+.pagination-entregas-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.pagination-entregas-left label {
+  font-size: 0.875rem;
+  color: #1e2753;
+  font-weight: 500;
+}
+
+.pagination-entregas-left select {
+  padding: 0.5rem 0.8rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  background: white;
+  cursor: pointer;
+  color: #1e2753;
+  font-weight: 500;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.pagination-entregas-left select:focus {
+  border-color: #5b6fd8;
+}
+
+.pagination-entregas-right {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.pagination-entregas-counter {
+  font-size: 0.875rem;
+  color: #666;
+  font-weight: 500;
+}
+
+.pagination-entregas-buttons {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.pagination-entregas-buttons button {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  font-family: 'Roboto', sans-serif;
+}
+
+.pagination-entregas-buttons button:not(:disabled) {
+  background: #1e2753;
+  color: white;
+}
+
+.pagination-entregas-buttons button:not(:disabled):hover {
+  background: #2e3a6f;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(30, 39, 83, 0.2);
+}
+
+.pagination-entregas-buttons button:disabled {
+  background: #e0e0e0;
+  color: #999;
+  cursor: not-allowed;
+}
+
+/* ================================================
+   BOTÓN VER DETALLE
+   ================================================ */
+
+.btn-ver-detalle {
+  padding: 0.5rem 1.2rem;
+  background: #5b6fd8;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  font-family: 'Roboto', sans-serif;
+}
+
+.btn-ver-detalle:hover {
+  background: #4a5ac7;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.btn-ver-detalle:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
