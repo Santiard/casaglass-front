@@ -95,6 +95,7 @@ export default function IngresoModal({
                   id: d.producto?.id ?? "",
                   nombre: d.producto?.nombre ?? "",
                   codigo: d.producto?.codigo ?? "",
+                  color: d.producto?.color ?? "N/A",
                 },
                 cantidad: d.cantidad && Number(d.cantidad) > 0 ? Number(d.cantidad) : "",
                 costoUnitario: d.costoUnitario && Number(d.costoUnitario) > 0 ? Number(d.costoUnitario) : "",
@@ -102,11 +103,8 @@ export default function IngresoModal({
             : [],
         });
 
-        // Calcula días de diferencia usando las funciones de dateUtils
-        const base = parseLocalDate(ingresoCompleto.fecha);
-        const diffDays = diffDaysFromToday(base);
-
-        setEditable(diffDays <= 2);
+        // Edición siempre permitida, sin importar procesado o antigüedad
+        setEditable(true);
       } else {
         setForm({
           fecha: getTodayLocalDate(),

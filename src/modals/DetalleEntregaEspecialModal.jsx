@@ -29,7 +29,24 @@ export default function DetalleEntregaEspecialModal({ isOpen, onClose, entregaId
   const handleClose = () => {
     setDetalle(null);
     setError(null);
-    onClose();
+    if (typeof onClose === 'function') {
+      onClose();
+    }
+  };
+
+  const handlePrint = () => {
+    if (!detalle) return;
+    const printContents = printRef.current.innerHTML;
+    const printWindow = window.open('', '', 'height=700,width=900');
+    printWindow.document.write('<html><head><title>Desprendible Entrega Especial</title>');
+    printWindow.document.write('<style>body{font-family:Roboto,sans-serif;} table{width:100%;border-collapse:collapse;} th,td{border:1px solid #ccc;padding:6px;} th{background:#1e2753;color:#fff;} .resumen{margin-bottom:1rem;} .titulo{font-size:1.2rem;font-weight:600;margin-bottom:1rem;} .total{font-weight:700;color:#27ae60;}</style>');
+    printWindow.document.write('</head><body>');
+    printWindow.document.write(printContents);
+    printWindow.document.write('</body></html>');
+    printWindow.document.close();
+    printWindow.focus();
+    printWindow.print();
+    printWindow.close();
   };
 
   if (!isOpen) return null;
@@ -105,6 +122,7 @@ export default function DetalleEntregaEspecialModal({ isOpen, onClose, entregaId
           overflowY: "auto",
           flex: 1
         }}>
+          <div>
           {loading && (
             <div style={{ padding: "2rem", textAlign: "center" }}>
               <p>Cargando detalle...</p>
@@ -125,7 +143,7 @@ export default function DetalleEntregaEspecialModal({ isOpen, onClose, entregaId
 
           {detalle && !loading && (
             <>
-              {/* Resumen general */}
+              {/* Resumen general con estilos restaurados */}
               <div style={{ 
                 background: "linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)",
                 border: "1px solid #dee2e6",
@@ -139,10 +157,6 @@ export default function DetalleEntregaEspecialModal({ isOpen, onClose, entregaId
                     <p>{new Date(detalle.fechaRegistro).toLocaleString("es-CO")}</p>
                   </div>
                   <div>
-                    <strong>Ejecutado Por:</strong>
-                    <p>{detalle.ejecutadoPor || "SISTEMA"}</p>
-                  </div>
-                  <div>
                     <strong>Total Créditos Cerrados:</strong>
                     <p style={{ fontSize: "1.1rem", fontWeight: "600", color: "#27ae60" }}>
                       {detalle.totalCreditos}
@@ -154,14 +168,6 @@ export default function DetalleEntregaEspecialModal({ isOpen, onClose, entregaId
                       ${(detalle.totalMontoCredito || 0).toLocaleString("es-CO")}
                     </p>
                   </div>
-                  {detalle.totalRetencion > 0 && (
-                    <div>
-                      <strong>Total Retención:</strong>
-                      <p style={{ fontSize: "1.1rem", fontWeight: "600", color: "#e74c3c" }}>
-                        ${(detalle.totalRetencion || 0).toLocaleString("es-CO")}
-                      </p>
-                    </div>
-                  )}
                 </div>
                 {detalle.observaciones && (
                   <div style={{ marginTop: "1rem", paddingTop: "1rem", borderTop: "1px solid #dee2e6" }}>
@@ -171,7 +177,7 @@ export default function DetalleEntregaEspecialModal({ isOpen, onClose, entregaId
                 )}
               </div>
 
-              {/* Tabla de créditos */}
+              {/* Tabla de créditos con estilos restaurados */}
               <div>
                 <h3 style={{ marginBottom: "1rem", color: "#1e2753" }}>
                   Créditos Cerrados ({detalle.detalles?.length || 0})
@@ -196,7 +202,6 @@ export default function DetalleEntregaEspecialModal({ isOpen, onClose, entregaId
                         <th style={{ padding: "0.75rem", textAlign: "left" }}>Fecha Crédito</th>
                         <th style={{ padding: "0.75rem", textAlign: "right" }}>Total Crédito</th>
                         <th style={{ padding: "0.75rem", textAlign: "right" }}>Saldo Anterior</th>
-                        <th style={{ padding: "0.75rem", textAlign: "right" }}>Retención</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -223,14 +228,11 @@ export default function DetalleEntregaEspecialModal({ isOpen, onClose, entregaId
                             <td style={{ padding: "0.75rem", textAlign: "right", color: "#e67e22" }}>
                               ${(item.saldoAnterior || 0).toLocaleString("es-CO")}
                             </td>
-                            <td style={{ padding: "0.75rem", textAlign: "right", color: "#e74c3c" }}>
-                              ${(item.retencionFuente || 0).toLocaleString("es-CO")}
-                            </td>
                           </tr>
                         ))
                       ) : (
                         <tr>
-                          <td colSpan="7" style={{ padding: "2rem", textAlign: "center", color: "#999" }}>
+                          <td colSpan="6" style={{ padding: "2rem", textAlign: "center", color: "#999" }}>
                             No hay detalles disponibles
                           </td>
                         </tr>
@@ -241,6 +243,7 @@ export default function DetalleEntregaEspecialModal({ isOpen, onClose, entregaId
               </div>
             </>
           )}
+          </div>
         </div>
 
         <div style={{

@@ -1,6 +1,7 @@
 // src/components/IngresoTable.jsx
 import "../styles/Table.css";
 import { useEffect, useMemo, useState } from "react";
+import { useAuth } from "../context/AuthContext.jsx";
 import editar from "../assets/editar.png";
 import add from "../assets/add.png";
 import deleteIcon from "../assets/eliminar.png";
@@ -28,6 +29,7 @@ export default function IngresosTable({
   onPageChange = null,
   serverSidePagination = false,
 }) {
+  const { isAdmin } = useAuth();
   const { confirm, ConfirmDialog } = useConfirm();
   const { showError } = useToast();
   const [ingresos, setIngresos] = useState([]);
@@ -117,10 +119,10 @@ export default function IngresosTable({
   };
 
   // === Helpers de fecha (ahora importados desde dateUtils) ===
+  // Edición permitida para admin siempre, para vendedor solo si no está procesado
   const canEdit = (ing) => {
-    const d = parseLocalDate(ing.fecha);
-    const days = diffDaysFromToday(d);
-    return Number.isFinite(days) && days <= 2;
+    if (isAdmin) return true;
+    return !ing.procesado;
   };
 
   const fmtFecha = (iso) => {
@@ -377,17 +379,13 @@ export default function IngresosTable({
                         </button>
                       )}
                       
-                      {/* Botón Editar - solo si no está procesado */}
-                      {!ing.procesado && (
+                      {/* Botón Editar - admin siempre, vendedor solo si no está procesado */}
+                      { (isAdmin || !ing.procesado) && (
                         <button
-                            className="btnEdit"
-                            onClick={() => openEditar(ing)}
-                            title={
-                              editable
-                                ? "Editar ingreso"
-                                : "Solo lectura (más de 2 días)"
-                            }
-                          >
+                          className="btnEdit"
+                          onClick={() => openEditar(ing)}
+                          title={canEdit(ing) ? "Editar ingreso" : "Solo lectura"}
+                        >
                           <img
                             src={editar}
                             className="iconButton"
