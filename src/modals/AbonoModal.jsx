@@ -173,18 +173,11 @@ const AbonoModal = ({ isOpen, onClose, credito, onSuccess }) => {
 
   // Cargar órdenes a crédito del cliente seleccionado
   useEffect(() => {
-    // console.log("useEffect [isOpen, clienteSeleccionado?.id] ejecutándose", {
-    //   isOpen,
-    //   clienteSeleccionadoId: clienteSeleccionado?.id,
-    //   ordenesSeleccionadasSize: ordenesSeleccionadas.size,
-    //   ordenesSeleccionadasIds: Array.from(ordenesSeleccionadas)
-    // });
     
     if (isOpen && clienteSeleccionado?.id) {
       cargarOrdenesCredito(clienteSeleccionado.id);
     } else if (!clienteSeleccionado?.id && isOpen) {
       // Solo limpiar si realmente no hay cliente seleccionado Y el modal está abierto
-      // console.log("Limpiando selecciones porque no hay cliente");
       setOrdenesCredito([]);
       setOrdenesSeleccionadas(new Set());
       setDistribucion([]);
@@ -192,7 +185,6 @@ const AbonoModal = ({ isOpen, onClose, credito, onSuccess }) => {
   }, [isOpen, clienteSeleccionado?.id]); // Usar clienteSeleccionado?.id en lugar del objeto completo
 
   const cargarOrdenesCredito = async (clienteId) => {
-    // console.log("cargarOrdenesCredito llamado", { clienteId, ordenesSeleccionadasActual: Array.from(ordenesSeleccionadas) });
     setLoadingOrdenes(true);
     try {
       // Usar el nuevo endpoint que devuelve solo órdenes a crédito con creditoDetalle
@@ -204,7 +196,6 @@ const AbonoModal = ({ isOpen, onClose, credito, onSuccess }) => {
         return orden.creditoDetalle?.saldoPendiente > 0;
       });
       
-      // console.log("ATENCION: cargarOrdenesCredito va a limpiar selecciones");
       setOrdenesCredito(ordenesConSaldo);
       setOrdenesSeleccionadas(new Set());
       setDistribucion([]);

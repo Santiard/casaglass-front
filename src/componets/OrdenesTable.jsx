@@ -96,11 +96,11 @@ export default function OrdenesTable({
 
   //  Calcular total de orden (usar total del backend si existe, sino calcular desde items)
   const calcularTotal = (orden) => {
-    // Si el backend ya calculó el total (incluye descuentos), usarlo
+    // Si el backend ya calculó el total, usarlo
     if (orden?.total !== undefined && orden?.total !== null) {
       return orden.total;
     }
-    // Si no, calcular desde items (solo subtotal, sin descuentos)
+    // Si no, calcular desde items (subtotal)
     if (!Array.isArray(orden?.items)) return 0;
     return orden.items.reduce((sum, item) => sum + (item.totalLinea || 0), 0);
   };
@@ -596,11 +596,8 @@ export default function OrdenesTable({
                                     // - iva: IVA calculado
                                     // - retencionFuente: Retención en la fuente
                                     // - total: Total facturado
-                                    // - descuentos: Descuentos aplicados
-                                    
                                     // Convertir null/undefined a 0 para todos los valores monetarios
                                     const subtotal = (typeof o.subtotal === 'number' && o.subtotal !== null && o.subtotal !== undefined) ? o.subtotal : 0;
-                                    const descuentos = (typeof o.descuentos === 'number' && o.descuentos !== null && o.descuentos !== undefined) ? o.descuentos : 0;
                                     const iva = (typeof o.iva === 'number' && o.iva !== null && o.iva !== undefined) ? o.iva : 0;
                                     const retencionFuente = (typeof o.retencionFuente === 'number' && o.retencionFuente !== null && o.retencionFuente !== undefined) ? o.retencionFuente : 0;
                                     
@@ -613,11 +610,6 @@ export default function OrdenesTable({
                                         <div>
                                           <strong>Subtotal (sin IVA):</strong> ${subtotal.toLocaleString("es-CO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                         </div>
-                                        {descuentos > 0 && (
-                                          <div>
-                                            <strong>Descuentos:</strong> ${descuentos.toLocaleString("es-CO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                          </div>
-                                        )}
                                         <div>
                                           <strong>IVA (19%):</strong> ${iva.toLocaleString("es-CO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                         </div>

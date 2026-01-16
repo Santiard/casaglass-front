@@ -109,10 +109,8 @@ export async function listarCreditosPendientes(clienteId) {
   
   try {
     const { data } = await api.get(`/creditos/cliente/${clienteId}/pendientes`);
-    // console.log(`Créditos pendientes obtenidos: ${data.length}`);
     return data;
   } catch (error) {
-    // console.error('Error obteniendo créditos pendientes:', error);
     throw error;
   }
 }
@@ -143,10 +141,8 @@ export async function listarCreditosCliente(clienteId, options = {}) {
     }
     
     const { data } = await api.get(`/creditos/cliente/${clienteId}`, { params });
-    // console.log(`Créditos totales obtenidos: ${data.length}`);
     return data;
   } catch (error) {
-    // console.error('Error obteniendo créditos del cliente:', error);
     throw error;
   }
 }

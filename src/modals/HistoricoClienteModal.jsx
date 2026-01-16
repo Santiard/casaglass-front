@@ -656,8 +656,7 @@ export default function HistoricoClienteModal({ isOpen, onClose }) {
 
               {ordenes.map((orden) => {
                 const total = calcularTotal(orden);
-                const descuentos = orden.descuentos || 0;
-                const totalFinal = total - descuentos;
+                const totalFinal = total;
                 const esCredito = Boolean(orden.credito);
                 const saldoPendiente = esCredito ? (orden.creditoDetalle?.saldoPendiente || 0) : 0;
                 const detalles = Array.isArray(orden.items) ? orden.items : [];
@@ -724,12 +723,6 @@ export default function HistoricoClienteModal({ isOpen, onClose }) {
                         <span>Subtotal: </span>
                         <strong>{fmtCOP(total)}</strong>
                       </div>
-                      {descuentos > 0 && (
-                        <div className="orden-print-totals-row">
-                          <span>Descuentos: </span>
-                          <strong style={{ color: '#000' }}>-{fmtCOP(descuentos)}</strong>
-                        </div>
-                      )}
                       <div className="orden-print-totals-row">
                         <span>Total: </span>
                         <strong>{fmtCOP(totalFinal)}</strong>
@@ -770,15 +763,12 @@ export default function HistoricoClienteModal({ isOpen, onClose }) {
                       <td>{fmtCOP(totalMonto)}</td>
                     </tr>
                     <tr>
-                      <td><strong>Descuentos Totales</strong></td>
-                      <td>{fmtCOP(ordenes.reduce((sum, orden) => sum + (orden.descuentos || 0), 0))}</td>
                     </tr>
                     <tr>
                       <td><strong>Total General</strong></td>
                       <td>{fmtCOP(ordenes.reduce((sum, orden) => {
                         const total = calcularTotal(orden);
-                        const descuentos = orden.descuentos || 0;
-                        return sum + (total - descuentos);
+                        return sum + total;
                       }, 0))}</td>
                     </tr>
                     <tr>
@@ -863,7 +853,6 @@ export default function HistoricoClienteModal({ isOpen, onClose }) {
                         <th style={{ padding: '0.75rem', textAlign: 'center', borderRight: '1px solid #fff' }}>TIPO</th>
                         <th style={{ padding: '0.75rem', textAlign: 'center', borderRight: '1px solid #fff' }}>SEDE</th>
                         <th style={{ padding: '0.75rem', textAlign: 'right', borderRight: '1px solid #fff' }}>SUBTOTAL</th>
-                        <th style={{ padding: '0.75rem', textAlign: 'right', borderRight: '1px solid #fff' }}>DESCUENTOS</th>
                         <th style={{ padding: '0.75rem', textAlign: 'right', borderRight: '1px solid #fff' }}>TOTAL</th>
                         <th style={{ padding: '0.75rem', textAlign: 'center', borderRight: '1px solid #fff' }}>CRÉDITO</th>
                         <th style={{ padding: '0.75rem', textAlign: 'right', borderRight: '1px solid #fff' }}>SALDO PENDIENTE</th>
@@ -873,8 +862,7 @@ export default function HistoricoClienteModal({ isOpen, onClose }) {
                     <tbody>
                       {ordenes.map((orden, index) => {
                         const total = calcularTotal(orden);
-                        const descuentos = orden.descuentos || 0;
-                        const totalFinal = total - descuentos;
+                        const totalFinal = total;
                         const esCredito = Boolean(orden.credito);
                         const saldoPendiente = esCredito ? (orden.creditoDetalle?.saldoPendiente || 0) : 0;
                         const tieneSaldo = saldoPendiente > 0;
@@ -925,9 +913,6 @@ export default function HistoricoClienteModal({ isOpen, onClose }) {
                               </td>
                               <td style={{ padding: '0.75rem', textAlign: 'right', borderRight: '1px solid #e0e0e0' }}>
                                 {fmtCOP(total)}
-                              </td>
-                              <td style={{ padding: '0.75rem', textAlign: 'right', borderRight: '1px solid #e0e0e0', color: descuentos > 0 ? '#dc3545' : '#666' }}>
-                                {descuentos > 0 ? `-${fmtCOP(descuentos)}` : '-'}
                               </td>
                               <td style={{ padding: '0.75rem', textAlign: 'right', borderRight: '1px solid #e0e0e0', fontWeight: '600' }}>
                                 {fmtCOP(totalFinal)}
@@ -1037,13 +1022,11 @@ export default function HistoricoClienteModal({ isOpen, onClose }) {
                           {fmtCOP(ordenes.reduce((sum, orden) => sum + calcularTotal(orden), 0))}
                         </td>
                         <td style={{ padding: '0.75rem', textAlign: 'right', borderTop: '2px solid #1e2753' }}>
-                          {fmtCOP(ordenes.reduce((sum, orden) => sum + (orden.descuentos || 0), 0))}
                         </td>
                         <td style={{ padding: '0.75rem', textAlign: 'right', borderTop: '2px solid #1e2753' }}>
                           {fmtCOP(ordenes.reduce((sum, orden) => {
                             const total = calcularTotal(orden);
-                            const descuentos = orden.descuentos || 0;
-                            return sum + (total - descuentos);
+                            return sum + total;
                           }, 0))}
                         </td>
                         <td style={{ padding: '0.75rem', textAlign: 'center', borderTop: '2px solid #1e2753' }}>

@@ -78,17 +78,6 @@ export default function ProductModal({ isOpen, onClose, onSave, product }) {
                                  (product.m2 != null && product.m2 !== undefined);
       const esVid = product.esVidrio === true || categoriaNombre.includes('vidrio') || tieneCamposVidrio;
       
-      console.log("ProductoModal - Cargando producto:", {
-        id: product.id,
-        esVidrio: product.esVidrio,
-        categoria: product.categoria,
-        categoriaNombre,
-        tieneCamposVidrio,
-        esVidCalculado: esVid,
-        mm: product.mm,
-        m1: product.m1,
-        m2: product.m2
-      });
       
       const tipoProducto = product.tipo || "UNID";
       // PERFIL y MT usan MATE por defecto, otros usan NA
@@ -236,10 +225,6 @@ export default function ProductModal({ isOpen, onClose, onSave, product }) {
       : toSave.categoria?.nombre?.toLowerCase() || "";
     const esVidrio = toSave.esVidrio || categoriaNombre.includes('vidrio');
     
-    console.log(" DEBUG handleSubmit:");
-    console.log("  - formData.esVidrio:", formData.esVidrio);
-    console.log("  - categoriaNombre:", categoriaNombre);
-    console.log("  - esVidrio calculado:", esVidrio);
     
     if (esVidrio) {
       // IMPORTANTE: Limpiar y preparar m1, m2 y mm como strings primero

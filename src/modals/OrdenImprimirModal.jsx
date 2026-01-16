@@ -29,7 +29,6 @@ export default function OrdenImprimirModal({ orden, isOpen, onClose }) {
           estado: ordenDetallada.estado ?? "ACTIVA",
           subtotal: typeof ordenDetallada.subtotal === "number" ? ordenDetallada.subtotal : null, // Base sin IVA
           iva: typeof ordenDetallada.iva === "number" ? ordenDetallada.iva : null, // IVA calculado
-          descuentos: typeof ordenDetallada.descuentos === "number" ? ordenDetallada.descuentos : 0,
           retencionFuente: typeof ordenDetallada.retencionFuente === "number" ? ordenDetallada.retencionFuente : 0,
           tieneRetencionFuente: Boolean(ordenDetallada.tieneRetencionFuente ?? false),
           total: typeof ordenDetallada.total === "number" ? ordenDetallada.total : null, // Total facturado
@@ -52,7 +51,6 @@ export default function OrdenImprimirModal({ orden, isOpen, onClose }) {
           estado: orden.estado ?? "ACTIVA",
           subtotal: typeof orden.subtotal === "number" ? orden.subtotal : null, // Base sin IVA
           iva: typeof orden.iva === "number" ? orden.iva : null, // IVA calculado
-          descuentos: typeof orden.descuentos === "number" ? orden.descuentos : 0,
           retencionFuente: typeof orden.retencionFuente === "number" ? orden.retencionFuente : 0,
           tieneRetencionFuente: Boolean(orden.tieneRetencionFuente ?? false),
           total: typeof orden.total === "number" ? orden.total : null, // Total facturado
@@ -97,11 +95,10 @@ export default function OrdenImprimirModal({ orden, isOpen, onClose }) {
   const iva = form.iva !== null 
     ? form.iva 
     : (form.items.reduce((sum, item) => sum + (item.totalLinea || 0), 0) - subtotalSinIva); // Fallback: calcular si no viene del backend
-  const descuentos = form.descuentos || 0;
   const retencionFuente = form.retencionFuente || 0;
   const totalOrden = form.total !== null 
     ? form.total 
-    : form.items.reduce((sum, item) => sum + (item.totalLinea || 0), 0) - descuentos; // Fallback: calcular si no viene del backend
+    : form.items.reduce((sum, item) => sum + (item.totalLinea || 0), 0); // Fallback: calcular si no viene del backend
 
   // Formatear fecha
   const fmtFecha = (iso) =>
@@ -442,9 +439,6 @@ export default function OrdenImprimirModal({ orden, isOpen, onClose }) {
                 {/* Totales */}
                 <div className="orden-imprimir-total">
                   <p>Subtotal (sin IVA): ${subtotalSinIva.toLocaleString("es-CO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
-                  {descuentos > 0 && (
-                    <p>Descuentos: ${descuentos.toLocaleString("es-CO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
-                  )}
                   <p>IVA (19%): ${iva.toLocaleString("es-CO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                   {retencionFuente > 0 && (
                     <p>Retención en la Fuente: ${retencionFuente.toLocaleString("es-CO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>

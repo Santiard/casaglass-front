@@ -47,7 +47,6 @@ export default function OrdenDetalleModal({ ordenId, facturaId, isOpen, onClose 
         iva: ordenData?.iva,
         retencionFuente: ordenData?.retencionFuente,
         total: ordenData?.total,
-        descuentos: ordenData?.descuentos,
         tieneRetencionFuente: ordenData?.tieneRetencionFuente
       });
       setOrden(ordenData);
@@ -69,7 +68,7 @@ export default function OrdenDetalleModal({ ordenId, facturaId, isOpen, onClose 
         iva: facturaData?.iva,
         retencionFuente: facturaData?.retencionFuente,
         total: facturaData?.total,
-        descuentos: facturaData?.descuentos
+        // descuentos ya no existe en factura
       });
       setFactura(facturaData);
     } catch (e) {
@@ -110,9 +109,7 @@ export default function OrdenDetalleModal({ ordenId, facturaId, isOpen, onClose 
     ? ((typeof factura?.subtotal === 'number' && factura.subtotal !== null && factura.subtotal !== undefined) ? factura.subtotal : 0)
     : ((typeof orden?.subtotal === 'number' && orden.subtotal !== null && orden.subtotal !== undefined) ? orden.subtotal : 0);
   
-  const descuentos = factura
-    ? ((typeof factura?.descuentos === 'number' && factura.descuentos !== null && factura.descuentos !== undefined) ? factura.descuentos : 0)
-    : ((typeof orden?.descuentos === 'number' && orden.descuentos !== null && orden.descuentos !== undefined) ? orden.descuentos : 0);
+  // Los descuentos ya no existen en las órdenes
   
   const iva = factura
     ? ((typeof factura?.iva === 'number' && factura.iva !== null && factura.iva !== undefined) ? factura.iva : 0)
@@ -254,11 +251,6 @@ export default function OrdenDetalleModal({ ordenId, facturaId, isOpen, onClose 
                 <div>
                   <strong>Subtotal (sin IVA):</strong> {fmtCOP(subtotal)}
                 </div>
-                {descuentos > 0 && (
-                  <div>
-                    <strong>Descuentos:</strong> {fmtCOP(descuentos)}
-                  </div>
-                )}
                 <div>
                   <strong>IVA:</strong> {fmtCOP(iva)}
                 </div>

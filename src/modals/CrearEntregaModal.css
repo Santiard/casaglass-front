@@ -17,16 +17,89 @@
   padding: 0;
 }
 
-.crear-entrega-modal {
-  background: white;
-  border-radius: 10px;
-  width: 90%;
-  max-width: 800px;
-  max-height: 100vh;
-  overflow-y: auto;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-  margin: 0;
-  margin-top: 0;
+  .crear-entrega-modal {
+    background: white;
+    border-radius: 10px;
+    width: 90%;
+    max-width: 800px;
+    max-height: 100vh;
+    overflow-y: auto;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    margin: 0;
+    margin-top: 0;
+  }
+
+/* ===== RESPONSIVE PARA MÓVILES ===== */
+@media (max-width: 37.5rem) {          /* 600px - móviles */
+  .crear-entrega-modal-overlay {
+    padding: 0.5rem;
+    align-items: flex-start;
+  }
+
+  .crear-entrega-modal {
+    width: 100% !important;
+    max-width: 100% !important;
+    border-radius: 0.5rem;
+    margin: 0.5rem 0;
+    max-height: calc(100vh - 1rem);
+  }
+
+  .modal-header {
+    padding: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .modal-header h2 {
+    font-size: 1.125rem;
+  }
+
+  .modal-steps {
+    padding: 0.75rem 0.5rem;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .step {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.85rem;
+    margin: 0.25rem;
+  }
+
+  /* Formularios más grandes para touch */
+  .crear-entrega-modal input,
+  .crear-entrega-modal select,
+  .crear-entrega-modal textarea {
+    padding: 0.75rem;
+    font-size: 1rem;
+    min-height: 44px;
+  }
+
+  /* Botones más grandes */
+  .crear-entrega-modal button:not(.btn-close) {
+    padding: 0.75rem;
+    font-size: 1rem;
+    min-height: 44px;
+  }
+
+  /* Grids se convierten en una columna */
+  .crear-entrega-modal [style*="grid"] {
+    grid-template-columns: 1fr !important;
+    gap: 0.75rem !important;
+  }
+}
+
+@media (max-width: 30rem) {            /* 480px */
+  .crear-entrega-modal {
+    padding: 0.75rem;
+  }
+
+  .modal-header {
+    padding: 0.75rem;
+  }
+
+  .modal-header h2 {
+    font-size: 1rem;
+  }
 }
 
 /* ================================================

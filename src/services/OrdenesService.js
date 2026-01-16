@@ -92,7 +92,6 @@ export async function crearOrdenVenta(payload) {
       incluidaEntrega: Boolean(payload.incluidaEntrega || false),
       tieneRetencionFuente: Boolean(payload.tieneRetencionFuente ?? false),
       retencionFuente: parseFloat(payload.retencionFuente || 0), // Valor calculado de retención en la fuente
-      descuentos: parseFloat(payload.descuentos || 0),
       clienteId: parseInt(payload.clienteId), // OBLIGATORIO
       sedeId: parseInt(payload.sedeId), // OBLIGATORIO
       // trabajadorId es opcional según la documentación
@@ -236,14 +235,10 @@ export async function confirmarVenta(id, ordenCompleta) {
       // Si productoId es null, undefined o 0, intentar desde el objeto producto
       if (productoId === null || productoId === undefined || productoId === 0) {
         productoId = item.producto?.id;
-        // Log para debug
+        // Validar que el producto tenga ID
         if (item.producto && !productoId) {
-          console.log(" Debug producto en confirmarVenta:", {
-            itemId: item.id,
-            producto: item.producto,
-            keysProducto: Object.keys(item.producto || {}),
-            productoIdDesdeProducto: item.producto?.id
-          });
+          // El producto no tiene ID válido, usar el ID del objeto producto si existe
+          productoId = item.producto?.id;
         }
       }
       
@@ -310,7 +305,6 @@ export async function confirmarVenta(id, ordenCompleta) {
     // Si ya era venta, mantener el valor de crédito que tenía
     credito: eraCotizacion ? true : Boolean(ordenCompleta.credito),
     tieneRetencionFuente: Boolean(ordenCompleta.tieneRetencionFuente ?? false),
-    descuentos: Number(ordenCompleta.descuentos ?? 0),
     clienteId: Number(clienteId),
     sedeId: Number(sedeId),
     ...(ordenCompleta.trabajadorId || ordenCompleta.trabajador?.id ? { trabajadorId: Number(ordenCompleta.trabajadorId || ordenCompleta.trabajador?.id) } : {}),
@@ -350,7 +344,6 @@ export async function actualizarOrdenVenta(id, payload) {
       credito: Boolean(payload.credito),
       incluidaEntrega: Boolean(payload.incluidaEntrega || false),
       tieneRetencionFuente: Boolean(payload.tieneRetencionFuente ?? false),
-      descuentos: parseFloat(payload.descuentos || 0),
       clienteId: parseInt(payload.clienteId), // OBLIGATORIO
       sedeId: parseInt(payload.sedeId), // OBLIGATORIO
       // trabajadorId es opcional según la documentación
@@ -471,20 +464,8 @@ export async function obtenerVentasDiaSede(sedeId) {
   const hoy = new Date();
   const fechaHoy = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}-${String(hoy.getDate()).padStart(2, '0')}`;
   
-  console.log('📅 [obtenerVentasDiaSede] Enviando fecha al backend:', {
-    fechaHoy,
-    sedeId,
-    endpoint: `/api/ordenes/ventas-dia/sede/${sedeId}`,
-    params: { fecha: fechaHoy }
-  });
-  
   const { data } = await api.get(`ordenes/ventas-dia/sede/${sedeId}`, {
     params: { fecha: fechaHoy }
-  });
-  
-  console.log('📦 [obtenerVentasDiaSede] Respuesta del backend:', {
-    totalOrdenes: data?.length || 0,
-    fechas: data?.map(o => o.fecha) || []
   });
   
   return data || [];
@@ -496,19 +477,8 @@ export async function obtenerVentasDiaTodasSedes() {
   const hoy = new Date();
   const fechaHoy = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}-${String(hoy.getDate()).padStart(2, '0')}`;
   
-  console.log('📅 [obtenerVentasDiaTodasSedes] Enviando fecha al backend:', {
-    fechaHoy,
-    endpoint: '/api/ordenes/ventas-dia/todas',
-    params: { fecha: fechaHoy }
-  });
-  
   const { data } = await api.get("ordenes/ventas-dia/todas", {
     params: { fecha: fechaHoy }
-  });
-  
-  console.log('📦 [obtenerVentasDiaTodasSedes] Respuesta del backend:', {
-    totalOrdenes: data?.length || 0,
-    fechas: data?.map(o => o.fecha) || []
   });
   
   return data || [];

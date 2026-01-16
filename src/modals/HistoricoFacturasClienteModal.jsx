@@ -386,7 +386,6 @@ export default function HistoricoFacturasClienteModal({ isOpen, onClose }) {
   const totalFacturas = facturas.length;
   const totalMonto = facturas.reduce((sum, f) => sum + (f.total || 0), 0);
   const totalSubtotal = facturas.reduce((sum, f) => sum + (f.subtotal || 0), 0);
-  const totalDescuentos = facturas.reduce((sum, f) => sum + (f.descuentos || 0), 0);
   const totalIva = facturas.reduce((sum, f) => sum + (f.iva || 0), 0);
   const totalRetencion = facturas.reduce((sum, f) => sum + (f.retencionFuente || 0), 0);
 
@@ -640,10 +639,9 @@ export default function HistoricoFacturasClienteModal({ isOpen, onClose }) {
 
               {facturas.map((factura) => {
                 const subtotal = factura.subtotal || 0;
-                const descuentos = factura.descuentos || 0;
                 const iva = factura.iva || 0;
                 const retencionFuente = factura.retencionFuente || 0;
-                const total = factura.total || (subtotal - descuentos + iva - retencionFuente);
+                const total = factura.total || (subtotal + iva - retencionFuente);
 
                 return (
                   <div key={factura.id} className="factura-print-section">
@@ -678,12 +676,6 @@ export default function HistoricoFacturasClienteModal({ isOpen, onClose }) {
                         <span>Subtotal: </span>
                         <strong>{fmtCOP(subtotal)}</strong>
                       </div>
-                      {descuentos > 0 && (
-                        <div className="factura-print-totals-row">
-                          <span>Descuentos: </span>
-                          <strong style={{ color: '#000' }}>-{fmtCOP(descuentos)}</strong>
-                        </div>
-                      )}
                       {iva > 0 && (
                         <div className="factura-print-totals-row">
                           <span>IVA: </span>
@@ -726,10 +718,6 @@ export default function HistoricoFacturasClienteModal({ isOpen, onClose }) {
                     <tr>
                       <td><strong>Subtotal General</strong></td>
                       <td>{fmtCOP(totalSubtotal)}</td>
-                    </tr>
-                    <tr>
-                      <td><strong>Descuentos Totales</strong></td>
-                      <td>{fmtCOP(totalDescuentos)}</td>
                     </tr>
                     <tr>
                       <td><strong>IVA Total</strong></td>
@@ -818,7 +806,6 @@ export default function HistoricoFacturasClienteModal({ isOpen, onClose }) {
                         <th style={{ padding: '0.75rem', textAlign: 'center', borderRight: '1px solid #fff' }}>ESTADO</th>
                         <th style={{ padding: '0.75rem', textAlign: 'center', borderRight: '1px solid #fff' }}>ORDEN</th>
                         <th style={{ padding: '0.75rem', textAlign: 'right', borderRight: '1px solid #fff' }}>SUBTOTAL</th>
-                        <th style={{ padding: '0.75rem', textAlign: 'right', borderRight: '1px solid #fff' }}>DESCUENTOS</th>
                         <th style={{ padding: '0.75rem', textAlign: 'right', borderRight: '1px solid #fff' }}>IVA</th>
                         <th style={{ padding: '0.75rem', textAlign: 'right', borderRight: '1px solid #fff' }}>RETEFUENTE</th>
                         <th style={{ padding: '0.75rem', textAlign: 'right', borderRight: '1px solid #fff' }}>TOTAL</th>
@@ -828,10 +815,9 @@ export default function HistoricoFacturasClienteModal({ isOpen, onClose }) {
                     <tbody>
                       {facturas.map((factura, index) => {
                         const subtotal = factura.subtotal || 0;
-                        const descuentos = factura.descuentos || 0;
                         const iva = factura.iva || 0;
                         const retencionFuente = factura.retencionFuente || 0;
-                        const total = factura.total || (subtotal - descuentos + iva - retencionFuente);
+                        const total = factura.total || (subtotal + iva - retencionFuente);
                         const facturaId = factura.id;
 
                         return (
@@ -871,9 +857,6 @@ export default function HistoricoFacturasClienteModal({ isOpen, onClose }) {
                               </td>
                               <td style={{ padding: '0.75rem', textAlign: 'right', borderRight: '1px solid #e0e0e0' }}>
                                 {fmtCOP(subtotal)}
-                              </td>
-                              <td style={{ padding: '0.75rem', textAlign: 'right', borderRight: '1px solid #e0e0e0', color: descuentos > 0 ? '#dc3545' : '#666' }}>
-                                {descuentos > 0 ? `-${fmtCOP(descuentos)}` : '-'}
                               </td>
                               <td style={{ padding: '0.75rem', textAlign: 'right', borderRight: '1px solid #e0e0e0' }}>
                                 {fmtCOP(iva)}
@@ -936,9 +919,6 @@ export default function HistoricoFacturasClienteModal({ isOpen, onClose }) {
                         </td>
                         <td style={{ padding: '0.75rem', textAlign: 'right', borderTop: '2px solid #1e2753' }}>
                           {fmtCOP(totalSubtotal)}
-                        </td>
-                        <td style={{ padding: '0.75rem', textAlign: 'right', borderTop: '2px solid #1e2753' }}>
-                          {fmtCOP(totalDescuentos)}
                         </td>
                         <td style={{ padding: '0.75rem', textAlign: 'right', borderTop: '2px solid #1e2753' }}>
                           {fmtCOP(totalIva)}

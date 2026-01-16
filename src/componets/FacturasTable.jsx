@@ -441,8 +441,7 @@ export default function FacturasTable({
                 const subtotal = f.subtotal || 0;
                 const iva = f.iva || 0;
                 const retencionFuente = f.retencionFuente || 0;
-                const descuentos = f.descuentos || 0;
-                const total = f.total || (subtotal + iva - descuentos);
+                const total = f.total || (subtotal + iva);
                 const estado = f.estado?.toLowerCase() || 'pendiente';
                 const puedeVerificar = estado === 'pendiente' || estado === 'en_proceso';
                 const puedeEliminar = estado !== 'pagada'; // Backend no permite eliminar pagadas

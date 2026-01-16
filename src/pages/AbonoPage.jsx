@@ -1,3 +1,19 @@
+  // console.log('Créditos pendientes recibidos:', creditosPendientes.length);
+  // console.log('📦 DATOS COMPLETOS del backend:', JSON.stringify(creditosPendientes, null, 2));
+      /*
+      // console.log('Créditos con tieneRetencionFuente:', 
+        creditosPendientes.filter(c => c.tieneRetencionFuente)
+          .map(c => ({ 
+            ordenId: c.ordenId, 
+            ordenNumero: c.ordenNumero,
+            total: c.total,
+            subtotal: c.subtotal,
+            iva: c.iva,
+            tieneRetencionFuente: c.tieneRetencionFuente, 
+          }))
+      );
+      */
+  // console.log(`Inicializadas ${ordenesConRetencionInicial.size} órdenes con retención`);
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { api } from '../lib/api.js';
@@ -164,8 +180,6 @@ const AbonoPage = () => {
       const creditosPendientes = await listarCreditosPendientes(clienteId);
       
       // LOG COMPLETO: Ver TODOS los datos que trae el backend
-      // console.log('Créditos pendientes recibidos:', creditosPendientes.length);
-      // console.log('📦 DATOS COMPLETOS del backend:', JSON.stringify(creditosPendientes, null, 2));
       
       // Log específico de retención
       /*
@@ -201,7 +215,6 @@ const AbonoPage = () => {
         total: credito.total,
         subtotal: credito.subtotal,
         iva: credito.iva,
-        descuentos: credito.descuentos,
         
         // Retención de fuente
         tieneRetencionFuente: credito.tieneRetencionFuente,
@@ -227,21 +240,6 @@ const AbonoPage = () => {
         cliente: credito.cliente,
         clienteId: credito.cliente?.id
       }));
-      
-      setOrdenesCredito(ordenesConSaldo);
-      setOrdenesSeleccionadas([]);
-      
-      // Inicializar órdenes con retención basándose en tieneRetencionFuente del backend
-      const ordenesConRetencionInicial = new Set();
-      ordenesConSaldo.forEach(orden => {
-        if (orden.tieneRetencionFuente === true) {
-          ordenesConRetencionInicial.add(orden.id);
-        }
-      });
-      setOrdenesConRetencion(ordenesConRetencionInicial);
-      
-      // console.log(`Inicializadas ${ordenesConRetencionInicial.size} órdenes con retención`);
-      
       setDistribucion([]);
     } catch (err) {
       // console.error("Error cargando créditos pendientes:", err);

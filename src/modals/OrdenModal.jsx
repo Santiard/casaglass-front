@@ -149,7 +149,7 @@ export default function OrdenEditarModal({
   const calcularRetencionActual = () => {
     if (!form.tieneRetencionFuente) return 0;
     const subtotal = form.items.reduce((sum, item) => sum + (item.totalLinea || 0), 0);
-    const totalFacturado = subtotal - (form.descuentos || 0);
+    const totalFacturado = subtotal;
     const subtotalSinIva = totalFacturado / 1.19;
     if (subtotalSinIva >= retefuenteThreshold) {
       const retencion = subtotalSinIva * (retefuenteRate / 100);
@@ -304,7 +304,6 @@ export default function OrdenEditarModal({
           venta: true,
           credito: false,
           tieneRetencionFuente: false, // Siempre false al crear
-          descuentos: 0,
           clienteNombre: "",
           trabajadorNombre: defaultTrabajadorNombre || "",
           sedeNombre: defaultSedeNombre || "",
@@ -345,7 +344,6 @@ export default function OrdenEditarModal({
           venta: true,
           credito: false,
           tieneRetencionFuente: false, // Siempre false al crear
-          descuentos: 0,
           clienteNombre: "",
           trabajadorNombre: defaultTrabajadorNombre || "",
           sedeNombre: defaultSedeNombre || "",
@@ -374,7 +372,6 @@ export default function OrdenEditarModal({
         venta: orden?.venta ?? false,
         credito: orden?.credito ?? false,
         tieneRetencionFuente: Boolean(orden?.tieneRetencionFuente ?? false),
-        descuentos: Number(orden?.descuentos ?? 0),
         clienteNombre: orden?.cliente?.nombre ?? "",
         trabajadorNombre: orden?.trabajador?.nombre ?? "",
         sedeNombre: orden?.sede?.nombre ?? "",
@@ -422,7 +419,6 @@ export default function OrdenEditarModal({
       venta: Boolean(orden.venta ?? false),
       credito: Boolean(orden.credito),
       tieneRetencionFuente: Boolean(orden.tieneRetencionFuente ?? false),
-      descuentos: Number(orden.descuentos ?? 0),
       clienteNombre: orden.cliente?.nombre ?? "",
       trabajadorNombre: orden.trabajador?.nombre ?? "",
       sedeNombre: orden.sede?.nombre ?? "",
@@ -944,12 +940,12 @@ export default function OrdenEditarModal({
       // Calcular el subtotal de la orden (suma de totalLinea de todos los items)
       // El precio ya incluye IVA, así que el subtotal es el precio completo
       const subtotal = itemsActivos.reduce((sum, item) => sum + (item.totalLinea || 0), 0);
-      const totalOrden = subtotal - (form.descuentos || 0);
+      const totalOrden = subtotal;
 
       // Calcular retención de fuente si está marcada (ANTES de usar en construirDescripcion)
       let retencionFuenteCrear = 0;
       if (form.tieneRetencionFuente) {
-        // totalOrden ya es subtotal - descuentos (total facturado con IVA)
+        // totalOrden es el subtotal (total facturado con IVA)
         const subtotalSinIvaCrear = totalOrden / 1.19;
         if (subtotalSinIvaCrear >= retefuenteThreshold) {
           retencionFuenteCrear = subtotalSinIvaCrear * (retefuenteRate / 100);
@@ -1065,7 +1061,6 @@ export default function OrdenEditarModal({
         credito: esCredito,
         tieneRetencionFuente: Boolean(form.tieneRetencionFuente ?? false),
         retencionFuente: retencionFuenteCrear, // Calcular si está marcado, sino 0
-        descuentos: Number(form.descuentos || 0),
         subtotal: subtotal, // Enviar subtotal explícitamente (precio completo con IVA incluido)
         // 🆕 CAMPOS NUMÉRICOS: Montos por método de pago
         montoEfectivo: montoEfectivoTotal,
@@ -1205,12 +1200,12 @@ export default function OrdenEditarModal({
     
     // Calcular el total de la orden para edición
     const subtotalEditar = itemsActivosEditar.reduce((sum, item) => sum + (item.totalLinea || 0), 0);
-    const totalOrdenEditar = subtotalEditar - (form.descuentos || 0);
+    const totalOrdenEditar = subtotalEditar;
     
     // Calcular retención de fuente si está marcada (ANTES de construir descripción)
     let retencionFuenteEditar = 0;
     if (form.tieneRetencionFuente) {
-      const totalFacturadoEditar = subtotalEditar - (form.descuentos || 0);
+      const totalFacturadoEditar = subtotalEditar;
       const subtotalSinIvaEditar = totalFacturadoEditar / 1.19;
       if (subtotalSinIvaEditar >= retefuenteThreshold) {
         retencionFuenteEditar = subtotalSinIvaEditar * (retefuenteRate / 100);
@@ -1299,7 +1294,6 @@ export default function OrdenEditarModal({
     credito: form.credito,
     tieneRetencionFuente: Boolean(form.tieneRetencionFuente ?? false),
     retencionFuente: retencionFuenteEditar, // Enviar 0 si no está marcado, o el valor calculado si está marcado
-    descuentos: Number(form.descuentos || 0),
     subtotal: subtotalEditar, // Enviar subtotal explícitamente (precio completo con IVA incluido)
     // 🆕 CAMPOS NUMÉRICOS: Montos por método de pago (también en edición)
     montoEfectivo: montoEfectivoTotalEditar,
@@ -1668,9 +1662,9 @@ export default function OrdenEditarModal({
                     // Redondear a 2 decimales para consistencia
                     const totalMetodosRedondeado = Math.round(totalMetodos * 100) / 100;
                     
-                    // Calcular total facturado (subtotal - descuentos)
+                    // Calcular total facturado (subtotal)
                     const subtotalFacturado = form.items.reduce((sum, item) => sum + (item.totalLinea || 0), 0);
-                    const totalFacturado = subtotalFacturado - (form.descuentos || 0);
+                    const totalFacturado = subtotalFacturado;
                     
                     // Calcular retención si está marcada
                     let retencionFuente = 0;
@@ -1981,33 +1975,12 @@ export default function OrdenEditarModal({
                   <span>Subtotal:</span>
                   <strong>${form.items.reduce((sum, item) => sum + (item.totalLinea || 0), 0).toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span>Descuentos:</span>
-                  <input
-                    type="number"
-                    value={form.descuentos || 0}
-                    onChange={(e) => {
-                      const valor = parseFloat(e.target.value) || 0;
-                      handleChange("descuentos", valor >= 0 ? valor : 0);
-                    }}
-                    step="0.01"
-                    min="0"
-                    style={{
-                      width: '120px',
-                      padding: '0.25rem',
-                      border: '1px solid #ddd',
-                      borderRadius: '4px',
-                      textAlign: 'right'
-                    }}
-                    placeholder="0.00"
-                  />
-                </div>
                 
                 {/* Checkbox para retención de fuente */}
                 {(() => {
-                  // Calcular base imponible (subtotal - descuentos)
+                  // Calcular base imponible (subtotal)
                   const subtotalFacturado = form.items.reduce((sum, item) => sum + (item.totalLinea || 0), 0);
-                  const baseImponible = subtotalFacturado - (form.descuentos || 0);
+                  const baseImponible = subtotalFacturado;
                   
                   // Calcular subtotal sin IVA para comparar con el umbral
                   // El backend calcula: subtotalSinIva = baseImponible / 1.19
@@ -2051,7 +2024,7 @@ export default function OrdenEditarModal({
                             let retencionCalculada = 0;
                             if (nuevoValorRetencion) {
                               const subtotal = form.items.reduce((sum, item) => sum + (item.totalLinea || 0), 0);
-                              const totalFacturado = subtotal - (form.descuentos || 0);
+                              const totalFacturado = subtotal;
                               const subtotalSinIva = totalFacturado / 1.19;
                               if (subtotalSinIva >= retefuenteThreshold) {
                                 retencionCalculada = subtotalSinIva * (retefuenteRate / 100);
@@ -2089,7 +2062,7 @@ export default function OrdenEditarModal({
                 {(() => {
                   // Calcular totales para mostrar
                   const subtotalFacturado = form.items.reduce((sum, item) => sum + (item.totalLinea || 0), 0);
-                  const totalFacturado = subtotalFacturado - (form.descuentos || 0);
+                  const totalFacturado = subtotalFacturado;
                   
                   // Calcular retención si está marcada
                   let retencionFuente = 0;

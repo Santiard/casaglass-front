@@ -154,6 +154,7 @@ export default function ReembolsoVentaDetalleModal({
                   <thead>
                     <tr>
                       <th>Producto</th>
+                      <th>Color</th>
                       <th>Cantidad Original</th>
                       <th>Cantidad Devuelta</th>
                       <th>Precio Unitario</th>
@@ -168,6 +169,7 @@ export default function ReembolsoVentaDetalleModal({
                           <br />
                           <small>{det.producto?.codigo || ""}</small>
                         </td>
+                        <td>{det.producto?.color || "-"}</td>
                         <td>{det.ordenItemOriginal?.cantidad || "-"}</td>
                         <td><strong>{det.cantidad}</strong></td>
                         <td>{fmtCOP(det.precioUnitario)}</td>

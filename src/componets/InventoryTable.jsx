@@ -13,10 +13,25 @@ export default function InventoryTable({ data = [], filters, loading, onEditar, 
   const selectedCategory = categories.find(cat => cat.id === selectedCategoryId);
   const isVidrio = selectedCategory?.nombre?.toUpperCase().trim() === "VIDRIO";
 
+  // Agregar clase para identificar si es admin o vendedor en CSS
+  const tableClassName = `table ${isVidrio ? 'vidrio-table' : ''} ${isAdmin ? 'admin-table' : 'vendedor-table'}`;
+
+  // Función helper para formatear precio
+  const fmtPrice = (precio) => {
+    return precio ? new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(precio) : "-";
+  };
+
+  // Función helper para formatear cantidad
+  const fmtCantidad = (cantidad) => {
+    if (cantidad === undefined || cantidad === null) return '0';
+    return Number(cantidad) % 1 === 0 ? Number(cantidad).toFixed(0) : Number(cantidad).toFixed(2);
+  };
+
   return (
     <div className="table-container">
+      {/* Vista de tabla (desktop) */}
       <div className="table-wrapper">
-        <table className={`table ${isVidrio ? 'vidrio-table' : ''}`}>
+        <table className={tableClassName}>
         <thead>
           <tr>
             <th>Código</th>
@@ -24,22 +39,17 @@ export default function InventoryTable({ data = [], filters, loading, onEditar, 
             <th className="th-color">Color</th>
             {isVidrio ? (
               <>
-                {/* Columnas específicas para VIDRIO - responsivas */}
                 <th style={{ width: '8%' }}>mm</th>
                 <th style={{ width: '10%' }}>m1</th>
                 <th style={{ width: '10%' }}>m2</th>
-                {/* Mostrar Costo solo para VIDRIO y solo para admin */}
                 {isAdmin && (
                   <th style={{ width: '15%' }}>Costo</th>
                 )}
-                {/* Mostrar precio y cantidad para admin y vendedor */}
                 <th style={{ width: '20%' }}>Precio</th>
                 <th style={{ width: '10%', textAlign: 'center' }}>Cantidad</th>
               </>
             ) : (
               <>
-                {/* Columnas normales para otras categorías */}
-                {/* Para ADMINISTRADOR: mostrar todas las columnas de inventario */}
                 {isAdmin ? (
                   <>
                     <th>Insula</th>
@@ -48,23 +58,20 @@ export default function InventoryTable({ data = [], filters, loading, onEditar, 
                     <th>Total</th>
                   </>
                 ) : (
-                  // Para VENDEDOR: mostrar solo la cantidad de su sede
                   <th>Cantidad ({userSede})</th>
                 )}
-                {/* Columna de costo solo para administradores */}
                 {isAdmin && <th>Costo</th>}
-                {/* Precios según el rol */}
                 {isAdmin ? (
                   <>
-                    <th>P. Insula</th>
-                    <th>P. Centro</th>
-                    <th>P. Patios</th>
+                    <th className="precio-principal">Precio</th>
+                    <th className="precio-secundario">P. Centro</th>
+                    <th className="precio-secundario">P. Patios</th>
                   </>
                 ) : (
                   <th>Precio</th>
-                )}              </>
+                )}
+              </>
             )}
-            {/* Acciones: más angosto y centrado */}
             <th
               style={isVidrio
                 ? { width: '90px', minWidth: '90px', textAlign: 'center' }
@@ -196,9 +203,9 @@ export default function InventoryTable({ data = [], filters, loading, onEditar, 
                     {/* Precios según el rol */}
                     {isAdmin ? (
                       <>
-                        <td>{p.precio1 ? new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(p.precio1) : "-"}</td>
-                        <td>{p.precio2 ? new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(p.precio2) : "-"}</td>
-                        <td>{p.precio3 ? new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(p.precio3) : "-"}</td>
+                        <td className="precio-principal">{p.precio1 ? new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(p.precio1) : "-"}</td>
+                        <td className="precio-secundario">{p.precio2 ? new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(p.precio2) : "-"}</td>
+                        <td className="precio-secundario">{p.precio3 ? new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(p.precio3) : "-"}</td>
                       </>
                     ) : (
                       // Para VENDEDOR: mostrar solo el precio de su sede
@@ -231,6 +238,179 @@ export default function InventoryTable({ data = [], filters, loading, onEditar, 
           })}
         </tbody>
       </table>
+      </div>
+
+      {/* Vista de tarjetas (móvil) */}
+      <div className="mobile-cards">
+        {loading && (
+          <div className="mobile-card">
+            <div className="mobile-card-body">
+              <div style={{ textAlign: 'center', padding: '2rem', color: '#666' }}>Cargando…</div>
+            </div>
+          </div>
+        )}
+        {!loading && data.length === 0 && (
+          <div className="mobile-card">
+            <div className="mobile-card-body">
+              <div style={{ textAlign: 'center', padding: '2rem', color: '#666' }}>Sin resultados</div>
+            </div>
+          </div>
+        )}
+        {!loading && data.map((p) => {
+          const total = Number(p.cantidadTotal || 0) || 
+            (Number(p.cantidadInsula || 0) + Number(p.cantidadCentro || 0) + Number(p.cantidadPatios || 0));
+
+          const cantidadVendedor = isAdmin ? total : (
+            userSede === "Insula" ? Number(p.cantidadInsula || 0) :
+            userSede === "Centro" ? Number(p.cantidadCentro || 0) :
+            userSede === "Patios" ? Number(p.cantidadPatios || 0) : 0
+          );
+
+          const sinStock = isAdmin ? total === 0 : cantidadVendedor === 0;
+          const stockNegativo = isAdmin ? total < 0 : cantidadVendedor < 0;
+
+          return (
+            <div 
+              key={p.id} 
+              className={`mobile-card ${sinStock ? "stock-sin-stock" : stockNegativo ? "stock-negativo" : ""} ${productoSeleccionado?.id === p.id ? "selected" : ""}`}
+              onClick={() => setProductoSeleccionado(p)}
+            >
+              <div className="mobile-card-header">
+                <div className="mobile-card-title">
+                  <div className="mobile-card-title-row">
+                    <h3>{p.nombre || "Sin nombre"}</h3>
+                    <div className="mobile-card-actions-header">
+                      <button className="btnEdit" onClick={e => { e.stopPropagation(); onEditar?.(p); }}>
+                        <img src={editar} alt="Editar" />
+                      </button>
+                      <button className="btnDelete" onClick={e => { e.stopPropagation(); onEliminar?.(p.id); }}>
+                        <img src={eliminar} alt="Eliminar" />
+                      </button>
+                    </div>
+                  </div>
+                  <div className="mobile-card-meta">
+                    <span className="codigo">Código: {p.codigo || "N/A"}</span>
+                    <span className={`color-badge color-${(p.color || 'NA').toLowerCase().replace(/\s+/g, '-')}`}>
+                      {p.color ?? "N/A"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div className="mobile-card-body">
+                {isVidrio ? (
+                  <>
+                    <div className="mobile-card-field">
+                      <span className="mobile-card-label">mm</span>
+                      <span className="mobile-card-value">{p.mm ?? "-"}</span>
+                    </div>
+                    <div className="mobile-card-field">
+                      <span className="mobile-card-label">m1</span>
+                      <span className="mobile-card-value">{p.m1 ?? "-"}</span>
+                    </div>
+                    <div className="mobile-card-field">
+                      <span className="mobile-card-label">m2</span>
+                      <span className="mobile-card-value">{p.m2 ?? "-"}</span>
+                    </div>
+                    {isAdmin && (
+                      <div className="mobile-card-field">
+                        <span className="mobile-card-label">Costo</span>
+                        <span className="mobile-card-value">{fmtPrice(p.costo)}</span>
+                      </div>
+                    )}
+                    <div className="mobile-card-field">
+                      <span className="mobile-card-label">Precio</span>
+                      <span className="mobile-card-value">
+                        {isAdmin
+                          ? fmtPrice(p.precio1)
+                          : userSede === "Insula" ? fmtPrice(p.precio1) :
+                            userSede === "Centro" ? fmtPrice(p.precio2) :
+                            userSede === "Patios" ? fmtPrice(p.precio3) : "-"}
+                      </span>
+                    </div>
+                    <div className="mobile-card-field full-width">
+                      <span className="mobile-card-label">Cantidad</span>
+                      <span className={`mobile-card-value total-value ${stockNegativo ? "stock-negativo" : sinStock ? "stock-sin-stock" : ""}`}>
+                        <strong>{isAdmin ? fmtCantidad(p.cantidadInsula) : fmtCantidad(cantidadVendedor)}</strong>
+                        {stockNegativo && <span className="badge-warning"> (Faltan {Math.abs(isAdmin ? Number(p.cantidadInsula || 0) : cantidadVendedor)})</span>}
+                        {sinStock && <span className="badge-warning"> (Sin stock)</span>}
+                      </span>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    {isAdmin ? (
+                      <>
+                        <div className="mobile-card-field">
+                          <span className="mobile-card-label">Insula</span>
+                          <span className={`mobile-card-value ${Number(p.cantidadInsula || 0) < 0 ? "stock-negativo" : ""}`}>
+                            {fmtCantidad(p.cantidadInsula)}
+                          </span>
+                        </div>
+                        <div className="mobile-card-field">
+                          <span className="mobile-card-label">Centro</span>
+                          <span className={`mobile-card-value ${Number(p.cantidadCentro || 0) < 0 ? "stock-negativo" : ""}`}>
+                            {fmtCantidad(p.cantidadCentro)}
+                          </span>
+                        </div>
+                        <div className="mobile-card-field">
+                          <span className="mobile-card-label">Patios</span>
+                          <span className={`mobile-card-value ${Number(p.cantidadPatios || 0) < 0 ? "stock-negativo" : ""}`}>
+                            {fmtCantidad(p.cantidadPatios)}
+                          </span>
+                        </div>
+                        <div className="mobile-card-field full-width">
+                          <span className="mobile-card-label">Total Inventario</span>
+                          <span className={`mobile-card-value total-value ${stockNegativo ? "stock-negativo" : sinStock ? "stock-sin-stock" : ""}`}>
+                            <strong>{fmtCantidad(total)}</strong>
+                            {stockNegativo && <span className="badge-warning"> (Faltan {Math.abs(total)})</span>}
+                            {sinStock && <span className="badge-warning"> (Sin stock)</span>}
+                          </span>
+                        </div>
+                        <div className="mobile-card-field">
+                          <span className="mobile-card-label">Costo</span>
+                          <span className="mobile-card-value">{fmtPrice(p.costo)}</span>
+                        </div>
+                        <div className="mobile-card-field">
+                          <span className="mobile-card-label">Precio Insula</span>
+                          <span className="mobile-card-value">{fmtPrice(p.precio1)}</span>
+                        </div>
+                        <div className="mobile-card-field">
+                          <span className="mobile-card-label">Precio Centro</span>
+                          <span className="mobile-card-value">{fmtPrice(p.precio2)}</span>
+                        </div>
+                        <div className="mobile-card-field">
+                          <span className="mobile-card-label">Precio Patios</span>
+                          <span className="mobile-card-value">{fmtPrice(p.precio3)}</span>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="mobile-card-field full-width">
+                          <span className="mobile-card-label">Cantidad ({userSede})</span>
+                          <span className={`mobile-card-value total-value ${stockNegativo ? "stock-negativo" : sinStock ? "stock-sin-stock" : ""}`}>
+                            <strong>{fmtCantidad(cantidadVendedor)}</strong>
+                            {stockNegativo && <span className="badge-warning"> (Faltan {Math.abs(cantidadVendedor)})</span>}
+                            {sinStock && <span className="badge-warning"> (Sin stock)</span>}
+                          </span>
+                        </div>
+                        <div className="mobile-card-field full-width">
+                          <span className="mobile-card-label">Precio ({userSede})</span>
+                          <span className="mobile-card-value price-value">
+                            <strong>
+                              {userSede === "Insula" ? fmtPrice(p.precio1) : 
+                               userSede === "Centro" ? fmtPrice(p.precio2) :
+                               userSede === "Patios" ? fmtPrice(p.precio3) : "-"}
+                            </strong>
+                          </span>
+                        </div>
+                      </>
+                    )}
+                  </>
+                )}
+              </div>
+            </div>
+          );
+        })}
       </div>
       
       {/* Pie de página con descripción */}

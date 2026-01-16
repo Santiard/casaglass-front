@@ -14,11 +14,11 @@ export default function FacturarOrdenModal({ isOpen, onClose, onSave, orden }) {
     ordenId: "",
     fecha: getTodayLocalDate(),
     subtotal: 0,
-    descuentos: "",
     iva: 0,
     retencionFuente: 0,
     formaPago: "EFECTIVO",
     observaciones: "",
+    numeroFactura: "", // Opcional: si se envía, el backend lo usa; si no, lo genera automáticamente
   });
 
   const [loading, setLoading] = useState(false);
@@ -142,11 +142,6 @@ export default function FacturarOrdenModal({ isOpen, onClose, onSave, orden }) {
         ? orden.items.reduce((acc, it) => acc + (Number(it.totalLinea) || 0), 0)
           : 0;
 
-      // Usar descuentos de la orden si existen
-      const descuentosOrden = typeof orden.descuentos === "number" && !isNaN(orden.descuentos)
-        ? orden.descuentos
-        : 0;
-
       // Usar valores calculados directamente de la orden
       const ivaOrden = typeof orden.iva === "number" && !isNaN(orden.iva) ? orden.iva : 0;
       const retencionFuenteOrden = typeof orden.retencionFuente === "number" && !isNaN(orden.retencionFuente) 
@@ -155,8 +150,8 @@ export default function FacturarOrdenModal({ isOpen, onClose, onSave, orden }) {
       
       // IMPORTANTE: orden.subtotal es la base SIN IVA (según la especificación del backend)
       // orden.total es el total facturado CON IVA incluido
-      // Para mostrar en el formulario, usamos el total facturado
-      const subtotalFactura = subtotalFacturado - descuentosOrden;
+      // Para mostrar en el formulario, usamos el total facturado directamente (sin restar descuentos)
+      const subtotalFactura = subtotalFacturado;
 
       setSubtotalOrden(subtotalFactura);
 
@@ -167,11 +162,11 @@ export default function FacturarOrdenModal({ isOpen, onClose, onSave, orden }) {
         ordenId: orden.id,
         fecha: getTodayLocalDate(),
         subtotal: orden.subtotal || 0, // Base SIN IVA (lo que el backend espera)
-        descuentos: descuentosOrden || "",
         iva: ivaOrden, // Valor del IVA calculado en la orden (en dinero, NO porcentaje)
         retencionFuente: retencionFuenteOrden, // Valor de retención calculado en la orden (en dinero, NO porcentaje)
         formaPago: "EFECTIVO",
-        observaciones: `Factura generada desde orden #${orden.numero}`,
+        observaciones: "", // Dejar vacío por defecto, el usuario puede agregar observaciones si lo desea
+        numeroFactura: "", // Opcional: dejar vacío para que el backend lo genere automáticamente
       });
       
       // La inicialización del cliente se hace en el useEffect anterior
@@ -183,23 +178,19 @@ export default function FacturarOrdenModal({ isOpen, onClose, onSave, orden }) {
     const { name, value, type } = e.target;
 
     if (type === "number") {
-      if (name === "descuentos") {
-        setForm((prev) => ({
-          ...prev,
-          [name]: value === "" ? "" : parseFloat(value) || 0,
-        }));
-      } else {
-        setForm((prev) => ({
-          ...prev,
-          [name]: parseFloat(value) || 0,
-        }));
-      }
+      setForm((prev) => ({
+        ...prev,
+        [name]: parseFloat(value) || 0,
+      }));
     } else if (name === "formaPago") {
       // Reset banco seleccionado si cambia la forma de pago
       setForm((prev) => ({ ...prev, [name]: value }));
       if (value !== "TRANSFERENCIA") {
         setBancoSeleccionado("");
       }
+    } else if (name === "numeroFactura") {
+      // numeroFactura se mantiene tal cual (sin convertir a mayúsculas)
+      setForm((prev) => ({ ...prev, [name]: value }));
     } else {
       // Campos de texto se convierten a mayúsculas
       const processedValue = value.toUpperCase();
@@ -225,22 +216,27 @@ export default function FacturarOrdenModal({ isOpen, onClose, onSave, orden }) {
       // Usar valores directamente de la orden (ya calculados por el backend)
       // La retención se configura al crear/editar la orden, no al facturar
       // El backend ya calculó: subtotal (base sin IVA), iva, retencionFuente, total
-      const descuentosNum = form.descuentos === "" ? 0 : Number(form.descuentos || 0);
       
       // Los valores de IVA y retención ya vienen calculados en dinero desde la orden
       const valorIva = Number(form.iva || 0); // Ya es valor monetario, no porcentaje
       const valorRetencionFuente = Number(form.retencionFuente || 0); // Ya es valor monetario, no porcentaje
       
       const payloadToSend = {
-        ...form,
-        descuentos: descuentosNum,
+        ordenId: form.ordenId,
+        fecha: form.fecha,
+        subtotal: form.subtotal,
         iva: valorIva, // Valor monetario ya calculado en la orden
         retencionFuente: Math.max(0, valorRetencionFuente), // Valor monetario ya calculado en la orden
+        formaPago: form.formaPago,
+        observaciones: form.observaciones,
         // Si se seleccionó un cliente diferente, incluir clienteId
         // Si no se seleccionó ninguno (clienteFacturaId === ""), no se envía y el backend usa el cliente de la orden
         ...(clienteFacturaId && clienteFacturaId !== "" ? { clienteId: Number(clienteFacturaId) } : {}),
+        // Si se ingresó un número de factura, incluirlo; si no, el backend lo genera automáticamente
+        ...(form.numeroFactura && form.numeroFactura.trim() !== "" ? { numeroFactura: form.numeroFactura.trim() } : {}),
         // No enviar estado: el backend lo ignora y crea PENDIENTE
         // No enviar total: el backend lo calcula automáticamente
+        // No enviar descuentos: el backend ya no acepta este campo
       };
       await onSave(payloadToSend, false);
       onClose();
@@ -271,8 +267,8 @@ export default function FacturarOrdenModal({ isOpen, onClose, onSave, orden }) {
             <h3>Resumen de la Orden</h3>
             <div className="info-grid">
               <div>
-                <label>ID Orden:</label>
-                <input type="text" value={orden?.id || ""} disabled />
+                <label>Número de Orden:</label>
+                <input type="text" value={orden?.numero ? `#${orden.numero}` : "—"} disabled />
               </div>
               <div>
                 <label>Cliente de la Orden:</label>
@@ -447,6 +443,7 @@ export default function FacturarOrdenModal({ isOpen, onClose, onSave, orden }) {
                 <thead>
                   <tr>
                     <th>Producto</th>
+                    <th>Color</th>
                     <th>Cant.</th>
                     <th>Precio</th>
                     <th>Total</th>
@@ -457,6 +454,7 @@ export default function FacturarOrdenModal({ isOpen, onClose, onSave, orden }) {
                     orden.items.map((i, idx) => (
                       <tr key={i.id || idx}>
                         <td>{i.producto?.nombre ?? i.descripcion ?? '-'}</td>
+                        <td>{i.producto?.color ?? '-'}</td>
                         <td className="tx-center">{i.cantidad}</td>
                         <td className="tx-right">${(i.precioUnitario || 0).toLocaleString('es-CO')}</td>
                         <td className="tx-right">${(i.totalLinea || 0).toLocaleString('es-CO')}</td>
@@ -464,7 +462,7 @@ export default function FacturarOrdenModal({ isOpen, onClose, onSave, orden }) {
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={4} className="empty">Sin ítems</td>
+                      <td colSpan={5} className="empty">Sin ítems</td>
                     </tr>
                   )}
                 </tbody>
@@ -474,7 +472,7 @@ export default function FacturarOrdenModal({ isOpen, onClose, onSave, orden }) {
 
           {/* SECCIÓN CÁLCULOS */}
           <section className="section-card">
-            <h3>Totales y Descuentos</h3>
+            <h3>Totales</h3>
             {isAnulada && (
               <div style={{
                 background: '#FEF2F2', border: '1px solid #FCA5A5', color: '#991B1B',
@@ -491,55 +489,6 @@ export default function FacturarOrdenModal({ isOpen, onClose, onSave, orden }) {
                 Orden a crédito con saldo pendiente de ${Number(orden?.creditoDetalle?.saldoPendiente || 0).toLocaleString('es-CO')}.
               </div>
             )}
-            <div className="calculo-grid">
-              <div>
-                <label>Subtotal:</label>
-                <input type="number" value={subtotalOrden} disabled />
-              </div>
-              <div>
-                <label>Descuentos:</label>
-                <input
-                  type="number"
-                  name="descuentos"
-                  value={form.descuentos}
-                  onChange={handleChange}
-                  placeholder="0"
-                />
-              </div>
-              <div>
-                <label>IVA (valor):</label>
-                <input
-                  type="number"
-                  name="iva"
-                  value={form.iva}
-                  onChange={handleChange}
-                  placeholder="0"
-                  step="0.01"
-                  min="0"
-                  disabled
-                />
-                <small style={{ display: 'block', color: '#666', fontSize: '0.75rem', marginTop: '0.25rem' }}>
-                  Valor calculado desde la orden
-                </small>
-              </div>
-              <div>
-                <label>Retención (valor):</label>
-                <input
-                  type="number"
-                  name="retencionFuente"
-                  value={form.retencionFuente}
-                  onChange={handleChange}
-                  placeholder="0"
-                  step="0.01"
-                  min="0"
-                  disabled
-                />
-                <small style={{ display: 'block', color: '#666', fontSize: '0.75rem', marginTop: '0.25rem' }}>
-                  {form.retencionFuente > 0 ? 'Valor calculado desde la orden' : 'No aplica retención'}
-                </small>
-              </div>
-            </div>
-            
             {/* Información de retención de fuente (solo informativo, ya viene de la orden) */}
             {(() => {
               // Los valores ya vienen calculados de la orden
@@ -595,7 +544,8 @@ export default function FacturarOrdenModal({ isOpen, onClose, onSave, orden }) {
             })()}
             {(() => {
               // Usar valores directamente de la orden (ya calculados)
-              const base = Math.max(0, subtotalOrden - (parseFloat(form.descuentos) || 0));
+              // Ya no se restan descuentos, se usa directamente el subtotalOrden
+              const base = Math.max(0, subtotalOrden);
               
               // Los valores de IVA y retención ya vienen calculados en dinero desde la orden
               const ivaVal = Number(form.iva) || 0; // Valor monetario ya calculado
@@ -615,22 +565,24 @@ export default function FacturarOrdenModal({ isOpen, onClose, onSave, orden }) {
               const totalFacturado = base; // Total que se factura (sin restar retención)
               const valorAPagar = base - reteVal; // Valor realmente recibido (total - retención)
               
-              const invalid = (parseFloat(form.descuentos) || 0) > subtotalOrden || base < 0;
               const money = (n) => `$${Number(n || 0).toLocaleString('es-CO')}`;
-              
-              if (invalid && validationMsg !== "Descuento supera el subtotal") setValidationMsg("Descuento supera el subtotal");
-              if (!invalid && validationMsg) setValidationMsg("");
               
               return (
                 <>
+                  <small style={{ display: 'block', color: '#666', fontSize: '0.75rem', marginBottom: '0.75rem', fontStyle: 'italic' }}>
+                    Los valores mostrados son calculados automáticamente desde la orden
+                  </small>
                   <div className="calculo-grid">
                     <div>
-                      <label>Base (Subtotal - Descuentos):</label>
+                      <label>Base (Subtotal):</label>
                       <input type="text" value={money(base)} disabled />
                     </div>
                     <div>
                       <label>IVA (valor):</label>
                       <input type="text" value={money(ivaVal)} disabled />
+                      <small style={{ display: 'block', color: '#666', fontSize: '0.75rem', marginTop: '0.25rem' }}>
+                        Valor calculado desde la orden
+                      </small>
                     </div>
                     <div>
                       <label>Subtotal sin IVA:</label>
@@ -646,15 +598,20 @@ export default function FacturarOrdenModal({ isOpen, onClose, onSave, orden }) {
                             : `No aplica (umbral: ${retefuenteThreshold.toLocaleString('es-CO')})`}
                         </small>
                       )}
+                      {reteVal > 0 && (
+                        <small style={{ display: 'block', color: '#666', fontSize: '0.75rem', marginTop: '0.25rem' }}>
+                          Valor calculado desde la orden
+                        </small>
+                      )}
                     </div>
                   </div>
                   <div className="total-final" style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', padding: '1rem', backgroundColor: '#f8f9fa', borderRadius: '8px', border: '1px solid #e0e0e0' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontWeight: '500' }}>Total a Facturar:</span>
-                      <strong style={{ fontSize: '1.1em', color: '#333' }}>{money(totalFacturado)}</strong>
-                    </div>
-                    {reteVal > 0 && (
+                    {reteVal > 0 ? (
                       <>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <span style={{ fontWeight: '500' }}>Total a Facturar:</span>
+                          <strong style={{ fontSize: '1.1em', color: '#333' }}>{money(totalFacturado)}</strong>
+                        </div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '0.5rem', borderTop: '1px solid #ddd' }}>
                           <span style={{ fontWeight: '500', color: '#666' }}>(-) Retención en la Fuente:</span>
                           <span style={{ color: '#666' }}>{money(reteVal)}</span>
@@ -667,46 +624,66 @@ export default function FacturarOrdenModal({ isOpen, onClose, onSave, orden }) {
                           El monto del método de pago debe ser el valor a pagar (total - retención), ya que el cliente retiene y consigna directamente a la DIAN.
                         </small>
                       </>
-                    )}
-                    {reteVal === 0 && (
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '0.5rem', borderTop: '1px solid #ddd' }}>
-                        <span style={{ fontWeight: '600', fontSize: '1.05em' }}>Valor a Pagar:</span>
-                        <strong style={{ fontSize: '1.2em', color: '#4f67ff' }}>{money(valorAPagar)}</strong>
+                    ) : (
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontWeight: '600', fontSize: '1.05em' }}>Total a Facturar:</span>
+                        <strong style={{ fontSize: '1.2em', color: '#4f67ff' }}>{money(totalFacturado)}</strong>
                       </div>
                     )}
                   </div>
                 </>
               );
             })()}
-            {validationMsg && (
-              <div style={{ color: '#b91c1c', marginTop: '0.25rem' }}>{validationMsg}</div>
-            )}
           </section>
 
-          {/* SECCIÓN PAGO */}
+          {/* SECCIÓN PAGO, NÚMERO DE FACTURA Y OBSERVACIONES */}
           <section className="section-card">
-            <h3>Forma de Pago</h3>
-            <select
-              name="formaPago"
-              value={form.formaPago}
-              onChange={handleChange}
-            >
-              <option value="EFECTIVO">Efectivo</option>
-              <option value="TRANSFERENCIA">Transferencia</option>
-              <option value="TARJETA">Tarjeta</option>
-              <option value="CREDITO">Crédito</option>
-            </select>
-          </section>
+            <h3>Información Adicional</h3>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.5rem', alignItems: 'flex-start' }}>
+              {/* Forma de Pago */}
+              <div>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Forma de Pago:</label>
+                <select
+                  name="formaPago"
+                  value={form.formaPago}
+                  onChange={handleChange}
+                  style={{ width: '100%', padding: '0.5rem' }}
+                >
+                  <option value="EFECTIVO">Efectivo</option>
+                  <option value="TRANSFERENCIA">Transferencia</option>
+                  <option value="TARJETA">Tarjeta</option>
+                  <option value="CREDITO">Crédito</option>
+                </select>
+              </div>
 
-          {/* SECCIÓN OBSERVACIONES */}
-          <section className="section-card">
-            <h3>Observaciones</h3>
-            <textarea
-              name="observaciones"
-              rows="3"
-              value={form.observaciones}
-              onChange={handleChange}
-            ></textarea>
+              {/* Número de Factura */}
+              <div>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Número de Factura (Opcional):</label>
+                <input
+                  type="text"
+                  name="numeroFactura"
+                  value={form.numeroFactura}
+                  onChange={handleChange}
+                  placeholder="Dejar vacío para auto-generar"
+                  style={{ width: '100%', padding: '0.5rem' }}
+                />
+                <small style={{ display: 'block', color: '#666', fontSize: '0.75rem', marginTop: '0.25rem' }}>
+                  Si no ingresas un número, el sistema generará uno automáticamente
+                </small>
+              </div>
+
+              {/* Observaciones */}
+              <div>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Observaciones:</label>
+                <textarea
+                  name="observaciones"
+                  rows="3"
+                  value={form.observaciones}
+                  onChange={handleChange}
+                  style={{ width: '100%', padding: '0.5rem', resize: 'vertical' }}
+                ></textarea>
+              </div>
+            </div>
           </section>
 
           {/* FOOTER */}
@@ -725,7 +702,6 @@ export default function FacturarOrdenModal({ isOpen, onClose, onSave, orden }) {
               disabled={
                 loading ||
                 !form.ordenId ||
-                (parseFloat(form.descuentos) || 0) > subtotalOrden ||
                 (Number(form.iva) || 0) < 0 ||
                 (Number(form.retencionFuente) || 0) < 0 ||
                 isAnulada

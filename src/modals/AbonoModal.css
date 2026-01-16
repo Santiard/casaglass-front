@@ -126,18 +126,64 @@
 }
 
 /* Responsive design */
-@media (max-width: 600px) {
+@media (max-width: 37.5rem) {          /* 600px - móviles */
+  .abono-modal-overlay {
+    padding: 0.5rem;
+    align-items: flex-start;
+    overflow-y: auto;
+  }
+
   .abono-modal {
-    padding: 1.5rem;
-    width: 95%;
+    padding: 1rem;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0.5rem 0;
+    border-radius: 0.5rem;
+    max-height: calc(100vh - 1rem);
+  }
+
+  .abono-modal h2 {
+    font-size: 1.25rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .credito-info {
+    padding: 0.75rem;
+    margin-bottom: 1rem;
+  }
+
+  .credito-info p {
+    font-size: 0.9rem;
+  }
+
+  .abono-modal input,
+  .abono-modal select {
+    padding: 0.75rem;
+    font-size: 1rem;
+    min-height: 44px;
   }
   
   .modal-actions {
     flex-direction: column;
+    gap: 0.5rem;
+    margin-top: 1rem;
+    padding-top: 1rem;
   }
   
   .btn-cancel,
   .btn-confirm {
     width: 100%;
+    padding: 0.75rem;
+    font-size: 1rem;
+  }
+}
+
+@media (max-width: 30rem) {            /* 480px */
+  .abono-modal {
+    padding: 0.75rem;
+  }
+
+  .abono-modal h2 {
+    font-size: 1.125rem;
   }
 }

@@ -125,6 +125,7 @@ export default function ReembolsoIngresoDetalleModal({
                   <thead>
                     <tr>
                       <th>Producto</th>
+                      <th>Color</th>
                       <th>Cantidad Original</th>
                       <th>Cantidad Devuelta</th>
                       <th>Costo Unitario</th>
@@ -139,6 +140,7 @@ export default function ReembolsoIngresoDetalleModal({
                           <br />
                           <small>{det.producto?.codigo || ""}</small>
                         </td>
+                        <td>{det.producto?.color || "-"}</td>
                         <td>{det.ingresoDetalleOriginal?.cantidad || "-"}</td>
                         <td><strong>{det.cantidad}</strong></td>
                         <td>{fmtCOP(det.costoUnitario)}</td>

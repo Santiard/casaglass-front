@@ -27,7 +27,8 @@ const FacturarMultiplesOrdenesModal = ({ isOpen, onClose, ordenInicial, onSucces
   const [formData, setFormData] = useState({
     fecha: getTodayLocalDate(),
     formaPago: 'EFECTIVO',
-    observaciones: ''
+    observaciones: '',
+    numeroFactura: '' // Opcional: si se envía, el backend lo usa; si no, lo genera automáticamente
   });
   
   const [loading, setLoading] = useState(false);
@@ -137,21 +138,47 @@ const FacturarMultiplesOrdenesModal = ({ isOpen, onClose, ordenInicial, onSucces
   const cargarOrdenesFacturables = async (clienteId) => {
     setLoadingOrdenes(true);
     try {
-      const ordenes = await listarOrdenesTabla({ clienteId: Number(clienteId) });
+      const response = await listarOrdenesTabla({ clienteId: Number(clienteId) });
+      
+      // Manejar respuesta paginada o array directo
+      let ordenes = [];
+      if (response && typeof response === 'object' && 'content' in response) {
+        // Respuesta paginada
+        ordenes = Array.isArray(response.content) ? response.content : [];
+      } else {
+        // Respuesta directa (array)
+        ordenes = Array.isArray(response) ? response : [];
+      }
       
       // Filtrar órdenes facturables:
       // 1. venta: true (confirmadas)
       // 2. facturada: false (no facturadas)
       // 3. estado !== "ANULADA"
-      // 4. Si es crédito: saldoPendiente === 0 (ya pagadas)
+      // NOTA: Ahora se pueden facturar órdenes a crédito aunque tengan saldo pendiente
       const ordenesFacturablesFiltradas = ordenes.filter(orden => {
         const esVenta = Boolean(orden.venta === true);
-        const yaFacturada = Boolean(orden.facturada || orden.numeroFactura || orden.factura);
-        const estaAnulada = String(orden.estado || '').toUpperCase() === 'ANULADA';
-        const esCredito = Boolean(orden.credito === true);
-        const tieneSaldoPendiente = esCredito && Number(orden.creditoDetalle?.saldoPendiente || 0) > 0;
         
-        return esVenta && !yaFacturada && !estaAnulada && !tieneSaldoPendiente;
+        // Verificar facturación de manera más precisa
+        // El backend envía "-" como placeholder cuando no hay factura, debemos ignorarlo
+        const numeroFacturaStr = String(orden.numeroFactura || '').trim();
+        const tieneNumeroFacturaValido = numeroFacturaStr !== '' && 
+                                         numeroFacturaStr !== '-' && 
+                                         numeroFacturaStr !== 'null' && 
+                                         numeroFacturaStr !== 'undefined';
+        
+        const tieneFacturaId = Boolean(orden.facturaId || orden.factura?.id);
+        
+        // Una orden está facturada SOLO si:
+        // 1. facturada === true explícitamente, O
+        // 2. Tiene un número de factura válido (no "-", no vacío), O
+        // 3. Tiene un facturaId
+        const yaFacturada = Boolean(orden.facturada === true) || tieneNumeroFacturaValido || tieneFacturaId;
+        
+        const estaAnulada = String(orden.estado || '').toUpperCase() === 'ANULADA';
+        
+        const esFacturable = esVenta && !yaFacturada && !estaAnulada;
+        
+        return esFacturable;
       });
       
       setOrdenesFacturables(ordenesFacturablesFiltradas);
@@ -282,7 +309,8 @@ const FacturarMultiplesOrdenesModal = ({ isOpen, onClose, ordenInicial, onSucces
     setFormData({
       fecha: getTodayLocalDate(),
       formaPago: 'EFECTIVO',
-      observaciones: ''
+      observaciones: '',
+      numeroFactura: ''
     });
     setClienteSearchModal("");
     setShowClienteModal(false);
@@ -311,7 +339,8 @@ const FacturarMultiplesOrdenesModal = ({ isOpen, onClose, ordenInicial, onSucces
 
   const handleChange = (e) => {
     const { name, value, type } = e.target;
-    const processedValue = (type === 'text' && name !== 'fecha') ? value.toUpperCase() : value;
+    // numeroFactura se mantiene tal cual (sin convertir a mayúsculas)
+    const processedValue = (type === 'text' && name !== 'fecha' && name !== 'numeroFactura') ? value.toUpperCase() : value;
     setFormData(prev => ({ ...prev, [name]: processedValue }));
   };
 
@@ -320,9 +349,9 @@ const FacturarMultiplesOrdenesModal = ({ isOpen, onClose, ordenInicial, onSucces
   const ordenSuperaUmbral = (orden) => {
     // IMPORTANTE: orden.total es el total facturado CON IVA, orden.subtotal es base SIN IVA
     // Usamos orden.total como base facturada (con IVA incluido)
+    // Ya no se restan descuentos, se usa directamente el total
     const subtotalFacturado = orden.total || orden.items?.reduce((sum, item) => sum + (item.totalLinea || 0), 0) || 0;
-    const descuentos = Number(orden.descuentos || 0);
-    const baseConIva = Math.max(0, subtotalFacturado - descuentos);
+    const baseConIva = Math.max(0, subtotalFacturado);
     
     // Calcular subtotal sin IVA usando la fórmula EXACTA: dividir por (1 + IVA)
     const ivaRateDecimal = (ivaRate && ivaRate > 0) ? ivaRate / 100 : 0;
@@ -337,11 +366,11 @@ const FacturarMultiplesOrdenesModal = ({ isOpen, onClose, ordenInicial, onSucces
   const calcularTotalesOrden = (orden) => {
     // IMPORTANTE: orden.total es el total facturado CON IVA, orden.subtotal es base SIN IVA
     // Usamos orden.total como base facturada (con IVA incluido)
+    // Ya no se restan descuentos, se usa directamente el total
     const subtotalFacturado = orden.total || orden.items?.reduce((sum, item) => sum + (item.totalLinea || 0), 0) || 0;
-    const descuentos = Number(orden.descuentos || 0);
     
-    // Base con IVA = subtotal facturado - descuentos
-    const baseConIva = Math.max(0, subtotalFacturado - descuentos);
+    // Base con IVA = subtotal facturado (sin restar descuentos)
+    const baseConIva = Math.max(0, subtotalFacturado);
     
     // Calcular subtotal sin IVA usando la fórmula EXACTA del backend: dividir por (1 + IVA)
     // Ejemplo: si IVA es 19%, dividir por 1.19
@@ -373,7 +402,6 @@ const FacturarMultiplesOrdenesModal = ({ isOpen, onClose, ordenInicial, onSucces
     
     return {
       subtotal: subtotalSinIvaRedondeado, // Base SIN IVA CALCULADA (no usar orden.subtotal que puede estar incorrecto)
-      descuentos,
       base: baseConIva,
       ivaVal: ivaValRedondeado,
       subtotalSinIva: subtotalSinIvaRedondeado,
@@ -530,7 +558,6 @@ const FacturarMultiplesOrdenesModal = ({ isOpen, onClose, ordenInicial, onSucces
               tieneRetencionFuente: tieneRetencion,
               retencionFuente: valorRetencionFuente, // Enviar el valor calculado con la fórmula exacta
               iva: totales.ivaVal, // Actualizar IVA si no estaba calculado
-              descuentos: Number(orden.descuentos || 0),
               clienteId: Number(orden.clienteId || orden.cliente?.id),
               sedeId: sedeId,
               ...(orden.trabajadorId || orden.trabajador?.id ? { trabajadorId: Number(orden.trabajadorId || orden.trabajador?.id) } : {}),
@@ -566,6 +593,33 @@ const FacturarMultiplesOrdenesModal = ({ isOpen, onClose, ordenInicial, onSucces
       // Crear facturas para cada orden seleccionada
       const facturasCreadas = [];
       const ordenesConError = [];
+      
+      // Determinar si se debe usar número de factura secuencial
+      const numeroFacturaBase = formData.numeroFactura?.trim() || '';
+      
+      // Intentar extraer número y sufijo (ej: "450B" → número: 450, sufijo: "B")
+      let numeroBase = null;
+      let sufijo = '';
+      let usarNumeroSecuencial = false;
+      
+      if (numeroFacturaBase !== '') {
+        // Intentar parsear como número puro
+        if (!isNaN(Number(numeroFacturaBase))) {
+          numeroBase = Number(numeroFacturaBase);
+          usarNumeroSecuencial = true;
+        } else {
+          // Intentar extraer número del inicio (ej: "450B", "123-A", "999X")
+          const match = numeroFacturaBase.match(/^(\d+)(.*)$/);
+          if (match) {
+            numeroBase = Number(match[1]);
+            sufijo = match[2] || ''; // Puede ser "B", "-A", "X", etc.
+            usarNumeroSecuencial = true;
+          }
+          // Si no hay número al inicio, no usar secuenciales
+        }
+      }
+      
+      let contadorFactura = numeroBase !== null ? numeroBase : 0;
       
       for (const orden of ordenesCompletas) {
         // Validar que la orden tenga todos los datos necesarios
@@ -605,17 +659,35 @@ const FacturarMultiplesOrdenesModal = ({ isOpen, onClose, ordenInicial, onSucces
           continue;
         }
         
+        // Determinar el número de factura a usar
+        let numeroFacturaAUsar = null;
+        if (usarNumeroSecuencial) {
+          // Usar número secuencial basado en el número base ingresado
+          // Si hay sufijo, mantenerlo (ej: "450B" → "451B", "452B")
+          numeroFacturaAUsar = String(contadorFactura) + sufijo;
+          contadorFactura++; // Incrementar para la siguiente factura
+        } else if (numeroFacturaBase !== '') {
+          // Si se ingresó un texto sin número al inicio, solo usarlo para la primera factura
+          // (aunque esto probablemente causará error en el backend, pero respetamos la intención del usuario)
+          if (facturasCreadas.length === 0) {
+            numeroFacturaAUsar = numeroFacturaBase;
+          }
+          // Para las siguientes, dejar que el backend genere automáticamente
+        }
+        
         const facturaPayload = {
           ordenId: Number(orden.id),
           fecha: formData.fecha,
           subtotal: Number(totales.subtotal || 0),
-          descuentos: Number(totales.descuentos || 0),
           iva: valorIvaRedondeado, // Valor calculado en dinero, NO porcentaje
           retencionFuente: Math.max(0, valorRetencionRedondeado), // Valor calculado en dinero, NO porcentaje
           formaPago: formData.formaPago || 'EFECTIVO',
           observaciones: formData.observaciones || `Factura generada desde orden #${orden.numero}`,
-          clienteId: Number(clienteFactura.id)
+          clienteId: Number(clienteFactura.id),
+          // Incluir número de factura solo si se determinó uno
+          ...(numeroFacturaAUsar ? { numeroFactura: numeroFacturaAUsar } : {}),
           // No enviar total: el backend lo calcula automáticamente
+          // No enviar descuentos: el backend ya no acepta este campo
         };
         
         // Validar que todos los campos requeridos estén presentes
@@ -861,7 +933,7 @@ const FacturarMultiplesOrdenesModal = ({ isOpen, onClose, ordenInicial, onSucces
           ) : ordenesFacturables.length === 0 ? (
             <div style={{ padding: '2rem', textAlign: 'center', color: '#666' }}>
               {clienteSeleccionado 
-                ? 'Este cliente no tiene órdenes facturables (todas están facturadas, anuladas o tienen saldo pendiente).'
+                ? 'Este cliente no tiene órdenes facturables (todas están facturadas o anuladas).'
                 : 'Selecciona un cliente para ver sus órdenes facturables.'}
             </div>
           ) : (
@@ -890,7 +962,6 @@ const FacturarMultiplesOrdenesModal = ({ isOpen, onClose, ordenInicial, onSucces
                       <th>Fecha</th>
                       <th>Cliente</th>
                       <th>Subtotal</th>
-                      <th>Descuentos</th>
                       <th>IVA</th>
                       <th>Retefuente</th>
                       <th>Total</th>
@@ -958,9 +1029,6 @@ const FacturarMultiplesOrdenesModal = ({ isOpen, onClose, ordenInicial, onSucces
                           <td>
                             ${(orden.subtotal || 0).toLocaleString('es-CO')}
                           </td>
-                          <td style={{ color: orden.descuentos > 0 ? '#dc3545' : '#666' }}>
-                            {orden.descuentos > 0 ? `-${orden.descuentos.toLocaleString('es-CO')}` : '-'}
-                          </td>
                           <td style={{ textAlign: 'right', color: '#1e2753', fontWeight: '500' }}>
                             {typeof orden.iva === 'number'
                               ? `$${Number(orden.iva).toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
@@ -982,6 +1050,44 @@ const FacturarMultiplesOrdenesModal = ({ isOpen, onClose, ordenInicial, onSucces
               </div>
             </div>
           )}
+
+          {/* Número de Factura */}
+          <div style={{ marginBottom: '1rem' }}>
+            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Número de Factura (Opcional):</label>
+            <input
+              type="text"
+              name="numeroFactura"
+              value={formData.numeroFactura}
+              onChange={handleChange}
+              placeholder="Ej: 100 (se generarán secuenciales: 100, 101, 102...)"
+              style={{ width: '100%', padding: '0.5rem' }}
+            />
+            <small style={{ display: 'block', color: '#666', fontSize: '0.75rem', marginTop: '0.25rem' }}>
+              {(() => {
+                const numBase = formData.numeroFactura?.trim() || '';
+                if (!numBase) {
+                  return 'Si ingresas un número, se usará como base y se generarán números secuenciales. Si lo dejas vacío, el sistema generará números automáticamente para cada factura.';
+                }
+                
+                // Verificar si es número puro
+                if (!isNaN(Number(numBase))) {
+                  const baseNum = Number(numBase);
+                  return `Se generarán números secuenciales: ${baseNum}, ${baseNum + 1}, ${baseNum + 2}...`;
+                }
+                
+                // Verificar si tiene número al inicio con sufijo
+                const match = numBase.match(/^(\d+)(.*)$/);
+                if (match) {
+                  const baseNum = Number(match[1]);
+                  const sufijo = match[2] || '';
+                  return `Se generarán números secuenciales manteniendo el sufijo: ${baseNum}${sufijo}, ${baseNum + 1}${sufijo}, ${baseNum + 2}${sufijo}...`;
+                }
+                
+                // Texto sin número al inicio
+                return `Se usará "${numBase}" solo para la primera factura. Las demás serán generadas automáticamente por el sistema.`;
+              })()}
+            </small>
+          </div>
 
           {/* Observaciones */}
           <div style={{ marginBottom: '1rem' }}>

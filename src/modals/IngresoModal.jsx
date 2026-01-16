@@ -456,7 +456,7 @@ export default function IngresoModal({
 
               <label>
                 Proveedor
-                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                <div className="proveedor-input-group">
                   <input
                     type="text"
                     value={form.proveedorNombre || ""}
@@ -464,12 +464,8 @@ export default function IngresoModal({
                     onClick={() => editable && !isEdit && setShowProveedorModal(true)}
                     placeholder="Haz clic para seleccionar un proveedor..."
                     disabled={!editable && isEdit}
+                    className="proveedor-input"
                     style={{
-                      width: '100%',
-                      padding: '0.5rem',
-                      border: '1px solid #c2c2c3',
-                      borderRadius: '8px',
-                      fontSize: '0.95rem',
                       cursor: editable && !isEdit ? 'pointer' : 'not-allowed',
                       backgroundColor: editable && !isEdit ? '#fff' : '#f5f5f5'
                     }}
@@ -482,13 +478,8 @@ export default function IngresoModal({
                         setShowProveedorModal(true);
                       }
                     }}
-                    className="btn-guardar"
+                    className="btn-guardar proveedor-select-btn"
                     disabled={!editable && isEdit}
-                    style={{
-                      whiteSpace: 'nowrap',
-                      padding: '0.5rem 1rem',
-                      fontSize: '0.9rem'
-                    }}
                   >
                     {form.proveedorId ? 'Cambiar' : 'Seleccionar'}
                   </button>

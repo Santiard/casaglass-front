@@ -433,10 +433,9 @@ export default function HistoricoFacturasGeneralModal({ isOpen, onClose }) {
 
             {facturasFiltradas.map((factura) => {
               const subtotal = factura.subtotal || 0;
-              const descuentos = factura.descuentos || 0;
               const iva = factura.iva || 0;
               const retencionFuente = factura.retencionFuente || 0;
-              const total = factura.total || (subtotal - descuentos + iva - retencionFuente);
+              const total = factura.total || (subtotal + iva - retencionFuente);
               const cliente = factura.cliente || factura.orden?.cliente;
 
               return (
@@ -469,12 +468,6 @@ export default function HistoricoFacturasGeneralModal({ isOpen, onClose }) {
                       <span>Subtotal: </span>
                       <strong>{fmtCOP(subtotal)}</strong>
                     </div>
-                    {descuentos > 0 && (
-                      <div className="factura-print-row-totals-item">
-                        <span>Descuentos: </span>
-                        <strong style={{ color: '#000' }}>-{fmtCOP(descuentos)}</strong>
-                      </div>
-                    )}
                     {iva > 0 && (
                       <div className="factura-print-row-totals-item">
                         <span>IVA: </span>
@@ -519,10 +512,6 @@ export default function HistoricoFacturasGeneralModal({ isOpen, onClose }) {
                     <td>{fmtCOP(facturasFiltradas.reduce((sum, f) => sum + (f.subtotal || 0), 0))}</td>
                   </tr>
                   <tr>
-                    <td><strong>Descuentos Totales</strong></td>
-                    <td>{fmtCOP(facturasFiltradas.reduce((sum, f) => sum + (f.descuentos || 0), 0))}</td>
-                  </tr>
-                  <tr>
                     <td><strong>IVA Total</strong></td>
                     <td>{fmtCOP(facturasFiltradas.reduce((sum, f) => sum + (f.iva || 0), 0))}</td>
                   </tr>
@@ -534,10 +523,9 @@ export default function HistoricoFacturasGeneralModal({ isOpen, onClose }) {
                     <td><strong>Total General</strong></td>
                     <td>{fmtCOP(facturasFiltradas.reduce((sum, f) => {
                       const subtotal = f.subtotal || 0;
-                      const descuentos = f.descuentos || 0;
                       const iva = f.iva || 0;
                       const retencionFuente = f.retencionFuente || 0;
-                      return sum + (subtotal - descuentos + iva - retencionFuente);
+                      return sum + (subtotal + iva - retencionFuente);
                     }, 0))}</td>
                   </tr>
                 </tbody>
@@ -627,7 +615,6 @@ export default function HistoricoFacturasGeneralModal({ isOpen, onClose }) {
                       <th style={{ padding: '0.3rem 0.5rem', textAlign: 'left', borderRight: '1px solid #fff', fontSize: '0.7rem' }}>CLIENTE</th>
                       <th style={{ padding: '0.3rem 0.5rem', textAlign: 'center', borderRight: '1px solid #fff', fontSize: '0.7rem' }}>ORDEN</th>
                       <th style={{ padding: '0.3rem 0.5rem', textAlign: 'right', borderRight: '1px solid #fff', fontSize: '0.7rem' }}>SUBTOTAL</th>
-                      <th style={{ padding: '0.3rem 0.3rem', textAlign: 'right', borderRight: '1px solid #fff', fontSize: '0.7rem', width: '80px', minWidth: '80px', maxWidth: '80px' }}>DESCUENTOS</th>
                       <th style={{ padding: '0.3rem 0.5rem', textAlign: 'right', borderRight: '1px solid #fff', fontSize: '0.7rem' }}>IVA</th>
                       <th style={{ padding: '0.3rem 0.5rem', textAlign: 'right', borderRight: '1px solid #fff', fontSize: '0.7rem' }}>RETEFUENTE</th>
                       <th style={{ padding: '0.3rem 0.5rem', textAlign: 'right', borderRight: '1px solid #fff', fontSize: '0.7rem' }}>TOTAL</th>
@@ -636,10 +623,9 @@ export default function HistoricoFacturasGeneralModal({ isOpen, onClose }) {
                   <tbody>
                     {facturasFiltradas.map((factura, index) => {
                       const subtotal = factura.subtotal || 0;
-                      const descuentos = factura.descuentos || 0;
                       const iva = factura.iva || 0;
                       const retencionFuente = factura.retencionFuente || 0;
-                      const total = factura.total || (subtotal - descuentos + iva - retencionFuente);
+                      const total = factura.total || (subtotal + iva - retencionFuente);
                       const cliente = factura.cliente || factura.orden?.cliente;
 
                       return (
