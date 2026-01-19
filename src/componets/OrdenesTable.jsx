@@ -686,6 +686,31 @@ export default function OrdenesTable({
           }
         }}
         onSave={handleGuardar}
+        onImprimir={async (ordenCreada) => {
+          try {
+            // La respuesta del backend puede venir como { orden: {...}, numero: ..., mensaje: ... }
+            // o directamente como la orden
+            const ordenId = ordenCreada.orden?.id || ordenCreada.id;
+            
+            if (!ordenId) {
+              // Si no hay ID, usar los datos básicos
+              setOrdenImprimir(normalizarOrden(ordenCreada.orden || ordenCreada));
+              setIsImprimirModalOpen(true);
+              return;
+            }
+            
+            // Obtener la orden detallada para imprimir
+            const ordenDetallada = await obtenerOrdenDetalle(ordenId);
+            const ordenNorm = normalizarOrden(ordenDetallada);
+            setOrdenImprimir(ordenNorm);
+            setIsImprimirModalOpen(true);
+          } catch (error) {
+            // Si falla obtener detalle, usar la orden básica (puede venir en ordenCreada.orden o directamente)
+            const ordenParaImprimir = ordenCreada.orden || ordenCreada;
+            setOrdenImprimir(normalizarOrden(ordenParaImprimir));
+            setIsImprimirModalOpen(true);
+          }
+        }}
         orden={ordenEditando}
       />
 

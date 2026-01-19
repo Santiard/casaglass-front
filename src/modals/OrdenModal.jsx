@@ -21,6 +21,7 @@ export default function OrdenEditarModal({
   isOpen,
   onClose,
   onSave, // función del padre (OrdenesPage -> fetchData)
+  onImprimir, // función opcional para imprimir automáticamente después de crear
   productosCarrito = null, // Productos del carrito para crear orden nueva
   defaultTrabajadorId = null,
   defaultTrabajadorNombre = "",
@@ -1183,8 +1184,21 @@ export default function OrdenEditarModal({
       const data = await crearOrdenVenta(payloadConCortes);
       showSuccess(`Orden creada correctamente. Número: ${data.numero}`);
       
-      if (onSave) onSave(data);
-      onClose();
+      // Si es una venta (no cotización), abrir modal de impresión automáticamente
+      // IMPORTANTE: Ejecutar onImprimir ANTES de onSave para evitar que onSave cierre el modal
+      if (esVenta && onImprimir) {
+        // Ejecutar el callback de impresión PRIMERO (antes de onSave que puede cerrar el modal)
+        onImprimir(data);
+        // Ejecutar onSave después
+        if (onSave) onSave(data);
+        // Cerrar el modal después de un pequeño delay para que el modal de impresión se abra
+        setTimeout(() => {
+          onClose();
+        }, 200);
+      } else {
+        if (onSave) onSave(data);
+        onClose();
+      }
       return;
     }
 

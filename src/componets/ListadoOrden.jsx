@@ -10,6 +10,7 @@ export default function ListadoOrden({ productosCarrito, subtotal, total, limpia
   const [items, setItems] = useState([]);
   const [isFacturarOpen, setIsFacturarOpen] = useState(false);
   const [isImprimirOpen, setIsImprimirOpen] = useState(false);
+  const [ordenTemporal, setOrdenTemporal] = useState(null);
   const { user, sedeId, sede } = useAuth();
   // Cargar productos desde props
   useEffect(() => {
@@ -109,8 +110,8 @@ export default function ListadoOrden({ productosCarrito, subtotal, total, limpia
     }
   };
 
-  // Crear objeto orden temporal para el modal de impresión
-  const ordenTemporal = {
+  // Crear objeto orden temporal para el modal de impresión (solo usado para imprimir precios)
+  const ordenTemporalPrecios = {
     id: null,
     numero: "COT-" + Date.now(),
     fecha: new Date().toISOString(),
@@ -256,12 +257,40 @@ export default function ListadoOrden({ productosCarrito, subtotal, total, limpia
           limpiarCarrito();
           setIsFacturarOpen(false);
         }}
+        onImprimir={async (ordenCreada) => {
+          try {
+            // La respuesta del backend puede venir como { orden: {...}, numero: ..., mensaje: ... }
+            // o directamente como la orden
+            const ordenId = ordenCreada.orden?.id || ordenCreada.id;
+            
+            if (!ordenId) {
+              // Si no hay ID, usar los datos básicos
+              setOrdenTemporal(ordenCreada.orden || ordenCreada);
+              setIsImprimirOpen(true);
+              return;
+            }
+            
+            // Obtener la orden detallada para imprimir
+            const { obtenerOrdenDetalle } = await import("../services/OrdenesService.js");
+            const ordenDetallada = await obtenerOrdenDetalle(ordenId);
+            setOrdenTemporal(ordenDetallada);
+            setIsImprimirOpen(true);
+          } catch (error) {
+            // Si falla obtener detalle, usar la orden básica (puede venir en ordenCreada.orden o directamente)
+            const ordenParaImprimir = ordenCreada.orden || ordenCreada;
+            setOrdenTemporal(ordenParaImprimir);
+            setIsImprimirOpen(true);
+          }
+        }}
       />
 
       <OrdenImprimirModal
         isOpen={isImprimirOpen}
         orden={ordenTemporal}
-        onClose={() => setIsImprimirOpen(false)}
+        onClose={() => {
+          setIsImprimirOpen(false);
+          setOrdenTemporal(null);
+        }}
       />
 
     </div>
