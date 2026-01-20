@@ -4,11 +4,15 @@ import { api } from '../lib/api.js';
 import { listarClientes } from '../services/ClientesService.js';
 import { listarOrdenesCredito, actualizarOrden } from '../services/OrdenesService.js';
 import { getBusinessSettings } from '../services/businessSettingsService.js';
+import { listarSedes } from '../services/SedesService.js';
 import { getTodayLocalDate } from '../lib/dateUtils.js';
+import { useAuth } from '../context/AuthContext.jsx';
 import '../styles/CrudModal.css';
 import './AbonoModal.css';
 
 const AbonoModal = ({ isOpen, onClose, credito, onSuccess }) => {
+  const { sedeId: sedeIdUsuario } = useAuth();
+  
   const [clientes, setClientes] = useState([]);
   const [clienteSeleccionado, setClienteSeleccionado] = useState(null);
   const [clienteSearch, setClienteSearch] = useState(""); // Búsqueda de cliente
@@ -20,11 +24,23 @@ const AbonoModal = ({ isOpen, onClose, credito, onSuccess }) => {
   const [retenSettings, setReteSettings] = useState({ ivaRate: 19, retefuenteRate: 2.5, retefuenteThreshold: 1000000 });
   const [retenLoading, setReteLoading] = useState(false);
   const [retenError, setReteError] = useState("");
+  const [sedes, setSedes] = useState([]);
   // Cargar settings de negocio (IVA, retefuente, umbral) al abrir modal
   useEffect(() => {
     if (isOpen) {
       setReteLoading(true);
       getBusinessSettings().then(setReteSettings).catch(() => {}).finally(() => setReteLoading(false));
+    }
+  }, [isOpen]);
+
+  // Cargar sedes al abrir el modal
+  useEffect(() => {
+    if (isOpen) {
+      listarSedes().then(sedesData => {
+        setSedes(sedesData || []);
+      }).catch(() => {
+        setSedes([]);
+      });
     }
   }, [isOpen]);
   // Helper para calcular retención e IVA
@@ -113,7 +129,8 @@ const AbonoModal = ({ isOpen, onClose, credito, onSuccess }) => {
   const [formData, setFormData] = useState({
     montoTotal: '',
     fecha: getTodayLocalDate(),
-    factura: ''
+    factura: '',
+    sedeId: sedeIdUsuario || '' // Sede del usuario por defecto
   });
   
   // Array de métodos de pago: [{ tipo: "EFECTIVO", monto: 50000, banco: "" }, ...]
@@ -379,7 +396,8 @@ const AbonoModal = ({ isOpen, onClose, credito, onSuccess }) => {
     setFormData({
       montoTotal: '',
       fecha: getTodayLocalDate(),
-      factura: ''
+      factura: '',
+      sedeId: sedeIdUsuario || '' // Restablecer sede del usuario
     });
     setMetodosPago([]);
     setObservacionesAdicionales("");
@@ -431,6 +449,11 @@ const AbonoModal = ({ isOpen, onClose, credito, onSuccess }) => {
     
     if (ordenesSeleccionadas.size === 0) {
       setError('Debes seleccionar al menos una orden para abonar.');
+      return;
+    }
+    
+    if (!formData.sedeId) {
+      setError('Debes seleccionar una sede.');
       return;
     }
 
@@ -531,6 +554,7 @@ const AbonoModal = ({ isOpen, onClose, credito, onSuccess }) => {
           fecha: formData.fecha,
           metodoPago: metodoPagoString,
           factura: formData.factura || null,
+          sedeId: formData.sedeId || sedeIdUsuario, // Incluir sedeId
           // CAMPOS NUMÉRICOS
           montoEfectivo: Math.round(montoEfectivoAbono * 100) / 100,
           montoTransferencia: Math.round(montoTransferenciaAbono * 100) / 100,
@@ -589,15 +613,32 @@ const AbonoModal = ({ isOpen, onClose, credito, onSuccess }) => {
         {/* Header con título y fecha */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', paddingBottom: '1rem', borderBottom: '2px solid #e0e0e0' }}>
           <h2 style={{ margin: 0, color: '#1e2753' }}>CRÉDITOS X CLIENTE</h2>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <label style={{ fontWeight: '500', fontSize: '0.9rem' }}>FECHA:</label>
-            <input
-              type="date"
-              name="fecha"
-              value={formData.fecha}
-              onChange={handleChange}
-              style={{ padding: '0.4rem', fontSize: '0.9rem' }}
-            />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <label style={{ fontWeight: '500', fontSize: '0.9rem' }}>SEDE:</label>
+              <select
+                name="sedeId"
+                value={formData.sedeId}
+                onChange={handleChange}
+                style={{ padding: '0.4rem', fontSize: '0.9rem', minWidth: '150px' }}
+                required
+              >
+                <option value="">Seleccionar sede</option>
+                {sedes.map(sede => (
+                  <option key={sede.id} value={sede.id}>{sede.nombre}</option>
+                ))}
+              </select>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <label style={{ fontWeight: '500', fontSize: '0.9rem' }}>FECHA:</label>
+              <input
+                type="date"
+                name="fecha"
+                value={formData.fecha}
+                onChange={handleChange}
+                style={{ padding: '0.4rem', fontSize: '0.9rem' }}
+              />
+            </div>
           </div>
         </div>
 

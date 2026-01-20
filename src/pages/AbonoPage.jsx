@@ -6,7 +6,9 @@ import { listarCreditosPendientes } from '../services/AbonosService.js';
 import { actualizarRetencionFuente } from '../services/OrdenesService.js';
 import { getBusinessSettings } from '../services/businessSettingsService.js';
 import { listarBancos } from '../services/BancosService.js';
+import { listarSedes } from '../services/SedesService.js';
 import { useToast } from '../context/ToastContext.jsx';
+import { useAuth } from '../context/AuthContext.jsx';
 import '../styles/CrudModal.css';
 import '../styles/Creditos.css';
 
@@ -14,6 +16,7 @@ const AbonoPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { showError, showSuccess } = useToast();
+  const { sedeId: sedeIdUsuario } = useAuth();
   
   // Obtener clienteId o creditoId de los query params si vienen de CreditosPage
   const searchParams = new URLSearchParams(location.search);
@@ -42,10 +45,12 @@ const AbonoPage = () => {
 
   const [formData, setFormData] = useState({
     fecha: obtenerFechaLocal(),
-    factura: ''
+    factura: '',
+    sedeId: sedeIdUsuario || '' // Sede del usuario por defecto
   });
   
   const [metodosPago, setMetodosPago] = useState([]);
+  const [sedes, setSedes] = useState([]);
   const [observacionesAdicionales, setObservacionesAdicionales] = useState("");
   const [loading, setLoading] = useState(false);
   const [loadingOrdenes, setLoadingOrdenes] = useState(false);
@@ -91,6 +96,19 @@ const AbonoPage = () => {
       }
     };
     cargarBancos();
+  }, []);
+
+  // Cargar sedes al montar
+  useEffect(() => {
+    const cargarSedes = async () => {
+      try {
+        const sedesData = await listarSedes();
+        setSedes(sedesData || []);
+      } catch (err) {
+        // Error cargando sedes
+      }
+    };
+    cargarSedes();
   }, []);
 
   // Cargar clientes al montar
@@ -553,6 +571,11 @@ const AbonoPage = () => {
       return;
     }
     
+    if (!formData.sedeId) {
+      setError('Debes seleccionar una sede.');
+      return;
+    }
+    
     if (ordenesSeleccionadas.length === 0) {
       setError('Debes seleccionar al menos una orden para abonar.');
       return;
@@ -649,6 +672,7 @@ const AbonoPage = () => {
           fecha: formData.fecha,
           metodoPago: metodoPagoString,
           factura: numeroAbono, // Siempre enviar un valor válido
+          sedeId: formData.sedeId || sedeIdUsuario, // Incluir sedeId
           // CAMPOS NUMÉRICOS
           montoEfectivo: Math.round(montoEfectivoAbono * 100) / 100,
           montoTransferencia: Math.round(montoTransferenciaAbono * 100) / 100,
@@ -1353,11 +1377,28 @@ const AbonoPage = () => {
             <div style={{ 
               marginTop: '1rem', 
               display: 'grid', 
-              gridTemplateColumns: '1fr 1fr 1fr', 
+              gridTemplateColumns: '1fr 1fr 1fr 1fr', 
               gap: '1rem',
               paddingTop: '0.75rem',
               borderTop: '1px solid #e0e0e0'
             }}>
+              <div>
+                <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: '500', fontSize: '0.9rem' }}>
+                  Sede *
+                </label>
+                <select
+                  name="sedeId"
+                  value={formData.sedeId}
+                  onChange={handleChange}
+                  style={{ fontSize: '0.9rem', padding: '0.4rem', width: '100%' }}
+                  required
+                >
+                  <option value="">Seleccionar sede</option>
+                  {sedes.map(sede => (
+                    <option key={sede.id} value={sede.id}>{sede.nombre}</option>
+                  ))}
+                </select>
+              </div>
               <div>
                 <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: '500', fontSize: '0.9rem' }}>
                   Fecha *
