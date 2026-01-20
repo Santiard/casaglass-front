@@ -114,7 +114,9 @@ const CreditosTable = ({
               <th>Orden</th>
               <th>Obra</th>
               <th>Fecha Inicio</th>
-              <th>Total</th>
+              <th>Total Crédito</th>
+              <th>Total Abonado</th>
+              <th>Saldo Pendiente</th>
               <th>Estado</th>
               <th>Acciones</th>
             </tr>
@@ -122,7 +124,7 @@ const CreditosTable = ({
           <tbody>
           {total === 0 ? (
             <tr>
-              <td colSpan="8" className="sin-datos">No hay créditos registrados.</td>
+              <td colSpan="10" className="sin-datos">No hay créditos registrados.</td>
             </tr>
           ) : (
             pageData.map((credito) => {
@@ -135,7 +137,13 @@ const CreditosTable = ({
                   <td>{credito.orden?.numero || "-"}</td>
                   <td>{credito.orden?.obra || "-"}</td>
                   <td>{credito.fechaInicio}</td>
-                  <td>${credito.totalCredito.toLocaleString()}</td>
+                  <td style={{ fontWeight: '600' }}>${credito.totalCredito.toLocaleString()}</td>
+                  <td style={{ fontWeight: '600', color: credito.totalAbonado > 0 ? '#27ae60' : '#666' }}>
+                    ${(credito.totalAbonado || 0).toLocaleString()}
+                  </td>
+                  <td style={{ fontWeight: '600', color: credito.saldoPendiente > 0 ? '#e74c3c' : '#27ae60' }}>
+                    ${(credito.saldoPendiente || 0).toLocaleString()}
+                  </td>
                   <td>
                     <span className={`estado-badge ${credito.estado.toLowerCase()}`}>{credito.estado}</span>
                   </td>
@@ -171,7 +179,7 @@ const CreditosTable = ({
                 </tr>
                 {expandido === credito.id && (
                   <tr className="detalle-abonos">
-                    <td colSpan="11">
+                    <td colSpan="10">
                       <h4>Abonos realizados</h4>
                       {credito.abonos && credito.abonos.length > 0 ? (
                         <table className="tabla-abonos">
