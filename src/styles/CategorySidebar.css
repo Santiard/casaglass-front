@@ -2,13 +2,12 @@
 .category-list {
   display: flex;
   flex-direction: column;
-  gap: 0.375rem;                      /* 6px */
-  width: 100px;
-  min-width: 100px;
-  max-width: 100px;
-  overflow-y: auto;                   /* Permitir scroll vertical */
-  max-height: 100%;                   /* Ocupar todo el espacio disponible */
-  padding-bottom: 1rem;               /* Espacio al final para ver la última categoría */
+  gap: 0.375rem;
+  width: 100%;
+  overflow-y: auto;
+  max-height: 100%;
+  padding: 0.5rem;
+  box-sizing: border-box;
 }
 
 .category-item {
@@ -25,25 +24,25 @@
 
 
 .category-sidebar-container {
-  width: 90px;
-  min-width: 90px;
-  max-width: 90px;
+  width: 100%;
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
-  max-height: 100%;                   /* Limitar altura al contenedor */
-  overflow: hidden;                   /* Ocultar overflow del contenedor */
+  max-height: 100%;
+  overflow: hidden;
 }
 
 aside.vender-categories {
-  width: 100px !important;
-  min-width: 100px !important;
-  max-width: 100px !important;
-  flex-shrink: 0;
-  padding: 0 !important;
-  border-radius: 0 !important;
+  width: 100px;
+  min-width: 100px;
+  max-width: 100px;
   background: #fff;
+  padding: 0;
+  border-radius: 0;
+  border: none;
   box-shadow: none;
+  max-height: calc(100vh - 7.5rem);
+  overflow-y: auto;
 }
 .category-item:hover { background: #f0f0f0; }
 .category-item.active { background: #344490; color: white; font-weight: 600; }

@@ -17,7 +17,7 @@
   overflow: hidden;                 /* el scroll queda en los hijos (tabla) */
   overflow-x: hidden;               /* Prevenir scroll horizontal */
   box-sizing: border-box;
-  padding: 1rem;
+  padding: 0;
   transition: margin-left 0.3s ease, width 0.3s ease;
 }
 

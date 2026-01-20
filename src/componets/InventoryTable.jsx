@@ -42,11 +42,11 @@ export default function InventoryTable({ data = [], filters, loading, onEditar, 
                 <th style={{ width: '8%' }}>mm</th>
                 <th style={{ width: '10%' }}>m1</th>
                 <th style={{ width: '10%' }}>m2</th>
+                <th style={{ width: '10%', textAlign: 'center' }}>Cantidad</th>
                 {isAdmin && (
                   <th style={{ width: '15%' }}>Costo</th>
                 )}
                 <th style={{ width: '20%' }}>Precio</th>
-                <th style={{ width: '10%', textAlign: 'center' }}>Cantidad</th>
               </>
             ) : (
               <>
@@ -125,22 +125,7 @@ export default function InventoryTable({ data = [], filters, loading, onEditar, 
                     <td style={{ textAlign: 'center' }}>{p.mm ?? "-"}</td>
                     <td style={{ textAlign: 'center' }}>{p.m1 ?? "-"}</td>
                     <td style={{ textAlign: 'center' }}>{p.m2 ?? "-"}</td>
-                    {/* Mostrar Costo solo para VIDRIO y solo para admin */}
-                    {isAdmin && (
-                      <td style={{ textAlign: 'right' }}>
-                        {p.costo ? new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(p.costo) : "-"}
-                      </td>
-                    )}
-                    {/* Mostrar precio y cantidad según el rol y sede */}
-                    <td style={{ textAlign: 'right' }}>
-                      {isAdmin
-                        ? (p.precio1 ? new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(p.precio1) : "-")
-                        : (userSede === "Insula" ? (p.precio1 ? new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(p.precio1) : "-")
-                          : userSede === "Centro" ? (p.precio2 ? new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(p.precio2) : "-")
-                          : userSede === "Patios" ? (p.precio3 ? new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(p.precio3) : "-")
-                          : "-")
-                      }
-                    </td>
+                    {/* Cantidad después de m2 */}
                     <td style={{ textAlign: 'center' }} className={(() => {
                       if (isAdmin) return Number(p.cantidadInsula || 0) < 0 ? "stock-negativo" : "";
                       if (userSede === "Insula") return Number(p.cantidadInsula || 0) < 0 ? "stock-negativo" : "";
@@ -162,6 +147,22 @@ export default function InventoryTable({ data = [], filters, loading, onEditar, 
                         if (userSede === "Patios") return Number(p.cantidadPatios || 0) < 0 ? <span className="badge-negativo"> </span> : null;
                         return null;
                       })()}
+                    </td>
+                    {/* Mostrar Costo solo para VIDRIO y solo para admin */}
+                    {isAdmin && (
+                      <td style={{ textAlign: 'right' }}>
+                        {p.costo ? new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(p.costo) : "-"}
+                      </td>
+                    )}
+                    {/* Mostrar precio según el rol y sede */}
+                    <td style={{ textAlign: 'right' }}>
+                      {isAdmin
+                        ? (p.precio1 ? new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(p.precio1) : "-")
+                        : (userSede === "Insula" ? (p.precio1 ? new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(p.precio1) : "-")
+                          : userSede === "Centro" ? (p.precio2 ? new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(p.precio2) : "-")
+                          : userSede === "Patios" ? (p.precio3 ? new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(p.precio3) : "-")
+                          : "-")
+                      }
                     </td>
                   </>
                 ) : (

@@ -3,7 +3,7 @@ html { font-size: 1rem; }
 
 /* ===== Layout general ===== */
 .home-page {
-  padding: 1rem;                /* 16px */
+  padding: 2rem 1rem 1rem 1rem;                /* 16px */
   display: grid;
   gap: 1rem;                    /* 16px */
 }

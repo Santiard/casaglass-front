@@ -1,7 +1,8 @@
 .clientes-page { 
   display: flex; 
   flex-direction: column; 
-  flex: 1; 
+  flex: 1;
+  padding: 1rem; 
   min-height: 0; 
   max-width: 100%; /* No exceder el ancho del viewport */
   overflow: hidden; /* Prevenir overflow */
