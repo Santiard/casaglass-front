@@ -73,6 +73,14 @@ const AbonoPage = () => {
 
   const [bancos, setBancos] = useState([]);
 
+  // Log inicial al montar la página
+  useEffect(() => {
+    console.log('🚀 ========================================');
+    console.log('🚀 PÁGINA DE ABONOS MONTADA');
+    console.log('🚀 ========================================');
+    console.log('📍 Parámetros de URL:', { clienteIdParam, creditoIdParam });
+  }, []);
+
   // Métodos de pago disponibles (RETEFUENTE se calcula automáticamente, no se agrega manualmente)
   const tiposMetodoPago = [
     { value: "EFECTIVO", label: "Efectivo" },
@@ -85,12 +93,17 @@ const AbonoPage = () => {
     const cargarConfiguracion = async () => {
       try {
         const settings = await getBusinessSettings();
+        console.log('⚙️ Configuración de retención cargada:', settings);
         if (settings) {
-          setRetefuenteRate(Number(settings.retefuenteRate) || 2.5);
-          setRetefuenteThreshold(Number(settings.retefuenteThreshold) || 1000000);
+          const rate = Number(settings.retefuenteRate) || 2.5;
+          const threshold = Number(settings.retefuenteThreshold) || 1000000;
+          console.log('💰 Porcentaje de retención:', rate + '%');
+          console.log('💰 Umbral de retención:', '$' + threshold.toLocaleString('es-CO'));
+          setRetefuenteRate(rate);
+          setRetefuenteThreshold(threshold);
         }
       } catch (err) {
-        // console.error("Error cargando configuración:", err);
+        console.error("❌ Error cargando configuración:", err);
       }
     };
     cargarConfiguracion();
@@ -101,9 +114,11 @@ const AbonoPage = () => {
     const cargarBancos = async () => {
       try {
         const bancosData = await listarBancos();
+        console.log('🏦 Bancos cargados:', bancosData);
+        console.log('📊 Total de bancos:', bancosData.length);
         setBancos(bancosData);
       } catch (err) {
-        // Error cargando bancos
+        console.error("❌ Error cargando bancos:", err);
       }
     };
     cargarBancos();
@@ -114,18 +129,21 @@ const AbonoPage = () => {
     const cargarClientes = async () => {
       try {
         const clientesData = await listarClientes();
+        console.log('📋 CLIENTES CARGADOS:', clientesData);
+        console.log('📊 Total de clientes:', clientesData.length);
         setClientes(clientesData);
         
         // Si viene un clienteId en los params, preseleccionarlo
         if (clienteIdParam) {
           const cliente = clientesData.find(c => c.id === Number(clienteIdParam));
           if (cliente) {
+            console.log('👤 Cliente preseleccionado desde params:', cliente);
             setClienteSeleccionado(cliente);
             setClienteSearch(cliente.nombre);
           }
         }
       } catch (err) {
-        // console.error("Error cargando clientes:", err);
+        console.error("❌ Error cargando clientes:", err);
       }
     };
     cargarClientes();
@@ -159,12 +177,15 @@ const AbonoPage = () => {
   // Cargar órdenes a crédito del cliente seleccionado y generar número de abono
   useEffect(() => {
     if (clienteSeleccionado?.id) {
+      console.log('👤 Cliente seleccionado:', clienteSeleccionado);
       cargarOrdenesCredito(clienteSeleccionado.id);
       // Generar número de abono automáticamente
       obtenerSiguienteNumeroAbono().then(numero => {
+        console.log('📝 Número de abono generado:', numero);
         setFormData(prev => ({ ...prev, factura: numero }));
       });
     } else {
+      console.log('⚠️ No hay cliente seleccionado');
       setOrdenesCredito([]);
       setOrdenesSeleccionadas([]);
       setDistribucion([]);
@@ -175,15 +196,17 @@ const AbonoPage = () => {
 
   const cargarOrdenesCredito = async (clienteId) => {
     setLoadingOrdenes(true);
+    console.log('🔍 Cargando créditos pendientes para cliente ID:', clienteId);
     try {
       // USAR EL NUEVO ENDPOINT ESPECIALIZADO /creditos/cliente/{id}/pendientes
       const creditosPendientes = await listarCreditosPendientes(clienteId);
       
       // LOG COMPLETO: Ver TODOS los datos que trae el backend
+      console.log('📦 DATOS COMPLETOS del backend (créditos pendientes):', JSON.stringify(creditosPendientes, null, 2));
+      console.log('📊 Total de créditos pendientes:', creditosPendientes.length);
       
       // Log específico de retención
-      /*
-      // console.log('Créditos con tieneRetencionFuente:', 
+      console.log('💰 Créditos con tieneRetencionFuente:', 
         creditosPendientes.filter(c => c.tieneRetencionFuente)
           .map(c => ({ 
             ordenId: c.ordenId, 
@@ -197,7 +220,6 @@ const AbonoPage = () => {
             totalCredito: c.totalCredito
           }))
       );
-      */
       
       // El backend YA filtra por saldo > 0 y estado ABIERTO
       // No necesitamos filtrar manualmente en frontend
@@ -240,15 +262,34 @@ const AbonoPage = () => {
         cliente: credito.cliente,
         clienteId: credito.cliente?.id
       }));
+      
+      console.log('✅ Órdenes mapeadas para el componente:', ordenesConSaldo);
+      console.log('📊 Total de órdenes con saldo:', ordenesConSaldo.length);
+      
+      if (ordenesConSaldo.length === 0) {
+        console.warn('⚠️ No hay órdenes con saldo pendiente para mostrar');
+      } else {
+        console.log('✅ Seteando ordenesCredito con', ordenesConSaldo.length, 'órdenes');
+      }
+      
+      setOrdenesCredito(ordenesConSaldo);
       setDistribucion([]);
     } catch (err) {
-      // console.error("Error cargando créditos pendientes:", err);
+      console.error("❌ Error cargando créditos pendientes:", err);
+      console.error("❌ Detalles del error:", err.response?.data || err.message);
       setError('Error cargando créditos pendientes del cliente');
       setOrdenesCredito([]);
     } finally {
       setLoadingOrdenes(false);
+      console.log('✅ Carga de órdenes finalizada');
     }
   };
+
+  // Log cuando cambia ordenesCredito
+  useEffect(() => {
+    console.log('🔄 Estado ordenesCredito actualizado:', ordenesCredito);
+    console.log('📊 Cantidad de órdenes en estado:', ordenesCredito.length);
+  }, [ordenesCredito]);
 
   // Calcular el total desde los métodos de pago (excluyendo RETEFUENTE manual, ya que se calcula automáticamente)
   const totalMetodosPago = metodosPago
@@ -587,7 +628,7 @@ const AbonoPage = () => {
       return;
     }
     
-    if (ordenesSeleccionadas.size === 0) {
+    if (ordenesSeleccionadas.length === 0) {
       setError('Debes seleccionar al menos una orden para abonar.');
       return;
     }
@@ -962,7 +1003,7 @@ const AbonoPage = () => {
                         fontSize: '0.8rem'
                       }}
                     >
-                      {ordenesSeleccionadas.size === ordenesCredito.length ? 'Deseleccionar Todas' : 'Seleccionar Todas'}
+                      {ordenesSeleccionadas.length === ordenesCredito.length ? 'Deseleccionar Todas' : 'Seleccionar Todas'}
                     </button>
                   )}
                 </div>
@@ -1009,7 +1050,7 @@ const AbonoPage = () => {
                           <th style={{ padding: '0.5rem', textAlign: 'center', borderRight: '1px solid #fff' }}>
                             <input
                               type="checkbox"
-                              checked={ordenesSeleccionadas.size === ordenesCredito.length && ordenesCredito.length > 0}
+                              checked={ordenesSeleccionadas.length === ordenesCredito.length && ordenesCredito.length > 0}
                               onChange={toggleSeleccionarTodas}
                               style={{ width: '16px', height: '16px', cursor: 'pointer' }}
                               title="Seleccionar todas las órdenes"
