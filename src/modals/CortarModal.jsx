@@ -41,13 +41,28 @@ export default function CortarModal({
     const medidaSobrante = largoBase - medida;
     if (medidaSobrante < 0) return null;
 
-    // Calcular precios proporcionales sobre el largo real
+    // Nueva fórmula de cálculo considerando pérdida de material
+    // Se asume que de 6 metros totales, solo 5.2 metros son vendibles (0.8m de desperdicio)
     const precioOriginal = producto.precioUsado || producto.precio || 0;
+    const metrosUtiles = 5.2; // Metros útiles considerados (de 6m totales)
+    const precioPorMetro = precioOriginal / metrosUtiles; // Precio por metro útil
+    
+    // Convertir medidas de cm a metros
+    const medidaEnMetros = medida / 100;
+    const medidaSobranteEnMetros = medidaSobrante / 100;
+    
+    // Calcular precios según la nueva fórmula y redondear al múltiplo de 100 más cercano hacia arriba
+    const precioCorteBase = precioPorMetro * medidaEnMetros;
+    const precioSobranteBase = precioPorMetro * medidaSobranteEnMetros;
+    
+    // Redondear al múltiplo de 100 más cercano hacia arriba
+    // Ejemplo: 45.678 → 45.700, 35.030 → 35.100
+    const precioCorte = Math.ceil(precioCorteBase / 100) * 100;
+    const precioSobrante = Math.ceil(precioSobranteBase / 100) * 100;
+    
+    // Calcular porcentajes solo para mostrar (informativos)
     const porcentajeCorte = medida / largoBase;
     const porcentajeSobrante = medidaSobrante / largoBase;
-    // Redondear precios a enteros y evitar decimales grandes
-    const precioCorte = Math.round(precioOriginal * porcentajeCorte);
-    const precioSobrante = Math.round(precioOriginal * porcentajeSobrante);
 
     return {
       medidaCorte: medida,
@@ -77,8 +92,9 @@ export default function CortarModal({
 
     try {
       // Crear el corte para vender (se agrega al carrito)
-      const precioCorteRedondeado = Math.ceil(cortesCalculados.precioCorte || 0);
-      const precioSobranteRedondeado = Math.ceil(cortesCalculados.precioSobrante || 0);
+      // Los precios ya vienen redondeados al múltiplo de 100 más cercano desde cortesCalculados
+      const precioCorteRedondeado = cortesCalculados.precioCorte || 0;
+      const precioSobranteRedondeado = cortesCalculados.precioSobrante || 0;
 
       const corteParaVender = {
         ...producto,

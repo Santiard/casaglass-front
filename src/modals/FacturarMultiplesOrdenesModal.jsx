@@ -561,15 +561,24 @@ const FacturarMultiplesOrdenesModal = ({ isOpen, onClose, ordenInicial, onSucces
               clienteId: Number(orden.clienteId || orden.cliente?.id),
               sedeId: sedeId,
               ...(orden.trabajadorId || orden.trabajador?.id ? { trabajadorId: Number(orden.trabajadorId || orden.trabajador?.id) } : {}),
-              items: (Array.isArray(orden.items) ? orden.items : []).map(item => ({
-                id: item.id ?? null,
-                productoId: Number(item.productoId || item.producto?.id),
-                descripcion: item.descripcion ?? "",
-                cantidad: Number(item.cantidad ?? 1),
-                precioUnitario: Number(item.precioUnitario ?? 0),
-                totalLinea: Number(item.totalLinea ?? 0),
-                ...(item.reutilizarCorteSolicitadoId ? { reutilizarCorteSolicitadoId: Number(item.reutilizarCorteSolicitadoId) } : {})
-              }))
+              items: (Array.isArray(orden.items) ? orden.items : [])
+                .filter(item => {
+                  // Filtrar items inválidos (sin productoId, cantidad 0, precio 0)
+                  const productoId = Number(item.productoId || item.producto?.id);
+                  const cantidad = Number(item.cantidad ?? 0);
+                  const precioUnitario = Number(item.precioUnitario ?? 0);
+                  
+                  return productoId > 0 && cantidad > 0 && precioUnitario > 0;
+                })
+                .map(item => ({
+                  id: item.id ?? null,
+                  productoId: Number(item.productoId || item.producto?.id),
+                  descripcion: item.descripcion ?? "",
+                  cantidad: Number(item.cantidad),
+                  precioUnitario: Number(item.precioUnitario),
+                  totalLinea: Number(item.totalLinea ?? 0),
+                  ...(item.reutilizarCorteSolicitadoId ? { reutilizarCorteSolicitadoId: Number(item.reutilizarCorteSolicitadoId) } : {})
+                }))
             };
             
             const endpoint = orden.venta ? `/ordenes/venta/${orden.id}` : `/ordenes/tabla/${orden.id}`;

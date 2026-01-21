@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import "../styles/OrdenImprimirModal.css";
 import { obtenerOrden, obtenerOrdenDetalle } from "../services/OrdenesService.js";
+import html2pdf from "html2pdf.js";
 
 export default function OrdenImprimirModal({ orden, isOpen, onClose }) {
   // Cargar SIEMPRE la orden detallada (con items completos)
@@ -344,10 +345,27 @@ export default function OrdenImprimirModal({ orden, isOpen, onClose }) {
 
   // Función para guardar como PDF
   const handleGuardarPDF = () => {
-    const ventana = crearVentanaImpresion();
-    ventana.onload = () => {
-      ventana.print();
+    const elemento = document.getElementById('printable-orden-content');
+    
+    // Configuración de html2pdf
+    const opciones = {
+      margin: 10, // 10mm de margen
+      filename: `Orden-${form.numero}.pdf`,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { 
+        scale: 2, // Mejor calidad
+        useCORS: true,
+        letterRendering: true
+      },
+      jsPDF: { 
+        unit: 'mm', 
+        format: 'letter', 
+        orientation: 'portrait' 
+      }
     };
+    
+    // Generar y descargar PDF
+    html2pdf().set(opciones).from(elemento).save();
   };
 
   return (
@@ -438,16 +456,14 @@ export default function OrdenImprimirModal({ orden, isOpen, onClose }) {
 
                 {/* Totales */}
                 <div className="orden-imprimir-total">
-                  <p>Subtotal (sin IVA): ${subtotalSinIva.toLocaleString("es-CO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
-                  <p>IVA (19%): ${iva.toLocaleString("es-CO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
-                  {retencionFuente > 0 && (
-                    <p>Retención en la Fuente: ${retencionFuente.toLocaleString("es-CO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
-                  )}
                   <p><strong>Total: ${totalOrden.toLocaleString("es-CO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong></p>
                   {retencionFuente > 0 && (
-                    <p style={{ marginTop: '0.5rem', fontSize: '0.9em', color: '#666' }}>
-                      Valor a pagar: ${(totalOrden - retencionFuente).toLocaleString("es-CO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </p>
+                    <>
+                      <p>Retención en la Fuente: ${retencionFuente.toLocaleString("es-CO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                      <p style={{ marginTop: '0.5rem', fontSize: '0.9em', color: '#666' }}>
+                        Valor a pagar: ${(totalOrden - retencionFuente).toLocaleString("es-CO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </p>
+                    </>
                   )}
                 </div>
               </>

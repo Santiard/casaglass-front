@@ -83,3 +83,16 @@ export async function actualizarDetalle(trasladoId, detalleId, payload) {
 export async function eliminarDetalle(trasladoId, detalleId) {
   await api.delete(`${base}/${trasladoId}/detalles/${detalleId}`);
 }
+
+/**
+ * Actualiza múltiples detalles en una sola transacción atómica
+ * @param {number} trasladoId - ID del traslado
+ * @param {Object} payload - Objeto con arrays de cambios
+ * @param {Array} payload.crear - Array de objetos { productoId, cantidad }
+ * @param {Array} payload.actualizar - Array de objetos { detalleId, cantidad, productoId? }
+ * @param {Array} payload.eliminar - Array de IDs de detalles a eliminar
+ */
+export async function actualizarDetallesBatch(trasladoId, payload) {
+  const { data } = await api.put(`${base}/${trasladoId}/detalles/batch`, payload);
+  return data;
+}

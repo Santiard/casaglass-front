@@ -320,8 +320,17 @@ export async function actualizarOrdenVenta(id, payload) {
   if (!id) throw new Error("ID de la orden no proporcionado");
   
   try {
-    // Calcular el total de la orden
-    const itemsValidos = payload.items.filter(item => !item.eliminar);
+    // Filtrar items inválidos (eliminar items con precio 0, cantidad 0, o sin productoId)
+    const itemsValidos = payload.items
+      .filter(item => !item.eliminar)
+      .filter(item => {
+        const productoId = Number(item.productoId);
+        const cantidad = Number(item.cantidad ?? 0);
+        const precioUnitario = Number(item.precioUnitario ?? 0);
+        
+        return productoId > 0 && cantidad > 0 && precioUnitario > 0;
+      });
+    
     const totalOrden = itemsValidos.reduce((sum, item) => sum + (item.totalLinea || 0), 0);
     
     // Validar campos obligatorios según la documentación
@@ -332,7 +341,7 @@ export async function actualizarOrdenVenta(id, payload) {
       throw new Error("sedeId es obligatorio para actualizar la orden");
     }
     if (!itemsValidos || itemsValidos.length === 0) {
-      throw new Error("La orden debe tener al menos 1 item");
+      throw new Error("La orden debe tener al menos 1 item válido");
     }
     
     // Formato exacto para el nuevo endpoint PUT /api/ordenes/venta/{id}

@@ -608,8 +608,8 @@ const AbonoModal = ({ isOpen, onClose, credito, onSuccess }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="modal-overlay" style={{ overflowY: 'auto', maxHeight: '100vh' }}>
-      <div className="modal-container modal-wide" style={{ maxWidth: '95vw', width: '1200px', maxHeight: '90vh', display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
+    <div className="modal-overlay" style={{ overflowY: 'auto', maxHeight: '100vh', padding: 0, alignItems: 'flex-start' }}>
+      <div className="modal-container modal-wide" style={{ width: '100vw', height: '100vh', maxWidth: '100vw', maxHeight: '100vh', margin: 0, borderRadius: 0, display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
         {/* Header con título y fecha */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', paddingBottom: '1rem', borderBottom: '2px solid #e0e0e0' }}>
           <h2 style={{ margin: 0, color: '#1e2753' }}>CRÉDITOS X CLIENTE</h2>

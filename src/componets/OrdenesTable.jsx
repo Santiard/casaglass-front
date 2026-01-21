@@ -20,6 +20,7 @@ import { useMemo, useState, Fragment } from "react";
 import editar from "../assets/editar.png";
 import eliminar from "../assets/eliminar.png";
 import add from "../assets/add.png";
+import { useNavigate } from "react-router-dom";
 import OrdenModal from "../modals/OrdenModal.jsx";
 import OrdenImprimirModal from "../modals/OrdenImprimirModal.jsx";
 import FacturarOrdenModal from "../modals/FacturarOrdenModal.jsx";
@@ -51,6 +52,7 @@ export default function OrdenesTable({
   setShowClienteModal,
 }) {
   const { showError } = useToast();
+  const navigate = useNavigate();
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
   const [rowsPerPageState, setRowsPerPageState] = useState(rowsPerPage);
@@ -464,6 +466,10 @@ export default function OrdenesTable({
                 const estaAnulada = o.estado?.toLowerCase() === 'anulada';
                 // Solo mostrar botón anular si NO está facturada, NO está pagada y NO está anulada
                 const puedeAnular = !yaFacturada && !yaPagada && !estaAnulada;
+                // Verificar si la orden a crédito tiene saldo pendiente
+                const esCredito = Boolean(o.credito);
+                const saldoPendiente = esCredito ? (o.creditoDetalle?.saldoPendiente ?? null) : 0;
+                const tieneSaldoPendiente = saldoPendiente === null || saldoPendiente > 0; // Si saldoPendiente es null, asumimos que tiene saldo (por compatibilidad)
                 
                 return (
                   <Fragment key={`orden-${id}`}>
@@ -518,6 +524,29 @@ export default function OrdenesTable({
                             style={{ opacity: yaFacturada ? 0.5 : 1, cursor: yaFacturada ? 'not-allowed' : 'pointer' }}
                           >
                             Facturar
+                          </button>
+                        )}
+
+                        {/* Botón Abonar solo visible si es venta a crédito con saldo pendiente */}
+                        {o.venta && esCredito && tieneSaldoPendiente && (
+                          <button
+                            className="btnLink"
+                            onClick={() => {
+                              // Navegar a la página de créditos con el cliente preseleccionado
+                              const clienteId = o.cliente?.id || o.clienteId;
+                              if (clienteId) {
+                                navigate(`/abono?clienteId=${clienteId}`);
+                              } else {
+                                showError('No se pudo identificar el cliente de esta orden');
+                              }
+                            }}
+                            title="Realizar abono a esta orden"
+                            style={{ 
+                              color: '#10b981',
+                              fontWeight: '600'
+                            }}
+                          >
+                            Abonar
                           </button>
                         )}
 

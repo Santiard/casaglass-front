@@ -1074,12 +1074,16 @@ export default function OrdenEditarModal({
         // ✅ Separar items normales de cortes de cortes
         items: itemsActivos
           .filter(i => !i.esCorteDeCorte) // Excluir cortes de cortes del array items[]
-          .map((i) => {
-            //  LOG: Verificar cada item antes de enviar
+          .filter(i => {
+            // Filtrar items inválidos (sin productoId, cantidad 0, precio 0)
             const productoId = Number(i.productoId);
-            if (!productoId || productoId === 0) {
-
-            }
+            const cantidad = Number(i.cantidad ?? 0);
+            const precioUnitario = Number(i.precioUnitario ?? 0);
+            
+            return productoId > 0 && cantidad > 0 && precioUnitario > 0;
+          })
+          .map((i) => {
+            const productoId = Number(i.productoId);
             
             const item = {
               productoId: productoId,
@@ -1091,8 +1095,6 @@ export default function OrdenEditarModal({
             if (i.reutilizarCorteSolicitadoId) {
               item.reutilizarCorteSolicitadoId = Number(i.reutilizarCorteSolicitadoId);
             }
-            
-
             
             return item;
           }),
@@ -1317,20 +1319,24 @@ export default function OrdenEditarModal({
     trabajadorId: form.trabajadorId ? Number(form.trabajadorId) : null,
     sedeId: form.sedeId ? Number(form.sedeId) : null,
     items: form.items
-      .filter(i => !i.eliminar) // Filtrar items eliminados antes de mapear
-      .map((i) => {
-        // Validar que productoId sea válido antes de enviar
+      .filter(i => !i.eliminar) // Filtrar items eliminados
+      .filter(i => {
+        // Filtrar items inválidos (sin productoId, cantidad 0, precio 0)
         const productoId = Number(i.productoId);
-        if (!productoId || productoId === 0) {
-          throw new Error(`El producto "${i.nombre || i.codigo}" no tiene un ID válido. Por favor, recarga la página e intenta nuevamente.`);
-        }
+        const cantidad = Number(i.cantidad ?? 0);
+        const precioUnitario = Number(i.precioUnitario ?? 0);
+        
+        return productoId > 0 && cantidad > 0 && precioUnitario > 0;
+      })
+      .map((i) => {
+        const productoId = Number(i.productoId);
         
         return {
           id: i.id ?? null,
           productoId: productoId,
           descripcion: i.descripcion ?? "",
-          cantidad: Number(i.cantidad ?? 1),
-          precioUnitario: Number(i.precioUnitario ?? 0),
+          cantidad: Number(i.cantidad),
+          precioUnitario: Number(i.precioUnitario),
           totalLinea: Number(i.totalLinea ?? 0),
           // reutilizarCorteSolicitadoId es opcional
           ...(i.reutilizarCorteSolicitadoId ? { reutilizarCorteSolicitadoId: Number(i.reutilizarCorteSolicitadoId) } : {})

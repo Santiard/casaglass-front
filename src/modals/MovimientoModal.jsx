@@ -4,6 +4,7 @@ import "../styles/MovimientoNuevoModal.css";
 import CategorySidebar from "../componets/CategorySidebar.jsx";
 import { listarCategorias } from "../services/CategoriasService.js";
 import { getTodayLocalDate, toLocalDateOnly } from "../lib/dateUtils.js";
+import { actualizarDetallesBatch } from "../services/TrasladosService.js";
 
 const VACIO = {
   sedeOrigenId: "",
@@ -30,10 +31,11 @@ export default function MovimientoModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
-  // En edición: solo permitimos cambiar cabecera (fecha/sedes).
-  // Los productos del traslado se gestionan con endpoints de detalles y aquí se muestran en solo lectura.
-  const canEditHeader = !isEdit || editableWithin2d;
-  const canEditProducts = !isEdit; // productos editables solo en creación
+  // En edición: permitimos cambiar cabecera Y productos si NO está confirmado
+  // Los productos se editan usando endpoints de detalles (agregar, eliminar, actualizar)
+  const estaConfirmado = Boolean(movimiento?.trabajadorConfirmacion);
+  const canEditHeader = !isEdit || (editableWithin2d && !estaConfirmado);
+  const canEditProducts = !isEdit || !estaConfirmado; // productos editables si NO está confirmado
 
   // Prevenir cierre/recarga de pestaña cuando el modal está abierto
   useEffect(() => {
@@ -65,6 +67,7 @@ export default function MovimientoModal({
         productos: Array.isArray(movimiento.detalles)
           ? movimiento.detalles.map((d) => ({
               id: d.producto?.id ?? "",
+              detalleId: d.id ?? null, // ID del detalle (para editar/eliminar)
               nombre: d.producto?.nombre ?? "",
               sku: d.producto?.codigo ?? "",
               color: d.producto?.color ?? "",
@@ -188,22 +191,26 @@ export default function MovimientoModal({
 
   const addProducto = (item) => {
     if (!canEditProducts) return;
-    setForm((prev) => {
-      if (prev.productos.some((p) => String(p.id) === String(item.id))) return prev; // evitar duplicados
-      return {
-        ...prev,
-        productos: [
-          ...prev.productos,
-          {
-            id: item.id,
-            nombre: item.nombre,
-            sku: item.codigo ?? "",
-            color: item.color ?? "",
-            cantidad: "", // Inicia vacío, no 0
-          },
-        ],
-      };
-    });
+    
+    // Evitar duplicados (verificar por id de producto)
+    if (form.productos.some((p) => String(p.id) === String(item.id))) return;
+    
+    // Siempre agregar al estado local (tanto en creación como en edición)
+    setForm((prev) => ({
+      ...prev,
+      productos: [
+        ...prev.productos,
+        {
+          id: item.id,
+          detalleId: null, // null indica que es nuevo y debe agregarse al backend
+          nombre: item.nombre,
+          sku: item.codigo ?? "",
+          color: item.color ?? "",
+          cantidad: "", // Inicia vacío
+          esNuevo: isEdit, // Marca como nuevo solo si estamos editando
+        },
+      ],
+    }));
   };
 
   const handleProductoChange = (idx, field, value) => {
@@ -227,12 +234,27 @@ export default function MovimientoModal({
     });
   };
 
+
   const removeProducto = (idx) => {
     if (!canEditProducts) return;
-    setForm((prev) => ({
-      ...prev,
-      productos: prev.productos.filter((_, i) => i !== idx),
-    }));
+    
+    const producto = form.productos[idx];
+    
+    // Si tiene detalleId (existe en backend), marcarlo como eliminado
+    // Si no tiene detalleId (es nuevo), simplemente quitarlo del array
+    if (producto.detalleId) {
+      setForm((prev) => {
+        const arr = [...prev.productos];
+        arr[idx] = { ...arr[idx], eliminar: true };
+        return { ...prev, productos: arr };
+      });
+    } else {
+      // Producto nuevo que aún no se guardó, simplemente quitarlo
+      setForm((prev) => ({
+        ...prev,
+        productos: prev.productos.filter((_, i) => i !== idx),
+      }));
+    }
   };
 
   // Guardar
@@ -242,13 +264,73 @@ export default function MovimientoModal({
     setIsSubmitting(true);
     try {
       if (isEdit) {
-        // Editar: solo cabecera (coincide con PUT /api/traslados/{id})
+        // Editar: cabecera + procesar cambios en productos
         const payload = {
           fecha: toLocalDateOnly(form.fecha),
           sedeOrigen: { id: Number(form.sedeOrigenId) },
           sedeDestino: { id: Number(form.sedeDestinoId) },
         };
         await onSave(payload, true);
+        
+        // Procesar cambios en productos si no está confirmado usando endpoint batch
+        if (!estaConfirmado) {
+          // Recopilar todos los cambios para enviarlos en una sola transacción
+          const cambiosBatch = {
+            crear: [],
+            actualizar: [],
+            eliminar: []
+          };
+          
+          // 1. Productos a eliminar (tienen detalleId y están marcados para eliminar)
+          const productosAEliminar = form.productos.filter(p => p.eliminar && p.detalleId);
+          cambiosBatch.eliminar = productosAEliminar.map(p => p.detalleId);
+          
+          // 2. Productos nuevos a crear (no tienen detalleId y no están marcados para eliminar)
+          const productosNuevos = form.productos.filter(p => !p.detalleId && !p.eliminar);
+          cambiosBatch.crear = productosNuevos
+            .filter(p => {
+              const cantidad = Number(p.cantidad);
+              return cantidad > 0;
+            })
+            .map(p => ({
+              productoId: Number(p.id),
+              cantidad: Number(p.cantidad)
+            }));
+          
+          // 3. Productos existentes a actualizar (tienen detalleId y no están marcados para eliminar)
+          const productosExistentes = form.productos.filter(p => p.detalleId && !p.eliminar);
+          cambiosBatch.actualizar = productosExistentes
+            .filter(p => {
+              const cantidad = Number(p.cantidad);
+              return cantidad > 0;
+            })
+            .map(p => ({
+              detalleId: p.detalleId,
+              cantidad: Number(p.cantidad)
+            }));
+          
+          // Debug: Ver qué se va a enviar
+          console.log('🔍 Cambios batch a enviar:', JSON.stringify({
+            eliminar: cambiosBatch.eliminar,
+            crear: cambiosBatch.crear,
+            actualizar: cambiosBatch.actualizar
+          }, null, 2));
+          console.log('📦 Productos marcados para eliminar:', JSON.stringify(productosAEliminar, null, 2));
+          console.log('📦 Todos los productos en form:', JSON.stringify(form.productos.map(p => ({
+            id: p.id,
+            nombre: p.nombre,
+            detalleId: p.detalleId,
+            eliminar: p.eliminar,
+            cantidad: p.cantidad
+          })), null, 2));
+          
+          // Solo hacer la llamada batch si hay cambios
+          if (cambiosBatch.eliminar.length > 0 || 
+              cambiosBatch.crear.length > 0 || 
+              cambiosBatch.actualizar.length > 0) {
+            await actualizarDetallesBatch(movimiento.id, cambiosBatch);
+          }
+        }
       } else {
         // Crear: cabecera + detalles
         // Filtrar productos con cantidad vacía o 0 antes de enviar
@@ -293,9 +375,14 @@ export default function MovimientoModal({
       <div className="modal-container modal-wide" style={{ maxHeight: '90vh', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
         <h2>
           {isEdit ? "Editar traslado" : "Nuevo traslado"}
-          {isEdit && !editableWithin2d && (
+          {isEdit && estaConfirmado && (
             <span style={{ marginLeft: 8, fontSize: 14, color: "#a00" }}>
-              (solo lectura: &gt; 2 días)
+              (solo lectura: traslado confirmado)
+            </span>
+          )}
+          {isEdit && !estaConfirmado && !editableWithin2d && (
+            <span style={{ marginLeft: 8, fontSize: 14, color: "#a00" }}>
+              (solo lectura cabecera: &gt; 2 días)
             </span>
           )}
         </h2>
@@ -318,9 +405,14 @@ export default function MovimientoModal({
               Debes agregar al menos un producto al traslado.
             </div>
           )}
-          {isEdit && (
+          {isEdit && !estaConfirmado && (
             <div className="alert info">
-              En edición solo se actualiza la cabecera (fecha y sedes). Los productos se gestionan con endpoints de detalles.
+              Puedes editar la cabecera (fecha y sedes) y los productos mientras el traslado NO esté confirmado.
+            </div>
+          )}
+          {isEdit && estaConfirmado && (
+            <div className="alert warning">
+              Este traslado ya fue confirmado. No se puede editar.
             </div>
           )}
         </div>
@@ -383,10 +475,10 @@ export default function MovimientoModal({
             </div>
 
             <h3>Productos del traslado</h3>
-            {form.productos.length === 0 ? (
+            {form.productos.filter(p => !p.eliminar).length === 0 ? (
               <div className="empty-sub">
-                {isEdit
-                  ? "Productos en solo lectura (edición de cabecera)."
+                {isEdit && estaConfirmado
+                  ? "Este traslado ya fue confirmado. No se pueden editar los productos."
                   : "Doble clic en el catálogo para agregar productos."}
               </div>
             ) : (
@@ -401,9 +493,14 @@ export default function MovimientoModal({
                   </tr>
                 </thead>
                 <tbody>
-                  {form.productos.map((p, idx) => (
+                  {form.productos.filter(p => !p.eliminar).map((p) => {
+                    const originalIdx = form.productos.findIndex(prod => prod.id === p.id && !prod.eliminar);
+                    return (
                     <tr key={String(p.id)}>
-                      <td>{p.nombre}</td>
+                      <td>
+                        {p.nombre}
+                        {p.esNuevo && <span style={{ marginLeft: 8, fontSize: 11, color: '#10b981' }}>(Nuevo)</span>}
+                      </td>
                       <td>{p.sku ?? "-"}</td>
                       <td>{p.color ?? "-"}</td>
                       <td>
@@ -412,7 +509,7 @@ export default function MovimientoModal({
                           inputMode="numeric"
                           value={p.cantidad && Number(p.cantidad) > 0 ? p.cantidad : ""}
                           onChange={(e) =>
-                            handleProductoChange(idx, "cantidad", e.target.value)
+                            handleProductoChange(originalIdx, "cantidad", e.target.value)
                           }
                           onKeyDown={(e) => {
                             // Permitir: números, backspace, delete, tab, escape, enter, y puntos decimales (aunque no los usaremos)
@@ -432,14 +529,15 @@ export default function MovimientoModal({
                       <td>
                         <button
                           className="btn-ghost"
-                          onClick={() => removeProducto(idx)}
+                          onClick={() => removeProducto(originalIdx)}
                           disabled={!canEditProducts}
                         >
                           ✕
                         </button>
                       </td>
                     </tr>
-                  ))}
+                  );
+                  })}
                 </tbody>
               </table>
             )}

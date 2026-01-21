@@ -110,8 +110,7 @@ export default function ClienteModal({
     if (telefono && telefono.length > 10) return "El teléfono no puede tener más de 10 dígitos.";
     if (telefono && !/^\d+$/.test(telefono)) return "El teléfono debe contener solo números.";
     
-    // email simple
-    if (!/^\S+@\S+\.\S+$/.test(correo)) return "El correo no es válido.";
+    // Ya no validamos formato de email - se permite cualquier texto
     
     // Validar NIT duplicado (excluyendo el cliente actual si estamos editando)
     if (nit) {
@@ -275,11 +274,12 @@ export default function ClienteModal({
           <label>
             Correo:
             <input 
-              type="email" 
+              type="text" 
               name="correo" 
               value={formData.correo} 
               onChange={handleChange}
-              placeholder="correo@ejemplo.com"
+              style={getInputStyles('correo', numericFields)}
+              placeholder="Correo o escribe - si no tiene"
               required 
             />
           </label>
