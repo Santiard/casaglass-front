@@ -309,21 +309,6 @@ export default function MovimientoModal({
               cantidad: Number(p.cantidad)
             }));
           
-          // Debug: Ver qué se va a enviar
-          console.log('🔍 Cambios batch a enviar:', JSON.stringify({
-            eliminar: cambiosBatch.eliminar,
-            crear: cambiosBatch.crear,
-            actualizar: cambiosBatch.actualizar
-          }, null, 2));
-          console.log('📦 Productos marcados para eliminar:', JSON.stringify(productosAEliminar, null, 2));
-          console.log('📦 Todos los productos en form:', JSON.stringify(form.productos.map(p => ({
-            id: p.id,
-            nombre: p.nombre,
-            detalleId: p.detalleId,
-            eliminar: p.eliminar,
-            cantidad: p.cantidad
-          })), null, 2));
-          
           // Solo hacer la llamada batch si hay cambios
           if (cambiosBatch.eliminar.length > 0 || 
               cambiosBatch.crear.length > 0 || 
