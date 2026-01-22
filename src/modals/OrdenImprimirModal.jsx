@@ -263,52 +263,88 @@ export default function OrdenImprimirModal({ orden, isOpen, onClose }) {
             }
             
             @media print {
+              /* Aumentar tamaños de fuente para mejor legibilidad */
+              body {
+                font-size: 1rem;
+              }
+              
+              .orden-imprimir-header h1 {
+                font-size: 1.3rem;
+                color: #000 !important;
+              }
+              
+              .orden-imprimir-header h2 {
+                font-size: 1.1rem;
+                color: #000 !important;
+              }
+              
+              .orden-imprimir-header p {
+                font-size: 0.9rem;
+                color: #000 !important;
+              }
+              
+              .orden-imprimir-info-section h3 {
+                font-size: 0.9rem;
+                color: #000 !important;
+              }
+              
+              .orden-imprimir-info-section p {
+                font-size: 0.85rem;
+                color: #000 !important;
+              }
+              
+              /* Tabla sin bordes para ahorrar tinta */
+              .orden-imprimir-table {
+                font-size: 0.9rem;
+              }
+              
               .orden-imprimir-table thead {
                 background-color: transparent !important;
                 color: #000 !important;
+                border-bottom: 2px solid #000 !important;
               }
               
               .orden-imprimir-table th {
                 background-color: transparent !important;
                 color: #000 !important;
-                border: 1px solid #000 !important;
+                border: none !important;
+                border-bottom: 2px solid #000 !important;
+                padding: 6px 8px;
+                font-size: 0.85rem;
               }
               
               .orden-imprimir-table td {
                 color: #000 !important;
-                border: 1px solid #000 !important;
+                border: none !important;
+                padding: 5px 8px;
+                font-size: 0.85rem;
               }
               
               .orden-imprimir-table tbody tr:nth-child(even) {
                 background-color: transparent !important;
               }
               
+              /* Solo línea inferior para el encabezado */
               .orden-imprimir-header {
                 border-bottom: 2px solid #000 !important;
               }
               
-              .orden-imprimir-header h1,
-              .orden-imprimir-header h2,
-              .orden-imprimir-header p {
-                color: #000 !important;
-              }
-              
-              .orden-imprimir-info-section h3,
-              .orden-imprimir-info-section p {
-                color: #000 !important;
-              }
-              
+              /* Totales con línea superior solamente */
               .orden-imprimir-total {
                 background: transparent !important;
-                border: 1px solid #000 !important;
+                border: none !important;
+                border-top: 2px solid #000 !important;
+                padding-top: 8px;
               }
               
               .orden-imprimir-total p {
                 color: #000 !important;
+                font-size: 0.95rem;
               }
               
               .orden-imprimir-total p strong {
                 color: #000 !important;
+                font-size: 1.05rem;
               }
             }
           </style>
