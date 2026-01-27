@@ -1,3 +1,22 @@
+/**
+ * Unir dos cortes en inventario para reconstruir una barra completa (600cm)
+ * POST /api/cortes/unir
+ * @param {Object} params - { corteId1, corteId2, sedeId }
+ * @returns {Promise<Object>} Respuesta del backend
+ */
+export async function unirCortes({ corteId1, corteId2, sedeId }) {
+  if (!corteId1 || !corteId2 || !sedeId) {
+    throw new Error("Se requieren corteId1, corteId2 y sedeId para unir cortes");
+  }
+  try {
+    const { data } = await api.post("/cortes/unir", { corteId1, corteId2, sedeId });
+    return data;
+  } catch (error) {
+    // Manejo de error: devolver mensaje del backend si existe
+    const msg = error?.response?.data?.message || error.message || "Error al unir cortes";
+    throw new Error(msg);
+  }
+}
 // src/services/CortesService.js
 import { api } from "../lib/api";
 
