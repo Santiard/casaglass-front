@@ -49,6 +49,20 @@
 .btn-add img{
   filter: brightness(0) invert(1);
 }
+.btn-unir {
+  background: white;
+  color: var(--color-dark-blue);
+  border: 0.0625rem solid var(--color-dark-blue);
+  padding: 0.45rem 0.75rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.btn-unir:hover {
+  background: var(--color-dark-blue);
+  color: white;
+}
 .filters-toolbar button {
   display: flex;
   align-items: center;

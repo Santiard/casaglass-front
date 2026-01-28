@@ -142,12 +142,17 @@ export default function CortarModal({
         precioUsado: precioCorteRedondeado,
         esCorte: true,
         medidaCorte: cortesCalculados.medidaCorte,
-        productoOriginal: producto.id
+        // productoOriginal debe indicar el origen del material del que se corta.
+        // Si se seleccionó un corte existente como base, usar su id para que la orden
+        // reste stock de ese corte. Si no, usar el id del producto original.
+        productoOriginal: corteBase && corteBase.id ? Number(corteBase.id) : producto.id
       };
 
       // Crear el corte sobrante para enviar al backend
       let corteSobrante = {
-        productoId: producto.id,
+        // productoId indica el origen del sobrante: si se está partiendo un corte existente
+        // debe ser el id del corte base (corteBase.id). En caso contrario usar el producto.
+        productoId: corteBase && corteBase.id ? Number(corteBase.id) : producto.id,
         medidaSolicitada: cortesCalculados.medidaCorte,
         cantidad: 1,
         precioUnitarioSolicitado: precioCorteRedondeado,

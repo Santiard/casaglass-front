@@ -2,11 +2,16 @@ import add from "../assets/add.png";
 import "../styles/InventaryFilters.css";
 import ViewSwitcher from "./ViewSwitcher";
 export default function InventoryFilters({ filters = {}, setFilters, onAddProduct, view,        // 👈 importante
-  setView, }) {
+  setView, onUnirCortes }) {
   
   return (
     <div className="filters-toolbar">
       <ViewSwitcher value={view} onChange={setView} />
+      {onUnirCortes && (
+        <button className="btn-unir" onClick={onUnirCortes} title="Unir cortes existentes">
+          UNIR CORTES
+        </button>
+      )}
       <input
         className="filter-input"
         type="text"

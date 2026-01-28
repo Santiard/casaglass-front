@@ -1183,6 +1183,48 @@ export default function OrdenEditarModal({
         cortes: cortesFinales,
       };
 
+      // VALIDACIÓN CLIENTE: prevenir payloads incompletos que causen 500 en backend
+      const validarPayloadVenta = (p) => {
+        const errores = [];
+        if (!p.items || !Array.isArray(p.items) || p.items.length === 0) {
+          errores.push('La orden no contiene items válidos');
+        } else {
+          p.items.forEach((it, idx) => {
+            if (!it.productoId || isNaN(Number(it.productoId)) || Number(it.productoId) === 0) errores.push(`items[${idx}].productoId inválido`);
+            if (!it.cantidad || isNaN(Number(it.cantidad)) || Number(it.cantidad) <= 0) errores.push(`items[${idx}].cantidad inválida`);
+            if (!it.precioUnitario || isNaN(Number(it.precioUnitario)) || Number(it.precioUnitario) <= 0) errores.push(`items[${idx}].precioUnitario inválido`);
+          });
+        }
+
+        if (p.cortes && Array.isArray(p.cortes) && p.cortes.length > 0) {
+          p.cortes.forEach((c, idx) => {
+            if (!c.productoId || isNaN(Number(c.productoId)) || Number(c.productoId) === 0) errores.push(`cortes[${idx}].productoId inválido`);
+            if (!c.medidaSolicitada || isNaN(Number(c.medidaSolicitada)) || Number(c.medidaSolicitada) <= 0) errores.push(`cortes[${idx}].medidaSolicitada inválida`);
+            // cantidadesPorSede debe existir y al menos una sede con cantidad > 0
+            if (!c.cantidadesPorSede || !Array.isArray(c.cantidadesPorSede) || c.cantidadesPorSede.every(cp => !cp || Number(cp.cantidad) <= 0)) {
+              errores.push(`cortes[${idx}].cantidadesPorSede inválida o sin cantidades`);
+            }
+          });
+        }
+
+        return errores;
+      };
+
+      const erroresValidacion = validarPayloadVenta(payloadConCortes);
+      if (erroresValidacion.length > 0) {
+        const msg = `Payload inválido antes de enviar: ${erroresValidacion.join('; ')}`;
+        console.error('[VALIDACION] ', msg, payloadConCortes);
+        showError(msg);
+        return; // abortar envío para evitar 500
+      }
+
+      // DEBUG: log payload to help diagnose 500 server errors
+      try {
+        console.log("[DEBUG] Payload crearOrdenVenta:", payloadConCortes);
+      } catch (logErr) {
+        // ignore logging errors
+      }
+
       const data = await crearOrdenVenta(payloadConCortes);
       showSuccess(`Orden creada correctamente. Número: ${data.numero}`);
       
@@ -1364,9 +1406,13 @@ export default function OrdenEditarModal({
     onClose();
   } catch (e) {
     console.error("Error al guardar orden:", e);
+    try {
+      console.error("Error response data:", e?.response?.data);
+    } catch (logErr) {}
 
     const msg =
       e?.response?.data?.message ||
+      (e?.response?.data && JSON.stringify(e.response.data)) ||
       e?.message ||
       "Error al guardar la orden.";
     showError(msg);

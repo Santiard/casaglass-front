@@ -7,6 +7,8 @@ import Filter from "../componets/InventaryFilters.jsx";
 import CategorySidebar from "../componets/CategorySidebar.jsx";
 import ProductModal from "../modals/ProductoModal.jsx";
 
+import UnirCortesModal from "../modals/UnirCortesModal.jsx";
+
 // === Corte ===
 import CorteTable from "../componets/CorteTable.jsx";
 import CorteFilters from "../componets/CorteFilters.jsx";
@@ -17,7 +19,7 @@ import CorteModal from "../modals/CorteModal.jsx";
 import { listarInventarioCompleto, listarInventarioAgrupado, listarCortesInventarioCompleto, actualizarInventarioPorProducto } from "../services/InventarioService";
 //corte
 import {listarInventarioCortesAgrupado} from "../services/InventarioCorteService.js";
-import { crearCorte, actualizarCorte, eliminarCorte } from "../services/CortesService.js";
+import { crearCorte, actualizarCorte, eliminarCorte, unirCortes } from "../services/CortesService.js";
 
 
 import "../styles/InventoryPage.css";
@@ -213,6 +215,20 @@ export default function InventoryPage() {
   }, [view, isAdmin, sedeId, categories, filters.categoryId, showError]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
+
+  const handleUnirCortes = async () => {
+    // cargar cortes (independiente de la vista) y abrir modal de unir cortes
+    try {
+      setLoading(true);
+      const cortesData = await listarCortesInventarioCompleto({}, isAdmin, sedeId);
+      setCortes(cortesData || []);
+      setUnirModalOpen(true);
+    } catch (e) {
+      showError(e?.response?.data?.message || 'No se pudo cargar cortes para unir.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Escuchar evento de actualización de inventario (cuando se actualiza un producto desde ingresos)
   useEffect(() => {
@@ -631,6 +647,8 @@ export default function InventoryPage() {
     if (view === "producto") fetchData();
   }, [view, fetchData]);
 
+  const [unirModalOpen, setUnirModalOpen] = useState(false);
+
   return (
     <>
       <div className="inventory-layout">
@@ -662,6 +680,7 @@ export default function InventoryPage() {
                 loading={loading}
                 view={view}
                 setView={setView}
+                onUnirCortes={handleUnirCortes}
                 isAdmin={isAdmin}
               />
               <Table
@@ -720,6 +739,43 @@ export default function InventoryPage() {
         onClose={() => setCategoriaModalOpen(false)}
         onCreate={handleCreateCategory}
       />
+
+      {unirModalOpen && (
+        <UnirCortesModal
+          isOpen={unirModalOpen}
+          onClose={() => setUnirModalOpen(false)}
+          cortes={cortes}
+          categories={categoriasParaInventario}
+          sedeId={sedeId}
+          isAdmin={isAdmin}
+          onConfirm={async (payload) => {
+            try {
+              // confirmar acción con el usuario
+              const c1 = payload.corte1 || {};
+              const c2 = payload.corte2 || {};
+              const resumen = `${c1.nombre || c1.codigo || 'Corte'} (${c1.largoCm || 0} cm, ${c1.color || 'N/A'}, ${c1.categoria || 'N/A'}) y ${c2.nombre || c2.codigo || 'Corte'} (${c2.largoCm || 0} cm, ${c2.color || 'N/A'}, ${c2.categoria || 'N/A'})`;
+              const suma = Number(c1.largoCm || 0) + Number(c2.largoCm || 0);
+              const ok = await confirm({
+                title: 'Confirmar unir cortes',
+                message: `Se unirán los siguientes cortes: ${resumen}. Suma de largos: ${suma} cm. ¿Continuar?`,
+                confirmText: 'Unir',
+                cancelText: 'Cancelar',
+                type: 'info'
+              });
+              if (!ok) return;
+
+              // Llamada al servicio (si existe endpoint)
+              await unirCortes(payload);
+              setUnirModalOpen(false);
+              showSuccess('Cortes unidos correctamente');
+              // refrescar lista de cortes
+              await fetchCortesData();
+            } catch (e) {
+              showError(e?.message || e?.response?.data?.message || 'Error al unir cortes');
+            }
+          }}
+        />
+      )}
 
       <ConfirmDialog />
     </>
