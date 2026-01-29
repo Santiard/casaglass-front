@@ -37,6 +37,19 @@ export default function ClienteModal({
   const [errorMsg, setErrorMsg] = useState("");
   const [nitDuplicado, setNitDuplicado] = useState(false);
 
+  // Normalizar campos opcionales: convierte "-", strings vacíos o solo espacios a null
+  const normalizarStringOpcional = (valor) => {
+    if (!valor || valor.trim() === "" || valor.trim() === "-") {
+      return null;
+    }
+    return valor.trim();
+  };
+
+  // Normalizar NIT: solo elimina espacios, no convierte a null (es obligatorio)
+  const normalizarNit = (valor) => {
+    return (valor || "").trim();
+  };
+
   // Si entra un cliente, rellenamos el form. Si no, limpiamos.
   useEffect(() => {
     if (clienteAEditar) {
@@ -95,9 +108,9 @@ export default function ClienteModal({
 
   // Validación muy básica en el front
   const validate = () => {
-    const nit = (formData.nit || "").trim();
+    const nit = normalizarNit(formData.nit);
     const nombre = (formData.nombre || "").trim();
-    const correo = (formData.correo || "").trim();
+    const correoNormalizado = normalizarStringOpcional(formData.correo);
     const telefono = (formData.telefono || "").trim();
     
     if (!nit) return "El NIT es obligatorio.";
@@ -106,11 +119,22 @@ export default function ClienteModal({
     // Validar formato: solo números y un guion opcional
     if (!/^[\d-]+$/.test(nit)) return "El NIT solo puede contener números y el guion (-).";
     if (!nombre) return "El nombre es obligatorio.";
-    if (!correo) return "El correo es obligatorio.";
+    // Validar teléfono solo si tiene contenido
     if (telefono && telefono.length > 10) return "El teléfono no puede tener más de 10 dígitos.";
     if (telefono && !/^\d+$/.test(telefono)) return "El teléfono debe contener solo números.";
     
-    // Ya no validamos formato de email - se permite cualquier texto
+    // Validar correo duplicado solo si no es null (evita duplicados de "-")
+    if (correoNormalizado !== null) {
+      const correoExiste = clientesExistentes.some(cliente => {
+        const correoCliente = normalizarStringOpcional(cliente.correo);
+        return correoCliente !== null && 
+               correoCliente === correoNormalizado && 
+               cliente.id !== clienteAEditar?.id;
+      });
+      if (correoExiste) {
+        return `Ya existe un cliente registrado con el correo ${correoNormalizado}.`;
+      }
+    }
     
     // Validar NIT duplicado (excluyendo el cliente actual si estamos editando)
     if (nit) {
@@ -135,14 +159,14 @@ export default function ClienteModal({
       return;
     }
 
+    // Normalizar campos según las reglas del backend
     const payload = {
-      ...formData,
-      nit: (formData.nit || "").trim(),
+      nit: normalizarNit(formData.nit),
       nombre: (formData.nombre || "").trim(),
-      direccion: (formData.direccion || "").trim(),
-      telefono: (formData.telefono || "").trim(),
-      ciudad: (formData.ciudad || "").trim(),
-      correo: (formData.correo || "").trim(),
+      direccion: normalizarStringOpcional(formData.direccion),
+      telefono: normalizarStringOpcional(formData.telefono),
+      ciudad: normalizarStringOpcional(formData.ciudad),
+      correo: normalizarStringOpcional(formData.correo),
       credito: !!formData.credito,
     };
 
@@ -279,8 +303,7 @@ export default function ClienteModal({
               value={formData.correo} 
               onChange={handleChange}
               style={getInputStyles('correo', numericFields)}
-              placeholder="Correo o escribe - si no tiene"
-              required 
+              placeholder="Correo del cliente (opcional)"
             />
           </label>
 
