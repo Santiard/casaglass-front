@@ -453,7 +453,7 @@ export default function FacturarOrdenModal({ isOpen, onClose, onSave, orden }) {
                   {Array.isArray(orden?.items) && orden.items.length > 0 ? (
                     orden.items.map((i, idx) => (
                       <tr key={i.id || idx}>
-                        <td>{i.producto?.nombre ?? i.descripcion ?? '-'}</td>
+                        <td>{i.producto?.nombre ?? '-'}</td>
                         <td>{i.producto?.color ?? '-'}</td>
                         <td className="tx-center">{i.cantidad}</td>
                         <td className="tx-right">${(i.precioUnitario || 0).toLocaleString('es-CO')}</td>
@@ -792,10 +792,13 @@ export default function FacturarOrdenModal({ isOpen, onClose, onSave, orden }) {
                     )
                   : clientes;
                 
-                // Ordenar alfabéticamente
+                // Ordenar alfabéticamente, pero "VARIOS" siempre primero
                 const sorted = [...filtered].sort((a, b) => {
                   const nombreA = (a.nombre || "").toLowerCase();
                   const nombreB = (b.nombre || "").toLowerCase();
+                  // Si "VARIOS" está en alguno, siempre va primero
+                  if (nombreA === "varios") return -1;
+                  if (nombreB === "varios") return 1;
                   return nombreA.localeCompare(nombreB, 'es', { sensitivity: 'base' });
                 });
                 

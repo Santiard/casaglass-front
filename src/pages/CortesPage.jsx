@@ -17,7 +17,6 @@ const CORTES_MOCK = [
     cantidad: 5,           // hereda de Producto
     largoCm: 80.0,         // propio de Corte
     precio: 95000,         // propio de Corte
-    observacion: "Bisel 1cm",
     sede: "Centro",
   },
   {
@@ -29,7 +28,6 @@ const CORTES_MOCK = [
     cantidad: 2,
     largoCm: 60.0,
     precio: 70000,
-    observacion: "Cantos pulidos",
     sede: "Insula",
   },
   {
@@ -41,7 +39,6 @@ const CORTES_MOCK = [
     cantidad: 0,
     largoCm: 200.0,
     precio: 220000,
-    observacion: "",
     sede: "Patios",
   },
 ];
@@ -75,8 +72,7 @@ export default function CortesPage() {
         return (
           (c.nombre || "").toLowerCase().includes(q) ||
           (c.codigo || "").toLowerCase().includes(q) ||
-          (c.color || "").toLowerCase().includes(q) ||
-          (c.observacion || "").toLowerCase().includes(q)
+          (c.color || "").toLowerCase().includes(q)
         );
       })
       .filter((c) => {

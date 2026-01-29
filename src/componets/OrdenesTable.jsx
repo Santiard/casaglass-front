@@ -595,7 +595,6 @@ export default function OrdenesTable({
                                   <tr>
                                     <th>Código</th>
                                     <th>Producto</th>
-                                    <th>Descripción</th>
                                     <th>Cantidad</th>
                                     <th>Precio Unit.</th>
                                     <th>Total Línea</th>
@@ -606,7 +605,6 @@ export default function OrdenesTable({
                                     <tr key={`item-${d.id || i}-${id}`}>
                                       <td>{d.producto?.codigo ?? "-"}</td>
                                       <td>{d.producto?.nombre ?? "-"}</td>
-                                      <td>{d.descripcion ?? "-"}</td>
                                       <td className="text-center">{d.cantidad}</td>
                                       <td>${d.precioUnitario?.toLocaleString("es-CO")}</td>
                                       <td>${d.totalLinea?.toLocaleString("es-CO")}</td>

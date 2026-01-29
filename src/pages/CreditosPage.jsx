@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import CreditosTable from "../componets/CreditosTable";
 import { api } from "../lib/api.js";
-import { listarClientes } from "../services/ClientesService.js";
+import { listarClientes, crearCliente } from "../services/ClientesService.js";
+import ClienteModal from "../modals/ClienteModal.jsx";
 import HistoricoAbonosClienteModal from "../modals/HistoricoAbonosClienteModal.jsx";
 import HistoricoAbonosGeneralModal from "../modals/HistoricoAbonosGeneralModal.jsx";
 import addIcon from "../assets/add.png";
@@ -19,6 +20,7 @@ const CreditosPage = () => {
   const [filtroCliente, setFiltroCliente] = useState(null);
   const [clienteSeleccionado, setClienteSeleccionado] = useState(null);
   const [showClienteModal, setShowClienteModal] = useState(false);
+  const [showClienteCreateModal, setShowClienteCreateModal] = useState(false);
   const [clienteSearchModal, setClienteSearchModal] = useState("");
   const [filtroEstado, setFiltroEstado] = useState("");
   const [rowsPerPage, setRowsPerPage] = useState(50);
@@ -347,14 +349,31 @@ const CreditosPage = () => {
               flexDirection: 'column',
               overflow: 'hidden'
             }} onClick={(e) => e.stopPropagation()}>
-              <header className="modal-header">
-                <h2>Seleccionar Cliente</h2>
-                <button className="close-btn" onClick={() => {
-                  setClienteSearchModal("");
-                  setShowClienteModal(false);
-                }}>
-                  ✕
-                </button>
+              <header className="modal-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <h2 style={{ margin: 0 }}>Seleccionar Cliente</h2>
+                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowClienteModal(false);
+                      setShowClienteCreateModal(true);
+                    }}
+                    className="btn-save"
+                    style={{
+                      padding: '0.5rem 1rem',
+                      fontSize: '0.9rem',
+                      whiteSpace: 'nowrap'
+                    }}
+                  >
+                    + Agregar Cliente
+                  </button>
+                  <button className="close-btn" onClick={() => {
+                    setClienteSearchModal("");
+                    setShowClienteModal(false);
+                  }}>
+                    ✕
+                  </button>
+                </div>
               </header>
               <div style={{ marginBottom: '1rem', flexShrink: 0, padding: '1.2rem' }}>
                 <input
@@ -415,6 +434,9 @@ const CreditosPage = () => {
                   const sorted = [...filtered].sort((a, b) => {
                     const nombreA = (a.nombre || "").toLowerCase();
                     const nombreB = (b.nombre || "").toLowerCase();
+                    // Si "VARIOS" está en alguno, siempre va primero
+                    if (nombreA === "varios") return -1;
+                    if (nombreB === "varios") return 1;
                     return nombreA.localeCompare(nombreB, 'es', { sensitivity: 'base' });
                   });
                   if (sorted.length === 0) {
@@ -555,6 +577,30 @@ const CreditosPage = () => {
       <HistoricoAbonosGeneralModal
         isOpen={isHistoricoGeneralModalOpen}
         onClose={() => setIsHistoricoGeneralModalOpen(false)}
+      />
+
+      {/* Modal de crear cliente */}
+      <ClienteModal
+        isOpen={showClienteCreateModal}
+        onClose={() => setShowClienteCreateModal(false)}
+        onSave={async (clienteData, isEdit) => {
+          try {
+            const nuevoCliente = await crearCliente(clienteData);
+            // Actualizar la lista de clientes
+            const clientesActualizados = await listarClientes();
+            setClientes(clientesActualizados);
+            // Seleccionar automáticamente el cliente recién creado
+            setClienteSeleccionado(nuevoCliente);
+            setFiltroCliente(nuevoCliente.id);
+            setShowClienteCreateModal(false);
+            // Mostrar mensaje de éxito (si tienes toast)
+            alert("Cliente creado y seleccionado exitosamente");
+          } catch (error) {
+            alert(error?.response?.data?.message || "No se pudo crear el cliente");
+            throw error; // Re-lanzar para que el modal no se cierre
+          }
+        }}
+        clientesExistentes={clientes}
       />
     </div>
   );

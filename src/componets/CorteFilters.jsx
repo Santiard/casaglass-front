@@ -19,7 +19,7 @@ export default function CorteFilters({
       <input
         className="filter-input"
         type="text"
-        placeholder="Buscar por código, nombre, color u observación…"
+        placeholder="Buscar por código, nombre o color…"
         value={filters.search || ""}
         onChange={(e) => setFilters({ ...filters, search: e.target.value })}
       />

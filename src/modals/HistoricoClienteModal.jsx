@@ -696,7 +696,6 @@ export default function HistoricoClienteModal({ isOpen, onClose }) {
                             <tr>
                               <th>Código</th>
                               <th>Producto</th>
-                              <th>Descripción</th>
                               <th style={{ textAlign: 'center' }}>Cant.</th>
                               <th style={{ textAlign: 'right' }}>Precio Unit.</th>
                               <th style={{ textAlign: 'right' }}>Total</th>
@@ -707,7 +706,6 @@ export default function HistoricoClienteModal({ isOpen, onClose }) {
                               <tr key={d.id || i}>
                                 <td>{d.producto?.codigo ?? "-"}</td>
                                 <td>{d.producto?.nombre ?? "-"}</td>
-                                <td>{d.descripcion ?? "-"}</td>
                                 <td style={{ textAlign: 'center' }}>{d.cantidad}</td>
                                 <td style={{ textAlign: 'right' }}>{fmtCOP(d.precioUnitario)}</td>
                                 <td style={{ textAlign: 'right' }}>{fmtCOP(d.totalLinea)}</td>
@@ -961,7 +959,6 @@ export default function HistoricoClienteModal({ isOpen, onClose }) {
                                           <tr style={{ backgroundColor: '#1e2753', color: '#fff' }}>
                                             <th style={{ padding: '0.5rem', textAlign: 'left', borderRight: '1px solid #fff' }}>Código</th>
                                             <th style={{ padding: '0.5rem', textAlign: 'left', borderRight: '1px solid #fff' }}>Producto</th>
-                                            <th style={{ padding: '0.5rem', textAlign: 'left', borderRight: '1px solid #fff' }}>Descripción</th>
                                             <th style={{ padding: '0.5rem', textAlign: 'center', borderRight: '1px solid #fff' }}>Cantidad</th>
                                             <th style={{ padding: '0.5rem', textAlign: 'right', borderRight: '1px solid #fff' }}>Precio Unit.</th>
                                             <th style={{ padding: '0.5rem', textAlign: 'right' }}>Total Línea</th>
@@ -981,9 +978,6 @@ export default function HistoricoClienteModal({ isOpen, onClose }) {
                                               </td>
                                               <td style={{ padding: '0.5rem', borderRight: '1px solid #e0e0e0' }}>
                                                 {d.producto?.nombre ?? "-"}
-                                              </td>
-                                              <td style={{ padding: '0.5rem', borderRight: '1px solid #e0e0e0' }}>
-                                                {d.descripcion ?? "-"}
                                               </td>
                                               <td style={{ padding: '0.5rem', textAlign: 'center', borderRight: '1px solid #e0e0e0' }}>
                                                 {d.cantidad}
@@ -1132,10 +1126,13 @@ export default function HistoricoClienteModal({ isOpen, onClose }) {
                     )
                   : clientes;
                 
-                // Ordenar alfabéticamente
+                // Ordenar alfabéticamente, pero "VARIOS" siempre primero
                 const sorted = [...filtered].sort((a, b) => {
                   const nombreA = (a.nombre || "").toLowerCase();
                   const nombreB = (b.nombre || "").toLowerCase();
+                  // Si "VARIOS" está en alguno, siempre va primero
+                  if (nombreA === "varios") return -1;
+                  if (nombreB === "varios") return 1;
                   return nombreA.localeCompare(nombreB, 'es', { sensitivity: 'base' });
                 });
                 

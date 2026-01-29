@@ -205,7 +205,6 @@ function transformarCortesDTO(cortes, isAdmin = true, userSedeId = null) {
       costo: corte.costo,
       largoCm: corte.largoCm,
       precio: corte.precio,
-      observacion: corte.observacion,
       cantidadInsula,
       cantidadCentro,
       cantidadPatios,

@@ -573,7 +573,6 @@ const FacturarMultiplesOrdenesModal = ({ isOpen, onClose, ordenInicial, onSucces
                 .map(item => ({
                   id: item.id ?? null,
                   productoId: Number(item.productoId || item.producto?.id),
-                  descripcion: item.descripcion ?? "",
                   cantidad: Number(item.cantidad),
                   precioUnitario: Number(item.precioUnitario),
                   totalLinea: Number(item.totalLinea ?? 0),
@@ -807,6 +806,9 @@ const FacturarMultiplesOrdenesModal = ({ isOpen, onClose, ordenInicial, onSucces
   const clientesFiltradosOrdenados = [...clientesFiltrados].sort((a, b) => {
     const nombreA = (a.nombre || "").toLowerCase();
     const nombreB = (b.nombre || "").toLowerCase();
+    // Si "VARIOS" está en alguno, siempre va primero
+    if (nombreA === "varios") return -1;
+    if (nombreB === "varios") return 1;
     return nombreA.localeCompare(nombreB, 'es', { sensitivity: 'base' });
   });
 

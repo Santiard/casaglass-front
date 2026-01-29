@@ -43,9 +43,9 @@ import { useConfirm } from "../hooks/useConfirm.jsx";
 import { useToast } from "../context/ToastContext.jsx";
 
 const CORTES_MOCK = [
-  { id: 1, codigo: "C-0001", nombre: "Corte ventana 60x80", categoria: "Vidrio", color: "Claro", cantidad: 5, largoCm: 80, precio: 95000, observacion: "Bisel 1cm", sede: "Centro" },
-  { id: 2, codigo: "C-0002", nombre: "Corte repisa 25x60", categoria: "Vidrio", color: "Bronce", cantidad: 2, largoCm: 60, precio: 70000, observacion: "Cantos pulidos", sede: "Insula" },
-  { id: 3, codigo: "C-0003", nombre: "Corte puerta 70x200", categoria: "Vidrio", color: "Claro", cantidad: 0, largoCm: 200, precio: 220000, observacion: "", sede: "Patios" },
+  { id: 1, codigo: "C-0001", nombre: "Corte ventana 60x80", categoria: "Vidrio", color: "Claro", cantidad: 5, largoCm: 80, precio: 95000, sede: "Centro" },
+  { id: 2, codigo: "C-0002", nombre: "Corte repisa 25x60", categoria: "Vidrio", color: "Bronce", cantidad: 2, largoCm: 60, precio: 70000, sede: "Insula" },
+  { id: 3, codigo: "C-0003", nombre: "Corte puerta 70x200", categoria: "Vidrio", color: "Claro", cantidad: 0, largoCm: 200, precio: 220000, sede: "Patios" },
 ];
 
 export default function InventoryPage() {
@@ -526,14 +526,13 @@ export default function InventoryPage() {
         // Comparar por nombre de categoría
         return (c.categoria || "").toLowerCase() === selectedCategory.nombre.toLowerCase();
       })
-      // Filtro por búsqueda (nombre, código, observación)
+      // Filtro por búsqueda (nombre, código)
       .filter((c) => {
         const q = (corteFilters.search || "").toLowerCase().trim();
         if (!q) return true;
         return (
           (c.nombre || "").toLowerCase().includes(q) ||
-          (c.codigo || "").toLowerCase().includes(q) ||
-          (c.observacion || "").toLowerCase().includes(q)
+          (c.codigo || "").toLowerCase().includes(q)
         );
       })
       // Filtro por color

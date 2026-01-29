@@ -24,7 +24,6 @@ export default function CorteModal({ isOpen, onClose, onSave, corte }) {
     precio3: "",
     largoCm: "",
     precio: "",
-    observacion: "",
   };
 
   const [formData, setFormData] = useState(initialState);
@@ -72,7 +71,6 @@ export default function CorteModal({ isOpen, onClose, onSave, corte }) {
         nombre: corte.nombre || "",
         posicion: corte.posicion || "",
         descripcion: corte.descripcion || "",
-        observacion: corte.observacion || "",
         // Para edición, preservar valores existentes o mantener vacío si es 0
         precio1: corte.precio1 ? String(corte.precio1) : "",
         precio2: corte.precio2 ? String(corte.precio2) : "",
@@ -99,7 +97,7 @@ export default function CorteModal({ isOpen, onClose, onSave, corte }) {
     // Definir tipos de campos para validaciones
     const priceFields = ['precio1', 'precio2', 'precio3', 'precio', 'costo'];
     const numericFields = ['posicion', 'largoCm'];
-    const uppercaseFields = ['codigo', 'nombre', 'descripcion', 'observacion'];
+    const uppercaseFields = ['codigo', 'nombre', 'descripcion'];
 
     let processedValue = value || ""; // Asegurar que nunca sea undefined/null
 
@@ -156,7 +154,6 @@ export default function CorteModal({ isOpen, onClose, onSave, corte }) {
       tipo: formData.tipo,
       color: formData.color,
       largoCm: parseFloat(formData.largoCm) || 0,
-      observacion: formData.observacion || "",
       precio1: parseFloat(formData.precio1) || 0,
       precio2: parseFloat(formData.precio2) || 0,
       precio3: parseFloat(formData.precio3) || 0,
@@ -381,8 +378,8 @@ export default function CorteModal({ isOpen, onClose, onSave, corte }) {
             </div>
           </div>
 
-          {/* === DESCRIPCIÓN Y OBSERVACIONES === */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "16px" }}>
+          {/* === DESCRIPCIÓN === */}
+          <div style={{ marginBottom: "16px" }}>
             <label>
               Descripción:
               <input
@@ -391,18 +388,7 @@ export default function CorteModal({ isOpen, onClose, onSave, corte }) {
                 placeholder="Descripción del corte"
                 value={formData.descripcion}
                 onChange={handleChange}
-              />
-            </label>
-
-            <label>
-              Observación:
-              <textarea
-                name="observacion"
-                placeholder="Observaciones adicionales"
-                value={formData.observacion}
-                onChange={handleChange}
-                rows={2}
-                style={{ resize: "vertical" }}
+                style={{ width: "100%" }}
               />
             </label>
           </div>

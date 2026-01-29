@@ -111,7 +111,6 @@ export async function crearOrdenVenta(payload) {
         return {
           productoId: productoId,
           cantidad: parseFloat(item.cantidad),
-          descripcion: String(item.descripcion || ""),
           precioUnitario: parseFloat(item.precioUnitario),
           // reutilizarCorteSolicitadoId es opcional
           ...(item.reutilizarCorteSolicitadoId ? { reutilizarCorteSolicitadoId: parseInt(item.reutilizarCorteSolicitadoId) } : {})
@@ -269,7 +268,6 @@ export async function confirmarVenta(id, ordenCompleta) {
       return {
         id: item.id ?? null,
         productoId: productoIdNum,
-        descripcion: item.descripcion ?? "",
         cantidad: Number(item.cantidad ?? 1),
         precioUnitario: Number(item.precioUnitario ?? 0),
         totalLinea: Number(item.totalLinea ?? 0),
@@ -360,7 +358,6 @@ export async function actualizarOrdenVenta(id, payload) {
       items: itemsValidos.map(item => {
         const itemData = {
           productoId: parseInt(item.productoId),
-          descripcion: String(item.descripcion || ""),
           cantidad: parseInt(item.cantidad),
           precioUnitario: parseFloat(item.precioUnitario),
         };

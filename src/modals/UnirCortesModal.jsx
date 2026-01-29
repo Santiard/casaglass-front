@@ -22,7 +22,7 @@ export default function UnirCortesModal({ isOpen, onClose, cortes = [], categori
       // filtrar por texto
       if (search) {
         const q = search.toLowerCase();
-        if (!((c.nombre||'').toLowerCase().includes(q) || (c.codigo||'').toLowerCase().includes(q) || (c.observacion||'').toLowerCase().includes(q))) return false;
+        if (!((c.nombre||'').toLowerCase().includes(q) || (c.codigo||'').toLowerCase().includes(q))) return false;
       }
       // OBLIGATORIO: ocultar cortes sin stock en la sede del usuario (la sede siempre está definida)
       const qtySede = sedeId === 1 ? Number(c.cantidadInsula || 0) : sedeId === 2 ? Number(c.cantidadCentro || 0) : sedeId === 3 ? Number(c.cantidadPatios || 0) : 0;

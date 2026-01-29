@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState, useRef } from "react";
 import "../styles/MovimientoNuevoModal.css";
 import CategorySidebar from "../componets/CategorySidebar.jsx";
-import { listarClientes } from "../services/ClientesService.js";
+import { listarClientes, crearCliente } from "../services/ClientesService.js";
+import ClienteModal from "./ClienteModal.jsx";
 import { listarSedes } from "../services/SedesService.js";
 import { listarTrabajadores } from "../services/TrabajadoresService.js";
 import { listarCategorias } from "../services/CategoriasService.js";
@@ -42,6 +43,7 @@ export default function OrdenEditarModal({
   const [clienteSearch, setClienteSearch] = useState("");
   const [clienteSearchModal, setClienteSearchModal] = useState(""); // Búsqueda dentro del modal
   const [showClienteModal, setShowClienteModal] = useState(false);
+  const [showClienteCreateModal, setShowClienteCreateModal] = useState(false);
   // Array de métodos de pago: [{ tipo: "EFECTIVO", monto: 50000, banco: "" }, ...]
   const [metodosPago, setMetodosPago] = useState([]);
   const [observacionesAdicionales, setObservacionesAdicionales] = useState(""); // Observaciones sin método de pago
@@ -317,7 +319,6 @@ export default function OrdenEditarModal({
               productoId: Number((p.productoOriginal ?? p.id) ?? 0) || null,
               codigo: p.codigo ?? "",
               nombre: p.nombre ?? "",
-              descripcion: p.nombre ?? "",
               cantidad: Number(p.cantidadVender ?? 1),
               precioUnitario: Number(p.precioUsado ?? 0),
               totalLinea: Number((p.precioUsado ?? 0) * (p.cantidadVender ?? 1)),
@@ -385,7 +386,6 @@ export default function OrdenEditarModal({
           codigo: i.producto?.codigo ?? "",
           nombre: i.producto?.nombre ?? "",
           color: i.producto?.color ?? "", // Agregar color del producto
-          descripcion: i.descripcion ?? "",
           cantidad: Number(i.cantidad ?? 1),
           precioUnitario: Number(i.precioUnitario ?? 0),
           totalLinea: Number(i.totalLinea ?? 0),
@@ -436,7 +436,6 @@ export default function OrdenEditarModal({
             codigo: i.producto?.codigo ?? "",
             nombre: i.producto?.nombre ?? "",
             color: i.producto?.color ?? "", // Agregar color del producto
-            descripcion: i.descripcion ?? "",
             cantidad: Number(i.cantidad ?? 1),
             precioUnitario: Number(i.precioUnitario ?? 0),
             totalLinea: Number(i.totalLinea ?? 0),
@@ -857,7 +856,6 @@ export default function OrdenEditarModal({
         productoId: productoId, // Usar item.id o item.productoId
         codigo: item.codigo,
         nombre: item.nombre,
-        descripcion: item.descripcion || "",
         cantidad: 1,
         precioUnitario: precioUnitario,
         totalLinea: precioUnitario, // 1 * precioUnitario
@@ -1087,7 +1085,6 @@ export default function OrdenEditarModal({
             
             const item = {
               productoId: productoId,
-              descripcion: i.descripcion ?? "",
               cantidad: Number(i.cantidad),
               precioUnitario: Number(i.precioUnitario),
             };
@@ -1376,7 +1373,6 @@ export default function OrdenEditarModal({
         return {
           id: i.id ?? null,
           productoId: productoId,
-          descripcion: i.descripcion ?? "",
           cantidad: Number(i.cantidad),
           precioUnitario: Number(i.precioUnitario),
           totalLinea: Number(i.totalLinea ?? 0),
@@ -2419,7 +2415,24 @@ export default function OrdenEditarModal({
             flexDirection: 'column',
             overflow: 'hidden'
           }}>
-            <h2>Seleccionar Cliente</h2>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+              <h2 style={{ margin: 0 }}>Seleccionar Cliente</h2>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowClienteModal(false);
+                  setShowClienteCreateModal(true);
+                }}
+                className="btn-guardar"
+                style={{
+                  padding: '0.5rem 1rem',
+                  fontSize: '0.9rem',
+                  whiteSpace: 'nowrap'
+                }}
+              >
+                + Agregar Cliente
+              </button>
+            </div>
             
             <div style={{ marginBottom: '1rem', flexShrink: 0 }}>
               <input
@@ -2474,10 +2487,13 @@ export default function OrdenEditarModal({
                     )
                   : clientes;
                 
-                // Ordenar alfabéticamente
+                // Ordenar alfabéticamente, pero "VARIOS" siempre primero
                 const sorted = [...filtered].sort((a, b) => {
                   const nombreA = (a.nombre || "").toLowerCase();
                   const nombreB = (b.nombre || "").toLowerCase();
+                  // Si "VARIOS" está en alguno, siempre va primero
+                  if (nombreA === "varios") return -1;
+                  if (nombreB === "varios") return 1;
                   return nombreA.localeCompare(nombreB, 'es', { sensitivity: 'base' });
                 });
                 
@@ -2573,6 +2589,30 @@ export default function OrdenEditarModal({
           </div>
         </div>
       )}
+
+      {/* Modal de crear cliente */}
+      <ClienteModal
+        isOpen={showClienteCreateModal}
+        onClose={() => setShowClienteCreateModal(false)}
+        onSave={async (clienteData, isEdit) => {
+          try {
+            const nuevoCliente = await crearCliente(clienteData);
+            // Actualizar la lista de clientes
+            const clientesActualizados = await listarClientes();
+            setClientes(clientesActualizados);
+            // Seleccionar automáticamente el cliente recién creado
+            handleChange("clienteId", String(nuevoCliente.id));
+            setClienteSearch(nuevoCliente.nombre);
+            setShowClienteCreateModal(false);
+            showSuccess("Cliente creado y seleccionado exitosamente");
+          } catch (error) {
+            showError(error?.response?.data?.message || "No se pudo crear el cliente");
+            throw error; // Re-lanzar para que el modal no se cierre
+          }
+        }}
+        clientesExistentes={clientes}
+      />
+
       <ConfirmDialog />
     </div>
   );

@@ -1503,6 +1503,9 @@ const AbonoPage = () => {
                   const sorted = [...clientesFiltrados].sort((a, b) => {
                     const nombreA = (a.nombre || '').toLowerCase();
                     const nombreB = (b.nombre || '').toLowerCase();
+                    // Si "VARIOS" está en alguno, siempre va primero
+                    if (nombreA === "varios") return -1;
+                    if (nombreB === "varios") return 1;
                     return nombreA.localeCompare(nombreB, 'es', { sensitivity: 'base' });
                   });
 

@@ -216,7 +216,6 @@ export default function OrdenDetalleModal({ ordenId, facturaId, isOpen, onClose 
                   <tr>
                     <th>Código</th>
                     <th>Producto</th>
-                    <th>Descripción</th>
                     <th>Cantidad</th>
                     <th>Precio Unit.</th>
                     <th>Total Línea</th>
@@ -225,7 +224,7 @@ export default function OrdenDetalleModal({ ordenId, facturaId, isOpen, onClose 
                 <tbody>
                   {detalles.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="empty">
+                      <td colSpan={5} className="empty">
                         Sin ítems
                       </td>
                     </tr>
@@ -234,7 +233,6 @@ export default function OrdenDetalleModal({ ordenId, facturaId, isOpen, onClose 
                       <tr key={d.id || `item-${i}`}>
                         <td>{d.producto?.codigo ?? "-"}</td>
                         <td>{d.producto?.nombre ?? "-"}</td>
-                        <td>{d.descripcion ?? "-"}</td>
                         <td style={{ textAlign: "center" }}>{d.cantidad ?? "-"}</td>
                         <td>{fmtCOP(Number(d.precioUnitario))}</td>
                         <td>{fmtCOP(Number(d.totalLinea))}</td>
