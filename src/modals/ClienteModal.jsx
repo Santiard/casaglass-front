@@ -67,10 +67,10 @@ export default function ClienteModal({
     
     // Manejo especial para NIT: permite números y guion "-"
     if (name === 'nit') {
-      // Permitir solo números y guion, máximo 11 caracteres
+      // Permitir solo números y guion, máximo 13 caracteres
       const filtered = value.replace(/[^0-9-]/g, '');
-      // Limitar a 11 caracteres
-      const limited = filtered.slice(0, 11);
+      // Limitar a 13 caracteres
+      const limited = filtered.slice(0, 13);
       
       setFormData(prev => ({
         ...prev,
@@ -101,7 +101,7 @@ export default function ClienteModal({
     const telefono = (formData.telefono || "").trim();
     
     if (!nit) return "El NIT es obligatorio.";
-    if (nit.length > 11) return "El NIT debe contener máximo 11 caracteres (incluyendo el guion -).";
+    if (nit.length > 13) return "El NIT debe contener máximo 13 caracteres (incluyendo el guion -).";
     if (nit.length < 1) return "El NIT debe contener al menos 1 carácter.";
     // Validar formato: solo números y un guion opcional
     if (!/^[\d-]+$/.test(nit)) return "El NIT solo puede contener números y el guion (-).";
@@ -187,10 +187,10 @@ export default function ClienteModal({
               name="nit" 
               value={formData.nit} 
               onChange={handleChange} 
-              placeholder="Máximo 11 caracteres (ej: 123456789-0)"
-              maxLength="11"
-              pattern="[\d-]{1,11}"
-              title="El NIT debe contener entre 1 y 11 caracteres (números y guion -)"
+              placeholder="Máximo 13 caracteres (ej: 123456789-0)"
+              maxLength="13"
+              pattern="[\d-]{1,13}"
+              title="El NIT debe contener entre 1 y 13 caracteres (números y guion -)"
               required
               onKeyDown={(e) => {
                 // Permitir: números, guion, backspace, delete, tab, escape, enter, y atajos de teclado
