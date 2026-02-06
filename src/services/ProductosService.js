@@ -125,7 +125,39 @@ export async function crearProducto(payload) {
 }
 export async function actualizarProducto(id, payload) {
   try {
-    const { data } = await api.put(`/productos/${id}`, payload, {
+    const processedPayload = { ...payload };
+
+    // Procesar el campo posicion según la documentación (igual que en crearProducto)
+    if (processedPayload.posicion !== undefined && processedPayload.posicion !== null) {
+      if (typeof processedPayload.posicion === 'number') {
+        if (processedPayload.posicion > 0) {
+          processedPayload.posicion = String(processedPayload.posicion);
+        } else {
+          // Si es 0 o negativo, no incluir posicion
+          delete processedPayload.posicion;
+        }
+      } else if (typeof processedPayload.posicion === 'string') {
+        const posicionTrimmed = processedPayload.posicion.trim();
+        if (posicionTrimmed === '' || posicionTrimmed === '0') {
+          // Si es string vacío o "0", no incluir posicion
+          delete processedPayload.posicion;
+        } else {
+          const posicionNum = Number(posicionTrimmed);
+          if (isNaN(posicionNum) || posicionNum <= 0) {
+            // Si no es un número válido o es <= 0, no incluir posicion
+            delete processedPayload.posicion;
+          } else {
+            // Si es un número válido y positivo, convertir a string
+            processedPayload.posicion = String(posicionNum);
+          }
+        }
+      }
+    } else {
+      // Si es null o undefined, no incluir posicion
+      delete processedPayload.posicion;
+    }
+
+    const { data } = await api.put(`/productos/${id}`, processedPayload, {
       headers: {
         'Content-Type': 'application/json',
       }

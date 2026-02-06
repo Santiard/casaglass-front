@@ -768,6 +768,13 @@ export default function OrdenEditarModal({
       );
     }
     
+    // Ordenar por posición (productos sin posición al final)
+    filtered.sort((a, b) => {
+      const posA = a.posicion ? parseInt(a.posicion) : Number.MAX_SAFE_INTEGER;
+      const posB = b.posicion ? parseInt(b.posicion) : Number.MAX_SAFE_INTEGER;
+      return posA - posB;
+    });
+    
     return filtered;
   }, [catalogoProductos, search, selectedCategoryId, selectedColor, categorias]);
 

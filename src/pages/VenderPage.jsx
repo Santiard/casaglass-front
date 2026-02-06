@@ -156,6 +156,14 @@ export default function VenderPage() {
       }
       
       const productos = await listarInventarioCompleto(params, isAdmin, sedeId);
+      
+      // Ordenar productos por posición (productos sin posición al final)
+      productos.sort((a, b) => {
+        const posA = a.posicion ? parseInt(a.posicion) : Number.MAX_SAFE_INTEGER;
+        const posB = b.posicion ? parseInt(b.posicion) : Number.MAX_SAFE_INTEGER;
+        return posA - posB;
+      });
+      
       setData(productos || []);
     } catch (e) {
       console.error("Error cargando inventario completo", e);

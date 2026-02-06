@@ -37,6 +37,7 @@ export default function ProductModal({ isOpen, onClose, onSave, product }) {
   const [categories, setCategories] = useState([]);
   const [productosPosiciones, setProductosPosiciones] = useState([]);
   const [selectedCategoryId, setSelectedCategoryId] = useState(null);
+  const [selectedColor, setSelectedColor] = useState(""); // Filtro de color
   const [loadingProductos, setLoadingProductos] = useState(false);
 
   const isEditing = !!product;
@@ -105,6 +106,18 @@ export default function ProductModal({ isOpen, onClose, onSave, product }) {
                                  (product.m2 != null && product.m2 !== undefined);
       const esVid = product.esVidrio === true || categoriaNombre.includes('vidrio') || tieneCamposVidrio;
       
+      // Inicializar selectedCategoryId con la categoría del producto
+      if (product.categoria) {
+        if (typeof product.categoria === 'object' && product.categoria.id) {
+          setSelectedCategoryId(product.categoria.id);
+        } else if (typeof product.categoria === 'string') {
+          // Buscar la categoría por nombre
+          const cat = categories.find(c => c.nombre === product.categoria);
+          if (cat) {
+            setSelectedCategoryId(cat.id);
+          }
+        }
+      }
       
       const tipoProducto = product.tipo || "UNID";
       // PERFIL y MT usan MATE por defecto, otros usan NA
@@ -132,9 +145,10 @@ export default function ProductModal({ isOpen, onClose, onSave, product }) {
       });
     } else {
       setFormData(initialState);
+      setSelectedCategoryId(null); // Resetear categoría al crear nuevo producto
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [product]);
+  }, [product, categories]);
 
   // Filtrar y ordenar productos para la tabla
   const productosFiltrados = useMemo(() => {
@@ -150,6 +164,15 @@ export default function ProductModal({ isOpen, onClose, onSave, product }) {
       });
     }
     
+    // Filtrar por color si está seleccionado
+    if (selectedColor) {
+      const colorFiltro = selectedColor.toUpperCase().trim();
+      filtered = filtered.filter((p) => {
+        const productoColor = (p.color || "").toUpperCase().trim();
+        return productoColor === colorFiltro;
+      });
+    }
+    
     // Ordenar por posición numérica (productos sin posición al final)
     filtered.sort((a, b) => {
       const posA = a.posicion ? parseInt(a.posicion) : Number.MAX_SAFE_INTEGER;
@@ -158,7 +181,7 @@ export default function ProductModal({ isOpen, onClose, onSave, product }) {
     });
     
     return filtered;
-  }, [productosPosiciones, selectedCategoryId]);
+  }, [productosPosiciones, selectedCategoryId, selectedColor]);
 
   if (!isOpen) return null;
 
@@ -596,31 +619,31 @@ export default function ProductModal({ isOpen, onClose, onSave, product }) {
                 </select>
               </label>
 
-              {/* Campo de posición - solo en creación */}
-              {!isEditing && (
-                <label>
-                  Posición:
-                  <input
-                    type="text"
-                    name="posicion"
-                    placeholder="Dejar vacío para insertar al final"
-                    value={formData.posicion}
-                    onChange={handleChange}
-                    inputMode="numeric"
-                    pattern="[0-9]*"
-                    style={{
-                      width: "100%",
-                      padding: "0.5rem",
-                      border: "1px solid #ddd",
-                      borderRadius: "4px",
-                      fontSize: "0.875rem"
-                    }}
-                  />
-                  <small style={{ color: '#666', fontSize: '0.75rem', display: 'block', marginTop: '4px' }}>
-                    Número de posición donde insertar el producto. Si se deja vacío, se insertará al final.
-                  </small>
-                </label>
-              )}
+              {/* Campo de posición - disponible en creación y edición */}
+              <label>
+                Posición:
+                <input
+                  type="text"
+                  name="posicion"
+                  placeholder={isEditing ? "Dejar vacío para mantener posición actual" : "Dejar vacío para insertar al final"}
+                  value={formData.posicion}
+                  onChange={handleChange}
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  style={{
+                    width: "100%",
+                    padding: "0.5rem",
+                    border: "1px solid #ddd",
+                    borderRadius: "4px",
+                    fontSize: "0.875rem"
+                  }}
+                />
+                <small style={{ color: '#666', fontSize: '0.75rem', display: 'block', marginTop: '4px' }}>
+                  {isEditing 
+                    ? "Número de posición del producto. Cambiar este valor moverá el producto a la nueva posición."
+                    : "Número de posición donde insertar el producto. Si se deja vacío, se insertará al final."}
+                </small>
+              </label>
 
               {/* Checkbox para identificar vidrio */}
               <label className="checkbox">
@@ -842,14 +865,35 @@ export default function ProductModal({ isOpen, onClose, onSave, product }) {
               display: 'flex',
               flexDirection: 'column'
             }}>
-              <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.1rem' }}>
-                Productos Existentes
-                {selectedCategoryId && (
-                  <span style={{ fontSize: '0.85rem', color: '#666', fontWeight: 'normal', marginLeft: '0.5rem' }}>
-                    • {categories.find(c => c.id === selectedCategoryId)?.nombre}
-                  </span>
-                )}
-              </h3>
+              <div style={{ marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+                <h3 style={{ margin: 0, fontSize: '1.1rem' }}>
+                  Productos Existentes
+                  {selectedCategoryId && (
+                    <span style={{ fontSize: '0.85rem', color: '#666', fontWeight: 'normal', marginLeft: '0.5rem' }}>
+                      • {categories.find(c => c.id === selectedCategoryId)?.nombre}
+                    </span>
+                  )}
+                </h3>
+                <select
+                  className="filter-select"
+                  value={selectedColor}
+                  onChange={(e) => setSelectedColor(e.target.value)}
+                  style={{
+                    padding: "0.5rem",
+                    borderRadius: "4px",
+                    border: "1px solid #ddd",
+                    fontSize: "0.9rem",
+                    minWidth: "140px"
+                  }}
+                >
+                  <option value="">Todos los colores</option>
+                  <option value="MATE">MATE</option>
+                  <option value="BLANCO">BLANCO</option>
+                  <option value="NEGRO">NEGRO</option>
+                  <option value="BRONCE">BRONCE</option>
+                  <option value="NA">NA</option>
+                </select>
+              </div>
 
               {loadingProductos ? (
                 <div style={{ textAlign: 'center', padding: '2rem', color: '#666' }}>

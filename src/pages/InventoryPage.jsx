@@ -206,6 +206,13 @@ export default function InventoryPage() {
         productos = productosFiltrados;
       }
       
+      // Ordenar productos por posición (productos sin posición al final)
+      productos.sort((a, b) => {
+        const posA = a.posicion ? parseInt(a.posicion) : Number.MAX_SAFE_INTEGER;
+        const posB = b.posicion ? parseInt(b.posicion) : Number.MAX_SAFE_INTEGER;
+        return posA - posB;
+      });
+      
       setData(productos || []);
     } catch (e) {
       showError(e?.response?.data?.message || "No se pudo cargar el inventario.");
