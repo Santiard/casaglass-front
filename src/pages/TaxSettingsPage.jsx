@@ -14,6 +14,8 @@ const [message, setMessage] = useState(null);
 const [iva, setIva] = useState(0); // % - Inicializado en 0 hasta que cargue del backend
 const [rete, setRete] = useState(0); // % - Inicializado en 0 hasta que cargue del backend
 const [umbral, setUmbral] = useState(0);// COP - Inicializado en 0 hasta que cargue del backend
+const [ica, setIca] = useState(0); // % - Inicializado en 0 hasta que cargue del backend
+const [umbralIca, setUmbralIca] = useState(0);// COP - Inicializado en 0 hasta que cargue del backend
 
 
 useEffect(()=>{
@@ -23,10 +25,12 @@ if (s) {
 setIva(Number(s.ivaRate));
 setRete(Number(s.retefuenteRate));
 setUmbral(Number(s.retefuenteThreshold));
+setIca(s.icaRate != null ? Number(s.icaRate) : 0.48);
+setUmbralIca(s.icaThreshold != null ? Number(s.icaThreshold) : 1000000);
 }
 }).finally(()=> setLoading(false));
 }, []);
-const canSave = iva>=0 && iva<=100 && rete>=0 && rete<=100 && umbral>=0 && !loading;
+const canSave = iva>=0 && iva<=100 && rete>=0 && rete<=100 && umbral>=0 && ica>=0 && ica<=100 && umbralIca>=0 && !loading;
 
 
 async function onSubmit(e){
@@ -35,9 +39,18 @@ if (!canSave) return;
 setMessage(null);
 setLoading(true);
 try {
-await updateBusinessSettings({ ivaRate: Number(iva), retefuenteRate: Number(rete), retefuenteThreshold: Number(umbral) });
+const payload = { 
+  ivaRate: Number(iva), 
+  retefuenteRate: Number(rete), 
+  retefuenteThreshold: Number(umbral),
+  icaRate: Number(ica),
+  icaThreshold: Number(umbralIca)
+};
+console.log('[TaxSettingsPage] Enviando payload:', payload);
+await updateBusinessSettings(payload);
 setMessage({ type: 'ok', text: 'Parámetros guardados' });
 } catch (err) {
+console.error('[TaxSettingsPage] Error guardando:', err);
 setMessage({ type: 'error', text: err.message || 'No se pudieron guardar los cambios' });
 } finally { setLoading(false); }
 }
@@ -51,9 +64,11 @@ const ivaVal = (iva && iva > 0) ? (preSub * iva) / (100 + iva) : 0;
 const subtotal = preSub - ivaVal; // Subtotal sin IVA
 const aplicaRete = subtotal >= (umbral||0);
 const reteVal = aplicaRete ? (subtotal * (rete||0))/100 : 0;
-const total = preSub - reteVal; // Total final (precio con IVA - retención)
-return { ivaVal, reteVal, aplicaRete, total, subtotal };
-}, [preSub, iva, rete, umbral]);
+const aplicaIca = subtotal >= (umbralIca||0);
+const icaVal = aplicaIca ? (subtotal * (ica||0))/100 : 0;
+const total = preSub - reteVal - icaVal; // Total final (precio con IVA - retenciones)
+return { ivaVal, reteVal, icaVal, aplicaRete, aplicaIca, total, subtotal };
+}, [preSub, iva, rete, umbral, ica, umbralIca]);
 
 const fmtCOP = (n)=> new Intl.NumberFormat('es-CO', { style:'currency', currency:'COP', maximumFractionDigits:0 }).format(n||0);
 
@@ -61,7 +76,7 @@ return (
 <div className="settings-page" style={{ height: '100vh', overflowY: 'auto', overflowX: 'hidden' }}>
 <header className="settings-header">
   <h2>Parámetros de impuestos</h2>
-  <p>Configura IVA, retención en la fuente y el umbral de aplicación.</p>
+  <p>Configura IVA, retención en la fuente, ICA y sus umbrales de aplicación.</p>
 </header>
 <section className="settings-card">
 <form className="settings-form tax-grid" onSubmit={onSubmit}>
@@ -96,6 +111,26 @@ onChange={(e)=>setUmbral(Number(e.target.value))} />
 </div>
 <small className="hint">Desde este monto aplica retención</small>
 </div>
+
+<div className="form-row">
+<label htmlFor="ica">ICA (%)</label>
+<div className="input-with-suffix">
+<input id="ica" type="number" step="0.01" min="0" max="100" value={ica}
+onChange={(e)=>setIca(Number(e.target.value))} />
+<span className="suffix">%</span>
+</div>
+<small className="hint">0–100 (precisión: 0.01%)</small>
+</div>
+
+<div className="form-row">
+<label htmlFor="umbralIca">Umbral ICA (COP)</label>
+<div className="input-with-prefix">
+<span className="prefix">$</span>
+<input id="umbralIca" type="number" step="1" min="0" value={umbralIca}
+onChange={(e)=>setUmbralIca(Number(e.target.value))} />
+</div>
+<small className="hint">Desde este monto aplica ICA</small>
+</div>
 </fieldset>
 
 
@@ -113,6 +148,7 @@ onChange={(e)=>setPreSub(Number(e.target.value))} />
 <li><span>Subtotal (sin IVA):</span><strong>{fmtCOP(preview.subtotal)}</strong></li>
 <li><span>IVA incluido ({iva||0}%):</span><strong>{fmtCOP(preview.ivaVal)}</strong></li>
 <li><span>Retención ({rete||0}%) {preview.aplicaRete ? '(aplica)' : '(no aplica)'}:</span><strong>-{fmtCOP(preview.reteVal)}</strong></li>
+<li><span>ICA ({ica||0}%) {preview.aplicaIca ? '(aplica)' : '(no aplica)'}:</span><strong>-{fmtCOP(preview.icaVal)}</strong></li>
 <li className="total"><span>Total a pagar:</span><strong>{fmtCOP(preview.total)}</strong></li>
 </ul>
 </section>

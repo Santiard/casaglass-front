@@ -1,0 +1,373 @@
+/* Estilos específicos para el modal de imprimir facturas */
+.factura-imprimir-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(30, 39, 83, 0.6);
+  display: grid;
+  place-items: center;
+  z-index: 10000;
+}
+
+.factura-imprimir-modal-container {
+  background: #fff;
+  padding: 1.5rem;
+  border-radius: 8px;
+  width: 95vw;
+  max-width: 1200px;
+  max-height: 95vh;
+  overflow-y: auto;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.factura-imprimir-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid #1e2753;
+}
+
+.factura-imprimir-modal-header h2 {
+  margin: 0;
+  color: #1e2753;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.factura-imprimir-modal-actions {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.factura-imprimir-btn-guardar,
+.factura-imprimir-btn-imprimir {
+  padding: 0.625rem 1.5rem;
+  background-color: #1e2753;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.factura-imprimir-btn-guardar:hover,
+.factura-imprimir-btn-imprimir:hover {
+  background-color: #2a3569;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.factura-imprimir-btn-cerrar {
+  padding: 0.625rem 1.5rem;
+  background-color: #dc3545;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.factura-imprimir-btn-cerrar:hover {
+  background-color: #c82333;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Contenido imprimible */
+.factura-imprimir-printable-content {
+  background: #fff;
+  padding: 20px;
+}
+
+.factura-imprimir-header {
+  text-align: center;
+  margin-bottom: 15px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid #1e2753;
+}
+
+.factura-imprimir-header h1 {
+  margin: 0 0 5px 0;
+  color: #1e2753;
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.factura-imprimir-header h2 {
+  margin: 5px 0;
+  color: #333;
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.factura-imprimir-header p {
+  margin: 5px 0;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.factura-imprimir-info {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 15px;
+  margin-bottom: 15px;
+}
+
+.factura-imprimir-info-section h3 {
+  margin: 0 0 5px 0;
+  color: #1e2753;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.factura-imprimir-info-section p {
+  margin: 0;
+  color: #333;
+  font-size: 0.9rem;
+}
+
+.factura-imprimir-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 15px 0;
+  font-size: 0.9rem;
+  background: #fff;
+}
+
+.factura-imprimir-table thead {
+  background-color: #1e2753;
+  color: #fff;
+}
+
+.factura-imprimir-table th {
+  padding: 10px 12px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.85rem;
+  border: 1px solid #1e2753;
+}
+
+.factura-imprimir-table td {
+  padding: 8px 12px;
+  border-bottom: 1px solid #e0e0e0;
+  border-right: 1px solid #f0f0f0;
+  font-size: 0.85rem;
+  color: #333;
+}
+
+.factura-imprimir-table tbody tr:nth-child(even) {
+  background-color: #f8f9fa;
+}
+
+.factura-imprimir-table tbody tr:hover {
+  background-color: #f0f4ff;
+}
+
+.factura-imprimir-table .text-center {
+  text-align: center;
+}
+
+.factura-imprimir-table .text-right {
+  text-align: right;
+}
+
+.factura-imprimir-table .empty {
+  text-align: center;
+  color: #999;
+  padding: 20px;
+  font-style: italic;
+}
+
+.factura-imprimir-total {
+  margin-top: 15px;
+  padding: 12px;
+  background: #f8f9fa;
+  border-radius: 6px;
+  text-align: right;
+}
+
+.factura-imprimir-total p {
+  margin: 4px 0;
+  font-size: 0.9rem;
+  color: #333;
+}
+
+.factura-imprimir-total p strong {
+  color: #1e2753;
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+/* Estilos para impresión */
+@media print {
+  /* Ocultar todo excepto el contenido imprimible */
+  body > *:not(.factura-imprimir-modal-overlay) {
+    display: none !important;
+  }
+  
+  body {
+    background: #fff !important;
+  }
+
+  .factura-imprimir-modal-overlay {
+    position: static !important;
+    background: #fff !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    inset: auto !important;
+    display: block !important;
+    width: 100% !important;
+    height: auto !important;
+  }
+
+  .factura-imprimir-modal-container {
+    position: static !important;
+    max-width: 100% !important;
+    max-height: none !important;
+    height: auto !important;
+    overflow: visible !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    display: block !important;
+  }
+  
+  .factura-imprimir-modal-header,
+  .factura-imprimir-modal-actions {
+    display: none !important;
+  }
+  
+  .factura-imprimir-printable-content {
+    position: relative !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+  }
+  
+  #printable-factura-content {
+    position: relative !important;
+    left: auto !important;
+    top: auto !important;
+    width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  
+  /* Reglas de page-break para tablas largas */
+  .factura-imprimir-table {
+    page-break-inside: auto;
+    font-size: 0.75rem;
+  }
+  
+  .factura-imprimir-table thead {
+    display: table-header-group;
+  }
+  
+  .factura-imprimir-table tbody {
+    display: table-row-group;
+  }
+  
+  .factura-imprimir-table tr {
+    page-break-inside: avoid;
+  }
+
+  /* Aumentar tamaños de fuente para mejor legibilidad */
+  body {
+    font-size: 1rem;
+  }
+  
+  .factura-imprimir-header h1 {
+    font-size: 1.3rem !important;
+    color: #000 !important;
+  }
+  
+  .factura-imprimir-header h2 {
+    font-size: 1.1rem !important;
+    color: #000 !important;
+  }
+  
+  .factura-imprimir-header p {
+    font-size: 0.9rem !important;
+    color: #000 !important;
+  }
+  
+  .factura-imprimir-info-section h3 {
+    font-size: 0.9rem !important;
+    color: #000 !important;
+  }
+  
+  .factura-imprimir-info-section p {
+    font-size: 0.85rem !important;
+    color: #000 !important;
+  }
+  
+  /* Tabla sin bordes para ahorrar tinta */
+  .factura-imprimir-table {
+    font-size: 0.9rem !important;
+  }
+  
+  .factura-imprimir-table thead {
+    background-color: transparent !important;
+    color: #000 !important;
+    border-bottom: 2px solid #000 !important;
+  }
+  
+  .factura-imprimir-table th {
+    background-color: transparent !important;
+    color: #000 !important;
+    border: none !important;
+    border-bottom: 2px solid #000 !important;
+    padding: 6px 8px !important;
+    font-size: 0.85rem !important;
+  }
+  
+  .factura-imprimir-table td {
+    color: #000 !important;
+    border: none !important;
+    padding: 5px 8px !important;
+    font-size: 0.85rem !important;
+  }
+  
+  .factura-imprimir-table tbody tr:nth-child(even) {
+    background-color: transparent !important;
+  }
+
+  .factura-imprimir-printable-content {
+    background: #fff !important;
+    color: #000 !important;
+  }
+
+  /* Solo línea inferior para el encabezado */
+  .factura-imprimir-header {
+    border-bottom: 2px solid #000 !important;
+  }
+
+  /* Totales con línea superior solamente */
+  .factura-imprimir-total {
+    background: transparent !important;
+    border: none !important;
+    border-top: 2px solid #000 !important;
+    padding-top: 8px !important;
+  }
+
+  .factura-imprimir-total p {
+    color: #000 !important;
+    font-size: 0.95rem !important;
+  }
+
+  .factura-imprimir-total p strong {
+    color: #000 !important;
+    font-size: 1.05rem !important;
+  }
+}
+

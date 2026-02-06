@@ -169,10 +169,21 @@ html { font-size: 1rem; }
 }
 .table tr.danger { background: rgba(239, 68, 68, 0.08); }
 
-/* Asegurar que la tabla no se salga del contenedor */
+/* Asegurar que la tabla ocupe todo el ancho disponible */
 .low-stock-table-wrapper .table {
-  min-width: 100%;
+  width: 100%;
   table-layout: auto;
+}
+
+/* Permitir que el texto se ajuste en las celdas para mejor legibilidad */
+.low-stock-table-wrapper .table td {
+  white-space: normal;
+  word-wrap: break-word;
+  max-width: 200px;
+}
+
+.low-stock-table-wrapper .table th {
+  white-space: normal;
 }
 
 /* ===== Lista simple ===== */

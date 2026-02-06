@@ -14,7 +14,7 @@ export default function OrdenDetalleModal({ ordenId, facturaId, isOpen, onClose 
   const [retefuenteRate, setRetefuenteRate] = useState(2.5);
 
   useEffect(() => {
-    if (isOpen && ordenId) {
+    if (isOpen) {
       // Cargar configuración de impuestos
       getBusinessSettings().then((settings) => {
         if (settings) {
@@ -22,11 +22,14 @@ export default function OrdenDetalleModal({ ordenId, facturaId, isOpen, onClose 
           setRetefuenteRate(Number(settings.retefuenteRate) || 2.5);
         }
       });
-      loadOrdenDetalle();
       
-      // Si hay facturaId, cargar también la factura para usar sus valores monetarios
+      // Si hay facturaId, cargar primero la factura (que ahora incluye la orden completa)
+      // Esto evita el error 500 al intentar cargar la orden directamente
       if (facturaId) {
         loadFactura();
+      } else if (ordenId) {
+        // Solo cargar orden directamente si no hay facturaId
+        loadOrdenDetalle();
       }
     } else {
       setOrden(null);
@@ -35,8 +38,10 @@ export default function OrdenDetalleModal({ ordenId, facturaId, isOpen, onClose 
     }
   }, [isOpen, ordenId, facturaId]);
 
-  const loadOrdenDetalle = async () => {
-    setLoading(true);
+  const loadOrdenDetalle = async (setLoadingState = true) => {
+    if (setLoadingState) {
+      setLoading(true);
+    }
     setError(null);
     try {
       const ordenData = await obtenerOrdenDetalle(ordenId);
@@ -54,12 +59,17 @@ export default function OrdenDetalleModal({ ordenId, facturaId, isOpen, onClose 
       console.error("Error cargando detalles de orden:", e);
       setError(e?.response?.data?.message || "No se pudieron cargar los detalles de la orden.");
     } finally {
-      setLoading(false);
+      if (setLoadingState) {
+        setLoading(false);
+      }
     }
   };
 
   const loadFactura = async () => {
+    setLoading(true);
+    setError(null);
     try {
+      // Obtener factura completa - ahora retorna FacturaDetalleDTO con orden completa incluida
       const facturaData = await obtenerFactura(facturaId);
       console.log("[OrdenDetalleModal] Datos de factura recibidos:", {
         id: facturaData?.id,
@@ -68,12 +78,31 @@ export default function OrdenDetalleModal({ ordenId, facturaId, isOpen, onClose 
         iva: facturaData?.iva,
         retencionFuente: facturaData?.retencionFuente,
         total: facturaData?.total,
-        // descuentos ya no existe en factura
+        tieneOrden: !!facturaData?.orden
       });
+      
       setFactura(facturaData);
+      
+      // Si la factura incluye la orden completa, usarla directamente
+      // Esto evita el error 500 al intentar cargar la orden por separado
+      if (facturaData?.orden) {
+        console.log("[OrdenDetalleModal] Usando orden de la factura (incluye items completos)");
+        setOrden(facturaData.orden);
+      } else if (ordenId) {
+        // Si no viene la orden en la factura, intentar cargarla directamente
+        console.log("[OrdenDetalleModal] Orden no incluida en factura, cargando directamente");
+        await loadOrdenDetalle(false); // No cambiar el estado de loading ya que estamos dentro de loadFactura
+      }
     } catch (e) {
       console.error("Error cargando detalles de factura:", e);
-      // No mostrar error si falla cargar la factura, solo usar valores de la orden
+      // Si falla cargar la factura y tenemos ordenId, intentar cargar la orden directamente
+      if (ordenId) {
+        await loadOrdenDetalle(false); // No cambiar el estado de loading ya que estamos dentro de loadFactura
+      } else {
+        setError(e?.response?.data?.message || "No se pudieron cargar los detalles de la factura.");
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -119,12 +148,24 @@ export default function OrdenDetalleModal({ ordenId, facturaId, isOpen, onClose 
     ? ((typeof factura?.retencionFuente === 'number' && factura.retencionFuente !== null && factura.retencionFuente !== undefined) ? factura.retencionFuente : 0)
     : ((typeof orden?.retencionFuente === 'number' && orden.retencionFuente !== null && orden.retencionFuente !== undefined) ? orden.retencionFuente : 0);
   
+  const retencionIca = factura
+    ? ((typeof factura?.retencionIca === 'number' && factura.retencionIca !== null && factura.retencionIca !== undefined) ? factura.retencionIca : 0)
+    : ((typeof orden?.retencionIca === 'number' && orden.retencionIca !== null && orden.retencionIca !== undefined) ? orden.retencionIca : 0);
+  
   const total = factura
     ? ((typeof factura?.total === 'number' && factura.total !== null && factura.total !== undefined) ? factura.total : 0)
     : ((typeof orden?.total === 'number' && orden.total !== null && orden.total !== undefined) ? orden.total : 0);
   
   // Para tieneRetencionFuente, usar el de la orden (la factura no tiene este campo boolean)
   const tieneRetencionFuente = orden?.tieneRetencionFuente || false;
+  
+  // Para ICA, usar el de la orden (puede venir en factura.orden también)
+  const tieneRetencionIca = orden?.tieneRetencionIca || factura?.orden?.tieneRetencionIca || false;
+  const porcentajeIca = orden?.porcentajeIca !== undefined && orden?.porcentajeIca !== null 
+    ? Number(orden.porcentajeIca) 
+    : (factura?.orden?.porcentajeIca !== undefined && factura?.orden?.porcentajeIca !== null 
+      ? Number(factura.orden.porcentajeIca) 
+      : null);
 
   return (
     <div className="modal-overlay" onClick={onClose} style={{ overflowY: 'auto', maxHeight: '100vh' }}>
@@ -169,10 +210,16 @@ export default function OrdenDetalleModal({ ordenId, facturaId, isOpen, onClose 
                 <strong>Fecha:</strong> {fmtFecha(orden.fecha)}
               </div>
               <div>
-                <strong>Cliente:</strong> {orden.cliente?.nombre ?? "-"}
+                <strong>Cliente:</strong> {
+                  // Si hay factura, usar el cliente de la factura (cliente al que se factura)
+                  // El backend retorna factura.cliente y factura.orden.cliente será null
+                  factura?.cliente?.nombre || orden.cliente?.nombre || "-"
+                }
               </div>
               <div>
-                <strong>NIT:</strong> {orden.cliente?.nit ?? "-"}
+                <strong>NIT:</strong> {
+                  factura?.cliente?.nit || orden.cliente?.nit || "-"
+                }
               </div>
               <div>
                 <strong>Obra:</strong> {orden.obra ?? "-"}
@@ -200,6 +247,11 @@ export default function OrdenDetalleModal({ ordenId, facturaId, isOpen, onClose 
               {tieneRetencionFuente && (
                 <div>
                   <strong>Retención en la Fuente:</strong> Sí ({fmtCOP(retencionFuente)})
+                </div>
+              )}
+              {tieneRetencionIca && (
+                <div>
+                  <strong>Retención ICA{porcentajeIca ? ` (${porcentajeIca}%)` : ''}:</strong> {fmtCOP(retencionIca)}
                 </div>
               )}
               {factura && (
@@ -252,15 +304,20 @@ export default function OrdenDetalleModal({ ordenId, facturaId, isOpen, onClose 
                 <div>
                   <strong>IVA:</strong> {fmtCOP(iva)}
                 </div>
+                {tieneRetencionIca && retencionIca > 0 && (
+                  <div>
+                    <strong>Retención ICA{porcentajeIca ? ` (${porcentajeIca}%)` : ''}:</strong> {fmtCOP(retencionIca)}
+                  </div>
+                )}
                 <div>
                   <strong>Retención en la Fuente:</strong> {fmtCOP(retencionFuente)}
                 </div>
                 <div style={{ fontWeight: "bold", fontSize: "1.1rem", gridColumn: "1 / -1", paddingTop: "0.5rem", borderTop: "2px solid #ddd" }}>
                   <strong>Total Facturado:</strong> {fmtCOP(total)}
                 </div>
-                {retencionFuente > 0 && (
+                {(retencionFuente > 0 || retencionIca > 0) && (
                   <div style={{ fontSize: "0.9rem", color: "#666", gridColumn: "1 / -1" }}>
-                    <strong>Valor a Pagar:</strong> {fmtCOP(total - retencionFuente)}
+                    <strong>Valor a Pagar:</strong> {fmtCOP(total - retencionFuente - retencionIca)}
                   </div>
                 )}
               </div>

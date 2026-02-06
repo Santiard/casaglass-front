@@ -23,6 +23,7 @@ import add from "../assets/add.png";
 import { useNavigate } from "react-router-dom";
 import OrdenModal from "../modals/OrdenModal.jsx";
 import OrdenImprimirModal from "../modals/OrdenImprimirModal.jsx";
+import RemisionImprimirModal from "../modals/RemisionImprimirModal.jsx";
 import FacturarOrdenModal from "../modals/FacturarOrdenModal.jsx";
 import FacturarMultiplesOrdenesModal from "../modals/FacturarMultiplesOrdenesModal.jsx";
 import HistoricoClienteModal from "../modals/HistoricoClienteModal.jsx";
@@ -62,6 +63,8 @@ export default function OrdenesTable({
   const [filtroEstado, setFiltroEstado] = useState(""); // Filtro de estado
   const [isImprimirModalOpen, setIsImprimirModalOpen] = useState(false);
   const [ordenImprimir, setOrdenImprimir] = useState(null);
+  const [isRemisionModalOpen, setIsRemisionModalOpen] = useState(false);
+  const [ordenRemision, setOrdenRemision] = useState(null);
   const [isFacturarModalOpen, setIsFacturarModalOpen] = useState(false);
   const [ordenFacturar, setOrdenFacturar] = useState(null);
   const [isFacturarOpcionesModalOpen, setIsFacturarOpcionesModalOpen] = useState(false);
@@ -171,6 +174,20 @@ export default function OrdenesTable({
       // Fallback: usar la orden básica
       setOrdenImprimir(normalizarOrden(orden));
       setIsImprimirModalOpen(true);
+    }
+  };
+
+  //  Imprimir remisión (usando detalle completo)
+  const handleRemision = async (orden) => {
+    try {
+      const ordenDetallada = await obtenerOrdenDetalle(orden.id);
+      const ordenNorm = normalizarOrden(ordenDetallada);
+      setOrdenRemision(ordenNorm);
+      setIsRemisionModalOpen(true);
+    } catch (error) {
+      // Fallback: usar la orden básica
+      setOrdenRemision(normalizarOrden(orden));
+      setIsRemisionModalOpen(true);
     }
   };
 
@@ -499,6 +516,14 @@ export default function OrdenesTable({
                           Imprimir
                         </button>
 
+                        <button
+                          className="btnLink"
+                          onClick={() => handleRemision(o)}
+                          title="Imprimir remisión"
+                        >
+                          Remisión
+                        </button>
+
                         {/* Botón para confirmar venta (solo si venta es false y la orden no está anulada) */}
                         {!o.venta && onConfirmarVenta && !estaAnulada && (
                           <button
@@ -622,15 +647,21 @@ export default function OrdenesTable({
                                     // - subtotal: Base sin IVA
                                     // - iva: IVA calculado
                                     // - retencionFuente: Retención en la fuente
+                                    // - retencionIca: Retención ICA (NUEVO)
                                     // - total: Total facturado
                                     // Convertir null/undefined a 0 para todos los valores monetarios
                                     const subtotal = (typeof o.subtotal === 'number' && o.subtotal !== null && o.subtotal !== undefined) ? o.subtotal : 0;
                                     const iva = (typeof o.iva === 'number' && o.iva !== null && o.iva !== undefined) ? o.iva : 0;
                                     const retencionFuente = (typeof o.retencionFuente === 'number' && o.retencionFuente !== null && o.retencionFuente !== undefined) ? o.retencionFuente : 0;
+                                    const retencionIca = (typeof o.retencionIca === 'number' && o.retencionIca !== null && o.retencionIca !== undefined) ? o.retencionIca : 0;
+                                    const tieneRetencionIca = Boolean(o.tieneRetencionIca ?? false);
+                                    const porcentajeIca = o.porcentajeIca !== undefined && o.porcentajeIca !== null ? Number(o.porcentajeIca) : null;
                                     
                                     // El total facturado viene del backend (o.total), si no está disponible usar totalOrden calculado
                                     const totalFacturado = (typeof o.total === 'number' && o.total !== null && o.total !== undefined) ? o.total : totalOrden;
                                     
+                                    // Calcular total de retenciones
+                                    const totalRetenciones = retencionFuente + retencionIca;
                                     
                                     return (
                                       <>
@@ -640,15 +671,20 @@ export default function OrdenesTable({
                                         <div>
                                           <strong>IVA (19%):</strong> ${iva.toLocaleString("es-CO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                         </div>
+                                        {tieneRetencionIca && retencionIca > 0 && (
+                                          <div>
+                                            <strong>Retención ICA{porcentajeIca ? ` (${porcentajeIca}%)` : ''}:</strong> ${retencionIca.toLocaleString("es-CO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                          </div>
+                                        )}
                                         <div>
                                           <strong>Retención en la Fuente:</strong> ${retencionFuente.toLocaleString("es-CO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                         </div>
                                         <div style={{ fontWeight: 'bold', fontSize: '1rem' }}>
                                           <strong>Total Facturado:</strong> ${totalFacturado.toLocaleString("es-CO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                         </div>
-                                        {retencionFuente > 0 && (
+                                        {totalRetenciones > 0 && (
                                           <div style={{ fontSize: '0.85rem', color: '#666' }}>
-                                            <strong>Valor a Pagar:</strong> ${(totalFacturado - retencionFuente).toLocaleString("es-CO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                            <strong>Valor a Pagar:</strong> ${(totalFacturado - totalRetenciones).toLocaleString("es-CO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                           </div>
                                         )}
                                       </>
@@ -748,6 +784,16 @@ export default function OrdenesTable({
         onClose={() => {
           setIsImprimirModalOpen(false);
           setOrdenImprimir(null);
+        }}
+      />
+
+      {/* Modal de remisión */}
+      <RemisionImprimirModal
+        isOpen={isRemisionModalOpen}
+        orden={ordenRemision}
+        onClose={() => {
+          setIsRemisionModalOpen(false);
+          setOrdenRemision(null);
         }}
       />
 

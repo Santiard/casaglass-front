@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import "../styles/OrdenImprimirModal.css";
 import { obtenerOrden, obtenerOrdenDetalle } from "../services/OrdenesService.js";
+import { obtenerFacturaPorOrden } from "../services/FacturasService.js";
 import html2pdf from "html2pdf.js";
 
 export default function OrdenImprimirModal({ orden, isOpen, onClose }) {
@@ -16,10 +17,39 @@ export default function OrdenImprimirModal({ orden, isOpen, onClose }) {
     }
 
     // Cargar la orden detallada (con items completos)
+    // El backend ahora usa fetch joins para cargar todas las relaciones de una vez,
+    // por lo que funciona correctamente tanto para órdenes normales como facturadas.
+    // Mantenemos el fallback a factura por si acaso hay algún problema.
     const cargarOrdenDetallada = async () => {
       setLoading(true);
       try {
-        const ordenDetallada = await obtenerOrdenDetalle(orden.id);
+        // Intentar cargar la orden directamente (el backend ya está corregido)
+        let ordenDetallada = null;
+        
+        try {
+          ordenDetallada = await obtenerOrdenDetalle(orden.id);
+        } catch (ordenError) {
+          // Fallback: si falla cargar la orden directamente y está facturada,
+          // intentar cargar desde la factura (que incluye la orden completa)
+          const yaFacturada = Boolean(orden.facturada === true || orden.numeroFactura);
+          if (yaFacturada) {
+            try {
+              const facturaData = await obtenerFacturaPorOrden(orden.id);
+              if (facturaData?.orden) {
+                ordenDetallada = facturaData.orden;
+              } else {
+                throw ordenError; // Si no hay orden en la factura, lanzar el error original
+              }
+            } catch (facturaError) {
+              // Si también falla la factura, lanzar el error original de la orden
+              throw ordenError;
+            }
+          } else {
+            // Si no está facturada, lanzar el error directamente
+            throw ordenError;
+          }
+        }
+        
         const base = {
           id: ordenDetallada.id,
           numero: ordenDetallada.numero,
@@ -32,6 +62,11 @@ export default function OrdenImprimirModal({ orden, isOpen, onClose }) {
           iva: typeof ordenDetallada.iva === "number" ? ordenDetallada.iva : null, // IVA calculado
           retencionFuente: typeof ordenDetallada.retencionFuente === "number" ? ordenDetallada.retencionFuente : 0,
           tieneRetencionFuente: Boolean(ordenDetallada.tieneRetencionFuente ?? false),
+          retencionIca: typeof ordenDetallada.retencionIca === "number" ? ordenDetallada.retencionIca : 0,
+          tieneRetencionIca: Boolean(ordenDetallada.tieneRetencionIca ?? false),
+          porcentajeIca: ordenDetallada.porcentajeIca !== undefined && ordenDetallada.porcentajeIca !== null 
+            ? Number(ordenDetallada.porcentajeIca) 
+            : null,
           total: typeof ordenDetallada.total === "number" ? ordenDetallada.total : null, // Total facturado
           cliente: ordenDetallada.cliente || {},
           sede: ordenDetallada.sede || {},
@@ -54,6 +89,11 @@ export default function OrdenImprimirModal({ orden, isOpen, onClose }) {
           iva: typeof orden.iva === "number" ? orden.iva : null, // IVA calculado
           retencionFuente: typeof orden.retencionFuente === "number" ? orden.retencionFuente : 0,
           tieneRetencionFuente: Boolean(orden.tieneRetencionFuente ?? false),
+          retencionIca: typeof orden.retencionIca === "number" ? orden.retencionIca : 0,
+          tieneRetencionIca: Boolean(orden.tieneRetencionIca ?? false),
+          porcentajeIca: orden.porcentajeIca !== undefined && orden.porcentajeIca !== null 
+            ? Number(orden.porcentajeIca) 
+            : null,
           total: typeof orden.total === "number" ? orden.total : null, // Total facturado
           cliente: orden.cliente || {},
           sede: orden.sede || {},
@@ -97,6 +137,11 @@ export default function OrdenImprimirModal({ orden, isOpen, onClose }) {
     ? form.iva 
     : (form.items.reduce((sum, item) => sum + (item.totalLinea || 0), 0) - subtotalSinIva); // Fallback: calcular si no viene del backend
   const retencionFuente = form.retencionFuente || 0;
+  const retencionIca = form.retencionIca || 0;
+  const tieneRetencionIca = form.tieneRetencionIca || false;
+  const porcentajeIca = form.porcentajeIca !== undefined && form.porcentajeIca !== null 
+    ? Number(form.porcentajeIca) 
+    : null;
   const totalOrden = form.total !== null 
     ? form.total 
     : form.items.reduce((sum, item) => sum + (item.totalLinea || 0), 0); // Fallback: calcular si no viene del backend
@@ -493,14 +538,6 @@ export default function OrdenImprimirModal({ orden, isOpen, onClose }) {
                 {/* Totales */}
                 <div className="orden-imprimir-total">
                   <p><strong>Total: ${totalOrden.toLocaleString("es-CO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong></p>
-                  {retencionFuente > 0 && (
-                    <>
-                      <p>Retención en la Fuente: ${retencionFuente.toLocaleString("es-CO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
-                      <p style={{ marginTop: '0.5rem', fontSize: '0.9em', color: '#666' }}>
-                        Valor a pagar: ${(totalOrden - retencionFuente).toLocaleString("es-CO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                      </p>
-                    </>
-                  )}
                 </div>
               </>
             )}

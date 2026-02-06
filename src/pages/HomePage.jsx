@@ -287,8 +287,17 @@ export default function HomePage(){
 
       {/* Paneles estilo AdminPage */}
       <DashboardSection title="Operación" description="Alertas y movimientos pendientes">
-        <div className="chart-grid">
-          <div className="chart-card">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          {/* Traslados Pendientes - Arriba, ancho completo */}
+          <div className="chart-card" style={{ width: '100%' }}>
+            <h3>Traslados Pendientes</h3>
+            <div>
+              <MovimientosPanel entregasPendientes={trasladosFormateados} />
+            </div>
+          </div>
+          
+          {/* Alertas de Stock - Abajo, ancho completo */}
+          <div className="chart-card" style={{ width: '100%' }}>
             <h3>Alertas de Stock</h3>
             <div>
               <LowStockPanel items={
@@ -298,12 +307,6 @@ export default function HomePage(){
                     return stock < 30;
                   })
               } />
-            </div>
-          </div>
-          <div className="chart-card">
-            <h3>Traslados Pendientes</h3>
-            <div>
-              <MovimientosPanel entregasPendientes={trasladosFormateados} />
             </div>
           </div>
         </div>

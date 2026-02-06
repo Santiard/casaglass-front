@@ -10,6 +10,7 @@ export default function FacturasTable({
   data = [],
   onVerificar,
   onEliminar,
+  onImprimir,
   onConfirmarTodas,
   clientes = [],
   rowsPerPage = 10,
@@ -128,7 +129,6 @@ export default function FacturasTable({
             f.cliente?.nombre,
             f.cliente?.nit,
             f.observaciones,
-            f.formaPago,
           ]
             .filter(Boolean)
             .some((v) => String(v).toLowerCase().includes(q))
@@ -408,10 +408,9 @@ export default function FacturasTable({
               <th>Subtotal</th>
               <th>IVA</th>
               <th>Retefuente</th>
+              <th>Retención ICA</th>
               <th>Total</th>
-              <th>Forma de Pago</th>
               <th>Estado</th>
-              <th>Observaciones</th>
               <th>Acciones</th>
             </tr>
           </thead>
@@ -419,7 +418,7 @@ export default function FacturasTable({
           <tbody>
             {loading && (
               <tr>
-                <td colSpan={13} className="empty">
+                <td colSpan={12} className="empty">
                   Cargando...
                 </td>
               </tr>
@@ -427,7 +426,7 @@ export default function FacturasTable({
 
             {!loading && pageData.length === 0 && (
               <tr>
-                <td colSpan={13} className="empty">
+                <td colSpan={12} className="empty">
                   No hay facturas registradas
                 </td>
               </tr>
@@ -441,6 +440,7 @@ export default function FacturasTable({
                 const subtotal = f.subtotal || 0;
                 const iva = f.iva || 0;
                 const retencionFuente = f.retencionFuente || 0;
+                const retencionIca = f.retencionIca || 0;
                 const total = f.total || (subtotal + iva);
                 const estado = f.estado?.toLowerCase() || 'pendiente';
                 const puedeVerificar = estado === 'pendiente' || estado === 'en_proceso';
@@ -457,10 +457,9 @@ export default function FacturasTable({
                     <td>{fmtCOP(subtotal)}</td>
                     <td>{fmtCOP(iva)}</td>
                     <td>{fmtCOP(retencionFuente)}</td>
+                    <td>{fmtCOP(retencionIca)}</td>
                     <td>{fmtCOP(total)}</td>
-                    <td>{f.formaPago ?? "-"}</td>
                     <td>{formatearEstado(f.estado)}</td>
-                    <td className="cut">{f.observaciones ?? "-"}</td>
                     <td className="clientes-actions">
                       <button 
                         className="btnLink" 
@@ -493,6 +492,26 @@ export default function FacturasTable({
                       >
                         Ver detalles
                       </button>
+                      {onImprimir && (
+                        <button 
+                          className="btnLink" 
+                          onClick={() => onImprimir?.(f)} 
+                          title="Imprimir factura"
+                          style={{
+                            marginRight: '4px',
+                            padding: '4px 8px',
+                            fontSize: '0.875rem',
+                            cursor: 'pointer',
+                            display: 'inline-block',
+                            backgroundColor: 'transparent',
+                            border: 'none',
+                            color: '#1e2753',
+                            textDecoration: 'underline'
+                          }}
+                        >
+                          Imprimir
+                        </button>
+                      )}
                       {puedeVerificar && (
                         <button 
                           className="btnConfirm" 

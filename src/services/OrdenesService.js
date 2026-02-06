@@ -92,6 +92,10 @@ export async function crearOrdenVenta(payload) {
       incluidaEntrega: Boolean(payload.incluidaEntrega || false),
       tieneRetencionFuente: Boolean(payload.tieneRetencionFuente ?? false),
       retencionFuente: parseFloat(payload.retencionFuente || 0), // Valor calculado de retención en la fuente
+      tieneRetencionIca: Boolean(payload.tieneRetencionIca ?? false),
+      ...(payload.porcentajeIca !== undefined && payload.porcentajeIca !== null 
+        ? { porcentajeIca: parseFloat(payload.porcentajeIca) } 
+        : {}),
       clienteId: parseInt(payload.clienteId), // OBLIGATORIO
       sedeId: parseInt(payload.sedeId), // OBLIGATORIO
       // trabajadorId es opcional según la documentación
@@ -214,6 +218,59 @@ export async function actualizarRetencionFuente(ordenId, payload) {
   }
 }
 
+/**
+ * 🏛️ ACTUALIZAR RETENCIÓN ICA DE UNA ORDEN
+ * 
+ * Endpoint especializado para actualizar SOLO la retención ICA sin enviar todos los datos
+ * 
+ * @param {number} ordenId - ID de la orden
+ * @param {Object} payload - Datos de retención ICA
+ * @param {boolean} payload.tieneRetencionIca - Si tiene retención ICA (OBLIGATORIO)
+ * @param {number} [payload.porcentajeIca] - Porcentaje ICA (0-100, opcional)
+ * @param {number} payload.retencionIca - Valor de la retención ICA (OBLIGATORIO, debe ser 0.0 si tieneRetencionIca = false)
+ * @param {number} [payload.iva] - Valor del IVA (opcional, se calcula automáticamente si no se envía)
+ * @returns {Promise<Object>} Respuesta del backend con mensaje y orden actualizada
+ */
+export async function actualizarRetencionIca(ordenId, payload) {
+  if (!ordenId) throw new Error("ID de la orden no proporcionado");
+  
+  // Validaciones
+  if (payload.tieneRetencionIca === undefined || payload.tieneRetencionIca === null) {
+    throw new Error("tieneRetencionIca es obligatorio");
+  }
+  
+  if (!payload.tieneRetencionIca && payload.retencionIca !== 0 && payload.retencionIca !== 0.0) {
+    throw new Error("Si tieneRetencionIca es false, retencionIca debe ser 0.0");
+  }
+  
+  if (payload.porcentajeIca !== undefined && payload.porcentajeIca !== null) {
+    if (payload.porcentajeIca < 0 || payload.porcentajeIca > 100) {
+      throw new Error("porcentajeIca debe estar entre 0 y 100");
+    }
+  }
+  
+  try {
+    const requestBody = {
+      tieneRetencionIca: Boolean(payload.tieneRetencionIca),
+      retencionIca: parseFloat(payload.retencionIca || 0),
+      ...(payload.porcentajeIca !== undefined && payload.porcentajeIca !== null 
+        ? { porcentajeIca: parseFloat(payload.porcentajeIca) } 
+        : {}),
+      ...(payload.iva !== undefined && payload.iva !== null 
+        ? { iva: parseFloat(payload.iva) } 
+        : {})
+    };
+    
+    const { data } = await api.put(`ordenes/${ordenId}/retencion-ica`, requestBody);
+    
+    // El backend retorna { mensaje: "...", orden: {...} }
+    return data;
+  } catch (error) {
+    console.error('❌ Error actualizando retención ICA:', error);
+    throw error;
+  }
+}
+
 //  Confirmar venta (cambiar venta de false a true)
 export async function confirmarVenta(id, ordenCompleta) {
   if (!id) throw new Error("ID de la orden no proporcionado");
@@ -293,21 +350,25 @@ export async function confirmarVenta(id, ordenCompleta) {
     throw new Error("La orden no tiene sedeId. No se puede confirmar la venta.");
   }
   
-  // Construir payload con todos los campos necesarios
-  const payload = {
-    fecha: ordenCompleta.fecha,
-    obra: ordenCompleta.obra || "",
-    descripcion: ordenCompleta.descripcion || null,
-    venta: true, // Cambiar a true (confirmar como venta)
-    // Si era cotización, automáticamente se convierte en crédito
-    // Si ya era venta, mantener el valor de crédito que tenía
-    credito: eraCotizacion ? true : Boolean(ordenCompleta.credito),
-    tieneRetencionFuente: Boolean(ordenCompleta.tieneRetencionFuente ?? false),
-    clienteId: Number(clienteId),
-    sedeId: Number(sedeId),
-    ...(ordenCompleta.trabajadorId || ordenCompleta.trabajador?.id ? { trabajadorId: Number(ordenCompleta.trabajadorId || ordenCompleta.trabajador?.id) } : {}),
-    items: itemsValidos
-  };
+    // Construir payload con todos los campos necesarios
+    const payload = {
+      fecha: ordenCompleta.fecha,
+      obra: ordenCompleta.obra || "",
+      descripcion: ordenCompleta.descripcion || null,
+      venta: true, // Cambiar a true (confirmar como venta)
+      // Si era cotización, automáticamente se convierte en crédito
+      // Si ya era venta, mantener el valor de crédito que tenía
+      credito: eraCotizacion ? true : Boolean(ordenCompleta.credito),
+      tieneRetencionFuente: Boolean(ordenCompleta.tieneRetencionFuente ?? false),
+      tieneRetencionIca: Boolean(ordenCompleta.tieneRetencionIca ?? false),
+      ...(ordenCompleta.porcentajeIca !== undefined && ordenCompleta.porcentajeIca !== null 
+        ? { porcentajeIca: parseFloat(ordenCompleta.porcentajeIca) } 
+        : {}),
+      clienteId: Number(clienteId),
+      sedeId: Number(sedeId),
+      ...(ordenCompleta.trabajadorId || ordenCompleta.trabajador?.id ? { trabajadorId: Number(ordenCompleta.trabajadorId || ordenCompleta.trabajador?.id) } : {}),
+      items: itemsValidos
+    };
   
   const { data } = await api.put(`ordenes/tabla/${id}`, payload);
   return data;
@@ -351,6 +412,10 @@ export async function actualizarOrdenVenta(id, payload) {
       credito: Boolean(payload.credito),
       incluidaEntrega: Boolean(payload.incluidaEntrega || false),
       tieneRetencionFuente: Boolean(payload.tieneRetencionFuente ?? false),
+      tieneRetencionIca: Boolean(payload.tieneRetencionIca ?? false),
+      ...(payload.porcentajeIca !== undefined && payload.porcentajeIca !== null 
+        ? { porcentajeIca: parseFloat(payload.porcentajeIca) } 
+        : {}),
       clienteId: parseInt(payload.clienteId), // OBLIGATORIO
       sedeId: parseInt(payload.sedeId), // OBLIGATORIO
       // trabajadorId es opcional según la documentación

@@ -15,6 +15,7 @@ return (
 <tr>
 <th>Código</th>
 <th>Nombre</th>
+<th>Color</th>
 <th>Stock</th>
 <th>Reorden</th>
 <th>Estado</th>
@@ -25,10 +26,21 @@ return (
 <tr key={p.codigo || p.sku} className={
   p.estado === "CRÍTICO" || (p.stock && p.minimo && p.stock <= p.minimo) ? "danger" : ""
 }>
-<td>{p.codigo || p.sku}</td>
-<td>{p.nombre}</td>
-<td>{p.stockActual || p.stock}</td>
-<td>{p.nivelReorden || p.minimo}</td>
+<td>{p.codigo || p.sku || "-"}</td>
+<td>{p.nombre || "-"}</td>
+<td>
+  {p.color ? (
+    <span className={`color-badge color-${(p.color || 'NA').toLowerCase().replace(/\s+/g, '-')}`}
+      style={{ display: 'inline-block', minWidth: 48, textAlign: 'center', padding: '0.25rem 0.5rem', borderRadius: '4px' }}
+    >
+      {p.color}
+    </span>
+  ) : (
+    <span style={{ color: '#bbb', fontStyle: 'italic' }}>N/A</span>
+  )}
+</td>
+<td>{p.stockActual || p.stock || 0}</td>
+<td>{p.nivelReorden || p.minimo || 0}</td>
 <td>
   <span className={`badge ${
     p.estado === "CRÍTICO" ? "error" : 

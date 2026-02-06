@@ -50,6 +50,8 @@ export default function OrdenEditarModal({
   const [errorMsg, setErrorMsg] = useState("");
   const [retefuenteThreshold, setRetefuenteThreshold] = useState(0); // Umbral de retención de fuente
   const [retefuenteRate, setRetefuenteRate] = useState(2.5); // Porcentaje de retención de fuente
+  const [icaThreshold, setIcaThreshold] = useState(1000000); // Umbral de retención ICA (por defecto 1,000,000)
+  const [icaRate, setIcaRate] = useState(0.48); // Porcentaje de retención ICA (por defecto 0.48%)
   
   // Lista de bancos (dinámica desde API)
   const [bancos, setBancos] = useState([]);
@@ -346,6 +348,8 @@ export default function OrdenEditarModal({
           venta: true,
           credito: false,
           tieneRetencionFuente: false, // Siempre false al crear
+          tieneRetencionIca: false, // Siempre false al crear
+          porcentajeIca: null, // Opcional, null por defecto
           clienteNombre: "",
           trabajadorNombre: defaultTrabajadorNombre || "",
           sedeNombre: defaultSedeNombre || "",
@@ -374,6 +378,8 @@ export default function OrdenEditarModal({
         venta: orden?.venta ?? false,
         credito: orden?.credito ?? false,
         tieneRetencionFuente: Boolean(orden?.tieneRetencionFuente ?? false),
+        tieneRetencionIca: Boolean(orden?.tieneRetencionIca ?? false),
+        porcentajeIca: orden?.porcentajeIca !== undefined && orden?.porcentajeIca !== null ? Number(orden.porcentajeIca) : null,
         clienteNombre: orden?.cliente?.nombre ?? "",
         trabajadorNombre: orden?.trabajador?.nombre ?? "",
         sedeNombre: orden?.sede?.nombre ?? "",
@@ -420,6 +426,8 @@ export default function OrdenEditarModal({
       venta: Boolean(orden.venta ?? false),
       credito: Boolean(orden.credito),
       tieneRetencionFuente: Boolean(orden.tieneRetencionFuente ?? false),
+      tieneRetencionIca: Boolean(orden.tieneRetencionIca ?? false),
+      porcentajeIca: orden.porcentajeIca !== undefined && orden.porcentajeIca !== null ? Number(orden.porcentajeIca) : null,
       clienteNombre: orden.cliente?.nombre ?? "",
       trabajadorNombre: orden.trabajador?.nombre ?? "",
       sedeNombre: orden.sede?.nombre ?? "",
@@ -465,7 +473,7 @@ export default function OrdenEditarModal({
   }, [orden, isOpen, clientes]);
 
   // =============================
-  // Cargar configuración de retención de fuente
+  // Cargar configuración de retención de fuente e ICA
   // =============================
   useEffect(() => {
     if (!isOpen) return;
@@ -473,6 +481,8 @@ export default function OrdenEditarModal({
       if (settings) {
         setRetefuenteThreshold(Number(settings.retefuenteThreshold) || 0);
         setRetefuenteRate(Number(settings.retefuenteRate) || 2.5);
+        setIcaThreshold(settings.icaThreshold != null ? Number(settings.icaThreshold) : 1000000);
+        setIcaRate(settings.icaRate != null ? Number(settings.icaRate) : 0.48);
       }
     }).catch((error) => {
 
@@ -942,15 +952,34 @@ export default function OrdenEditarModal({
       const totalOrden = subtotal;
 
       // Calcular retención de fuente si está marcada (ANTES de usar en construirDescripcion)
+      // Calcular subtotal sin IVA (base imponible) - se usa para ambas retenciones
+      const subtotalSinIvaCrear = totalOrden / 1.19;
+      
+      // Calcular retención en la fuente si está marcada
       let retencionFuenteCrear = 0;
       if (form.tieneRetencionFuente) {
         // totalOrden es el subtotal (total facturado con IVA)
-        const subtotalSinIvaCrear = totalOrden / 1.19;
         if (subtotalSinIvaCrear >= retefuenteThreshold) {
           retencionFuenteCrear = subtotalSinIvaCrear * (retefuenteRate / 100);
           retencionFuenteCrear = Math.round(retencionFuenteCrear * 100) / 100;
         }
       }
+      
+      // Calcular retención ICA si está marcada
+      let retencionIcaCrear = 0;
+      if (form.tieneRetencionIca) {
+        if (subtotalSinIvaCrear >= icaThreshold) {
+          // Usar porcentaje personalizado si está definido, sino usar el por defecto
+          const porcentajeIcaUsar = (form.porcentajeIca !== null && form.porcentajeIca !== undefined) 
+            ? Number(form.porcentajeIca) 
+            : icaRate;
+          retencionIcaCrear = subtotalSinIvaCrear * (porcentajeIcaUsar / 100);
+          retencionIcaCrear = Math.round(retencionIcaCrear * 100) / 100;
+        }
+      }
+      
+      // Calcular valor a pagar (total - retenciones)
+      const valorAPagarCrear = Math.round((totalOrden - retencionFuenteCrear - retencionIcaCrear) * 100) / 100;
 
       // Determinar si es venta o cotización
       const esVenta = Boolean(form.venta === true);
@@ -962,7 +991,7 @@ export default function OrdenEditarModal({
         // Mostrar diálogo de confirmación para determinar si es crédito o contado
         const deseaAbonar = await confirm({
           title: "Confirmar tipo de venta",
-          message: `¿Deseas abonar $${totalOrden.toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} a la orden en el proceso?`,
+          message: `¿Deseas abonar $${valorAPagarCrear.toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} a la orden en el proceso?${(retencionFuenteCrear > 0 || retencionIcaCrear > 0) ? `\n\n(Total facturado: $${totalOrden.toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} - Retenciones: $${(retencionFuenteCrear + retencionIcaCrear).toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})` : ''}`,
           confirmText: "Sí, abonar (Contado)",
           cancelText: "No, no abonar (Crédito)",
           type: "info"
@@ -984,12 +1013,12 @@ export default function OrdenEditarModal({
           
           let metodosPagoParaDescripcion = metodosPago.filter(m => m.tipo).map(m => ({ ...m })); // Crear copia para no modificar el estado original
           
-          // Si hay un solo método de pago con monto vacío, asignar el total de la orden
+          // Si hay un solo método de pago con monto vacío, asignar el valor a pagar (total - retenciones)
           if (metodosPagoParaDescripcion.length === 1) {
             const metodo = metodosPagoParaDescripcion[0];
-            // Si el monto está vacío o es 0, asignar el total de la orden
+            // Si el monto está vacío o es 0, asignar el valor a pagar
             if (!metodo.monto || metodo.monto === 0 || metodo.monto === '') {
-              metodo.monto = totalOrden;
+              metodo.monto = valorAPagarCrear;
             }
           }
           
@@ -1021,9 +1050,9 @@ export default function OrdenEditarModal({
         // Filtrar métodos con monto > 0
         const metodosConMonto = metodosPago.filter(m => m.tipo && parseFloat(m.monto) > 0);
         
-        // Si hay un solo método sin monto especificado, asignarle el total
+        // Si hay un solo método sin monto especificado, asignarle el valor a pagar
         if (metodosConMonto.length === 0 && metodosPago.length === 1 && metodosPago[0].tipo) {
-          metodosConMonto.push({ ...metodosPago[0], monto: totalOrden });
+          metodosConMonto.push({ ...metodosPago[0], monto: valorAPagarCrear });
         }
         
         // Sumar montos por tipo
@@ -1039,10 +1068,10 @@ export default function OrdenEditarModal({
           // Otros tipos (NEQUI, DAVIPLATA, etc.) no se envían en campos numéricos por ahora
         });
         
-        // 🆕 VALIDAR QUE EL MONTO PAGADO NO SUPERE EL TOTAL A PAGAR
+        // 🆕 VALIDAR QUE EL MONTO PAGADO NO SUPERE EL VALOR A PAGAR (total - retenciones)
         const totalPagado = montoEfectivoTotal + montoTransferenciaTotal + montoChequeTotal;
-        if (totalPagado > totalOrden) {
-          showError(`El monto pagado ($${totalPagado.toLocaleString("es-CO")}) no puede ser mayor al total de la orden ($${totalOrden.toLocaleString("es-CO")}). Verifica los montos ingresados.`);
+        if (totalPagado > valorAPagarCrear) {
+          showError(`El monto pagado ($${totalPagado.toLocaleString("es-CO")}) no puede ser mayor al valor a pagar ($${valorAPagarCrear.toLocaleString("es-CO")}). Verifica los montos ingresados.`);
           return;
         }
       }
@@ -1060,6 +1089,10 @@ export default function OrdenEditarModal({
         credito: esCredito,
         tieneRetencionFuente: Boolean(form.tieneRetencionFuente ?? false),
         retencionFuente: retencionFuenteCrear, // Calcular si está marcado, sino 0
+        tieneRetencionIca: Boolean(form.tieneRetencionIca ?? false),
+        ...(form.porcentajeIca !== undefined && form.porcentajeIca !== null 
+          ? { porcentajeIca: parseFloat(form.porcentajeIca) } 
+          : {}),
         subtotal: subtotal, // Enviar subtotal explícitamente (precio completo con IVA incluido)
         // 🆕 CAMPOS NUMÉRICOS: Montos por método de pago
         montoEfectivo: montoEfectivoTotal,
@@ -1257,16 +1290,34 @@ export default function OrdenEditarModal({
     const subtotalEditar = itemsActivosEditar.reduce((sum, item) => sum + (item.totalLinea || 0), 0);
     const totalOrdenEditar = subtotalEditar;
     
+    // Calcular subtotal sin IVA (base imponible) - se usa para ambas retenciones
+    const totalFacturadoEditar = subtotalEditar;
+    const subtotalSinIvaEditar = totalFacturadoEditar / 1.19;
+    
     // Calcular retención de fuente si está marcada (ANTES de construir descripción)
     let retencionFuenteEditar = 0;
     if (form.tieneRetencionFuente) {
-      const totalFacturadoEditar = subtotalEditar;
-      const subtotalSinIvaEditar = totalFacturadoEditar / 1.19;
       if (subtotalSinIvaEditar >= retefuenteThreshold) {
         retencionFuenteEditar = subtotalSinIvaEditar * (retefuenteRate / 100);
         retencionFuenteEditar = Math.round(retencionFuenteEditar * 100) / 100;
       }
     }
+    
+    // Calcular retención ICA si está marcada
+    let retencionIcaEditar = 0;
+    if (form.tieneRetencionIca) {
+      if (subtotalSinIvaEditar >= icaThreshold) {
+        // Usar porcentaje personalizado si está definido, sino usar el por defecto
+        const porcentajeIcaUsar = (form.porcentajeIca !== null && form.porcentajeIca !== undefined) 
+          ? Number(form.porcentajeIca) 
+          : icaRate;
+        retencionIcaEditar = subtotalSinIvaEditar * (porcentajeIcaUsar / 100);
+        retencionIcaEditar = Math.round(retencionIcaEditar * 100) / 100;
+      }
+    }
+    
+    // Calcular valor a pagar (total - retenciones)
+    const valorAPagarEditar = Math.round((totalOrdenEditar - retencionFuenteEditar - retencionIcaEditar) * 100) / 100;
     
     // Determinar si es venta o cotización
     const esVentaEditar = Boolean(form.venta === true);
@@ -1283,12 +1334,12 @@ export default function OrdenEditarModal({
       
       let metodosPagoParaDescripcionEditar = metodosPago.filter(m => m.tipo).map(m => ({ ...m })); // Crear copia para no modificar el estado original
       
-      // Si hay un solo método de pago con monto vacío, asignar el total de la orden
+      // Si hay un solo método de pago con monto vacío, asignar el valor a pagar (total - retenciones)
       if (metodosPagoParaDescripcionEditar.length === 1) {
         const metodo = metodosPagoParaDescripcionEditar[0];
-        // Si el monto está vacío o es 0, asignar el total de la orden
+        // Si el monto está vacío o es 0, asignar el valor a pagar
         if (!metodo.monto || metodo.monto === 0 || metodo.monto === '') {
-          metodo.monto = totalOrdenEditar;
+          metodo.monto = valorAPagarEditar;
         }
       }
       
@@ -1314,9 +1365,9 @@ export default function OrdenEditarModal({
       // Filtrar métodos con monto > 0
       const metodosConMonto = metodosPago.filter(m => m.tipo && parseFloat(m.monto) > 0);
       
-      // Si hay un solo método sin monto especificado, asignarle el total
+      // Si hay un solo método sin monto especificado, asignarle el valor a pagar
       if (metodosConMonto.length === 0 && metodosPago.length === 1 && metodosPago[0].tipo) {
-        metodosConMonto.push({ ...metodosPago[0], monto: totalOrdenEditar });
+        metodosConMonto.push({ ...metodosPago[0], monto: valorAPagarEditar });
       }
       
       // Sumar montos por tipo
@@ -1331,10 +1382,10 @@ export default function OrdenEditarModal({
         }
       });
       
-      // 🆕 VALIDAR QUE EL MONTO PAGADO NO SUPERE EL TOTAL A PAGAR
+      // 🆕 VALIDAR QUE EL MONTO PAGADO NO SUPERE EL VALOR A PAGAR (total - retenciones)
       const totalPagadoEditar = montoEfectivoTotalEditar + montoTransferenciaTotalEditar + montoChequeotalEditar;
-      if (totalPagadoEditar > totalOrdenEditar) {
-        showError(`El monto pagado ($${totalPagadoEditar.toLocaleString("es-CO")}) no puede ser mayor al total de la orden ($${totalOrdenEditar.toLocaleString("es-CO")}). Verifica los montos ingresados.`);
+      if (totalPagadoEditar > valorAPagarEditar) {
+        showError(`El monto pagado ($${totalPagadoEditar.toLocaleString("es-CO")}) no puede ser mayor al valor a pagar ($${valorAPagarEditar.toLocaleString("es-CO")}). Verifica los montos ingresados.`);
         return;
       }
     }
@@ -1349,6 +1400,10 @@ export default function OrdenEditarModal({
     credito: form.credito,
     tieneRetencionFuente: Boolean(form.tieneRetencionFuente ?? false),
     retencionFuente: retencionFuenteEditar, // Enviar 0 si no está marcado, o el valor calculado si está marcado
+    tieneRetencionIca: Boolean(form.tieneRetencionIca ?? false),
+    ...(form.porcentajeIca !== undefined && form.porcentajeIca !== null 
+      ? { porcentajeIca: parseFloat(form.porcentajeIca) } 
+      : {}),
     subtotal: subtotalEditar, // Enviar subtotal explícitamente (precio completo con IVA incluido)
     // 🆕 CAMPOS NUMÉRICOS: Montos por método de pago (también en edición)
     montoEfectivo: montoEfectivoTotalEditar,
@@ -1728,13 +1783,13 @@ export default function OrdenEditarModal({
                     const subtotalFacturado = form.items.reduce((sum, item) => sum + (item.totalLinea || 0), 0);
                     const totalFacturado = subtotalFacturado;
                     
-                    // Calcular retención si está marcada
+                    // Calcular subtotal sin IVA (base imponible) - se usa para ambas retenciones
+                    const baseImponible = totalFacturado;
+                    const subtotalSinIva = baseImponible / 1.19;
+                    
+                    // Calcular retención en la fuente si está marcada
                     let retencionFuente = 0;
                     if (form.tieneRetencionFuente) {
-                      // Calcular subtotal sin IVA (base imponible)
-                      const baseImponible = totalFacturado;
-                      const subtotalSinIva = baseImponible / 1.19;
-                      
                       // Calcular retención sobre el subtotal sin IVA
                       if (subtotalSinIva >= retefuenteThreshold) {
                         retencionFuente = subtotalSinIva * (retefuenteRate / 100);
@@ -1743,10 +1798,25 @@ export default function OrdenEditarModal({
                       }
                     }
                     
-                    // Valor a pagar = Total facturado - Retención
+                    // Calcular retención ICA si está marcada
+                    let retencionIca = 0;
+                    if (form.tieneRetencionIca) {
+                      // Calcular retención ICA sobre el subtotal sin IVA
+                      if (subtotalSinIva >= icaThreshold) {
+                        // Usar porcentaje personalizado si está definido, sino usar el por defecto
+                        const porcentajeIcaUsar = (form.porcentajeIca !== null && form.porcentajeIca !== undefined) 
+                          ? Number(form.porcentajeIca) 
+                          : icaRate;
+                        retencionIca = subtotalSinIva * (porcentajeIcaUsar / 100);
+                        // Redondear la retención a 2 decimales para evitar problemas de precisión
+                        retencionIca = Math.round(retencionIca * 100) / 100;
+                      }
+                    }
+                    
+                    // Valor a pagar = Total facturado - Retención en la Fuente - Retención ICA
                     // Este es el monto que debe ingresarse en los métodos de pago
                     // Redondear a 2 decimales para consistencia
-                    const valorAPagar = Math.round((totalFacturado - retencionFuente) * 100) / 100;
+                    const valorAPagar = Math.round((totalFacturado - retencionFuente - retencionIca) * 100) / 100;
                     
                     // Comparar con el valor a pagar, no con el total facturado
                     // Usar tolerancia de $1 para diferencias de redondeo (centavos)
@@ -1779,7 +1849,7 @@ export default function OrdenEditarModal({
                                 textTransform: 'uppercase',
                                 letterSpacing: '0.5px'
                               }}>
-                                {retencionFuente > 0 ? 'Monto a Ingresar en Métodos de Pago' : 'Total a Pagar'}
+                                {(retencionFuente > 0 || retencionIca > 0) ? 'Monto a Ingresar en Métodos de Pago' : 'Total a Pagar'}
                               </div>
                               <div style={{ 
                                 fontSize: '1.5rem', 
@@ -2121,22 +2191,145 @@ export default function OrdenEditarModal({
                   );
                 })()}
                 
+                {/* Checkbox e Input para Retención ICA */}
+                {(() => {
+                  const subtotalFacturado = form.items.reduce((sum, item) => sum + (item.totalLinea || 0), 0);
+                  const totalFacturado = subtotalFacturado;
+                  const subtotalSinIva = totalFacturado / 1.19;
+                  const superaUmbralIca = icaThreshold > 0 && subtotalSinIva >= icaThreshold;
+                  
+                  if (!superaUmbralIca) {
+                    return null;
+                  }
+                  
+                  return (
+                    <div style={{ 
+                      marginTop: '1rem', 
+                      padding: '1rem', 
+                      backgroundColor: '#f8f9fa', 
+                      borderRadius: '8px', 
+                      border: '1px solid #e0e0e0' 
+                    }}>
+                      <label style={{ 
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                        cursor: 'pointer',
+                        color: '#343a40',
+                        width: '100%',
+                        margin: 0
+                      }}>
+                        <input
+                          type="checkbox"
+                          checked={form.tieneRetencionIca || false}
+                          onChange={(e) => {
+                            const nuevoValorIca = e.target.checked;
+                            handleChange("tieneRetencionIca", nuevoValorIca);
+                            // Si se desactiva, limpiar porcentaje
+                            if (!nuevoValorIca) {
+                              handleChange("porcentajeIca", null);
+                            }
+                          }}
+                          style={{ 
+                            width: '1.3rem', 
+                            height: '1.3rem', 
+                            cursor: 'pointer', 
+                            margin: 0,
+                            accentColor: '#4f67ff',
+                            flexShrink: 0
+                          }}
+                        />
+                        <span>Esta orden tiene retención ICA</span>
+                      </label>
+                      {form.tieneRetencionIca && (
+                        <div style={{ marginTop: '0.75rem', marginLeft: '28px' }}>
+                          <label style={{ 
+                            display: 'block', 
+                            fontSize: '0.875rem', 
+                            fontWeight: '500', 
+                            color: '#343a40',
+                            marginBottom: '0.25rem'
+                          }}>
+                            Porcentaje ICA (%):
+                          </label>
+                          <input
+                            type="number"
+                            value={form.porcentajeIca !== null && form.porcentajeIca !== undefined ? form.porcentajeIca : ''}
+                            onChange={(e) => {
+                              const valor = e.target.value === '' ? null : parseFloat(e.target.value);
+                              if (valor === null || (valor >= 0 && valor <= 100)) {
+                                handleChange("porcentajeIca", valor);
+                              }
+                            }}
+                            placeholder={`Por defecto: ${icaRate}%`}
+                            min="0"
+                            max="100"
+                            step="0.1"
+                            style={{
+                              width: '100%',
+                              padding: '0.5rem',
+                              border: '1px solid #ddd',
+                              borderRadius: '4px',
+                              fontSize: '0.875rem'
+                            }}
+                          />
+                          <small style={{ 
+                            display: 'block', 
+                            color: '#666', 
+                            fontSize: '0.75rem', 
+                            marginTop: '0.25rem'
+                          }}>
+                            Opcional: Si no se especifica, se usará el valor por defecto ({icaRate}%). 
+                            La base imponible (${subtotalSinIva.toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}) supera el umbral de ${icaThreshold.toLocaleString('es-CO')}.
+                          </small>
+                        </div>
+                      )}
+                      {!form.tieneRetencionIca && (
+                        <small style={{ 
+                          display: 'block', 
+                          color: '#666', 
+                          fontSize: '0.75rem', 
+                          marginTop: '0.25rem',
+                          marginLeft: '28px'
+                        }}>
+                          La base imponible (${subtotalSinIva.toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}) supera el umbral de ${icaThreshold.toLocaleString('es-CO')}. 
+                          Marca esta opción si la orden debe tener retención ICA.
+                        </small>
+                      )}
+                    </div>
+                  );
+                })()}
+                
                 {(() => {
                   // Calcular totales para mostrar
                   const subtotalFacturado = form.items.reduce((sum, item) => sum + (item.totalLinea || 0), 0);
                   const totalFacturado = subtotalFacturado;
                   
-                  // Calcular retención si está marcada
+                  // Calcular subtotal sin IVA (base imponible) - se usa para ambas retenciones
+                  const baseImponible = totalFacturado;
+                  const subtotalSinIva = baseImponible / 1.19;
+                  
+                  // Calcular retención en la fuente si está marcada
                   let retencionFuente = 0;
                   if (form.tieneRetencionFuente) {
-                    const baseImponible = totalFacturado;
-                    const subtotalSinIva = baseImponible / 1.19;
                     if (subtotalSinIva >= retefuenteThreshold) {
                       retencionFuente = subtotalSinIva * (retefuenteRate / 100);
                     }
                   }
                   
-                  const valorAPagar = totalFacturado - retencionFuente;
+                  // Calcular retención ICA si está marcada
+                  let retencionIca = 0;
+                  if (form.tieneRetencionIca) {
+                    if (subtotalSinIva >= icaThreshold) {
+                      // Usar porcentaje personalizado si está definido, sino usar el por defecto
+                      const porcentajeIcaUsar = (form.porcentajeIca !== null && form.porcentajeIca !== undefined) 
+                        ? Number(form.porcentajeIca) 
+                        : icaRate;
+                      retencionIca = subtotalSinIva * (porcentajeIcaUsar / 100);
+                    }
+                  }
+                  
+                  const valorAPagar = totalFacturado - retencionFuente - retencionIca;
                   
                   return (
                     <>
@@ -2146,12 +2339,20 @@ export default function OrdenEditarModal({
                           ${totalFacturado.toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </strong>
                       </div>
-                      {retencionFuente > 0 && (
+                      {(retencionFuente > 0 || retencionIca > 0) && (
                         <>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '0.25rem', fontSize: '0.9em', color: '#666' }}>
-                            <span>(-) Retención en la Fuente:</span>
-                            <span>${retencionFuente.toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                          </div>
+                          {retencionFuente > 0 && (
+                            <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '0.25rem', fontSize: '0.9em', color: '#666' }}>
+                              <span>(-) Retención en la Fuente:</span>
+                              <span>${retencionFuente.toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                            </div>
+                          )}
+                          {retencionIca > 0 && (
+                            <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '0.25rem', fontSize: '0.9em', color: '#666' }}>
+                              <span>(-) Retención ICA:</span>
+                              <span>${retencionIca.toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                            </div>
+                          )}
                           <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid #ddd', paddingTop: '0.5rem', marginTop: '0.5rem' }}>
                             <span><strong>Valor a Pagar:</strong></span>
                             <strong style={{ fontSize: '1.2em', color: '#4f67ff' }}>
@@ -2159,11 +2360,11 @@ export default function OrdenEditarModal({
                             </strong>
                           </div>
                           <small style={{ display: 'block', color: '#666', fontSize: '0.75rem', marginTop: '0.25rem', fontStyle: 'italic' }}>
-                            El monto del método de pago debe ser el valor a pagar (total - retención)
+                            El monto del método de pago debe ser el valor a pagar (total - retenciones)
                           </small>
                         </>
                       )}
-                      {retencionFuente === 0 && (
+                      {retencionFuente === 0 && retencionIca === 0 && (
                         <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid #ddd', paddingTop: '0.5rem', marginTop: '0.5rem' }}>
                           <span><strong>Valor a Pagar:</strong></span>
                           <strong style={{ fontSize: '1.2em', color: '#4f67ff' }}>

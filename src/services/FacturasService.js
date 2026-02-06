@@ -63,12 +63,28 @@ export async function listarFacturasPorRangoFechas(desde, hasta) {
 }
 
 export async function crearFactura(factura) {
-  const { data } = await api.post("facturas", factura);
+  // Incluir retencionIca si está presente (opcional)
+  const facturaData = {
+    ...factura,
+    ...(factura.retencionIca !== undefined && factura.retencionIca !== null 
+      ? { retencionIca: parseFloat(factura.retencionIca) } 
+      : {})
+  };
+  
+  const { data } = await api.post("facturas", facturaData);
   return data;
 }
 
 export async function actualizarFactura(id, factura) {
-  const { data } = await api.put(`facturas/${id}`, factura);
+  // Incluir retencionIca si está presente
+  const facturaData = {
+    ...factura,
+    ...(factura.retencionIca !== undefined && factura.retencionIca !== null 
+      ? { retencionIca: parseFloat(factura.retencionIca) } 
+      : {})
+  };
+  
+  const { data } = await api.put(`facturas/${id}`, facturaData);
   return data;
 }
 

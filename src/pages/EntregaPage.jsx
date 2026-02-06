@@ -59,13 +59,91 @@ export default function EntregasPage() {
     try {
       // Si no es admin, filtrar por sede del usuario
       const filtrosEntregas = isAdmin ? {} : { sedeId: sedeIdUsuario };
-      // Cargar datos en paralelo
-      const [entregasData, sedesData, trabajadoresData, proveedoresData] = await Promise.all([
+      
+      // Cargar datos en paralelo con manejo individual de errores
+      const resultados = await Promise.allSettled([
         EntregasService.obtenerEntregas(filtrosEntregas),
         SedesService.listarSedes(),
         TrabajadoresService.listarTrabajadores(),
         ProveedoresService.listarProveedores()
       ]);
+      
+      // Procesar resultados
+      const entregasData = resultados[0].status === 'fulfilled' ? resultados[0].value : [];
+      const sedesData = resultados[1].status === 'fulfilled' ? resultados[1].value : [];
+      const trabajadoresData = resultados[2].status === 'fulfilled' ? resultados[2].value : [];
+      const proveedoresData = resultados[3].status === 'fulfilled' ? resultados[3].value : [];
+      
+      // Identificar qué servicios fallaron
+      const serviciosFallidos = [];
+      const nombresServicios = ['entregas', 'sedes', 'trabajadores', 'proveedores'];
+      
+      resultados.forEach((resultado, index) => {
+        if (resultado.status === 'rejected') {
+          serviciosFallidos.push({
+            nombre: nombresServicios[index],
+            error: resultado.reason
+          });
+        }
+      });
+      
+      // Si hay errores, mostrar mensaje detallado
+      if (serviciosFallidos.length > 0) {
+        const erroresDetalles = serviciosFallidos.map(({ nombre, error }) => {
+          const status = error?.response?.status || 'N/A';
+          const errorData = error?.response?.data;
+          const errorMessage = error?.message || '';
+          
+          // Intentar extraer mensaje más específico del error
+          let mensaje = 'Error desconocido';
+          if (errorData) {
+            if (typeof errorData === 'string') {
+              mensaje = errorData;
+            } else if (errorData.message) {
+              mensaje = errorData.message;
+            } else if (errorData.error) {
+              mensaje = errorData.error;
+            }
+          } else if (errorMessage) {
+            mensaje = errorMessage;
+          }
+          
+          // Mensaje especial para errores 500 relacionados con EntityNotFoundException
+          if (status === 500) {
+            // Verificar si el mensaje contiene información sobre entidades no encontradas
+            const errorString = JSON.stringify(errorData || errorMessage || '').toLowerCase();
+            if (errorString.includes('entitynotfound') || errorString.includes('unable to find')) {
+              mensaje = 'Error de integridad de datos: Hay referencias a registros que ya no existen. Contacte al administrador para corregir los datos.';
+            } else {
+              mensaje = `Error del servidor (500): ${mensaje}`;
+            }
+          }
+          
+          const url = error?.config?.url || 'N/A';
+          console.error(`Error en ${nombre}:`, {
+            status,
+            mensaje,
+            url,
+            error: errorData,
+            fullError: error
+          });
+          
+          return `${nombre} (${status}): ${mensaje}`;
+        }).join('; ');
+        
+        // Si solo falló el servicio de entregas, mostrar mensaje más específico
+        if (serviciosFallidos.length === 1 && serviciosFallidos[0].nombre === 'entregas') {
+          const error = serviciosFallidos[0].error;
+          const status = error?.response?.status;
+          if (status === 500) {
+            setError(`⚠️ Error cargando entregas: ${erroresDetalles}\n\nEste error generalmente indica un problema de integridad de datos en el backend. Por favor, contacte al administrador del sistema.`);
+          } else {
+            setError(`Error cargando entregas: ${erroresDetalles}`);
+          }
+        } else {
+          setError(`Error cargando datos de: ${erroresDetalles}`);
+        }
+      }
       
       // Ordenar entregas de más recientes a más antiguas por fechaEntrega
       const entregasOrdenadas = (entregasData || []).sort((a, b) => {
@@ -79,10 +157,12 @@ export default function EntregasPage() {
       setTrabajadores(trabajadoresData || []);
       setProveedores(proveedoresData || []);
       
-      
     } catch (err) {
+      // Error general no capturado
       const errorMessage = err.response?.data?.message || err.message || 'Error desconocido';
-      setError(`Error cargando datos: ${errorMessage}`);
+      const statusCode = err.response?.status || 'N/A';
+      setError(`Error cargando datos (${statusCode}): ${errorMessage}`);
+      console.error('Error general en cargarDatos:', err);
     } finally {
       setIsLoading(false);
     }

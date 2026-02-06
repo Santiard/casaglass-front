@@ -1,6 +1,7 @@
 // src/pages/FacturasPage.jsx
 import React, { useEffect, useState, useCallback } from "react";
 import FacturasTable from "../componets/FacturasTable";
+import FacturaImprimirModal from "../modals/FacturaImprimirModal.jsx";
 import "../styles/ClientesPage.css";
 import {
   listarFacturas,
@@ -25,6 +26,8 @@ export default function FacturasPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
+  const [facturaImprimir, setFacturaImprimir] = useState(null);
+  const [isImprimirModalOpen, setIsImprimirModalOpen] = useState(false);
 
   const fetchData = useCallback(async (page = 1, size = 20) => {
     setLoading(true);
@@ -121,6 +124,12 @@ export default function FacturasPage() {
     }
   };
 
+  // Manejar impresión de factura
+  const handleImprimir = (factura) => {
+    setFacturaImprimir(factura);
+    setIsImprimirModalOpen(true);
+  };
+
   // Manejar eliminación de factura
   const handleEliminar = async (factura) => {
     const confirmacion = await confirm({
@@ -202,6 +211,7 @@ export default function FacturasPage() {
           clientes={clientes}
           onVerificar={handleVerificar}
           onEliminar={handleEliminar}
+          onImprimir={handleImprimir}
           onConfirmarTodas={handleConfirmarTodas}
           // Paginación del servidor
           totalElements={totalElements}
@@ -213,6 +223,16 @@ export default function FacturasPage() {
         />
       </div>
       <ConfirmDialog />
+      
+      {/* Modal de impresión de factura */}
+      <FacturaImprimirModal
+        factura={facturaImprimir}
+        isOpen={isImprimirModalOpen}
+        onClose={() => {
+          setIsImprimirModalOpen(false);
+          setFacturaImprimir(null);
+        }}
+      />
     </div>
   );
 }
