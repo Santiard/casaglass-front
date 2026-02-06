@@ -521,16 +521,20 @@ export default function OrdenImprimirModal({ orden, isOpen, onClose }) {
                         <td colSpan={6} className="empty">Sin ítems</td>
                       </tr>
                     ) : (
-                      form.items.map((item, index) => (
-                        <tr key={item.id || index}>
-                          <td className="text-center">{item.cantidad || 0}</td>
-                          <td>{item.producto?.color || "-"}</td>
-                          <td>{item.producto?.tipo || "-"}</td>
-                          <td>{item.producto?.nombre || "-"}</td>
-                          <td>${item.precioUnitario?.toLocaleString("es-CO") || "0"}</td>
-                          <td>${item.totalLinea?.toLocaleString("es-CO") || "0"}</td>
-                        </tr>
-                      ))
+                      form.items.map((item, index) => {
+                        // Para cortes, usar el nombre formateado del detalle si existe, sino el del producto
+                        const nombreProducto = item.nombre || item.nombreProducto || item.producto?.nombre || "-";
+                        return (
+                          <tr key={item.id || index}>
+                            <td className="text-center">{item.cantidad || 0}</td>
+                            <td>{item.producto?.color || "-"}</td>
+                            <td>{item.producto?.tipo || "-"}</td>
+                            <td>{nombreProducto}</td>
+                            <td>${item.precioUnitario?.toLocaleString("es-CO") || "0"}</td>
+                            <td>${item.totalLinea?.toLocaleString("es-CO") || "0"}</td>
+                          </tr>
+                        );
+                      })
                     )}
                   </tbody>
                 </table>
@@ -582,14 +586,18 @@ export default function OrdenImprimirModal({ orden, isOpen, onClose }) {
                         <td colSpan={4} className="empty">Sin ítems</td>
                       </tr>
                     ) : (
-                      form.items.map((item, index) => (
-                        <tr key={item.id || index}>
-                          <td className="text-center">{item.cantidad || 0}</td>
-                          <td>{item.producto?.color || "-"}</td>
-                          <td>{item.producto?.tipo || "-"}</td>
-                          <td>{item.producto?.nombre || "-"}</td>
-                        </tr>
-                      ))
+                      form.items.map((item, index) => {
+                        // Para cortes, usar el nombre formateado del detalle si existe, sino el del producto
+                        const nombreProducto = item.nombre || item.nombreProducto || item.producto?.nombre || "-";
+                        return (
+                          <tr key={item.id || index}>
+                            <td className="text-center">{item.cantidad || 0}</td>
+                            <td>{item.producto?.color || "-"}</td>
+                            <td>{item.producto?.tipo || "-"}</td>
+                            <td>{nombreProducto}</td>
+                          </tr>
+                        );
+                      })
                     )}
                   </tbody>
                 </table>
