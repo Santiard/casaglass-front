@@ -373,9 +373,9 @@ const AbonoPage = () => {
       const orden = ordenesCredito.find(o => o.id === ordenId);
       if (orden) {
         if (orden.tieneRetencionFuente === true) {
-          const nuevasConRetencion = new Set(ordenesConRetencion);
-          nuevasConRetencion.add(ordenId);
-          setOrdenesConRetencion(nuevasConRetencion);
+        const nuevasConRetencion = new Set(ordenesConRetencion);
+        nuevasConRetencion.add(ordenId);
+        setOrdenesConRetencion(nuevasConRetencion);
         }
         // También marcar ICA si la orden tiene tieneRetencionIca = true
         if (orden.tieneRetencionIca === true) {
@@ -649,8 +649,8 @@ const toggleIcaOrden = async (ordenId) => {
     showError(error.response?.data?.message || error.message || 'Error actualizando retención ICA');
   } finally {
     setUpdatingIca(prev => new Set(prev).delete(ordenId));
-  }
-};
+    }
+  };
 
   const construirDescripcion = (metodos, observaciones, distribucionConRetencion) => {
     if (!metodos || metodos.length === 0) return observaciones || "";
@@ -1516,11 +1516,11 @@ const toggleIcaOrden = async (ordenId) => {
                     }}>
                       Selecciona la orden para aplicar
                     </div>
-                  </div>
                 </div>
+              </div>
 
-                {/* COLUMNA DERECHA: Tabla de Métodos de Pago y Resumen */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              {/* COLUMNA DERECHA: Tabla de Métodos de Pago y Resumen */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 {/* Tabla de Métodos de Pago */}
                 <div>
                   <div style={{ fontWeight: '600', marginBottom: '0.5rem', color: '#1e2753' }}>Medios de Pago</div>
@@ -1632,8 +1632,8 @@ const toggleIcaOrden = async (ordenId) => {
                     </div>
                   </div>
                 </div>
-              </div>
-            </div>
+                    </div>
+                            </div>
             </>
           )}
 

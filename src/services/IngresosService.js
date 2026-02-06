@@ -479,7 +479,27 @@ export async function actualizarIngresoDesdeForm(id, form) {
 }
 
 export async function eliminarIngreso(id) {
-  await api.delete(`/ingresos/${id}`);
+  // Validar ID
+  const numericId = Number(id);
+  if (!Number.isFinite(numericId) || numericId <= 0) {
+    throw new Error(`ID de ingreso inválido: ${id}`);
+  }
+  
+  try {
+    const response = await api.delete(`/ingresos/${numericId}`);
+    // El backend retorna 204 No Content cuando se elimina correctamente
+    return response;
+  } catch (error) {
+    // Manejar errores específicos según la documentación
+    if (error.response?.status === 404) {
+      throw new Error('Ingreso no encontrado');
+    }
+    if (error.response?.status === 500) {
+      const errorMessage = error.response?.data?.error || error.message || 'Error al revertir inventario';
+      throw new Error(errorMessage);
+    }
+    throw error;
+  }
 }
 
 export async function procesarIngreso(id) {
@@ -523,6 +543,29 @@ export async function reprocesarIngreso(id) {
     const { data } = await api.put(`/ingresos/${numericId}/reprocesar`);
     return data;
   } catch (error) {
+    throw error;
+  }
+}
+
+export async function desprocesarIngreso(id) {
+  // Validar ID
+  const numericId = Number(id);
+  if (!Number.isFinite(numericId) || numericId <= 0) {
+    throw new Error(`ID de ingreso inválido: ${id}`);
+  }
+  
+  try {
+    const { data } = await api.put(`/ingresos/${numericId}/desprocesar`);
+    return data;
+  } catch (error) {
+    // Manejar errores específicos según la documentación
+    if (error.response?.status === 400) {
+      const errorMessage = error.response?.data?.error || 'El ingreso no está procesado';
+      throw new Error(errorMessage);
+    }
+    if (error.response?.status === 404) {
+      throw new Error('Ingreso no encontrado');
+    }
     throw error;
   }
 }

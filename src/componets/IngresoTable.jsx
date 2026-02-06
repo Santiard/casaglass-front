@@ -21,6 +21,7 @@ export default function IngresosTable({
   onActualizar,
   onEliminar,
   onProcesar,
+  onDesprocesar,
   // Paginación del servidor
   totalElements = 0,
   totalPages = 1,
@@ -79,42 +80,45 @@ export default function IngresosTable({
   };
 
   const eliminar = async (ing) => {
-    // Si el ingreso está procesado, no permitir eliminar (aunque el botón no debería aparecer)
-    if (ing.procesado) {
-      showError("No se puede eliminar un ingreso que ya ha sido procesado.");
-      return;
-    }
+    // Mensaje de confirmación diferente según si está procesado o no
+    const mensaje = ing.procesado
+      ? `¿Estás seguro de que deseas eliminar este ingreso procesado?\n\n⚠️ ADVERTENCIA: Esta acción revertirá automáticamente el inventario (restará las cantidades que se sumaron al procesar).\n\nEsta acción no se puede deshacer.`
+      : `¿Estás seguro de que deseas eliminar este ingreso?\n\nEsta acción no se puede deshacer.`;
     
-    // Si el ingreso está pendiente (no procesado), se puede eliminar sin importar la fecha
-    // Si está procesado, verificar la antigüedad (aunque esto no debería llegar aquí)
-    if (!ing.procesado) {
-      // Ingreso pendiente: permitir eliminar siempre
-      const confirmacion = await confirm({
-        title: "Eliminar Ingreso",
-        message: `¿Estás seguro de que deseas eliminar este ingreso?\n\nEsta acción no se puede deshacer.`,
-        confirmText: "Eliminar",
-        cancelText: "Cancelar",
-        type: "danger"
-      });
-      if (!confirmacion) return;
+    const confirmacion = await confirm({
+      title: "Eliminar Ingreso",
+      message: mensaje,
+      confirmText: "Eliminar",
+      cancelText: "Cancelar",
+      type: "danger"
+    });
+    
+    if (!confirmacion) return;
+    
+    try {
       await onEliminar?.(ing.id);
-    } else {
-      // Ingreso procesado: verificar antigüedad
-      const d = parseLocalDate(ing.fecha);
-      const diff = diffDaysFromToday(d);
-      if (diff > 2) {
-        showError("No se puede eliminar un ingreso con más de 2 días de antigüedad.");
-        return;
-      }
-      const confirmacion = await confirm({
-        title: "Eliminar Ingreso",
-        message: `¿Estás seguro de que deseas eliminar este ingreso?\n\nEsta acción no se puede deshacer.`,
-        confirmText: "Eliminar",
-        cancelText: "Cancelar",
-        type: "danger"
-      });
-      if (!confirmacion) return;
-      await onEliminar?.(ing.id);
+    } catch (error) {
+      // El error ya se maneja en IngresoPage
+      throw error;
+    }
+  };
+
+  const desprocesar = async (ing) => {
+    const confirmacion = await confirm({
+      title: "Desprocesar Ingreso",
+      message: `¿Estás seguro de que deseas desprocesar este ingreso?\n\n⚠️ ADVERTENCIA: Esta acción revertirá automáticamente el inventario (restará las cantidades que se sumaron al procesar) y marcará el ingreso como pendiente.\n\nPodrás reprocesarlo después si es necesario.`,
+      confirmText: "Desprocesar",
+      cancelText: "Cancelar",
+      type: "warning"
+    });
+    
+    if (!confirmacion) return;
+    
+    try {
+      await onDesprocesar?.(ing.id);
+    } catch (error) {
+      // El error ya se maneja en IngresoPage
+      throw error;
     }
   };
 
@@ -284,13 +288,14 @@ export default function IngresosTable({
         <table className="table ingresos-table">
           <thead>
             <tr>
-              <th>Fecha</th>
-              <th>Proveedor</th>
-              <th>N° Factura</th>
-              <th>Total Productos</th>
+              <th style={{ width: '80px', minWidth: '80px', maxWidth: '80px' }}>N° Ingreso</th>
+              <th style={{ width: '100px', minWidth: '100px', maxWidth: '100px' }}>Fecha</th>
+              <th style={{ width: '22%', minWidth: '170px' }}>Proveedor</th>
+              <th style={{ width: '12%', minWidth: '100px' }}>N° Factura</th>
+              <th style={{ width: '100px', minWidth: '100px', maxWidth: '100px', textAlign: 'center' }}>Total Productos</th>
               <th>Total costo</th>
-              <th>Estado</th>
-              <th>Detalle</th>
+              <th style={{ width: '110px', minWidth: '110px', maxWidth: '110px' }}>Estado</th>
+              <th style={{ width: '100px', minWidth: '100px', maxWidth: '100px' }}>Detalle</th>
               <th>Acciones</th>
             </tr>
           </thead>
@@ -298,14 +303,14 @@ export default function IngresosTable({
           <tbody>
             {loading && (
               <tr>
-                <td colSpan={7} className="empty">
+                <td colSpan={9} className="empty">
                   Cargando…
                 </td>
               </tr>
             )}
             {!loading && pageData.length === 0 && (
               <tr>
-                <td colSpan={7} className="empty">
+                <td colSpan={9} className="empty">
                   No hay ingresos registrados
                 </td>
               </tr>
@@ -328,10 +333,13 @@ export default function IngresosTable({
                     onDoubleClick={() => onVerDetalles?.(ing)}
                     style={{ cursor: "pointer" }}
                   >
-                    <td>{fmtFecha(ing.fecha)}</td>
-                    <td>{ing.proveedor?.nombre ?? "-"}</td>
-                    <td>{ing.numeroFactura ?? "-"}</td>
-                    <td>
+                    <td style={{ width: '80px', minWidth: '80px', maxWidth: '80px', textAlign: 'center' }}>
+                      <strong>#{ing.id}</strong>
+                    </td>
+                    <td style={{ width: '100px', minWidth: '100px', maxWidth: '100px' }}>{fmtFecha(ing.fecha)}</td>
+                    <td style={{ width: '22%', minWidth: '170px' }}>{ing.proveedor?.nombre ?? "-"}</td>
+                    <td style={{ width: '12%', minWidth: '100px' }}>{ing.numeroFactura ?? "-"}</td>
+                    <td style={{ width: '100px', minWidth: '100px', maxWidth: '100px', textAlign: 'center' }}>
                       {cantidadMostrar !== null ? (
                         <span className="badge">
                           {esVidrioIngreso
@@ -343,7 +351,7 @@ export default function IngresosTable({
                       )}
                     </td>
                     <td>{fmtCOP(Number(ing.totalCosto))}</td>
-                    <td>
+                    <td style={{ width: '110px', minWidth: '110px', maxWidth: '110px', textAlign: 'center' }}>
                       <span 
                         className={`badge ${ing.procesado ? 'badge-success' : 'badge-warning'}`}
                         style={{
@@ -358,11 +366,12 @@ export default function IngresosTable({
                         {ing.procesado ? 'Procesado' : 'Pendiente'}
                       </span>
                     </td>
-                    <td>
+                    <td style={{ width: '100px', minWidth: '100px', maxWidth: '100px', textAlign: 'center' }}>
                       <button
                         className="btnLink"
                         type="button"
                         onClick={() => onVerDetalles?.(ing)}
+                        style={{ whiteSpace: 'nowrap' }}
                       >
                         Ver detalles
                       </button>
@@ -376,6 +385,22 @@ export default function IngresosTable({
                           title="Procesar ingreso"
                         >
                           Procesar
+                        </button>
+                      )}
+                      
+                      {/* Botón Desprocesar - solo si está procesado */}
+                      {ing.procesado && onDesprocesar && (
+                        <button
+                          className="btn"
+                          onClick={() => desprocesar(ing)}
+                          title="Desprocesar ingreso (revertir inventario)"
+                          style={{
+                            backgroundColor: '#f59e0b',
+                            color: 'white',
+                            border: 'none'
+                          }}
+                        >
+                          Desprocesar
                         </button>
                       )}
                       
@@ -394,16 +419,14 @@ export default function IngresosTable({
                         </button>
                       )}
                       
-                      {/* Botón Eliminar - solo si no está procesado */}
-                      {!ing.procesado && (
-                        <button
-                          className="btnDelete"
-                          onClick={() => eliminar(ing)}
-                          title="Eliminar ingreso"
-                        >
-                         <img src={deleteIcon} className="iconButton" />
-                        </button>
-                      )}
+                      {/* Botón Eliminar - ahora disponible para todos los ingresos (procesados y no procesados) */}
+                      <button
+                        className="btnDelete"
+                        onClick={() => eliminar(ing)}
+                        title={ing.procesado ? "Eliminar ingreso (revertirá inventario)" : "Eliminar ingreso"}
+                      >
+                        <img src={deleteIcon} className="iconButton" />
+                      </button>
                    
                     </td>
                   </tr>

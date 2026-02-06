@@ -1,9 +1,11 @@
 // src/modals/ProductoModal.jsx
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useToast } from "../context/ToastContext.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import "../styles/CrudModal.css";
 import { listarCategorias } from "../services/CategoriasService";
+import { listarProductosPosiciones } from "../services/ProductosService";
+import CategorySidebar from "../componets/CategorySidebar.jsx";
 
 export default function ProductModal({ isOpen, onClose, onSave, product }) {
   const { showError } = useToast();
@@ -28,10 +30,14 @@ export default function ProductModal({ isOpen, onClose, onSave, product }) {
     m1: "",
     m2: "",
     laminas: "",
+    posicion: "", // Campo de posición
   };
 
   const [formData, setFormData] = useState(initialState);
   const [categories, setCategories] = useState([]);
+  const [productosPosiciones, setProductosPosiciones] = useState([]);
+  const [selectedCategoryId, setSelectedCategoryId] = useState(null);
+  const [loadingProductos, setLoadingProductos] = useState(false);
 
   const isEditing = !!product;
 
@@ -50,6 +56,27 @@ export default function ProductModal({ isOpen, onClose, onSave, product }) {
     };
     fetchCategorias();
   }, []);
+
+  // Cargar productos para la tabla de posiciones
+  useEffect(() => {
+    if (!isOpen) return;
+    
+    const fetchProductos = async () => {
+      setLoadingProductos(true);
+      try {
+        const params = selectedCategoryId ? { categoriaId: selectedCategoryId } : {};
+        const productos = await listarProductosPosiciones(params);
+        setProductosPosiciones(productos || []);
+      } catch (e) {
+        console.error("Error cargando productos para posiciones:", e);
+        setProductosPosiciones([]);
+      } finally {
+        setLoadingProductos(false);
+      }
+    };
+    
+    fetchProductos();
+  }, [isOpen, selectedCategoryId]);
 
   // Prevenir cierre/recarga de pestaña cuando el modal está abierto
   useEffect(() => {
@@ -100,12 +127,38 @@ export default function ProductModal({ isOpen, onClose, onSave, product }) {
         mm: product.mm !== undefined && product.mm !== null ? String(product.mm) : "",
         m1: product.m1 !== undefined && product.m1 !== null ? String(product.m1) : (product.m1m2?.split?.("x")?.[0] ?? ""),
         m2: product.m2 !== undefined && product.m2 !== null ? String(product.m2) : (product.m1m2?.split?.("x")?.[1] ?? ""),
+        // Campo de posición
+        posicion: product.posicion !== undefined && product.posicion !== null ? String(product.posicion) : "",
       });
     } else {
       setFormData(initialState);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [product]);
+
+  // Filtrar y ordenar productos para la tabla
+  const productosFiltrados = useMemo(() => {
+    let filtered = [...productosPosiciones];
+    
+    // Filtrar por categoría si está seleccionada
+    if (selectedCategoryId) {
+      filtered = filtered.filter((p) => {
+        if (p.categoria && typeof p.categoria === 'object' && p.categoria.id) {
+          return p.categoria.id === selectedCategoryId;
+        }
+        return false;
+      });
+    }
+    
+    // Ordenar por posición numérica (productos sin posición al final)
+    filtered.sort((a, b) => {
+      const posA = a.posicion ? parseInt(a.posicion) : Number.MAX_SAFE_INTEGER;
+      const posB = b.posicion ? parseInt(b.posicion) : Number.MAX_SAFE_INTEGER;
+      return posA - posB;
+    });
+    
+    return filtered;
+  }, [productosPosiciones, selectedCategoryId]);
 
   if (!isOpen) return null;
 
@@ -157,6 +210,8 @@ export default function ProductModal({ isOpen, onClose, onSave, product }) {
     const uppercaseFields = ['codigo', 'nombre', 'color'];
     // Campos de medidas que solo permiten números y puntos
     const measureFields = ['mm', 'm1', 'm2'];
+    // Campo de posición que solo permite números
+    const positionFields = ['posicion'];
 
     // Si cambia el tipo, establecer color por defecto automáticamente
     if (name === 'tipo') {
@@ -202,6 +257,9 @@ export default function ProductModal({ isOpen, onClose, onSave, product }) {
       if (parts.length > 2) {
         processedValue = parts[0] + '.' + parts.slice(1).join('');
       }
+    } else if (positionFields.includes(name)) {
+      // Solo números enteros para posición
+      processedValue = value.replace(/[^0-9]/g, '');
     } else if (uppercaseFields.includes(name)) {
       // Convertir a mayúsculas
       processedValue = value.toUpperCase();
@@ -301,7 +359,8 @@ export default function ProductModal({ isOpen, onClose, onSave, product }) {
       precio2: toSave.precio2,
       precio3: toSave.precio3,
       descripcion: toSave.descripcion || "",
-      posicion: toSave.posicion || ""
+      // Posición: solo incluir si tiene valor (el servicio lo procesará correctamente)
+      ...(toSave.posicion && toSave.posicion.trim() !== '' ? { posicion: toSave.posicion.trim() } : {})
     };
 
     // IMPORTANTE: Si es vidrio, incluir los campos específicos de vidrio
@@ -374,14 +433,40 @@ export default function ProductModal({ isOpen, onClose, onSave, product }) {
   };
 
   return (
-    <div className="modal-overlay" style={{ overflowY: 'auto', maxHeight: '100vh' }}>
-      <div className="modal-container-producto" style={{ maxHeight: '90vh', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
-        <div className="modal-header">
-          <h2>{isEditing ? "Editar Producto" : "Agregar Producto"}</h2>
+    <div className="modal-overlay" style={{ 
+      position: 'fixed', 
+      top: 0, 
+      left: 0, 
+      right: 0, 
+      bottom: 0, 
+      backgroundColor: 'rgba(0, 0, 0, 0.5)', 
+      display: 'flex', 
+      alignItems: 'center', 
+      justifyContent: 'center',
+      zIndex: 1000,
+      overflow: 'auto'
+    }}>
+      <div style={{ 
+        width: '100%', 
+        height: '100%', 
+        backgroundColor: '#fff', 
+        display: 'flex', 
+        flexDirection: 'column',
+        overflow: 'hidden'
+      }}>
+        {/* Header */}
+        <div style={{ 
+          padding: '1rem 1.5rem', 
+          borderBottom: '1px solid #ddd', 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center',
+          flexShrink: 0
+        }}>
+          <h2 style={{ margin: 0 }}>{isEditing ? "Editar Producto" : "Agregar Producto"}</h2>
           <button 
             type="button" 
             onClick={onClose} 
-            className="close-btn" 
             style={{ 
               background: 'none', 
               border: 'none', 
@@ -400,11 +485,24 @@ export default function ProductModal({ isOpen, onClose, onSave, product }) {
           </button>
         </div>
 
-        <div className="modal-body">
-          <form onSubmit={handleSubmit} className="form">
-            <div className="form-two-columns">
-            {/* COLUMNA IZQUIERDA */}
-            <div className="form-column">
+        {/* Body con dos columnas */}
+        <div style={{ 
+          flex: 1, 
+          display: 'flex', 
+          overflow: 'hidden',
+          minHeight: 0
+        }}>
+          {/* COLUMNA IZQUIERDA - Formulario */}
+          <div style={{ 
+            width: '50%', 
+            borderRight: '1px solid #ddd', 
+            overflowY: 'auto',
+            padding: '1.5rem'
+          }}>
+            <form onSubmit={handleSubmit} className="form">
+              <div className="form-two-columns">
+                {/* COLUMNA IZQUIERDA DEL FORMULARIO */}
+                <div className="form-column">
               <label>
                 Código:
                 <input
@@ -498,6 +596,32 @@ export default function ProductModal({ isOpen, onClose, onSave, product }) {
                 </select>
               </label>
 
+              {/* Campo de posición - solo en creación */}
+              {!isEditing && (
+                <label>
+                  Posición:
+                  <input
+                    type="text"
+                    name="posicion"
+                    placeholder="Dejar vacío para insertar al final"
+                    value={formData.posicion}
+                    onChange={handleChange}
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    style={{
+                      width: "100%",
+                      padding: "0.5rem",
+                      border: "1px solid #ddd",
+                      borderRadius: "4px",
+                      fontSize: "0.875rem"
+                    }}
+                  />
+                  <small style={{ color: '#666', fontSize: '0.75rem', display: 'block', marginTop: '4px' }}>
+                    Número de posición donde insertar el producto. Si se deja vacío, se insertará al final.
+                  </small>
+                </label>
+              )}
+
               {/* Checkbox para identificar vidrio */}
               <label className="checkbox">
                 <input
@@ -561,10 +685,10 @@ export default function ProductModal({ isOpen, onClose, onSave, product }) {
                   </div>
                 </div>
               )}
-            </div>
+                </div>
 
-            {/* COLUMNA DERECHA */}
-            <div className="form-column">
+                {/* COLUMNA DERECHA DEL FORMULARIO */}
+                <div className="form-column">
               <label>
                 Costo:
                 <input
@@ -675,17 +799,98 @@ export default function ProductModal({ isOpen, onClose, onSave, product }) {
             </div>
           </div>
 
-            <div className="form-full-width">
-              <div className="modal-buttons">
-                <button type="button" onClick={onClose} className="btn-cancelar">
-                  Cancelar
-                </button>
-                <button type="submit" className="btn-guardar">
-                  Guardar
-                </button>
+              <div style={{ marginTop: '1.5rem', paddingTop: '1.5rem', borderTop: '1px solid #ddd' }}>
+                <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
+                  <button type="button" onClick={onClose} className="btn-cancelar">
+                    Cancelar
+                  </button>
+                  <button type="submit" className="btn-guardar">
+                    Guardar
+                  </button>
+                </div>
               </div>
+            </form>
+          </div>
+
+          {/* COLUMNA DERECHA - Tabla de productos con posiciones */}
+          <div style={{ 
+            width: '50%', 
+            display: 'flex', 
+            overflow: 'hidden'
+          }}>
+            {/* Sidebar de categorías */}
+            <div style={{ 
+              width: '200px', 
+              borderRight: '1px solid #ddd', 
+              padding: '1rem',
+              overflowY: 'auto',
+              flexShrink: 0
+            }}>
+              <CategorySidebar
+                categories={categories}
+                selectedId={selectedCategoryId}
+                onSelect={(id) => setSelectedCategoryId(id)}
+                hideAllCategory={true}
+              />
             </div>
-          </form>
+
+            {/* Tabla de productos */}
+            <div style={{ 
+              flex: 1, 
+              overflowY: 'auto',
+              padding: '1rem',
+              display: 'flex',
+              flexDirection: 'column'
+            }}>
+              <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.1rem' }}>
+                Productos Existentes
+                {selectedCategoryId && (
+                  <span style={{ fontSize: '0.85rem', color: '#666', fontWeight: 'normal', marginLeft: '0.5rem' }}>
+                    • {categories.find(c => c.id === selectedCategoryId)?.nombre}
+                  </span>
+                )}
+              </h3>
+
+              {loadingProductos ? (
+                <div style={{ textAlign: 'center', padding: '2rem', color: '#666' }}>
+                  Cargando productos...
+                </div>
+              ) : productosFiltrados.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '2rem', color: '#666' }}>
+                  No hay productos para mostrar
+                </div>
+              ) : (
+                <div style={{ overflowX: 'auto' }}>
+                  <table style={{ 
+                    width: '100%', 
+                    borderCollapse: 'collapse',
+                    fontSize: '0.875rem'
+                  }}>
+                    <thead>
+                      <tr style={{ backgroundColor: '#f5f5f5' }}>
+                        <th style={{ padding: '0.75rem', textAlign: 'left', borderBottom: '2px solid #ddd', fontWeight: 600 }}>Posición</th>
+                        <th style={{ padding: '0.75rem', textAlign: 'left', borderBottom: '2px solid #ddd', fontWeight: 600 }}>Código</th>
+                        <th style={{ padding: '0.75rem', textAlign: 'left', borderBottom: '2px solid #ddd', fontWeight: 600 }}>Nombre</th>
+                        <th style={{ padding: '0.75rem', textAlign: 'left', borderBottom: '2px solid #ddd', fontWeight: 600 }}>Color</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {productosFiltrados.map((prod) => (
+                        <tr key={prod.id} style={{ borderBottom: '1px solid #eee' }}>
+                          <td style={{ padding: '0.75rem', fontWeight: prod.posicion ? 600 : 400, color: prod.posicion ? '#333' : '#999' }}>
+                            {prod.posicion || '-'}
+                          </td>
+                          <td style={{ padding: '0.75rem' }}>{prod.codigo}</td>
+                          <td style={{ padding: '0.75rem' }}>{prod.nombre}</td>
+                          <td style={{ padding: '0.75rem' }}>{prod.color}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       </div>
     </div>

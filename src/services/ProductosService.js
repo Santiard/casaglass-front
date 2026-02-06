@@ -65,9 +65,53 @@ export async function listarTodosLosProductos(params = {}) {
   }
 }
 
+/**
+ * Crea un nuevo producto
+ * @param {Object} payload - Datos del producto a crear
+ * @param {string|number|null|undefined} payload.posicion - Posición donde insertar el producto (opcional)
+ *   - Si es un número > 0, se convierte a String y se envía
+ *   - Si es null, undefined, "" o 0, no se incluye en el payload (se inserta al final automáticamente)
+ * @returns {Promise<Object>} Producto creado
+ */
 export async function crearProducto(payload) {
   try {
-    const { data } = await api.post("/productos", payload, {
+    // Procesar el campo posicion según la documentación
+    const processedPayload = { ...payload };
+    
+    // Manejar el campo posicion
+    if (processedPayload.posicion !== undefined && processedPayload.posicion !== null) {
+      // Si es un número, convertirlo a String
+      if (typeof processedPayload.posicion === 'number') {
+        if (processedPayload.posicion > 0) {
+          processedPayload.posicion = String(processedPayload.posicion);
+        } else {
+          // Si es 0 o negativo, no incluir el campo (se inserta al final)
+          delete processedPayload.posicion;
+        }
+      } else if (typeof processedPayload.posicion === 'string') {
+        // Si es string, validar que no esté vacío
+        const posicionTrimmed = processedPayload.posicion.trim();
+        if (posicionTrimmed === '' || posicionTrimmed === '0') {
+          // Si está vacío o es "0", no incluir el campo (se inserta al final)
+          delete processedPayload.posicion;
+        } else {
+          // Validar que sea un número válido
+          const posicionNum = Number(posicionTrimmed);
+          if (isNaN(posicionNum) || posicionNum <= 0) {
+            // Si no es un número válido o es <= 0, no incluir el campo
+            delete processedPayload.posicion;
+          } else {
+            // Asegurar que sea String
+            processedPayload.posicion = String(posicionNum);
+          }
+        }
+      }
+    } else {
+      // Si es undefined o null, no incluir el campo (se inserta al final)
+      delete processedPayload.posicion;
+    }
+    
+    const { data } = await api.post("/productos", processedPayload, {
       headers: {
         'Content-Type': 'application/json',
       }
@@ -97,6 +141,21 @@ export async function actualizarProducto(id, payload) {
 }
 export async function eliminarProducto(id) {
   await api.delete(`/productos/${id}`);
+}
+
+/**
+ * Obtiene la lista de productos con solo los campos necesarios para mostrar posiciones
+ * @param {Object} params - Parámetros opcionales (categoriaId para filtrar)
+ * @returns {Promise<Array>} Lista de productos con id, codigo, nombre, color, posicion, categoria
+ */
+export async function listarProductosPosiciones(params = {}) {
+  try {
+    const { data } = await api.get("/productos/posiciones", { params });
+    return data || [];
+  } catch (error) {
+    console.error("Error obteniendo productos para posiciones:", error);
+    throw error;
+  }
 }
 
 /**

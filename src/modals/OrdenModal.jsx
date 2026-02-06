@@ -1784,9 +1784,9 @@ export default function OrdenEditarModal({
                     const totalFacturado = subtotalFacturado;
                     
                     // Calcular subtotal sin IVA (base imponible) - se usa para ambas retenciones
-                    const baseImponible = totalFacturado;
-                    const subtotalSinIva = baseImponible / 1.19;
-                    
+                      const baseImponible = totalFacturado;
+                      const subtotalSinIva = baseImponible / 1.19;
+                      
                     // Calcular retención en la fuente si está marcada
                     let retencionFuente = 0;
                     if (form.tieneRetencionFuente) {
@@ -2307,8 +2307,8 @@ export default function OrdenEditarModal({
                   const totalFacturado = subtotalFacturado;
                   
                   // Calcular subtotal sin IVA (base imponible) - se usa para ambas retenciones
-                  const baseImponible = totalFacturado;
-                  const subtotalSinIva = baseImponible / 1.19;
+                    const baseImponible = totalFacturado;
+                    const subtotalSinIva = baseImponible / 1.19;
                   
                   // Calcular retención en la fuente si está marcada
                   let retencionFuente = 0;
@@ -2343,10 +2343,10 @@ export default function OrdenEditarModal({
                       {(retencionFuente > 0 || retencionIca > 0) && (
                         <>
                           {retencionFuente > 0 && (
-                            <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '0.25rem', fontSize: '0.9em', color: '#666' }}>
-                              <span>(-) Retención en la Fuente:</span>
-                              <span>${retencionFuente.toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                            </div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '0.25rem', fontSize: '0.9em', color: '#666' }}>
+                            <span>(-) Retención en la Fuente:</span>
+                            <span>${retencionFuente.toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                          </div>
                           )}
                           {retencionIca > 0 && (
                             <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '0.25rem', fontSize: '0.9em', color: '#666' }}>
