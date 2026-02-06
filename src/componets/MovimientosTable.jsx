@@ -37,7 +37,7 @@ export default function MovimientosTable({
 }) {
   const { confirm, ConfirmDialog } = useConfirm();
   const { showSuccess, showError } = useToast();
-  const { isAdmin, user } = useAuth(); // Obtener rol y datos del usuario
+  const { isAdmin, user, sedeId } = useAuth(); // Obtener rol, datos del usuario y sede asignada
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
   const [rowsPerPageLocal, setRowsPerPageLocal] = useState(rowsPerPage);
@@ -348,48 +348,87 @@ export default function MovimientosTable({
                           Ver Detalles
                         </button>
 
-                        {/* Botones solo para ADMINISTRADORES y traslados NO confirmados */}
-                        {isAdmin && !mov.trabajadorConfirmacion && (
-                          <>
-                            <button
-                              className="btnEdit"
-                              onClick={() => onEditar?.(mov)}
-                              title="Editar traslado"
-                              type="button"
-                            >
-                              <img src={editar} className="iconButton" alt="Editar" />
-                            </button>
-
-                            <button
-                              className="btn"
-                              onClick={() => onEliminar?.(mov.id)}
-                              type="button"
-                              title="Eliminar traslado"
-                            >
-                              Eliminar
-                            </button>
-                          </>
-                        )}
-
-                        {/* Botón Confirmar Recepción solo para VENDEDORES y si no está confirmado */}
-                        {!isAdmin && !mov.trabajadorConfirmacion && (
-                          <button
-                            className="btn"
-                            onClick={() => handleConfirmarTraslado(mov.id)}
-                            type="button"
-                            title="Confirmar recepción del traslado"
-                            style={{ backgroundColor: '#22c55e' }}
-                          >
-                            Confirmar Recepción
-                          </button>
-                        )}
-
-                        {/* Mensaje para vendedores si ya está confirmado */}
-                        {!isAdmin && mov.trabajadorConfirmacion && (
-                          <span style={{ color: '#22c55e', fontSize: '0.9rem' }}>
-                            ✓ Ya confirmado
-                          </span>
-                        )}
+                        {/* Determinar permisos basados en sede del trabajador */}
+                        {(() => {
+                          const estaConfirmado = Boolean(mov.trabajadorConfirmacion);
+                          const esSalienteDeMiSede = mov.sedeOrigen?.id === sedeId;
+                          const esEntranteAMiSede = mov.sedeDestino?.id === sedeId;
+                          
+                          // ADMINISTRADORES: pueden editar/eliminar cualquier traslado no confirmado
+                          if (isAdmin && !estaConfirmado) {
+                            return (
+                              <>
+                                <button
+                                  className="btnEdit"
+                                  onClick={() => onEditar?.(mov)}
+                                  title="Editar traslado"
+                                  type="button"
+                                >
+                                  <img src={editar} className="iconButton" alt="Editar" />
+                                </button>
+                                <button
+                                  className="btn"
+                                  onClick={() => onEliminar?.(mov.id)}
+                                  type="button"
+                                  title="Eliminar traslado"
+                                >
+                                  Eliminar
+                                </button>
+                              </>
+                            );
+                          }
+                          
+                          // VENDEDORES: pueden editar si es SALIENTE de su sede
+                          if (!isAdmin && !estaConfirmado && esSalienteDeMiSede) {
+                            return (
+                              <>
+                                <button
+                                  className="btnEdit"
+                                  onClick={() => onEditar?.(mov)}
+                                  title="Editar traslado saliente de mi sede"
+                                  type="button"
+                                >
+                                  <img src={editar} className="iconButton" alt="Editar" />
+                                </button>
+                                <button
+                                  className="btn"
+                                  onClick={() => onEliminar?.(mov.id)}
+                                  type="button"
+                                  title="Eliminar traslado"
+                                >
+                                  Eliminar
+                                </button>
+                              </>
+                            );
+                          }
+                          
+                          // VENDEDORES: pueden confirmar si es ENTRANTE a su sede
+                          if (!isAdmin && !estaConfirmado && esEntranteAMiSede) {
+                            return (
+                              <button
+                                className="btn"
+                                onClick={() => handleConfirmarTraslado(mov.id)}
+                                type="button"
+                                title="Confirmar recepción del traslado entrante a mi sede"
+                                style={{ backgroundColor: '#22c55e' }}
+                              >
+                                Confirmar Recepción
+                              </button>
+                            );
+                          }
+                          
+                          // Si ya está confirmado, mostrar mensaje
+                          if (!isAdmin && estaConfirmado) {
+                            return (
+                              <span style={{ color: '#22c55e', fontSize: '0.9rem' }}>
+                                ✓ Ya confirmado
+                              </span>
+                            );
+                          }
+                          
+                          // Si no es ni saliente ni entrante, no mostrar acciones
+                          return null;
+                        })()}
                       </td>
                     </tr>
                   </Fragment>

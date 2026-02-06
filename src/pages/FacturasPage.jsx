@@ -130,6 +130,12 @@ export default function FacturasPage() {
     setIsImprimirModalOpen(true);
   };
 
+  // Manejar edición de factura
+  const handleEditar = async () => {
+    // Recargar datos después de editar
+    await fetchData(currentPage, pageSize);
+  };
+
   // Manejar eliminación de factura
   const handleEliminar = async (factura) => {
     const confirmacion = await confirm({
@@ -212,6 +218,7 @@ export default function FacturasPage() {
           onVerificar={handleVerificar}
           onEliminar={handleEliminar}
           onImprimir={handleImprimir}
+          onEditar={handleEditar}
           onConfirmarTodas={handleConfirmarTodas}
           // Paginación del servidor
           totalElements={totalElements}

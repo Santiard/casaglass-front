@@ -5,12 +5,14 @@ import check from "../assets/check.png";
 import HistoricoFacturasClienteModal from "../modals/HistoricoFacturasClienteModal.jsx";
 import HistoricoFacturasGeneralModal from "../modals/HistoricoFacturasGeneralModal.jsx";
 import OrdenDetalleModal from "../modals/OrdenDetalleModal.jsx";
+import EditarFacturaModal from "../modals/EditarFacturaModal.jsx";
 
 export default function FacturasTable({
   data = [],
   onVerificar,
   onEliminar,
   onImprimir,
+  onEditar,
   onConfirmarTodas,
   clientes = [],
   rowsPerPage = 10,
@@ -35,6 +37,8 @@ export default function FacturasTable({
   const [ordenDetalleModalOpen, setOrdenDetalleModalOpen] = useState(false);
   const [ordenIdSeleccionada, setOrdenIdSeleccionada] = useState(null);
   const [facturaIdSeleccionada, setFacturaIdSeleccionada] = useState(null);
+  const [isEditarFacturaModalOpen, setIsEditarFacturaModalOpen] = useState(false);
+  const [facturaAEditar, setFacturaAEditar] = useState(null);
 
   const fmtFecha = (iso) =>
     iso
@@ -512,6 +516,29 @@ export default function FacturasTable({
                           Imprimir
                         </button>
                       )}
+                      {onEditar && (
+                        <button 
+                          className="btnLink" 
+                          onClick={() => {
+                            setFacturaAEditar(f);
+                            setIsEditarFacturaModalOpen(true);
+                          }} 
+                          title="Editar número de factura"
+                          style={{
+                            marginRight: '4px',
+                            padding: '4px 8px',
+                            fontSize: '0.875rem',
+                            cursor: 'pointer',
+                            display: 'inline-block',
+                            backgroundColor: 'transparent',
+                            border: 'none',
+                            color: '#1e2753',
+                            textDecoration: 'underline'
+                          }}
+                        >
+                          Editar
+                        </button>
+                      )}
                       {puedeVerificar && (
                         <button 
                           className="btnConfirm" 
@@ -683,10 +710,10 @@ export default function FacturasTable({
                     <table className="table" style={{ tableLayout: 'fixed', width: '100%' }}>
                       <thead>
                         <tr>
-                          <th style={{ width: '25%' }}>Nombre</th>
+                          <th style={{ width: '35%' }}>Nombre</th>
                           <th style={{ width: '15%' }}>NIT</th>
-                          <th style={{ width: '25%' }}>Correo</th>
-                          <th style={{ width: '15%' }}>Ciudad</th>
+                          <th style={{ width: '20%' }}>Correo</th>
+                          <th style={{ width: '10%' }}>Ciudad</th>
                           <th style={{ width: '20%', textAlign: 'center' }}>Acción</th>
                         </tr>
                       </thead>
@@ -778,6 +805,21 @@ export default function FacturasTable({
           setOrdenDetalleModalOpen(false);
           setOrdenIdSeleccionada(null);
           setFacturaIdSeleccionada(null);
+        }}
+      />
+
+      {/* Modal de Editar Factura */}
+      <EditarFacturaModal
+        isOpen={isEditarFacturaModalOpen}
+        factura={facturaAEditar}
+        onClose={() => {
+          setIsEditarFacturaModalOpen(false);
+          setFacturaAEditar(null);
+        }}
+        onSuccess={() => {
+          if (onEditar) {
+            onEditar();
+          }
         }}
       />
     </div>

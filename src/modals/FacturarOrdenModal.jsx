@@ -815,10 +815,10 @@ export default function FacturarOrdenModal({ isOpen, onClose, onSave, orden }) {
                     <table className="table" style={{ tableLayout: 'fixed', width: '100%' }}>
                       <thead>
                         <tr>
-                          <th style={{ width: '25%' }}>Nombre</th>
+                          <th style={{ width: '35%' }}>Nombre</th>
                           <th style={{ width: '15%' }}>NIT</th>
-                          <th style={{ width: '25%' }}>Correo</th>
-                          <th style={{ width: '15%' }}>Ciudad</th>
+                          <th style={{ width: '20%' }}>Correo</th>
+                          <th style={{ width: '10%' }}>Ciudad</th>
                           <th style={{ width: '20%', textAlign: 'center' }}>Acción</th>
                         </tr>
                       </thead>

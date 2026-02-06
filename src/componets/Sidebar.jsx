@@ -102,15 +102,13 @@ export default function Sidebar({isOpen, isCollapsed}){
             <span className="text">Devoluciones</span>
           </Link>
         </li>
-        {/* Configuración - Solo ADMIN */}
-        {isAdmin && (
-          <li>
-            <Link to ="/facturas" title="facturas">
-              <img src={facturas } alt="FACTURAS " className="logos"/>
-              <span className="text">Facturas</span>
-            </Link>
-          </li>
-        )}
+        {/* Facturas - Disponible para todos */}
+        <li>
+          <Link to="/facturas" title="Facturas">
+            <img src={facturas} alt="FACTURAS" className="logos"/>
+            <span className="text">Facturas</span>
+          </Link>
+        </li>
         <li>
             <Link to="/movimientos" title="Movimientos">
               <img src={movimientos } alt="TRASLADOS " className="logos"/>

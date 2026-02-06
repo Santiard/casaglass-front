@@ -888,10 +888,10 @@ export default function IngresoModal({
                     <table className="table proveedor-seleccion-table">
                       <thead>
                         <tr>
-                          <th style={{ width: '25%' }}>Nombre</th>
+                          <th style={{ width: '35%' }}>Nombre</th>
                           <th style={{ width: '15%' }}>NIT</th>
-                          <th style={{ width: '20%' }}>Ciudad</th>
-                          <th style={{ width: '20%' }}>Dirección</th>
+                          <th style={{ width: '15%' }}>Ciudad</th>
+                          <th style={{ width: '15%' }}>Dirección</th>
                           <th style={{ width: '10%' }}>Teléfono</th>
                           <th style={{ width: '10%', textAlign: 'center' }}>Acción</th>
                         </tr>
