@@ -73,8 +73,8 @@ function mapFormAIngresoAPI(form = {}) {
     numeroFactura: (form.numeroFactura || "").trim(),
     observaciones: (form.observaciones || "").trim(),
     detalles: mappedDetalles,
-    totalCosto,
-    procesado: false // Las actualizaciones siempre son no procesadas para permitir edición
+    totalCosto
+    // El campo procesado ya no se envía - el backend lo procesa automáticamente
   };
 
   return payload;
@@ -151,7 +151,7 @@ export async function crearIngresoDesdeForm(form) {
     };
   });
   payload.totalCosto = totalCostoOriginal; // Total del ingreso usando costos originales
-  payload.procesado = false;
+  // El campo procesado ya no se envía - el backend lo procesa automáticamente
   
   // console.log("Payload del ingreso preparado con costos ponderados para actualizar productos");
   
@@ -465,15 +465,7 @@ export async function actualizarIngresoDesdeForm(id, form) {
     const { data } = await api.put(`/ingresos/${id}`, payload);
     return data;
   } catch (error) {
-    // Manejar error específico de ingreso procesado
-    if (error.response?.status === 404 && 
-        typeof error.response?.data === 'string' && 
-        error.response.data.includes('ya procesado')) {
-      const customError = new Error('No se puede modificar un ingreso que ya ha sido procesado');
-      customError.isProcessedIngreso = true;
-      throw customError;
-    }
-    
+    // Ya no hay validaciones de procesado - se puede editar siempre
     throw error;
   }
 }
@@ -502,70 +494,6 @@ export async function eliminarIngreso(id) {
   }
 }
 
-export async function procesarIngreso(id) {
-  // Validar ID
-  const numericId = Number(id);
-  if (!Number.isFinite(numericId) || numericId <= 0) {
-    throw new Error(`ID de ingreso inválido: ${id}`);
-  }
-  
-  try {
-    const { data } = await api.put(`/ingresos/${numericId}/procesar`);
-    return data;
-  } catch (error) {
-    throw error;
-  }
-}
-
-export async function marcarProcesado(id) {
-  // Validar ID
-  const numericId = Number(id);
-  if (!Number.isFinite(numericId) || numericId <= 0) {
-    throw new Error(`ID de ingreso inválido: ${id}`);
-  }
-  
-  try {
-    const { data } = await api.put(`/ingresos/${numericId}/marcar-procesado`);
-    return data;
-  } catch (error) {
-    throw error;
-  }
-}
-
-export async function reprocesarIngreso(id) {
-  // Validar ID
-  const numericId = Number(id);
-  if (!Number.isFinite(numericId) || numericId <= 0) {
-    throw new Error(`ID de ingreso inválido: ${id}`);
-  }
-  
-  try {
-    const { data } = await api.put(`/ingresos/${numericId}/reprocesar`);
-    return data;
-  } catch (error) {
-    throw error;
-  }
-}
-
-export async function desprocesarIngreso(id) {
-  // Validar ID
-  const numericId = Number(id);
-  if (!Number.isFinite(numericId) || numericId <= 0) {
-    throw new Error(`ID de ingreso inválido: ${id}`);
-  }
-  
-  try {
-    const { data } = await api.put(`/ingresos/${numericId}/desprocesar`);
-    return data;
-  } catch (error) {
-    // Manejar errores específicos según la documentación
-    if (error.response?.status === 400) {
-      const errorMessage = error.response?.data?.error || 'El ingreso no está procesado';
-      throw new Error(errorMessage);
-    }
-    if (error.response?.status === 404) {
-      throw new Error('Ingreso no encontrado');
-    }
-    throw error;
-  }
-}
+// ❌ ELIMINADAS: Funciones de procesar/desprocesar ya no son necesarias
+// El backend ahora procesa automáticamente los ingresos al crearlos
+// y permite editar/eliminar ingresos procesados

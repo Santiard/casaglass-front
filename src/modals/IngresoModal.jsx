@@ -410,11 +410,6 @@ export default function IngresoModal({
       <div className="modal-container modal-wide" style={{ maxHeight: '90vh', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
         <h2>
           {isEdit ? "Editar ingreso" : "Nuevo ingreso"}
-          {isEdit && !editable && (
-            <span style={{ marginLeft: 8, fontSize: 14, color: "#8b1a1a" }}>
-              (bloqueado: procesado o &gt; 2 días)
-            </span>
-          )}
         </h2>
 
         <div className="modal-alerts">

@@ -20,8 +20,6 @@ export default function IngresosTable({
   onCrear,
   onActualizar,
   onEliminar,
-  onProcesar,
-  onDesprocesar,
   // Paginación del servidor
   totalElements = 0,
   totalPages = 1,
@@ -80,10 +78,8 @@ export default function IngresosTable({
   };
 
   const eliminar = async (ing) => {
-    // Mensaje de confirmación diferente según si está procesado o no
-    const mensaje = ing.procesado
-      ? `¿Estás seguro de que deseas eliminar este ingreso procesado?\n\n⚠️ ADVERTENCIA: Esta acción revertirá automáticamente el inventario (restará las cantidades que se sumaron al procesar).\n\nEsta acción no se puede deshacer.`
-      : `¿Estás seguro de que deseas eliminar este ingreso?\n\nEsta acción no se puede deshacer.`;
+    // Mensaje de confirmación simplificado - ahora siempre se puede eliminar
+    const mensaje = `¿Estás seguro de que deseas eliminar este ingreso?\n\n⚠️ ADVERTENCIA: Esta acción revertirá automáticamente el inventario (restará las cantidades que se sumaron al procesar).\n\nEsta acción no se puede deshacer.`;
     
     const confirmacion = await confirm({
       title: "Eliminar Ingreso",
@@ -103,30 +99,12 @@ export default function IngresosTable({
     }
   };
 
-  const desprocesar = async (ing) => {
-    const confirmacion = await confirm({
-      title: "Desprocesar Ingreso",
-      message: `¿Estás seguro de que deseas desprocesar este ingreso?\n\n⚠️ ADVERTENCIA: Esta acción revertirá automáticamente el inventario (restará las cantidades que se sumaron al procesar) y marcará el ingreso como pendiente.\n\nPodrás reprocesarlo después si es necesario.`,
-      confirmText: "Desprocesar",
-      cancelText: "Cancelar",
-      type: "warning"
-    });
-    
-    if (!confirmacion) return;
-    
-    try {
-      await onDesprocesar?.(ing.id);
-    } catch (error) {
-      // El error ya se maneja en IngresoPage
-      throw error;
-    }
-  };
+  // ❌ ELIMINADA: función desprocesar ya no es necesaria
 
   // === Helpers de fecha (ahora importados desde dateUtils) ===
-  // Edición permitida para admin siempre, para vendedor solo si no está procesado
+  // Edición siempre permitida - ya no hay restricciones por estado procesado
   const canEdit = (ing) => {
-    if (isAdmin) return true;
-    return !ing.procesado;
+    return true; // Siempre se puede editar
   };
 
   const fmtFecha = (iso) => {
@@ -294,7 +272,6 @@ export default function IngresosTable({
               <th style={{ width: '12%', minWidth: '100px' }}>N° Factura</th>
               <th style={{ width: '100px', minWidth: '100px', maxWidth: '100px', textAlign: 'center' }}>Total Productos</th>
               <th>Total costo</th>
-              <th style={{ width: '110px', minWidth: '110px', maxWidth: '110px' }}>Estado</th>
               <th style={{ width: '100px', minWidth: '100px', maxWidth: '100px' }}>Detalle</th>
               <th>Acciones</th>
             </tr>
@@ -303,14 +280,14 @@ export default function IngresosTable({
           <tbody>
             {loading && (
               <tr>
-                <td colSpan={9} className="empty">
+                <td colSpan={8} className="empty">
                   Cargando…
                 </td>
               </tr>
             )}
             {!loading && pageData.length === 0 && (
               <tr>
-                <td colSpan={9} className="empty">
+                <td colSpan={8} className="empty">
                   No hay ingresos registrados
                 </td>
               </tr>
@@ -351,21 +328,6 @@ export default function IngresosTable({
                       )}
                     </td>
                     <td>{fmtCOP(Number(ing.totalCosto))}</td>
-                    <td style={{ width: '110px', minWidth: '110px', maxWidth: '110px', textAlign: 'center' }}>
-                      <span 
-                        className={`badge ${ing.procesado ? 'badge-success' : 'badge-warning'}`}
-                        style={{
-                          background: ing.procesado ? 'var(--color-success-bg)' : 'var(--color-warning-bg)',
-                          color: ing.procesado ? 'var(--color-success)' : 'var(--color-warning)',
-                          padding: '0.25rem 0.5rem',
-                          borderRadius: '0.375rem',
-                          fontSize: '0.75rem',
-                          fontWeight: '500'
-                        }}
-                      >
-                        {ing.procesado ? 'Procesado' : 'Pendiente'}
-                      </span>
-                    </td>
                     <td style={{ width: '100px', minWidth: '100px', maxWidth: '100px', textAlign: 'center' }}>
                       <button
                         className="btnLink"
@@ -377,53 +339,26 @@ export default function IngresosTable({
                       </button>
                     </td>
                     <td className="clientes-actions" style={{ gap: ".25rem" }}>
-                      {/* Botón Procesar - solo si no está procesado */}
-                      {!ing.procesado && (
-                        <button
-                          className="btn"
-                          onClick={() => onProcesar?.(ing.id)}
-                          title="Procesar ingreso"
-                        >
-                          Procesar
-                        </button>
-                      )}
+                      {/* ❌ ELIMINADOS: Botones Procesar y Desprocesar ya no son necesarios */}
                       
-                      {/* Botón Desprocesar - solo si está procesado */}
-                      {ing.procesado && onDesprocesar && (
-                        <button
-                          className="btn"
-                          onClick={() => desprocesar(ing)}
-                          title="Desprocesar ingreso (revertir inventario)"
-                          style={{
-                            backgroundColor: '#f59e0b',
-                            color: 'white',
-                            border: 'none'
-                          }}
-                        >
-                          Desprocesar
-                        </button>
-                      )}
+                      {/* Botón Editar - siempre disponible */}
+                      <button
+                        className="btnEdit"
+                        onClick={() => openEditar(ing)}
+                        title="Editar ingreso"
+                      >
+                        <img
+                          src={editar}
+                          className="iconButton"
+                          alt="Editar"
+                        />
+                      </button>
                       
-                      {/* Botón Editar - admin siempre, vendedor solo si no está procesado */}
-                      { (isAdmin || !ing.procesado) && (
-                        <button
-                          className="btnEdit"
-                          onClick={() => openEditar(ing)}
-                          title={canEdit(ing) ? "Editar ingreso" : "Solo lectura"}
-                        >
-                          <img
-                            src={editar}
-                            className="iconButton"
-                            alt="Editar"
-                          />
-                        </button>
-                      )}
-                      
-                      {/* Botón Eliminar - ahora disponible para todos los ingresos (procesados y no procesados) */}
+                      {/* Botón Eliminar - siempre disponible */}
                       <button
                         className="btnDelete"
                         onClick={() => eliminar(ing)}
-                        title={ing.procesado ? "Eliminar ingreso (revertirá inventario)" : "Eliminar ingreso"}
+                        title="Eliminar ingreso (revertirá inventario automáticamente)"
                       >
                         <img src={deleteIcon} className="iconButton" />
                       </button>

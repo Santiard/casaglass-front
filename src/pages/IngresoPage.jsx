@@ -2,7 +2,7 @@
 import { useEffect, useState, useCallback } from "react";
 import IngresosTable from "../componets/IngresoTable.jsx";
 import IngresoDetalleModal from "../modals/IngresoDetalleModal.jsx";
-import { listarIngresos, crearIngresoDesdeForm, actualizarIngresoDesdeForm, eliminarIngreso, procesarIngreso, obtenerIngreso, desprocesarIngreso } from "../services/IngresosService.js";
+import { listarIngresos, crearIngresoDesdeForm, actualizarIngresoDesdeForm, eliminarIngreso, obtenerIngreso } from "../services/IngresosService.js";
 import { listarProveedores } from "../services/ProveedoresService.js";
 import { listarInventarioCompleto } from "../services/InventarioService.js";
 import { useConfirm } from "../hooks/useConfirm.jsx";
@@ -126,23 +126,9 @@ export default function IngresosPage() {
   };
   const onEliminar = async (id) => {
     try {
-      // Obtener el ingreso para saber si estaba procesado
-      let ingreso = null;
-      try {
-        ingreso = await obtenerIngreso(id);
-      } catch (e) {
-        // Si no se puede obtener, continuar con la eliminación
-      }
-      
       await eliminarIngreso(id);
       await loadIngresos(currentPage, pageSize);
-      
-      // Mostrar mensaje de éxito apropiado
-      if (ingreso?.procesado) {
-        showSuccess(`Ingreso #${id} eliminado correctamente. El inventario ha sido revertido automáticamente.`);
-      } else {
-        showSuccess(`Ingreso #${id} eliminado correctamente.`);
-      }
+      showSuccess(`Ingreso #${id} eliminado correctamente. El inventario ha sido revertido automáticamente.`);
     } catch (e) {
       const errorMsg = e?.message || e?.response?.data?.error || e?.response?.data?.message || "No se pudo eliminar el ingreso";
       showError(errorMsg);
@@ -150,50 +136,8 @@ export default function IngresosPage() {
     }
   };
 
-  const onDesprocesar = async (id) => {
-    try {
-      const resultado = await desprocesarIngreso(id);
-      await loadIngresos(currentPage, pageSize);
-      showSuccess(`Ingreso #${id} desprocesado correctamente. El inventario ha sido revertido automáticamente.`);
-    } catch (e) {
-      const errorMsg = e?.message || e?.response?.data?.error || e?.response?.data?.message || "No se pudo desprocesar el ingreso";
-      showError(errorMsg);
-      throw e;
-    }
-  };
-
-  const onProcesar = async (id) => {
-    const confirmacion = await confirm({
-      title: "Procesar Ingreso",
-      message: `¿Estás seguro de que deseas marcar el ingreso #${id} como procesado?\n\nEsta acción cambiará el estado del ingreso a 'Procesado' y no se podrá editar posteriormente.`,
-      confirmText: "Procesar",
-      cancelText: "Cancelar",
-      type: "warning"
-    });
-    
-    if (!confirmacion) return;
-    
-    try {
-      const resultado = await procesarIngreso(id);
-      await loadIngresos(currentPage, pageSize); // Recargar la tabla
-      showSuccess(`Ingreso #${id} marcado como procesado correctamente`);
-    } catch (e) {
-      let errorMsg = "Error desconocido";
-      if (e?.response?.data) {
-        if (typeof e.response.data === 'string') {
-          errorMsg = e.response.data;
-        } else if (e.response.data.message) {
-          errorMsg = e.response.data.message;
-        } else {
-          errorMsg = JSON.stringify(e.response.data);
-        }
-      } else if (e?.message) {
-        errorMsg = e.message;
-      }
-      
-      showError(`Error al procesar el ingreso: ${errorMsg}`);
-    }
-  };
+  // ❌ ELIMINADAS: onProcesar y onDesprocesar ya no son necesarias
+  // El backend procesa automáticamente los ingresos al crearlos
 
   // Handler para ver detalles - obtiene el ingreso completo con detalles
   const onVerDetalles = async (ing) => {
@@ -219,8 +163,6 @@ export default function IngresosPage() {
         onCrear={onCrear}
         onActualizar={onActualizar}
         onEliminar={onEliminar}
-        onProcesar={onProcesar}
-        onDesprocesar={onDesprocesar}
         // Paginación del servidor
         totalElements={totalElements}
         totalPages={totalPages}
