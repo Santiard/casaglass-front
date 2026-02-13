@@ -30,7 +30,12 @@ export default function ClientesTable({
   // Guardar desde modal
   const handleSaveCliente = async (cliente, isEdit) => {
     try {
-      const payload = { ...cliente, credito: cliente.credito === true || cliente.credito === "true" };
+      const payload = { 
+        ...cliente, 
+        credito: cliente.credito === true || cliente.credito === "true",
+        // IMPORTANTE: agregar el ID del cliente al editar
+        ...(isEdit && clienteEditando ? { id: clienteEditando.id } : {})
+      };
       if (isEdit) {
         await onEditar?.(payload, true);
       } else {

@@ -213,7 +213,7 @@ export default function ClienteModal({
               onChange={handleChange} 
               placeholder="Máximo 13 caracteres (ej: 123456789-0)"
               maxLength="13"
-              pattern="[\d-]{1,13}"
+              pattern="[0-9-]{1,13}"
               title="El NIT debe contener entre 1 y 13 caracteres (números y guion -)"
               required
               onKeyDown={(e) => {
