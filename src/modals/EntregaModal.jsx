@@ -87,7 +87,7 @@ export default function EntregaModal({
       orden: { id: o.id },
       numeroOrden: o.numero,
       fechaOrden: o.fecha,
-      montoOrden: o.total,
+      montoOrden: o.total, // Backend ahora calcula este valor
     };
     setForm(prev => ({ ...prev, detalles: [...prev.detalles, det] }));
   };
@@ -115,7 +115,8 @@ export default function EntregaModal({
         orden: { id: d.orden.id },
         numeroOrden: d.numeroOrden,
         fechaOrden: d.fechaOrden,
-        montoOrden: Number(d.montoOrden),
+        // Usar campos calculados del backend
+        montoOrden: Number(d.total || d.montoOrden), // Fallback por compatibilidad
       })),
       // gastos eliminado - ya no se usan gastos en entregas
       monto: Number(form.monto ?? 0),
@@ -215,7 +216,7 @@ export default function EntregaModal({
                       <tr key={d.id}>
                         <td>{d.numeroOrden}</td>
                         <td>{new Date(d.fechaOrden).toLocaleDateString("es-CO")}</td>
-                        <td>{fmtCOP(d.montoOrden)}</td>
+                        <td>{fmtCOP(d.total || d.montoOrden)}</td>
                         <td>
                           <button className="btn-ghost" type="button" onClick={() => removeOrden(idx)} disabled={!editable} title={!editable ? "Edición bloqueada (entregada)" : "Quitar"}>✕</button>
                         </td>
@@ -223,7 +224,7 @@ export default function EntregaModal({
                     ))}
                     <tr>
                       <td colSpan={2} style={{ textAlign: "right", fontWeight: 600 }}>Total órdenes</td>
-                      <td colSpan={2} style={{ fontWeight: 700 }}>{fmtCOP(form.detalles.reduce((sum, d) => sum + (Number(d.montoOrden) || 0), 0))}</td>
+                      <td colSpan={2} style={{ fontWeight: 700 }}>{fmtCOP(form.detalles.reduce((sum, d) => sum + (Number(d.total || d.montoOrden) || 0), 0))}</td>
                     </tr>
                   </tbody>
                 </table>

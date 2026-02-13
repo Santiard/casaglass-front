@@ -56,7 +56,7 @@ export default function EntregaDetallePanel({ entrega, onClose }){
                 <tr key={d.id}>
                   <td>{d.numeroOrden}</td>
                   <td>{new Date(d.fechaOrden).toLocaleDateString("es-CO")}</td>
-                  <td>{fmtCOP(d.montoOrden)}</td>
+                  <td>{fmtCOP(d.total)}</td>
                 </tr>
               ))}
             </tbody>

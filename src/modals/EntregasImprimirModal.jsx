@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
+import { useAuth } from "../context/AuthContext.jsx";
 import "../styles/EntregasImprimirModal.css";
 
 export default function EntregasImprimirModal({ entregas = [], isOpen, onClose }) {
   const [entregasSeleccionadas, setEntregasSeleccionadas] = useState([]);
+  const { isAdmin } = useAuth();
 
   useEffect(() => {
     if (isOpen && entregas.length > 0) {
@@ -20,6 +22,9 @@ export default function EntregasImprimirModal({ entregas = [], isOpen, onClose }
     ? entregas 
     : entregas.filter(e => entregasSeleccionadas.includes(e.id));
 
+  // Extraer resumen del mes de la primera entrega (todas tienen los mismos datos del mes)
+  const resumenMes = entregasParaImprimir.length > 0 ? entregasParaImprimir[0].resumenMes : null;
+
   if (!isOpen) return null;
 
   // Formatear fecha
@@ -33,25 +38,111 @@ export default function EntregasImprimirModal({ entregas = [], isOpen, onClose }
     });
   };
 
-  // Calcular totales por entrega
+  // ✅ SOLUCIÓN: Calcular valores entregados por método de pago desde los detalles
   const calcularTotalesPorEntrega = (entrega) => {
-    const totalOrdenes = entrega.detalles?.reduce((sum, det) => sum + (Number(det.montoOrden) || 0), 0) || 0;
-    const totalEntregado = (Number(entrega.montoEfectivo) || 0) + 
-                          (Number(entrega.montoTransferencia) || 0) + 
-                          (Number(entrega.montoCheque) || 0) + 
-                          (Number(entrega.montoDeposito) || 0);
-    return { totalOrdenes, totalEntregado };
+    let totalOrdenes = 0;
+    let totalEntregado = 0;
+    let porMetodo = { efectivo: 0, transferencia: 0, cheque: 0, deposito: 0 };
+    
+    entrega.detalles?.forEach((det) => {
+      const total = Number(det.total) || 0;
+      const retencionFuente = Number(det.retencionFuente) || 0;
+      const retencionIca = Number(det.retencionIca) || 0;
+      
+      // Calcular valor entregado (lo que realmente entrega el cliente)
+      let valorEntregado = 0;
+      if (!det.ventaCredito) {
+        valorEntregado = total - retencionFuente - retencionIca;
+      } else {
+        valorEntregado = Number(det.abonosDelPeriodo) || 0;
+      }
+      
+      // Determinar método de pago usando la misma lógica del componente
+      let metodo = "MIXTO";
+      if (!det.ventaCredito) {
+        // Orden a CONTADO: extraer de detalle.descripcion
+        const desc = det.descripcion || "";
+        if (desc && desc.trim()) {
+          const partes = desc.toUpperCase().split('|').map(p => p.trim());
+          const metodosEncontrados = [];
+          
+          for (const parte of partes) {
+            if (parte.includes('RETEFUENTE')) continue;
+            if (parte.includes('EFECTIVO')) metodosEncontrados.push('EFECTIVO');
+            else if (parte.includes('TRANSFERENCIA')) metodosEncontrados.push('TRANSFERENCIA');
+            else if (parte.includes('CHEQUE')) metodosEncontrados.push('CHEQUE');
+            else if (parte.includes('DEPÓSITO') || parte.includes('DEPOSITO')) metodosEncontrados.push('DEPÓSITO');
+          }
+          
+          if (metodosEncontrados.length === 1) {
+            metodo = metodosEncontrados[0];
+          }
+        }
+      } else {
+        // Orden a CRÉDITO: usar detalle.metodoPago
+        const metodoPago = det.metodoPago || "";
+        if (metodoPago && metodoPago.trim()) {
+          const metodoUpper = metodoPago.toUpperCase();
+          if (metodoUpper.includes('EFECTIVO') && !metodoUpper.includes('TRANSFERENCIA') && !metodoUpper.includes('CHEQUE')) {
+            metodo = 'EFECTIVO';
+          } else if (metodoUpper.includes('TRANSFERENCIA') && !metodoUpper.includes('EFECTIVO') && !metodoUpper.includes('CHEQUE')) {
+            metodo = 'TRANSFERENCIA';
+          } else if (metodoUpper.includes('CHEQUE') && !metodoUpper.includes('EFECTIVO') && !metodoUpper.includes('TRANSFERENCIA')) {
+            metodo = 'CHEQUE';
+          } else if (metodoUpper.includes('DEPÓSITO') || metodoUpper.includes('DEPOSITO')) {
+            metodo = 'DEPÓSITO';
+          }
+        }
+      }
+      
+      // Asignar valor al método correspondiente
+      switch(metodo) {
+        case 'EFECTIVO':
+          porMetodo.efectivo += valorEntregado;
+          break;
+        case 'TRANSFERENCIA':
+          porMetodo.transferencia += valorEntregado;
+          break;
+        case 'CHEQUE':
+          porMetodo.cheque += valorEntregado;
+          break;
+        case 'DEPÓSITO':
+          porMetodo.deposito += valorEntregado;
+          break;
+        default:
+          // Si no se puede clasificar, distribuir proporcionalmente según los montos del backend
+          const totalBackend = (Number(entrega.montoEfectivo) || 0) + (Number(entrega.montoTransferencia) || 0) + (Number(entrega.montoCheque) || 0) + (Number(entrega.montoDeposito) || 0);
+          if (totalBackend > 0) {
+            porMetodo.efectivo += valorEntregado * (Number(entrega.montoEfectivo) || 0) / totalBackend;
+            porMetodo.transferencia += valorEntregado * (Number(entrega.montoTransferencia) || 0) / totalBackend;
+            porMetodo.cheque += valorEntregado * (Number(entrega.montoCheque) || 0) / totalBackend;
+            porMetodo.deposito += valorEntregado * (Number(entrega.montoDeposito) || 0) / totalBackend;
+          }
+          break;
+      }
+      
+      totalOrdenes += total;
+      totalEntregado += valorEntregado;
+    });
+    
+    return { 
+      totalOrdenes, 
+      totalEntregado,
+      montoEfectivo: porMetodo.efectivo,
+      montoTransferencia: porMetodo.transferencia,
+      montoCheque: porMetodo.cheque,
+      montoDeposito: porMetodo.deposito
+    };
   };
 
-  // Calcular totales generales
+  // Calcular totales generales usando valores entregados calculados
   const totalesGenerales = entregasParaImprimir.reduce((acc, entrega) => {
-    const { totalOrdenes, totalEntregado } = calcularTotalesPorEntrega(entrega);
+    const { totalOrdenes, totalEntregado, montoEfectivo, montoTransferencia, montoCheque, montoDeposito } = calcularTotalesPorEntrega(entrega);
     return {
-      totalEfectivo: acc.totalEfectivo + (Number(entrega.montoEfectivo) || 0),
-      totalTransferencia: acc.totalTransferencia + (Number(entrega.montoTransferencia) || 0),
-      totalCheque: acc.totalCheque + (Number(entrega.montoCheque) || 0),
-      totalDeposito: acc.totalDeposito + (Number(entrega.montoDeposito) || 0),
-      // totalGastos eliminado - ya no se usan gastos en entregas
+      totalEfectivo: acc.totalEfectivo + (montoEfectivo || 0),
+      totalTransferencia: acc.totalTransferencia + (montoTransferencia || 0),
+      totalCheque: acc.totalCheque + (montoCheque || 0),
+      totalDeposito: acc.totalDeposito + (montoDeposito || 0),
       totalEntregado: acc.totalEntregado + totalEntregado,
     };
   }, { totalEfectivo: 0, totalTransferencia: 0, totalCheque: 0, totalDeposito: 0, totalEntregado: 0 });
@@ -409,7 +500,7 @@ export default function EntregasImprimirModal({ entregas = [], isOpen, onClose }
           <div id="printable-entregas-content" className="printable-content">
             {/* Listado de entregas */}
             {entregasParaImprimir.map((entrega, idxEntrega) => {
-              const { totalOrdenes, totalEntregado } = calcularTotalesPorEntrega(entrega);
+              const { totalOrdenes, totalEntregado, montoEfectivo, montoTransferencia, montoCheque, montoDeposito } = calcularTotalesPorEntrega(entrega);
               return (
                 <div key={entrega.id} style={{ marginBottom: "20px", pageBreakInside: "avoid" }}>
                   {/* Encabezado de entrega */}
@@ -417,9 +508,11 @@ export default function EntregasImprimirModal({ entregas = [], isOpen, onClose }
                     <h3>
                       Entrega #{entrega.id} - Fecha: {fmtFecha(entrega.fechaEntrega)}
                     </h3>
-                    <p>
-                      Sede: {entrega.sede?.nombre || "-"}
-                    </p>
+                    {isAdmin && (
+                      <p>
+                        Sede: {entrega.sede?.nombre || "-"}
+                      </p>
+                    )}
                   </div>
 
                   {/* Tabla de órdenes */}
@@ -445,15 +538,20 @@ export default function EntregasImprimirModal({ entregas = [], isOpen, onClose }
                           // 🆕 DETECTAR SI ES DEVOLUCIÓN: solo si tiene reembolsoId (es un reembolso real)
                           const esDevolucion = Boolean(detalle.reembolsoId);
                           
-                          // Calcular valor entregado según tipo de venta
-                          let valorEntregado = 0;
-                          if (!detalle.ventaCredito) {
-                            // Orden A CONTADO: se entrega el monto completo
-                            valorEntregado = Number(detalle.montoOrden) || 0;
-                          } else {
-                            // Orden A CRÉDITO: usar abonos del período (calculado por el backend)
-                            valorEntregado = Number(detalle.abonosDelPeriodo) || 0;
-                          }
+                            // Usar datos ya calculados del backend
+                            const total = Number(detalle.total) || 0;
+                            const retencionFuente = Number(detalle.retencionFuente) || 0;
+                            const retencionIca = Number(detalle.retencionIca) || 0;
+                            
+                            // Calcular valor entregado según tipo de venta
+                            let valorEntregado = 0;
+                            if (!detalle.ventaCredito) {
+                              // Orden DE CONTADO: usar el total menos retenciones
+                              valorEntregado = total - retencionFuente - retencionIca;
+                            } else {
+                              // Orden A CRÉDITO: usar abonos del período (calculado por el backend)
+                              valorEntregado = Number(detalle.abonosDelPeriodo) || 0;
+                            }
                           
                           // Si es devolución, el valor es negativo
                           if (esDevolucion) {
@@ -462,7 +560,7 @@ export default function EntregasImprimirModal({ entregas = [], isOpen, onClose }
                           
                           // Calcular saldo
                           const saldo = detalle.ventaCredito 
-                            ? Math.max(0, (Number(detalle.montoOrden) || 0) - Math.abs(valorEntregado))
+                            ? Math.max(0, (Number(detalle.total) || 0) - Math.abs(valorEntregado))
                             : 0; // Contado siempre tiene saldo 0
                           
                           // Medio de pago - extraer del detalle individual
@@ -583,7 +681,7 @@ export default function EntregasImprimirModal({ entregas = [], isOpen, onClose }
                                 {detalle.numeroOrden || "-"}
                               </td>
                               <td>{detalle.clienteNombre || detalle.cliente?.nombre || "-"}</td>
-                              <td>${(Number(detalle.montoOrden) || 0).toLocaleString("es-CO")}</td>
+                              <td>${(Number(detalle.total) || 0).toLocaleString("es-CO")}</td>
                               <td>${saldo.toLocaleString("es-CO")}</td>
                               <td style={esDevolucion ? {
                                 color: '#c62828',
@@ -634,7 +732,7 @@ export default function EntregasImprimirModal({ entregas = [], isOpen, onClose }
                           reembolsoId,
                           observacionReembolso,
                           nombreCliente,
-                          monto: Math.abs(Number(detalle.montoOrden) || 0),
+                          monto: Math.abs(Number(detalle.total) || 0),
                           metodoPago: metodoPagoDevolucion
                         });
                         return; // No procesar como método de pago normal
@@ -946,10 +1044,10 @@ export default function EntregasImprimirModal({ entregas = [], isOpen, onClose }
                   <div className="total total-horizontal" style={{ marginTop: "8px" }}>
                     <div className="total-row">
                       <span><strong>Subtotal Entrega #{entrega.id}: </strong></span>
-                      <span>Efectivo: ${(Number(entrega.montoEfectivo) || 0).toLocaleString("es-CO")} | </span>
-                      <span>Transferencia: ${(Number(entrega.montoTransferencia) || 0).toLocaleString("es-CO")} | </span>
-                      <span>Cheque: ${(Number(entrega.montoCheque) || 0).toLocaleString("es-CO")} | </span>
-                      <span>Depósito: ${(Number(entrega.montoDeposito) || 0).toLocaleString("es-CO")} | </span>
+                      <span>Efectivo: ${(montoEfectivo || 0).toLocaleString("es-CO")} | </span>
+                      <span>Transferencia: ${(montoTransferencia || 0).toLocaleString("es-CO")} | </span>
+                      <span>Cheque: ${(montoCheque || 0).toLocaleString("es-CO")} | </span>
+                      <span>Depósito: ${(montoDeposito || 0).toLocaleString("es-CO")} | </span>
                       {/* Total Gastos eliminado - ya no se usan gastos en entregas */}
                       <span><strong>Total Entregado: ${totalEntregado.toLocaleString("es-CO")}</strong></span>
                     </div>
@@ -971,6 +1069,18 @@ export default function EntregasImprimirModal({ entregas = [], isOpen, onClose }
                   <span style={{ fontSize: "0.85rem", fontWeight: "bold" }}>
                     <strong>TOTAL A ENTREGAR: ${totalesGenerales.totalEntregado.toLocaleString("es-CO")}</strong>
                   </span>
+                </div>
+              </div>
+            )}
+
+            {/* Resumen del mes - versión simple */}
+            {resumenMes && (
+              <div style={{ marginTop: "20px", paddingTop: "15px", borderTop: "1px solid #ccc" }}>
+                <div style={{ fontSize: "0.85rem", fontWeight: "bold", marginBottom: "5px" }}>
+                  TOTAL VENTAS DEL MES: {resumenMes.mesNombre} - ${resumenMes.totalVentasMes.toLocaleString("es-CO")}
+                </div>
+                <div style={{ fontSize: "0.85rem", fontWeight: "bold" }}>
+                  TOTAL CRÉDITOS ACTIVOS: ${resumenMes.totalCreditosActivosMes.toLocaleString("es-CO")}
                 </div>
               </div>
             )}

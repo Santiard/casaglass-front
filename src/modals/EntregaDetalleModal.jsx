@@ -16,13 +16,14 @@ export default function EntregaDetalleModal({ entrega, isOpen, onClose }) {
     return isNaN(d) ? "-" : d.toLocaleString("es-CO", { year: "numeric", month: "2-digit", day: "2-digit" });
   };
 
-  // Usar monto (único campo de monto según el modelo simplificado)
+  // Estados calculados usando los nuevos datos del backend
+  // ✅ El backend ahora envía: subtotal, iva, total, retencionFuente, retencionIca, tieneRetencionFuente, tieneRetencionIca
   const monto = Number(entrega.monto ?? 0);
   const montoEfectivo = Number(entrega.montoEfectivo ?? 0);
   const montoTransferencia = Number(entrega.montoTransferencia ?? 0);
   const montoCheque = Number(entrega.montoCheque ?? 0);
   const montoDeposito = Number(entrega.montoDeposito ?? 0);
-  const montoRetencion = Number(entrega.montoRetencion ?? 0); // 🆕 Campo nuevo
+  const montoRetencion = Number(entrega.montoRetencion ?? 0);
   
   // Calcular suma del desglose para validación
   const sumaDesglose = montoEfectivo + montoTransferencia + montoCheque + montoDeposito;
@@ -65,26 +66,39 @@ export default function EntregaDetalleModal({ entrega, isOpen, onClose }) {
                   <th># Orden</th>
                   <th>Cliente</th>
                   <th>Fecha</th>
-                  <th>Monto</th>
+                  <th>Subtotal</th>
+                  <th>IVA</th>
+                  <th>Total</th>
+                  <th>Ret. Fuente</th>
+                  <th>Ret. ICA</th>
                   <th>Valor Entregado</th>
                   <th>Saldo</th>
                 </tr>
               </thead>
               <tbody>
                 {ingresos.length === 0 ? (
-                  <tr><td colSpan={6} className="empty">Sin ingresos</td></tr>
+                  <tr><td colSpan={11} className="empty">Sin ingresos</td></tr>
                 ) : ingresos.map((d) => {
+                  // Usar valores ya calculados del backend
+                  const subtotal = Number(d.subtotal) || 0;
+                  const iva = Number(d.iva) || 0;
+                  const total = Number(d.total) || 0;
+                  const retencionFuente = Number(d.retencionFuente) || 0;
+                  const retencionIca = Number(d.retencionIca) || 0;
+                  
                   // Calcular valor entregado según tipo de venta
                   let valorEntregado = 0;
                   if (!d.ventaCredito) {
-                    valorEntregado = Number(d.montoOrden) || 0;
+                    // Para contado: total menos retenciones
+                    valorEntregado = total - retencionFuente - retencionIca;
                   } else {
+                    // Para crédito: usar abonos del período (ya viene calculado del backend)
                     valorEntregado = Number(d.abonosDelPeriodo) || 0;
                   }
                   
                   // Calcular saldo
                   const saldo = d.ventaCredito 
-                    ? Math.max(0, (Number(d.montoOrden) || 0) - valorEntregado)
+                    ? Math.max(0, total - valorEntregado)
                     : 0;
 
                   return (
@@ -105,7 +119,27 @@ export default function EntregaDetalleModal({ entrega, isOpen, onClose }) {
                       <td>{d.numeroOrden}</td>
                       <td>{d.clienteNombre || "-"}</td>
                       <td>{fmtFecha(d.fechaOrden)}</td>
-                      <td>{fmtCOP(d.montoOrden)}</td>
+                      <td>{fmtCOP(subtotal)}</td>
+                      <td>{fmtCOP(iva)}</td>
+                      <td>{fmtCOP(total)}</td>
+                      <td>
+                        {retencionFuente > 0 ? (
+                          <span style={{ color: '#dc3545', fontWeight: 'bold' }}>
+                            {fmtCOP(retencionFuente)}
+                          </span>
+                        ) : (
+                          <span style={{ color: '#6c757d' }}>N/A</span>
+                        )}
+                      </td>
+                      <td>
+                        {retencionIca > 0 ? (
+                          <span style={{ color: '#dc3545', fontWeight: 'bold' }}>
+                            {fmtCOP(retencionIca)}
+                          </span>
+                        ) : (
+                          <span style={{ color: '#6c757d' }}>N/A</span>
+                        )}
+                      </td>
                       <td style={{ fontWeight: 'bold', color: '#2e7d32' }}>
                         {fmtCOP(valorEntregado)}
                       </td>
@@ -130,13 +164,14 @@ export default function EntregaDetalleModal({ entrega, isOpen, onClose }) {
                     <th style={{ width: '80px' }}># Orden</th>
                     <th style={{ width: '180px' }}>Cliente</th>
                     <th style={{ width: '100px' }}>Fecha</th>
-                    <th style={{ width: '140px', textAlign: 'right' }}>Monto</th>
+                    <th style={{ width: '140px', textAlign: 'right' }}>Monto Reembolso</th>
                     <th style={{ width: 'auto' }}>Motivo</th>
                   </tr>
                 </thead>
                 <tbody>
                   {egresos.map((d) => {
-                    const montoReembolso = Math.abs(Number(d.montoOrden) || 0);
+                    // Usar valores ya calculados del backend
+                    const montoReembolso = Math.abs(Number(d.total) || 0);
                     
                     return (
                       <tr key={d.id}>
