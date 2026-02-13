@@ -16,6 +16,19 @@ export default function OrdenImprimirModal({ orden, isOpen, onClose }) {
       return;
     }
 
+    console.log('📄 [OrdenImprimirModal] useEffect - Orden prop recibida:', {
+      ordenId: orden.id,
+      numero: orden.numero,
+      cantidadItems: orden.items?.length || 0,
+      itemsProp: orden.items?.map(i => ({
+        id: i.id,
+        nombre: i.nombre,
+        nombreProducto: i.nombreProducto,
+        productoNombre: i.producto?.nombre,
+        productoId: i.productoId
+      }))
+    });
+
     // Cargar la orden detallada (con items completos)
     // El backend ahora usa fetch joins para cargar todas las relaciones de una vez,
     // por lo que funciona correctamente tanto para órdenes normales como facturadas.
@@ -73,6 +86,22 @@ export default function OrdenImprimirModal({ orden, isOpen, onClose }) {
           trabajador: ordenDetallada.trabajador || {},
           items: ordenDetallada.items || [],
         };
+        
+        console.log('📄 [OrdenImprimirModal] Objeto base (form) creado:', {
+          ordenId: base.id,
+          numero: base.numero,
+          cantidadItems: base.items?.length || 0,
+          itemsBase: base.items?.map(i => ({
+            id: i.id,
+            nombre: i.nombre,
+            nombreProducto: i.nombreProducto,
+            productoNombre: i.producto?.nombre,
+            productoId: i.productoId,
+            color: i.producto?.color,
+            tipo: i.producto?.tipo
+          }))
+        });
+        
         setForm(base);
       } catch (error) {
         console.error("Error cargando orden detallada:", error);
@@ -524,6 +553,18 @@ export default function OrdenImprimirModal({ orden, isOpen, onClose }) {
                       form.items.map((item, index) => {
                         // Para cortes, usar el nombre formateado del detalle si existe, sino el del producto
                         const nombreProducto = item.nombre || item.nombreProducto || item.producto?.nombre || "-";
+                        
+                        console.log(`🏷️ [OrdenImprimirModal] Renderizando item ${index + 1}:`, {
+                          itemId: item.id,
+                          nombre: item.nombre,
+                          nombreProducto: item.nombreProducto,
+                          productoNombre: item.producto?.nombre,
+                          nombreFinal: nombreProducto,
+                          color: item.producto?.color,
+                          tipo: item.producto?.tipo,
+                          productoId: item.productoId
+                        });
+                        
                         return (
                           <tr key={item.id || index}>
                             <td className="text-center">{item.cantidad || 0}</td>
@@ -589,6 +630,17 @@ export default function OrdenImprimirModal({ orden, isOpen, onClose }) {
                       form.items.map((item, index) => {
                         // Para cortes, usar el nombre formateado del detalle si existe, sino el del producto
                         const nombreProducto = item.nombre || item.nombreProducto || item.producto?.nombre || "-";
+                        
+                        console.log(`🏷️ [OrdenImprimirModal - Trabajadores] Renderizando item ${index + 1}:`, {
+                          itemId: item.id,
+                          nombre: item.nombre,
+                          nombreProducto: item.nombreProducto,
+                          productoNombre: item.producto?.nombre,
+                          nombreFinal: nombreProducto,
+                          color: item.producto?.color,
+                          tipo: item.producto?.tipo
+                        });
+                        
                         return (
                           <tr key={item.id || index}>
                             <td className="text-center">{item.cantidad || 0}</td>

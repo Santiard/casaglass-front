@@ -166,11 +166,55 @@ export default function OrdenesTable({
   //  Imprimir orden (usando detalle completo)
   const handleImprimir = async (orden) => {
     try {
+      console.log('🖨️ [OrdenesTable] handleImprimir - Orden recibida:', {
+        ordenId: orden.id,
+        numero: orden.numero,
+        cantidadItems: orden.items?.length || 0,
+        itemsBasicos: orden.items?.map(i => ({
+          id: i.id,
+          nombre: i.nombre,
+          nombreProducto: i.nombreProducto,
+          productoNombre: i.producto?.nombre,
+          productoId: i.productoId
+        }))
+      });
+      
       const ordenDetallada = await obtenerOrdenDetalle(orden.id);
+      
+      console.log('🖨️ [OrdenesTable] Orden detallada obtenida del backend:', {
+        ordenId: ordenDetallada.id,
+        numero: ordenDetallada.numero,
+        cantidadItems: ordenDetallada.items?.length || 0,
+        itemsDetallados: ordenDetallada.items?.map(i => ({
+          id: i.id,
+          nombre: i.nombre,
+          nombreProducto: i.nombreProducto,
+          productoNombre: i.producto?.nombre,
+          productoId: i.productoId,
+          color: i.producto?.color,
+          tipo: i.producto?.tipo
+        }))
+      });
+      
       const ordenNorm = normalizarOrden(ordenDetallada);
+      
+      console.log('🖨️ [OrdenesTable] Orden normalizada:', {
+        ordenId: ordenNorm.id,
+        numero: ordenNorm.numero,
+        cantidadItems: ordenNorm.items?.length || 0,
+        itemsNormalizados: ordenNorm.items?.map(i => ({
+          id: i.id,
+          nombre: i.nombre,
+          nombreProducto: i.nombreProducto,
+          productoNombre: i.producto?.nombre,
+          productoId: i.productoId
+        }))
+      });
+      
       setOrdenImprimir(ordenNorm);
       setIsImprimirModalOpen(true);
     } catch (error) {
+      console.error('❌ [OrdenesTable] Error al obtener orden detallada:', error);
       // Fallback: usar la orden básica
       setOrdenImprimir(normalizarOrden(orden));
       setIsImprimirModalOpen(true);

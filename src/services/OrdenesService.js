@@ -35,6 +35,25 @@ export async function obtenerOrden(id) {
 // GET /api/ordenes/{id}/detalle
 export async function obtenerOrdenDetalle(id) {
   const { data } = await api.get(`ordenes/${id}/detalle`);
+  
+  console.log('📡 [OrdenesService] obtenerOrdenDetalle - Respuesta del backend:', {
+    ordenId: data?.id,
+    numero: data?.numero,
+    cantidadItems: data?.items?.length || 0,
+    itemsRawBackend: data?.items?.map(i => ({
+      id: i.id,
+      nombre: i.nombre,
+      nombreProducto: i.nombreProducto,
+      productoId: i.productoId,
+      producto: i.producto ? {
+        id: i.producto.id,
+        nombre: i.producto.nombre,
+        color: i.producto.color,
+        tipo: i.producto.tipo
+      } : null
+    }))
+  });
+  
   return data;
 }
 
