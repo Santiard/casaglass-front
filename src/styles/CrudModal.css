@@ -163,6 +163,8 @@
   border-radius: 0.75rem;             /* 12px */
   width: 55rem;                       /* 880px */
   max-width: 95%;
+  max-height: 90vh;                   /* Altura máxima del 90% del viewport */
+  overflow-y: auto;                   /* Scroll vertical cuando sea necesario */
   box-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.25); /* 4px 12px */
 }
 

@@ -578,7 +578,7 @@ export default function EntregasImprimirModal({ entregas = [], isOpen, onClose }
                                     borderRadius: '4px',
                                     fontSize: '0.65rem',
                                     fontWeight: 'bold'
-                                  }}>🔄 DEVOLUCIÓN</span>
+                                  }}>DEVOLUCIÓN</span>
                                 )}
                                 {detalle.numeroOrden || "-"}
                               </td>
@@ -605,15 +605,53 @@ export default function EntregasImprimirModal({ entregas = [], isOpen, onClose }
                   {(() => {
                     // Estructura para agrupar por método de pago y monto
                     const metodosPago = {};
-                    // Formato: { "EFECTIVO|1000000": {tipo, monto, cliente, ordenes: [{orden, retencion}]} }
+                    // Estructura separada para devoluciones
+                    const devoluciones = [];
                     
                     entrega.detalles?.forEach((detalle) => {
                       const numeroOrden = detalle.numeroOrden;
                       const esAbono = detalle.ventaCredito;
+                      const esDevolucion = Boolean(detalle.reembolsoId);
+                      const reembolsoId = detalle.reembolsoId || null;
+                      const observacionReembolso = detalle.observacionReembolso || null;
                       const nombreCliente = detalle.clienteNombre || detalle.cliente?.nombre || "Cliente";
-                      let metodoPagoStr = "";
                       
+                      // Si es devolución, agregarla a la lista especial
+                      if (esDevolucion) {
+                        // Mapear formaReembolso a método de pago
+                        let metodoPagoDevolucion = "MIXTO"; // Por defecto
+                        
+                        if (detalle.formaReembolso === "EFECTIVO") {
+                          metodoPagoDevolucion = "EFECTIVO";
+                        } else if (detalle.formaReembolso === "TRANSFERENCIA") {
+                          metodoPagoDevolucion = "TRANSFERENCIA";
+                        } else if (detalle.formaReembolso === "NOTA_CREDITO" || detalle.formaReembolso === "AJUSTE_CREDITO") {
+                          metodoPagoDevolucion = "MIXTO";
+                        }
+                        
+                        devoluciones.push({
+                          numeroOrden,
+                          reembolsoId,
+                          observacionReembolso,
+                          nombreCliente,
+                          monto: Math.abs(Number(detalle.montoOrden) || 0),
+                          metodoPago: metodoPagoDevolucion
+                        });
+                        return; // No procesar como método de pago normal
+                      }
+                      
+                      let metodoPagoStr = "";
 
+                      // DEBUG: Ver método de pago para devoluciones
+                      if (esDevolucion) {
+                        console.log(`🔍 [EntregasImprimirModal] Método de pago para devolución:`, {
+                          numeroOrden,
+                          metodoPagoStr,
+                          descripcion: detalle.descripcion,
+                          metodoPago: detalle.metodoPago
+                        });
+                      }
+                      
                       // Obtener el string completo del método de pago
                       if (esAbono) {
                         // Para abonos: usar metodoPago
@@ -653,7 +691,26 @@ export default function EntregasImprimirModal({ entregas = [], isOpen, onClose }
                         }
                       }
                       
-                      if (!metodoPagoStr.trim()) return;
+                      // DEBUG: Ver método de pago para devoluciones
+                      if (esDevolucion) {
+                        console.log(`🔍 [EntregasImprimirModal] Método de pago para devolución:`, {
+                          numeroOrden,
+                          metodoPagoStr,
+                          descripcion: detalle.descripcion,
+                          metodoPago: detalle.metodoPago
+                        });
+                      }
+                      
+                      if (!metodoPagoStr.trim()) {
+                        console.log(`⚠️ [EntregasImprimirModal] Sin método de pago para:`, {
+                          numeroOrden,
+                          esDevolucion,
+                          esAbono,
+                          metodoPago: detalle.metodoPago,
+                          descripcion: detalle.descripcion
+                        });
+                        return;
+                      }
                       
                       // Parsear el string para extraer cada método de pago
                       const partes = metodoPagoStr.split('|').map(p => p.trim());
@@ -683,6 +740,9 @@ export default function EntregasImprimirModal({ entregas = [], isOpen, onClose }
                           metodosPago[clave].ordenes.push({
                             orden: numeroOrden,
                             esAbono,
+                            esDevolucion,
+                            reembolsoId,
+                            observacionReembolso,
                             retencion: null
                           });
                         }
@@ -704,6 +764,9 @@ export default function EntregasImprimirModal({ entregas = [], isOpen, onClose }
                           metodosPago[clave].ordenes.push({
                             orden: numeroOrden,
                             esAbono,
+                            esDevolucion,
+                            reembolsoId,
+                            observacionReembolso,
                             retencion: null
                           });
                         }
@@ -724,6 +787,9 @@ export default function EntregasImprimirModal({ entregas = [], isOpen, onClose }
                           metodosPago[clave].ordenes.push({
                             orden: numeroOrden,
                             esAbono,
+                            esDevolucion,
+                            reembolsoId,
+                            observacionReembolso,
                             retencion: null
                           });
                         }
@@ -744,6 +810,9 @@ export default function EntregasImprimirModal({ entregas = [], isOpen, onClose }
                           metodosPago[clave].ordenes.push({
                             orden: numeroOrden,
                             esAbono,
+                            esDevolucion,
+                            reembolsoId,
+                            observacionReembolso,
                             retencion: null
                           });
                         }
@@ -765,7 +834,25 @@ export default function EntregasImprimirModal({ entregas = [], isOpen, onClose }
                     // Generar las líneas agrupadas por método de pago
                     const lineas = [];
                     
-                    // Agrupar por cliente primero
+                    // PRIMERO: Mostrar devoluciones si hay alguna
+                    if (devoluciones.length > 0) {
+                      lineas.push("=== DEVOLUCIONES ===");
+                      lineas.push("");
+                      
+                      devoluciones.forEach(dev => {
+                        lineas.push(`${dev.nombreCliente} - ${dev.metodoPago}: $${dev.monto.toLocaleString("es-CO")}`);
+                        lineas.push(`Orden #${dev.numeroOrden}`);
+                        lineas.push(`  └─ Reembolso #${dev.reembolsoId || 'N/A'}${dev.observacionReembolso ? ` - ${dev.observacionReembolso}` : ''}`);
+                        lineas.push(""); // Línea vacía
+                      });
+                      
+                      if (Object.keys(metodosPago).length > 0) {
+                        lineas.push("=== MÉTODOS DE PAGO ===");
+                        lineas.push("");
+                      }
+                    }
+                    
+                    // SEGUNDO: Agrupar por cliente primero
                     const porCliente = {};
                     Object.keys(metodosPago).forEach(clave => {
                       const grupo = metodosPago[clave];
@@ -785,7 +872,16 @@ export default function EntregasImprimirModal({ entregas = [], isOpen, onClose }
                         
                         // Listar órdenes de este método
                         grupo.ordenes.forEach(item => {
-                          const prefijo = item.esAbono ? "ABONO Orden" : "Orden";
+                          let prefijo = "";
+                          
+                          if (item.esDevolucion) {
+                            prefijo = "DEVOLUCIÓN Orden";
+                          } else if (item.esAbono) {
+                            prefijo = "ABONO Orden";
+                          } else {
+                            prefijo = "Orden";
+                          }
+                          
                           let linea = `${prefijo} #${item.orden}`;
                           
                           if (item.retencion) {
@@ -793,6 +889,24 @@ export default function EntregasImprimirModal({ entregas = [], isOpen, onClose }
                           }
                           
                           lineas.push(linea);
+                          
+                          // Si es devolución, mostrar número de reembolso y motivo
+                          if (item.esDevolucion) {
+                            console.log(`🔍 [EntregasImprimirModal] Generando línea reembolso:`, {
+                              esDevolucion: item.esDevolucion,
+                              reembolsoId: item.reembolsoId,
+                              observacionReembolso: item.observacionReembolso,
+                              item
+                            });
+                            
+                            let lineaReembolso = `  └─ Reembolso #${item.reembolsoId || 'N/A'}`;
+                            if (item.observacionReembolso) {
+                              lineaReembolso += ` - ${item.observacionReembolso}`;
+                            }
+                            
+                            console.log(`🔍 [EntregasImprimirModal] Línea generada:`, lineaReembolso);
+                            lineas.push(lineaReembolso);
+                          }
                         });
                         
                         lineas.push(""); // Línea vacía entre métodos

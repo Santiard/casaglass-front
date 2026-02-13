@@ -121,17 +121,17 @@ export default function EntregaDetalleModal({ entrega, isOpen, onClose }) {
         {/* Tabla de egresos (reembolsos) */}
         {egresos.length > 0 && (
           <div className="entrega-detalle-section">
-            <h3 style={{ color: '#d32f2f' }}>EGRESOS (Devoluciones/Reembolsos) - {egresos.length}</h3>
+            <h3>EGRESOS (Devoluciones/Reembolsos) - {egresos.length}</h3>
             <div className="entrega-detalle-table-wrapper">
               <table className="entrega-detalle-table">
-                <thead style={{ backgroundColor: '#ffebee' }}>
+                <thead>
                   <tr>
-                    <th>Tipo</th>
-                    <th># Orden Original</th>
-                    <th>Cliente</th>
-                    <th>Fecha Devolución</th>
-                    <th>Monto Reembolsado</th>
-                    <th>Observaciones</th>
+                    <th style={{ width: '100px' }}>Tipo</th>
+                    <th style={{ width: '80px' }}># Orden</th>
+                    <th style={{ width: '180px' }}>Cliente</th>
+                    <th style={{ width: '100px' }}>Fecha</th>
+                    <th style={{ width: '140px', textAlign: 'right' }}>Monto</th>
+                    <th style={{ width: 'auto' }}>Motivo</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -139,7 +139,7 @@ export default function EntregaDetalleModal({ entrega, isOpen, onClose }) {
                     const montoReembolso = Math.abs(Number(d.montoOrden) || 0);
                     
                     return (
-                      <tr key={d.id} style={{ backgroundColor: '#ffebee', borderLeft: '4px solid #c62828' }}>
+                      <tr key={d.id}>
                         <td>
                           <span style={{
                             display: 'inline-block',
@@ -147,7 +147,7 @@ export default function EntregaDetalleModal({ entrega, isOpen, onClose }) {
                             borderRadius: '4px',
                             fontSize: '0.75rem',
                             fontWeight: 'bold',
-                            backgroundColor: '#c62828',
+                            backgroundColor: '#6c757d',
                             color: 'white'
                           }}>
                             DEVOLUCIÓN
@@ -156,12 +156,12 @@ export default function EntregaDetalleModal({ entrega, isOpen, onClose }) {
                         <td style={{ fontWeight: '500' }}>{d.numeroOrden}</td>
                         <td>{d.clienteNombre || "-"}</td>
                         <td>{fmtFecha(d.fechaOrden)}</td>
-                        <td style={{ color: '#c62828', fontWeight: 'bold', fontSize: '1.1rem' }}>
+                        <td style={{ fontWeight: 'bold', fontSize: '1rem', textAlign: 'right' }}>
                           <span style={{ marginRight: '0.25rem' }}>−</span>
                           {fmtCOP(montoReembolso)}
                         </td>
-                        <td style={{ fontStyle: 'italic', color: '#666' }}>
-                          {d.observaciones || "-"}
+                        <td style={{ fontStyle: 'italic', color: '#666', whiteSpace: 'normal', maxWidth: '300px' }}>
+                          {d.observacionReembolso || d.observaciones || "-"}
                         </td>
                       </tr>
                     );

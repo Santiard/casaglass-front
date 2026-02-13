@@ -551,18 +551,19 @@ export default function OrdenImprimirModal({ orden, isOpen, onClose }) {
                       </tr>
                     ) : (
                       form.items.map((item, index) => {
-                        // Para cortes, usar el nombre formateado del detalle si existe, sino el del producto
-                        const nombreProducto = item.nombre || item.nombreProducto || item.producto?.nombre || "-";
+                        // ✅ PRIORIDAD: usar producto.nombre (viene de la DB con nombre completo del corte)
+                        const nombreProducto = item.producto?.nombre || item.nombre || item.nombreProducto || "-";
                         
                         console.log(`🏷️ [OrdenImprimirModal] Renderizando item ${index + 1}:`, {
                           itemId: item.id,
-                          nombre: item.nombre,
-                          nombreProducto: item.nombreProducto,
+                          productoId: item.productoId,
                           productoNombre: item.producto?.nombre,
+                          itemNombre: item.nombre,
+                          nombreProducto: item.nombreProducto,
                           nombreFinal: nombreProducto,
                           color: item.producto?.color,
                           tipo: item.producto?.tipo,
-                          productoId: item.productoId
+                          explicacion: 'producto.nombre tiene prioridad porque viene de la DB con el nombre completo'
                         });
                         
                         return (
@@ -628,17 +629,19 @@ export default function OrdenImprimirModal({ orden, isOpen, onClose }) {
                       </tr>
                     ) : (
                       form.items.map((item, index) => {
-                        // Para cortes, usar el nombre formateado del detalle si existe, sino el del producto
-                        const nombreProducto = item.nombre || item.nombreProducto || item.producto?.nombre || "-";
+                        // ✅ PRIORIDAD: usar producto.nombre (viene de la DB con nombre completo del corte)
+                        const nombreProducto = item.producto?.nombre || item.nombre || item.nombreProducto || "-";
                         
                         console.log(`🏷️ [OrdenImprimirModal - Trabajadores] Renderizando item ${index + 1}:`, {
                           itemId: item.id,
-                          nombre: item.nombre,
-                          nombreProducto: item.nombreProducto,
+                          productoId: item.productoId,
                           productoNombre: item.producto?.nombre,
+                          itemNombre: item.nombre,
+                          nombreProducto: item.nombreProducto,
                           nombreFinal: nombreProducto,
                           color: item.producto?.color,
-                          tipo: item.producto?.tipo
+                          tipo: item.producto?.tipo,
+                          explicacion: 'producto.nombre tiene prioridad porque viene de la DB con el nombre completo'
                         });
                         
                         return (

@@ -316,6 +316,14 @@ export default function OrdenEditarModal({
           trabajadorId: defaultTrabajadorId ? String(defaultTrabajadorId) : "",
           sedeId: defaultSedeId ? String(defaultSedeId) : "",
           items: productosCarrito.map((p) => {
+            console.log('🛒 [OrdenModal] Inicializando item del carrito:', {
+              id: p.id,
+              nombre: p.nombre,
+              esCorte: p.esCorte,
+              productoOriginal: p.productoOriginal,
+              medidaCorte: p.medidaCorte
+            });
+            
             const item = {
               id: null,
               productoId: Number((p.productoOriginal ?? p.id) ?? 0) || null,
@@ -326,6 +334,10 @@ export default function OrdenEditarModal({
               totalLinea: Number((p.precioUsado ?? 0) * (p.cantidadVender ?? 1)),
               eliminar: false,
               color: p.color ?? '', // Copiar color explícitamente
+              // 🆕 Mantener info del corte para actualizar IDs después
+              esCorte: p.esCorte || false,
+              medidaCorte: p.medidaCorte || null,
+              productoOriginal: p.productoOriginal || null
             };
             if (p.reutilizarCorteSolicitadoId) {
               item.reutilizarCorteSolicitadoId = Number(p.reutilizarCorteSolicitadoId);
@@ -928,7 +940,10 @@ export default function OrdenEditarModal({
       }
 
       // Validar que todos los items tengan productoId válido
-      const itemsInvalidos = itemsActivos.filter(i => !i.productoId || i.productoId === 0 || i.productoId === null);
+      const itemsInvalidos = itemsActivos.filter(i => {
+        const productoId = i.productoId || i.producto?.id;
+        return !productoId || productoId === 0 || productoId === null;
+      });
       if (itemsInvalidos.length > 0) {
 
         showError(`Los siguientes productos no tienen un ID válido: ${itemsInvalidos.map(i => i.nombre || i.codigo).join(", ")}`);
@@ -1121,17 +1136,46 @@ export default function OrdenEditarModal({
             return productoId > 0 && cantidad > 0 && precioUnitario > 0;
           })
           .map((i) => {
-            const productoId = Number(i.productoId);
+            const productoId = Number(i.productoId || i.producto?.id || 0);
+            
+            console.log('📦 [OrdenModal] Construyendo item para enviar al backend:', {
+              itemId: i.id,
+              productoId: productoId,
+              productoIdOriginal: i.productoId,
+              productoIdFallback: i.producto?.id,
+              nombre: i.nombre,
+              codigo: i.codigo,
+              cantidad: i.cantidad,
+              precioUnitario: i.precioUnitario,
+              esCorte: i.esCorte,
+              productoOriginal: i.productoOriginal
+            });
+            
+            console.log('🔍 [OrdenModal] VERIFICACIÓN productoId:', {
+              productoIdUsado: productoId,
+              esNumeroValido: !isNaN(productoId) && productoId > 0,
+              tipoDeItem: i.esCorte ? 'CORTE' : 'PRODUCTO NORMAL',
+              nota: i.esCorte ? 'Este productoId debe ser del CORTE (nuevo producto creado en backend), NO del producto base' : 'Producto normal'
+            });
             
             const item = {
               productoId: productoId,
               cantidad: Number(i.cantidad),
               precioUnitario: Number(i.precioUnitario),
             };
+            
+            // 🆕 IMPORTANTE: Incluir el nombre del item si existe (necesario para cortes)
+            // Esto permite que el backend guarde el nombre con la medida del corte
+            if (i.nombre) {
+              item.nombre = i.nombre;
+            }
+            
             // Si es un corte que debe reutilizar un existente, agregar el ID
             if (i.reutilizarCorteSolicitadoId) {
               item.reutilizarCorteSolicitadoId = Number(i.reutilizarCorteSolicitadoId);
             }
+            
+            console.log('✅ [OrdenModal] Item construido:', item);
             
             return item;
           }),
@@ -1263,6 +1307,28 @@ export default function OrdenEditarModal({
       }
 
       const data = await crearOrdenVenta(payloadConCortes);
+      
+      // 🆕 IMPORTANTE: Capturar IDs de cortes creados
+      const cortesCreados = data?.cortesCreados || [];
+      
+      console.log('✅ [OrdenModal] Orden creada exitosamente:', {
+        ordenId: data?.orden?.id || data?.id,
+        numero: data?.numero,
+        cantidadCortesCreados: cortesCreados.length,
+        cortesCreados: cortesCreados
+      });
+      
+      if (cortesCreados.length > 0) {
+        console.log('🔄 [OrdenModal] Cortes creados por el backend:');
+        cortesCreados.forEach((corte, idx) => {
+          console.log(`  ${idx + 1}. Corte ID: ${corte.corteId}, Medida: ${corte.medidaSolicitada}cm, Producto Base: ${corte.productoBase}`);
+        });
+        
+        // Los IDs ya están correctos en la DB porque el backend ya agregó los items
+        // Solo logueamos para verificación
+        console.log('✅ [OrdenModal] El backend ya guardó los items con los IDs correctos en orden_detalle');
+      }
+      
       showSuccess(`Orden creada correctamente. Número: ${data.numero}`);
       
       // Si es una venta (no cotización), abrir modal de impresión automáticamente

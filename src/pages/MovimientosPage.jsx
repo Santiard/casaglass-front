@@ -116,7 +116,8 @@ export default function MovimientosPage() {
       await crearTraslado(payload);
       await reloadTraslados();
     } catch (e) {
-      throw new Error(e?.response?.data || e?.message || "No se pudo crear el traslado.");
+      // Preservar la estructura del error original para mejor manejo en el modal
+      throw e; // Re-lanzar el error original en lugar de crear uno nuevo
     }
   };
 

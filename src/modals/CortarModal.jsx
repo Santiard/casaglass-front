@@ -147,6 +147,15 @@ export default function CortarModal({
         // reste stock de ese corte. Si no, usar el id del producto original.
         productoOriginal: corteBase && corteBase.id ? Number(corteBase.id) : producto.id
       };
+      
+      console.log('✂️ [CortarModal] Corte creado para agregar al carrito:', {
+        id: corteParaVender.id,
+        nombre: corteParaVender.nombre,
+        medidaCorte: corteParaVender.medidaCorte,
+        precioUsado: precioCorteRedondeado,
+        productoOriginal: corteParaVender.productoOriginal,
+        esCorte: corteParaVender.esCorte
+      });
 
       // Crear el corte sobrante para enviar al backend
       let corteSobrante = {

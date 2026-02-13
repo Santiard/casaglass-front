@@ -54,6 +54,18 @@ export async function obtenerOrdenDetalle(id) {
     }))
   });
   
+  console.log('🔎 [OrdenesService] ANÁLISIS - ¿Los productos tienen nombres de cortes?', {
+    items: data?.items?.map((i, idx) => ({
+      itemNum: idx + 1,
+      itemId: i.id,
+      productoIdDelDetalle: i.productoId,
+      productoIdDelObjeto: i.producto?.id,
+      nombreDelProducto: i.producto?.nombre,
+      esCorte: i.producto?.nombre?.includes('Corte de') || false,
+      problema: i.productoId !== i.producto?.id ? '⚠️ productoId no coincide con producto.id' : '✅ OK'
+    }))
+  });
+  
   return data;
 }
 
@@ -131,13 +143,33 @@ export async function crearOrdenVenta(payload) {
           });
         }
         
-        return {
+        console.log('📤 [OrdenesService] Preparando item para enviar al backend:', {
+          productoId: productoId,
+          cantidad: item.cantidad,
+          precioUnitario: item.precioUnitario,
+          nombre: item.nombre,
+          tieneNombre: !!item.nombre
+        });
+        
+        console.log('🎯 [OrdenesService] CRÍTICO - Verificar productoId:', {
+          productoId: productoId,
+          esValido: productoId > 0,
+          importante: 'Si este item es un corte, este productoId DEBE ser el ID del CORTE (producto nuevo), NO del producto base original'
+        });
+        
+        const itemParaBackend = {
           productoId: productoId,
           cantidad: parseFloat(item.cantidad),
           precioUnitario: parseFloat(item.precioUnitario),
+          // 🆕 CRÍTICO: Incluir el nombre si existe (para cortes con medida)
+          ...(item.nombre ? { nombre: item.nombre } : {}),
           // reutilizarCorteSolicitadoId es opcional
           ...(item.reutilizarCorteSolicitadoId ? { reutilizarCorteSolicitadoId: parseInt(item.reutilizarCorteSolicitadoId) } : {})
         };
+        
+        console.log('✅ [OrdenesService] Item final para backend:', itemParaBackend);
+        
+        return itemParaBackend;
       }),
       // 🆕 NUEVO: Incluir cortes pendientes
       cortes: payload.cortes ? payload.cortes.map(corte => {
@@ -180,6 +212,12 @@ export async function crearOrdenVenta(payload) {
     };
     
     const { data } = await api.post("ordenes/venta", ordenData);
+    
+    console.log('🎉 [OrdenesService] Respuesta del backend después de crear orden:', {
+      orden: data?.orden || data,
+      cortesCreados: data?.cortesCreados || [],
+      hayCortes: (data?.cortesCreados || []).length > 0
+    });
     
     return data;
   } catch (error) {

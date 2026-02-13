@@ -190,29 +190,27 @@ const EstadoCuentaPage = () => {
           <table>
             <thead>
               <tr>
-                <th style="width: 12%;">Fecha inicio</th>
-                <th style="width: 20%;">Obra</th>
-                <th style="width: 15%;" class="text-right">Total crédito</th>
-                <th style="width: 15%;" class="text-right">Total abonado</th>
-                <th style="width: 15%;" class="text-right">Saldo pendiente</th>
-                <th style="width: 10%;" class="text-center">Estado</th>
-                <th style="width: 13%;">Observaciones</th>
+                <th style="width: ${isEspecial ? '12%' : '15%'};">Fecha inicio</th>
+                ${isEspecial ? '<th style="width: 20%;">Obra</th>' : ''}
+                <th style="width: ${isEspecial ? '17%' : '22%'};" class="text-right">Total crédito</th>
+                <th style="width: ${isEspecial ? '17%' : '22%'};" class="text-right">Total abonado</th>
+                <th style="width: ${isEspecial ? '17%' : '22%'};" class="text-right">Saldo pendiente</th>
+                <th style="width: ${isEspecial ? '17%' : '19%'};" class="text-center">Estado</th>
               </tr>
             </thead>
             <tbody>
               ${creditosData.length === 0 ? `
                 <tr>
-                  <td colspan="7" class="text-center">No hay créditos activos con saldo pendiente para este cliente.</td>
+                  <td colspan="${isEspecial ? '6' : '5'}" class="text-center">No hay créditos activos con saldo pendiente para este cliente.</td>
                 </tr>
               ` : creditosData.map(credito => `
                 <tr>
                   <td class="text-center">${credito.fechaInicio || '-'}</td>
-                  <td>${credito.orden?.obra || '-'}</td>
+                  ${isEspecial ? `<td>${credito.orden?.obra || '-'}</td>` : ''}
                   <td class="text-right">$${(credito.totalCredito || 0).toLocaleString()}</td>
                   <td class="text-right">$${(credito.totalAbonado || 0).toLocaleString()}</td>
                   <td class="text-right font-bold">$${(credito.saldoPendiente || 0).toLocaleString()}</td>
                   <td class="text-center">${credito.estado || '-'}</td>
-                  <td>${credito.observaciones || '-'}</td>
                 </tr>
               `).join('')}
             </tbody>
@@ -496,37 +494,39 @@ const EstadoCuentaPage = () => {
 
       {abonosDetalleModalOpen && (
         <div className="modal-overlay" onClick={() => setAbonosDetalleModalOpen(false)}>
-          <div className="modal-container" style={{ maxWidth: '800px' }} onClick={(e) => e.stopPropagation()}>
+          <div className="modal-container" style={{ maxWidth: '1000px', width: '90vw' }} onClick={(e) => e.stopPropagation()}>
             <header className="modal-header">
               <h2>Detalle de Abonos</h2>
               <button className="close-btn" onClick={() => setAbonosDetalleModalOpen(false)}>✕</button>
             </header>
-            <div style={{ padding: '1.5rem', maxHeight: '60vh', overflowY: 'auto' }}>
+            <div style={{ padding: '1.5rem', maxHeight: '70vh', overflowY: 'auto', overflowX: 'auto' }}>
               {abonosSeleccionados.length === 0 ? (
                 <p style={{ textAlign: 'center', color: '#888' }}>No hay abonos registrados</p>
               ) : (
-                <table className="table" style={{ fontSize: '0.95rem' }}>
-                  <thead>
-                    <tr>
-                      <th>Fecha</th>
-                      <th>Monto</th>
-                      <th>Método de Pago</th>
-                      <th>Factura</th>
-                      <th>Observaciones</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {abonosSeleccionados.map((abono) => (
-                      <tr key={abono.id}>
-                        <td>{abono.fechaAbono}</td>
-                        <td style={{ textAlign: 'right', fontWeight: 500 }}>${(abono.montoAbono || 0).toLocaleString()}</td>
-                        <td>{abono.metodoPago}</td>
-                        <td>{abono.numeroFactura || "-"}</td>
-                        <td>{abono.observaciones || "-"}</td>
+                <div style={{ minWidth: '100%', overflowX: 'auto' }}>
+                  <table className="table" style={{ fontSize: '0.95rem', width: '100%', minWidth: '800px' }}>
+                    <thead>
+                      <tr>
+                        <th style={{ minWidth: '100px' }}>Fecha</th>
+                        <th style={{ minWidth: '120px', textAlign: 'right' }}>Monto</th>
+                        <th style={{ minWidth: '150px' }}>Método de Pago</th>
+                        <th style={{ minWidth: '120px' }}>Factura</th>
+                        <th style={{ minWidth: '200px' }}>Observaciones</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {abonosSeleccionados.map((abono) => (
+                        <tr key={abono.id}>
+                          <td style={{ whiteSpace: 'nowrap' }}>{abono.fechaAbono}</td>
+                          <td style={{ textAlign: 'right', fontWeight: 500, whiteSpace: 'nowrap' }}>${(abono.montoAbono || 0).toLocaleString()}</td>
+                          <td>{abono.metodoPago}</td>
+                          <td>{abono.numeroFactura || "-"}</td>
+                          <td>{abono.observaciones || "-"}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               )}
             </div>
           </div>
@@ -543,18 +543,20 @@ function TablaCreditosEstadoCuenta({ creditos, loading, onVerOrden, onVerAbonos 
   const totalAbonado = creditos.reduce((sum, c) => sum + (c.totalAbonado || 0), 0);
   const totalSaldo = creditos.reduce((sum, c) => sum + (c.saldoPendiente || 0), 0);
 
+  // Detectar si es cliente especial (verificar si algún crédito tiene obra)
+  const esClienteEspecial = creditos.some(c => c.orden?.obra);
+
   return (
     <div style={{ overflowX: "auto", overflowY: "auto", maxHeight: "500px" }}>
       <table className="table" style={{ width: "100%", borderCollapse: "separate", borderSpacing: 0, background: "#fff", borderRadius: 12, boxShadow: '0 2px 8px #e6e8f0', fontSize: 15 }}>
         <thead>
           <tr style={{ background: '#25316D', color: '#fff' }}>
             <th style={{ borderTopLeftRadius: 12 }}>Fecha inicio</th>
-            <th>Obra</th>
+            {esClienteEspecial && <th>Obra</th>}
             <th>Total crédito</th>
             <th>Total abonado</th>
             <th>Saldo pendiente</th>
             <th>Estado</th>
-            <th>Observaciones</th>
             <th>Abonos</th>
             <th style={{ borderTopRightRadius: 12 }}>Acciones</th>
           </tr>
@@ -562,13 +564,13 @@ function TablaCreditosEstadoCuenta({ creditos, loading, onVerOrden, onVerAbonos 
         <tbody>
           {loading ? (
             <tr>
-              <td colSpan="9" style={{ textAlign: 'center', padding: '32px', color: '#888', fontStyle: 'italic' }}>
+              <td colSpan={esClienteEspecial ? "8" : "7"} style={{ textAlign: 'center', padding: '32px', color: '#888', fontStyle: 'italic' }}>
                 Cargando estado de cuenta...
               </td>
             </tr>
           ) : creditos.length === 0 ? (
             <tr>
-              <td colSpan="9" style={{ textAlign: 'center', padding: '32px', color: '#888', fontStyle: 'italic' }}>
+              <td colSpan={esClienteEspecial ? "8" : "7"} style={{ textAlign: 'center', padding: '32px', color: '#888', fontStyle: 'italic' }}>
                 No hay créditos activos con saldo pendiente para este cliente.
               </td>
             </tr>
@@ -577,13 +579,42 @@ function TablaCreditosEstadoCuenta({ creditos, loading, onVerOrden, onVerAbonos 
               {creditos.map((credito, idx) => (
                 <tr key={credito.id} style={{ background: idx % 2 === 0 ? '#f8fafc' : '#fff' }}>
                   <td style={{ textAlign: 'center' }}>{credito.fechaInicio}</td>
-                  <td>{credito.orden?.obra || "-"}</td>
+                  {esClienteEspecial && <td>{credito.orden?.obra || "-"}</td>}
                   <td style={{ textAlign: 'right', fontWeight: 500 }}>${credito.totalCredito.toLocaleString()}</td>
                   <td style={{ textAlign: 'right', color: '#1e2753' }}>${credito.totalAbonado.toLocaleString()}</td>
                   <td style={{ color: '#c0392b', fontWeight: 700, textAlign: 'right' }}>${credito.saldoPendiente.toLocaleString()}</td>
                   <td style={{ textAlign: 'center' }}>{credito.estado}</td>
-                  <td>{credito.observaciones || "-"}</td>
-                  <td><AbonosTable abonos={credito.abonos} /></td>
+                  <td style={{ textAlign: 'center' }}>
+                    {!credito.abonos || credito.abonos.length === 0 ? (
+                      <span style={{ 
+                        background: '#e6e8f0', 
+                        color: '#888', 
+                        borderRadius: 6, 
+                        padding: '6px 12px', 
+                        fontSize: 13,
+                        display: 'inline-block'
+                      }}>
+                        Sin abonos
+                      </span>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center' }}>
+                        <span style={{ 
+                          fontWeight: 600, 
+                          fontSize: '1.05em',
+                          color: '#1e2753'
+                        }}>
+                          {credito.abonos.length} abono{credito.abonos.length !== 1 ? 's' : ''}
+                        </span>
+                        <span style={{ 
+                          color: '#27ae60', 
+                          fontSize: '0.95em',
+                          fontWeight: 500
+                        }}>
+                          ${credito.abonos.reduce((sum, a) => sum + (a.montoAbono || 0), 0).toLocaleString()}
+                        </span>
+                      </div>
+                    )}
+                  </td>
                   <td style={{ textAlign: 'center' }}>
                     <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', flexWrap: 'wrap' }}>
                       {credito.orden?.id && (
@@ -612,43 +643,17 @@ function TablaCreditosEstadoCuenta({ creditos, loading, onVerOrden, onVerAbonos 
               ))}
               {/* Fila de totales */}
               <tr style={{ background: '#e6e8f0', fontWeight: 700 }}>
-                <td colSpan={2} style={{ textAlign: 'right' }}>Totales:</td>
+                <td colSpan={esClienteEspecial ? 2 : 1} style={{ textAlign: 'right' }}>Totales:</td>
                 <td style={{ textAlign: 'right' }}>${totalCredito.toLocaleString()}</td>
                 <td style={{ textAlign: 'right' }}>${totalAbonado.toLocaleString()}</td>
                 <td style={{ textAlign: 'right', color: '#c0392b' }}>${totalSaldo.toLocaleString()}</td>
-                <td colSpan={4}></td>
+                <td colSpan={3}></td>
               </tr>
             </>
           )}
         </tbody>
       </table>
     </div>
-  );
-}
-
-function AbonosTable({ abonos }) {
-  if (!abonos || abonos.length === 0) return <span style={{ background: '#e6e8f0', color: '#888', borderRadius: 6, padding: '4px 10px', fontSize: 13 }}>Sin abonos</span>;
-  return (
-    <table style={{ fontSize: "0.95em", background: "#f9f9f9", borderRadius: 6, margin: "0 auto", minWidth: 220, boxShadow: '0 1px 4px #e6e8f0' }}>
-      <thead>
-        <tr style={{ background: '#e6e8f0', color: '#1e2753' }}>
-          <th>Fecha</th>
-          <th>Monto</th>
-          <th>Método</th>
-          <th>Factura</th>
-        </tr>
-      </thead>
-      <tbody>
-        {abonos.map(a => (
-          <tr key={a.id}>
-            <td>{a.fechaAbono}</td>
-            <td style={{ textAlign: 'right', fontWeight: 500 }}>${(a.montoAbono || 0).toLocaleString()}</td>
-            <td>{a.metodoPago}</td>
-            <td>{a.numeroFactura || "-"}</td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
   );
 }
 

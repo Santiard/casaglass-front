@@ -284,11 +284,32 @@ export default function VenderPage() {
   const manejarCorte = async (corteParaVender, corteSobrante) => {
     
     try {
+      console.log('🛒 [VenderPage] Agregando corte al carrito:', {
+        id: corteParaVender.id,
+        nombre: corteParaVender.nombre,
+        medidaCorte: corteParaVender.medidaCorte,
+        productoOriginal: corteParaVender.productoOriginal,
+        esCorte: corteParaVender.esCorte,
+        esCorteExistente: corteParaVender.esCorteExistente
+      });
+      
+      console.log('⚠️ [VenderPage] IMPORTANTE - productoId que se usará:', {
+        idDelCorte: corteParaVender.id,
+        productoOriginal: corteParaVender.productoOriginal,
+        explicacion: 'El id del corte es temporal (usado solo en frontend). productoOriginal es el productoId del backend que se debe usar.'
+      });
+      
       // ✅ Agregar marca especial si es un corte de otro corte
       const corteConMarca = {
         ...corteParaVender,
         esCorteDeCorte: corteParaVender.esCorteExistente || false
       };
+      
+      console.log('✅ [VenderPage] Corte con marca agregado:', {
+        id: corteConMarca.id,
+        nombre: corteConMarca.nombre,
+        esCorteDeCorte: corteConMarca.esCorteDeCorte
+      });
       
       // 1. Agregar el corte al carrito
       setProductosCarrito(prev => [...prev, corteConMarca]);

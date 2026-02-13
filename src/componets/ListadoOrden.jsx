@@ -122,19 +122,30 @@ export default function ListadoOrden({ productosCarrito, subtotal, total, limpia
     cliente: { nombre: "Cliente" }, // Se puede mejorar después
     sede: { nombre: sede || "Sede" },
     trabajador: { nombre: user?.nombre || "Trabajador" },
-    items: items.map(item => ({
-      id: null,
-      cantidad: item.cantidadVender || 0,
-      precioUnitario: item.precioUsado || 0,
-      totalLinea: (item.precioUsado || 0) * (item.cantidadVender || 0),
-      descripcion: "",
-      producto: {
-        codigo: item.codigo || "",
+    items: items.map((item, index) => {
+      console.log(`📋 [ListadoOrden] Mapeando item ${index + 1} para orden temporal:`, {
+        nombre: item.nombre,
+        codigo: item.codigo,
+        color: item.color,
+        esCorte: item.esCorte,
+        medidaCorte: item.medidaCorte
+      });
+      
+      return {
+        id: null,
+        cantidad: item.cantidadVender || 0,
+        precioUnitario: item.precioUsado || 0,
+        totalLinea: (item.precioUsado || 0) * (item.cantidadVender || 0),
+        descripcion: "",
         nombre: item.nombre || "",
-        color: item.color || "",
-        tipo: item.tipo || ""
-      }
-    }))
+        producto: {
+          codigo: item.codigo || "",
+          nombre: item.nombre || "",
+          color: item.color || "",
+          tipo: item.tipo || ""
+        }
+      };
+    })
   };
 
   const eliminarProductoLocal = (index) => {

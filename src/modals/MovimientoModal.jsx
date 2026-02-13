@@ -344,10 +344,28 @@ export default function MovimientoModal({
       }
       onClose();
     } catch (e) {
-      const msg =
-        e?.response?.data ||
-        e?.message ||
-        "No se pudo guardar el traslado.";
+      // Manejo específico de errores usando el nuevo formato del backend
+      let msg = "No se pudo guardar el traslado.";
+      
+      if (e?.response?.data) {
+        const errorData = e.response.data;
+        
+        // Verificar si es un error de inventario insuficiente (nuevo formato del backend)
+        if (typeof errorData === 'string' && errorData.startsWith("INVENTARIO_INSUFICIENTE:")) {
+          msg = "⚠️ " + errorData.replace("INVENTARIO_INSUFICIENTE: ", "");
+        } else if (typeof errorData === 'string') {
+          msg = errorData;
+        } else if (errorData.message && errorData.message.startsWith("INVENTARIO_INSUFICIENTE:")) {
+          msg = "⚠️ " + errorData.message.replace("INVENTARIO_INSUFICIENTE: ", "");
+        } else if (errorData.message) {
+          msg = errorData.message;
+        } else {
+          msg = JSON.stringify(errorData);
+        }
+      } else if (e?.message) {
+        msg = e.message;
+      }
+      
       setErrorMsg(String(msg));
       setIsSubmitting(false);
     }
