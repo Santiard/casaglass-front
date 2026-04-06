@@ -185,6 +185,41 @@ export default function OrdenImprimirModal({ orden, isOpen, onClose }) {
         })
       : "-";
 
+  const formatearMedidaCm = (valor) => {
+    const n = Number(valor);
+    if (!Number.isFinite(n) || n <= 0) return null;
+    return Number.isInteger(n) ? String(n) : String(parseFloat(n.toFixed(2)));
+  };
+
+  const resolverNombreItem = (item) => {
+    const nombreItem = (item?.nombre || item?.nombreProducto || "").toString().trim();
+    if (/corte\s+de/i.test(nombreItem)) return nombreItem;
+
+    const cortesCreados = Array.isArray(form?.cortesCreados) ? form.cortesCreados : [];
+    const productoIdItem = Number(item?.productoId || item?.producto?.id || 0);
+
+    const corteRelacionado = cortesCreados.find((c) => {
+      const productoBase = Number(c?.productoBase || c?.productoBaseId || c?.productoId || 0);
+      const corteId = Number(c?.corteId || c?.id || 0);
+      return (productoBase > 0 && productoBase === productoIdItem) || (corteId > 0 && corteId === productoIdItem);
+    });
+
+    const medida = formatearMedidaCm(
+      corteRelacionado?.medidaSolicitada
+      || corteRelacionado?.medidaCorte
+      || corteRelacionado?.medida
+      || item?.medidaCorte
+      || item?.medidaSolicitada
+      || item?.medida
+    );
+
+    if (medida) {
+      return `Corte de ${medida} CMS`;
+    }
+
+    return item?.producto?.nombre || nombreItem || "-";
+  };
+
   // Función para crear ventana de impresión (compartida entre imprimir y PDF)
   const crearVentanaImpresion = () => {
     const contenido = document.getElementById('printable-orden-content').innerHTML;
@@ -551,8 +586,7 @@ export default function OrdenImprimirModal({ orden, isOpen, onClose }) {
                       </tr>
                     ) : (
                       form.items.map((item, index) => {
-                        // ✅ PRIORIDAD: usar producto.nombre (viene de la DB con nombre completo del corte)
-                        const nombreProducto = item.producto?.nombre || item.nombre || item.nombreProducto || "-";
+                        const nombreProducto = resolverNombreItem(item);
                         
                         console.log(`🏷️ [OrdenImprimirModal] Renderizando item ${index + 1}:`, {
                           itemId: item.id,
@@ -563,7 +597,7 @@ export default function OrdenImprimirModal({ orden, isOpen, onClose }) {
                           nombreFinal: nombreProducto,
                           color: item.producto?.color,
                           tipo: item.producto?.tipo,
-                          explicacion: 'producto.nombre tiene prioridad porque viene de la DB con el nombre completo'
+                          explicacion: 'si existe metadata de corte se muestra "Corte de X CMS"; de lo contrario usa nombre del backend'
                         });
                         
                         return (
@@ -610,6 +644,11 @@ export default function OrdenImprimirModal({ orden, isOpen, onClose }) {
                     <h3>Sede</h3>
                     <p>{form.sede.nombre || "-"}</p>
                   </div>
+
+                  <div className="orden-imprimir-info-section">
+                    <h3>Cliente</h3>
+                    <p>{form.cliente.nombre || "-"}</p>
+                  </div>
                 </div>
 
                 {/* Items sin valores monetarios */}
@@ -629,8 +668,7 @@ export default function OrdenImprimirModal({ orden, isOpen, onClose }) {
                       </tr>
                     ) : (
                       form.items.map((item, index) => {
-                        // ✅ PRIORIDAD: usar producto.nombre (viene de la DB con nombre completo del corte)
-                        const nombreProducto = item.producto?.nombre || item.nombre || item.nombreProducto || "-";
+                        const nombreProducto = resolverNombreItem(item);
                         
                         console.log(`🏷️ [OrdenImprimirModal - Trabajadores] Renderizando item ${index + 1}:`, {
                           itemId: item.id,
@@ -641,7 +679,7 @@ export default function OrdenImprimirModal({ orden, isOpen, onClose }) {
                           nombreFinal: nombreProducto,
                           color: item.producto?.color,
                           tipo: item.producto?.tipo,
-                          explicacion: 'producto.nombre tiene prioridad porque viene de la DB con el nombre completo'
+                          explicacion: 'si existe metadata de corte se muestra "Corte de X CMS"; de lo contrario usa nombre del backend'
                         });
                         
                         return (

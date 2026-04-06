@@ -273,10 +273,17 @@ export default function ListadoOrden({ productosCarrito, subtotal, total, limpia
             // La respuesta del backend puede venir como { orden: {...}, numero: ..., mensaje: ... }
             // o directamente como la orden
             const ordenId = ordenCreada.orden?.id || ordenCreada.id;
+            const cortesCreados = Array.isArray(ordenCreada?.cortesCreados)
+              ? ordenCreada.cortesCreados
+              : (Array.isArray(ordenCreada?.orden?.cortesCreados) ? ordenCreada.orden.cortesCreados : []);
             
             if (!ordenId) {
               // Si no hay ID, usar los datos básicos
-              setOrdenTemporal(ordenCreada.orden || ordenCreada);
+              const ordenBasica = ordenCreada.orden || ordenCreada;
+              setOrdenTemporal({
+                ...ordenBasica,
+                cortesCreados
+              });
               setIsImprimirOpen(true);
               return;
             }
@@ -284,12 +291,22 @@ export default function ListadoOrden({ productosCarrito, subtotal, total, limpia
             // Obtener la orden detallada para imprimir
             const { obtenerOrdenDetalle } = await import("../services/OrdenesService.js");
             const ordenDetallada = await obtenerOrdenDetalle(ordenId);
-            setOrdenTemporal(ordenDetallada);
+            setOrdenTemporal({
+              ...ordenDetallada,
+              cortesCreados
+            });
             setIsImprimirOpen(true);
           } catch (error) {
             // Si falla obtener detalle, usar la orden básica (puede venir en ordenCreada.orden o directamente)
             const ordenParaImprimir = ordenCreada.orden || ordenCreada;
-            setOrdenTemporal(ordenParaImprimir);
+            const cortesCreados = Array.isArray(ordenCreada?.cortesCreados)
+              ? ordenCreada.cortesCreados
+              : (Array.isArray(ordenCreada?.orden?.cortesCreados) ? ordenCreada.orden.cortesCreados : []);
+
+            setOrdenTemporal({
+              ...ordenParaImprimir,
+              cortesCreados
+            });
             setIsImprimirOpen(true);
           }
         }}

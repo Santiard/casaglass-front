@@ -137,7 +137,7 @@ export default function CortarModal({
       const corteParaVender = {
         ...producto,
         id: `corte_${producto.id}_${Date.now()}`, // ID único para el corte
-        nombre: `${producto.nombre} Corte de ${cortesCalculados.medidaCorte} CMS`,
+        nombre: `Corte de ${cortesCalculados.medidaCorte} CMS`,
         cantidadVender: 1,
         precioUsado: precioCorteRedondeado,
         esCorte: true,

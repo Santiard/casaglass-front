@@ -135,6 +135,12 @@ export async function listarInventarioCompleto(params = {}, isAdmin = true, user
  * @returns {Array} Cortes transformados
  */
 function transformarCortesDTO(cortes, isAdmin = true, userSedeId = null) {
+  const formatearMedidaCm = (valor) => {
+    const n = Number(valor);
+    if (!Number.isFinite(n) || n <= 0) return null;
+    return Number.isInteger(n) ? String(n) : String(parseFloat(n.toFixed(2)));
+  };
+
   return cortes.map(corte => {
     // Si el backend ya trae cantidadInsula, cantidadCentro, cantidadPatios directamente
     let cantidadInsula = corte.cantidadInsula || 0;
@@ -196,7 +202,9 @@ function transformarCortesDTO(cortes, isAdmin = true, userSedeId = null) {
       id: corte.productoId || corte.id,  // Mapear productoId como id
       productoId: corte.productoId,
       codigo: corte.codigo,
-      nombre: corte.nombre,
+      nombre: formatearMedidaCm(corte.largoCm)
+        ? `Corte de ${formatearMedidaCm(corte.largoCm)} CMS`
+        : (corte.nombre || "Corte"),
       posicion: corte.posicion,
       tipo: corte.tipo,
       color: corte.color,
