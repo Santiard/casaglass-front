@@ -146,6 +146,13 @@ export default function FacturaImprimirModal({ factura, isOpen, onClose }) {
         }).format(n)
       : "-";
 
+  const IVA_FACTOR = 1.19;
+  const sinIva = (valor) => {
+    const n = Number(valor);
+    if (!Number.isFinite(n)) return 0;
+    return n / IVA_FACTOR;
+  };
+
   // Función para crear ventana de impresión (compartida entre imprimir y PDF)
   const crearVentanaImpresion = () => {
     const contenido = document.getElementById('printable-factura-content').innerHTML;
@@ -486,8 +493,8 @@ export default function FacturaImprimirModal({ factura, isOpen, onClose }) {
                   <th>Color</th>
                   <th>Tipo</th>
                   <th>Producto</th>
-                  <th className="text-right">Valor Unitario</th>
-                  <th className="text-right">Valor Total</th>
+                  <th className="text-right">Valor Unitario (sin IVA)</th>
+                  <th className="text-right">Valor Total (sin IVA)</th>
                 </tr>
               </thead>
               <tbody>
@@ -502,8 +509,8 @@ export default function FacturaImprimirModal({ factura, isOpen, onClose }) {
                       <td>{item.producto?.color || "-"}</td>
                       <td>{item.producto?.tipo || "-"}</td>
                       <td>{item.producto?.nombre || "-"}</td>
-                      <td className="text-right">${(item.precioUnitario || 0).toLocaleString("es-CO")}</td>
-                      <td className="text-right">${(item.totalLinea || 0).toLocaleString("es-CO")}</td>
+                      <td className="text-right">${sinIva(item.precioUnitario).toLocaleString("es-CO")}</td>
+                      <td className="text-right">${sinIva(item.totalLinea).toLocaleString("es-CO")}</td>
                     </tr>
                   ))
                 )}

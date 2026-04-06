@@ -5,6 +5,7 @@ import { useAuth } from "../context/AuthContext.jsx";
 import editar from "../assets/editar.png";
 import add from "../assets/add.png";
 import deleteIcon from "../assets/eliminar.png";
+import check from "../assets/check.png";
 import IngresoModal from "../modals/IngresoModal.jsx";
 import { useConfirm } from "../hooks/useConfirm.jsx";
 import { useToast } from "../context/ToastContext.jsx";
@@ -20,6 +21,7 @@ export default function IngresosTable({
   onCrear,
   onActualizar,
   onEliminar,
+  onConfirmar,
   // Paginación del servidor
   totalElements = 0,
   totalPages = 1,
@@ -78,8 +80,13 @@ export default function IngresosTable({
   };
 
   const eliminar = async (ing) => {
+    if (ing.procesado) {
+      showError("No se puede eliminar un ingreso ya procesado.");
+      return;
+    }
+
     // Mensaje de confirmación simplificado - ahora siempre se puede eliminar
-    const mensaje = `¿Estás seguro de que deseas eliminar este ingreso?\n\n⚠️ ADVERTENCIA: Esta acción revertirá automáticamente el inventario (restará las cantidades que se sumaron al procesar).\n\nEsta acción no se puede deshacer.`;
+    const mensaje = `¿Estás seguro de que deseas eliminar este ingreso pendiente?\n\nEsta acción no se puede deshacer.`;
     
     const confirmacion = await confirm({
       title: "Eliminar Ingreso",
@@ -297,6 +304,7 @@ export default function IngresosTable({
               pageData.map((ing) => {
                 const dets = Array.isArray(ing.detalles) ? ing.detalles : [];
                 const editable = canEdit(ing);
+                const procesado = Boolean(ing.procesado);
                 // Calcular suma total de cantidades de productos
                 const totalProductos = dets.reduce((sum, det) => sum + (Number(det.cantidad) || 0), 0);
                 // Usar cantidadTotal del backend si existe, sino calcular de detalles
@@ -339,7 +347,23 @@ export default function IngresosTable({
                       </button>
                     </td>
                     <td className="clientes-actions" style={{ gap: ".25rem" }}>
-                      {/* ❌ ELIMINADOS: Botones Procesar y Desprocesar ya no son necesarios */}
+                      {!procesado && (
+                        <button
+                          className="btnConfirm"
+                          onClick={() => onConfirmar?.(ing)}
+                          title="Confirmar ingreso"
+                          style={{
+                            backgroundColor: '#28a745',
+                            border: 'none',
+                            borderRadius: '4px',
+                            padding: '2px 4px',
+                            cursor: 'pointer',
+                            marginRight: '4px'
+                          }}
+                        >
+                          <img src={check} className="iconButton" alt="Confirmar" />
+                        </button>
+                      )}
                       
                       {/* Botón Editar - siempre disponible */}
                       <button
@@ -358,7 +382,9 @@ export default function IngresosTable({
                       <button
                         className="btnDelete"
                         onClick={() => eliminar(ing)}
-                        title="Eliminar ingreso (revertirá inventario automáticamente)"
+                        title={procesado ? "No se puede eliminar un ingreso procesado" : "Eliminar ingreso"}
+                        disabled={procesado}
+                        style={{ opacity: procesado ? 0.5 : 1, cursor: procesado ? 'not-allowed' : 'pointer' }}
                       >
                         <img src={deleteIcon} className="iconButton" />
                       </button>

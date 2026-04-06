@@ -99,6 +99,20 @@ export default function OrdenesTable({
     return `${dia}/${mes}/${año}`;
   };
 
+  const formatearNombreCliente = (orden) => {
+    const nombreCliente = (orden?.cliente?.nombre || "").toString().trim();
+    const obra = (orden?.obra || "").toString().trim();
+
+    if (!nombreCliente) return "-";
+
+    const esClienteEspecial = nombreCliente.toUpperCase() === "JAIRO JAVIER VELANDIA";
+    if (esClienteEspecial && obra) {
+      return `${nombreCliente} - ${obra}`;
+    }
+
+    return nombreCliente;
+  };
+
   //  Calcular total de orden (usar total del backend si existe, sino calcular desde items)
   const calcularTotal = (orden) => {
     // Si el backend ya calculó el total, usarlo
@@ -538,7 +552,7 @@ export default function OrdenesTable({
                       <td>{o.numero}</td>
                       <td>{o.numeroFactura || '-'}</td>
                       <td>{fmtFecha(o.fecha)}</td>
-                      <td>{o.cliente?.nombre ?? "-"}</td>
+                      <td>{formatearNombreCliente(o)}</td>
                       <td>{o.sede?.nombre ?? "-"}</td>
                       <td>{o.venta ? "Venta" : "Cotización"}</td>
                       <td>{o.credito ? "Sí" : "No"}</td>

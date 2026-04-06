@@ -129,6 +129,13 @@ export default function OrdenDetalleModal({ ordenId, facturaId, isOpen, onClose 
         });
   };
 
+  const IVA_FACTOR = 1.19;
+  const sinIva = (valor) => {
+    const n = Number(valor);
+    if (!Number.isFinite(n)) return 0;
+    return n / IVA_FACTOR;
+  };
+
   const detalles = Array.isArray(orden?.items) ? orden.items : [];
 
   // Valores monetarios: usar los de la factura si están disponibles, sino usar los de la orden
@@ -269,8 +276,8 @@ export default function OrdenDetalleModal({ ordenId, facturaId, isOpen, onClose 
                     <th>Código</th>
                     <th>Producto</th>
                     <th>Cantidad</th>
-                    <th>Precio Unit.</th>
-                    <th>Total Línea</th>
+                    <th>Precio Unit. (sin IVA)</th>
+                    <th>Total Línea (sin IVA)</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -286,8 +293,8 @@ export default function OrdenDetalleModal({ ordenId, facturaId, isOpen, onClose 
                         <td>{d.producto?.codigo ?? "-"}</td>
                         <td>{d.producto?.nombre ?? "-"}</td>
                         <td style={{ textAlign: "center" }}>{d.cantidad ?? "-"}</td>
-                        <td>{fmtCOP(Number(d.precioUnitario))}</td>
-                        <td>{fmtCOP(Number(d.totalLinea))}</td>
+                        <td>{fmtCOP(sinIva(d.precioUnitario))}</td>
+                        <td>{fmtCOP(sinIva(d.totalLinea))}</td>
                       </tr>
                     ))
                   )}

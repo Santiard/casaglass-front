@@ -494,6 +494,20 @@ export async function eliminarIngreso(id) {
   }
 }
 
-// ❌ ELIMINADAS: Funciones de procesar/desprocesar ya no son necesarias
-// El backend ahora procesa automáticamente los ingresos al crearlos
-// y permite editar/eliminar ingresos procesados
+export async function procesarIngreso(id) {
+  const numericId = Number(id);
+  if (!Number.isFinite(numericId) || numericId <= 0) {
+    throw new Error(`ID de ingreso inválido: ${id}`);
+  }
+
+  try {
+    const { data } = await api.put(`/ingresos/${numericId}/procesar`);
+    return data;
+  } catch (error) {
+    const backendMessage = error?.response?.data;
+    const message = typeof backendMessage === "string"
+      ? backendMessage
+      : (backendMessage?.message || backendMessage?.error || error.message || "No se pudo procesar el ingreso");
+    throw new Error(message);
+  }
+}

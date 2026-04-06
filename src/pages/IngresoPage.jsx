@@ -2,7 +2,7 @@
 import { useEffect, useState, useCallback } from "react";
 import IngresosTable from "../componets/IngresoTable.jsx";
 import IngresoDetalleModal from "../modals/IngresoDetalleModal.jsx";
-import { listarIngresos, crearIngresoDesdeForm, actualizarIngresoDesdeForm, eliminarIngreso, obtenerIngreso } from "../services/IngresosService.js";
+import { listarIngresos, crearIngresoDesdeForm, actualizarIngresoDesdeForm, eliminarIngreso, obtenerIngreso, procesarIngreso } from "../services/IngresosService.js";
 import { listarProveedores } from "../services/ProveedoresService.js";
 import { listarInventarioCompleto } from "../services/InventarioService.js";
 import { useConfirm } from "../hooks/useConfirm.jsx";
@@ -128,10 +128,22 @@ export default function IngresosPage() {
     try {
       await eliminarIngreso(id);
       await loadIngresos(currentPage, pageSize);
-      showSuccess(`Ingreso #${id} eliminado correctamente. El inventario ha sido revertido automáticamente.`);
+      showSuccess(`Ingreso #${id} eliminado correctamente.`);
     } catch (e) {
       const errorMsg = e?.message || e?.response?.data?.error || e?.response?.data?.message || "No se pudo eliminar el ingreso";
       showError(errorMsg);
+      throw e;
+    }
+  };
+
+  const onConfirmar = async (ingreso) => {
+    try {
+      await procesarIngreso(ingreso.id);
+      showSuccess(`Ingreso #${ingreso.id} confirmado correctamente.`);
+      await loadIngresos(currentPage, pageSize);
+    } catch (e) {
+      const msg = e?.message || e?.response?.data?.message || e?.response?.data?.error || "No se pudo confirmar el ingreso.";
+      showError(msg);
       throw e;
     }
   };
@@ -163,6 +175,7 @@ export default function IngresosPage() {
         onCrear={onCrear}
         onActualizar={onActualizar}
         onEliminar={onEliminar}
+        onConfirmar={onConfirmar}
         // Paginación del servidor
         totalElements={totalElements}
         totalPages={totalPages}
