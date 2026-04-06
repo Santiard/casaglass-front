@@ -37,6 +37,10 @@ export default function FacturarOrdenModal({ isOpen, onClose, onSave, orden }) {
   const isAnulada = String(orden?.estado || "").toUpperCase() === "ANULADA";
   const esCredito = Boolean(orden?.credito); // Verificar si la orden es a crédito
 
+  const resolverNombreItem = (item) => {
+    return item?.nombre || item?.nombreProducto || item?.producto?.nombre || '-';
+  };
+
   // Cargar configuración de impuestos y clientes al abrir el modal
   useEffect(() => {
     if (isOpen && orden) {
@@ -453,7 +457,7 @@ export default function FacturarOrdenModal({ isOpen, onClose, onSave, orden }) {
                   {Array.isArray(orden?.items) && orden.items.length > 0 ? (
                     orden.items.map((i, idx) => (
                       <tr key={i.id || idx}>
-                        <td>{i.producto?.nombre ?? '-'}</td>
+                        <td>{resolverNombreItem(i)}</td>
                         <td>{i.producto?.color ?? '-'}</td>
                         <td className="tx-center">{i.cantidad}</td>
                         <td className="tx-right">${(i.precioUnitario || 0).toLocaleString('es-CO')}</td>

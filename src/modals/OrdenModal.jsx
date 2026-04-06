@@ -402,7 +402,7 @@ export default function OrdenEditarModal({
           id: i.id,
           productoId: i.producto?.id ?? null,
           codigo: i.producto?.codigo ?? "",
-          nombre: i.producto?.nombre ?? "",
+          nombre: i.nombre || i.nombreProducto || i.producto?.nombre || "",
           color: i.producto?.color ?? "", // Agregar color del producto
           cantidad: Number(i.cantidad ?? 1),
           precioUnitario: Number(i.precioUnitario ?? 0),
@@ -454,7 +454,7 @@ export default function OrdenEditarModal({
             id: i.id,
             productoId: i.producto?.id ?? null, // Puede ser null si viene de /api/ordenes/tabla
             codigo: i.producto?.codigo ?? "",
-            nombre: i.producto?.nombre ?? "",
+            nombre: i.nombre || i.nombreProducto || i.producto?.nombre || "",
             color: i.producto?.color ?? "", // Agregar color del producto
             cantidad: Number(i.cantidad ?? 1),
             precioUnitario: Number(i.precioUnitario ?? 0),

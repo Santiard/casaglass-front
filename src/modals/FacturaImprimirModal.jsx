@@ -153,6 +153,10 @@ export default function FacturaImprimirModal({ factura, isOpen, onClose }) {
     return n / IVA_FACTOR;
   };
 
+  const resolverNombreItem = (item) => {
+    return item?.nombre || item?.nombreProducto || item?.producto?.nombre || "-";
+  };
+
   // Función para crear ventana de impresión (compartida entre imprimir y PDF)
   const crearVentanaImpresion = () => {
     const contenido = document.getElementById('printable-factura-content').innerHTML;
@@ -508,7 +512,7 @@ export default function FacturaImprimirModal({ factura, isOpen, onClose }) {
                       <td className="text-center">{item.cantidad || 0}</td>
                       <td>{item.producto?.color || "-"}</td>
                       <td>{item.producto?.tipo || "-"}</td>
-                      <td>{item.producto?.nombre || "-"}</td>
+                      <td>{resolverNombreItem(item)}</td>
                       <td className="text-right">${sinIva(item.precioUnitario).toLocaleString("es-CO")}</td>
                       <td className="text-right">${sinIva(item.totalLinea).toLocaleString("es-CO")}</td>
                     </tr>

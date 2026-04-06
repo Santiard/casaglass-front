@@ -14,6 +14,10 @@ function normalizarOrden(orden) {
   // Si la estructura ya es la esperada, devolver tal cual
   return orden;
 }
+
+function resolverNombreItemOrden(item) {
+  return item?.nombre || item?.nombreProducto || item?.producto?.nombre || "-";
+}
 import "../styles/Table.css";
 import "../styles/OrdenesTable.css";
 import { useMemo, useState, Fragment } from "react";
@@ -687,7 +691,7 @@ export default function OrdenesTable({
                                   {detalles.map((d, i) => (
                                     <tr key={`item-${d.id || i}-${id}`}>
                                       <td>{d.producto?.codigo ?? "-"}</td>
-                                      <td>{d.producto?.nombre ?? "-"}</td>
+                                      <td>{resolverNombreItemOrden(d)}</td>
                                       <td className="text-center">{d.cantidad}</td>
                                       <td>${d.precioUnitario?.toLocaleString("es-CO")}</td>
                                       <td>${d.totalLinea?.toLocaleString("es-CO")}</td>

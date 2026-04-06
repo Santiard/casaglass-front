@@ -85,6 +85,9 @@ export default function OrdenImprimirModal({ orden, isOpen, onClose }) {
           sede: ordenDetallada.sede || {},
           trabajador: ordenDetallada.trabajador || {},
           items: ordenDetallada.items || [],
+          cortesCreados: Array.isArray(orden?.cortesCreados)
+            ? orden.cortesCreados
+            : (Array.isArray(ordenDetallada?.cortesCreados) ? ordenDetallada.cortesCreados : []),
         };
         
         console.log('📄 [OrdenImprimirModal] Objeto base (form) creado:', {
@@ -128,6 +131,7 @@ export default function OrdenImprimirModal({ orden, isOpen, onClose }) {
           sede: orden.sede || {},
           trabajador: orden.trabajador || {},
           items: orden.items || [],
+          cortesCreados: Array.isArray(orden?.cortesCreados) ? orden.cortesCreados : [],
         };
         setForm(base);
       } finally {
