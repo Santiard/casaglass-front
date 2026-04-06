@@ -3,6 +3,7 @@ import "../styles/MovimientoNuevoModal.css";
 import CategorySidebar from "../componets/CategorySidebar.jsx";
 import { listarClientes, crearCliente } from "../services/ClientesService.js";
 import ClienteModal from "./ClienteModal.jsx";
+import CortarModal from "./CortarModal.jsx";
 import { listarSedes } from "../services/SedesService.js";
 import { listarTrabajadores } from "../services/TrabajadoresService.js";
 import { listarCategorias } from "../services/CategoriasService.js";
@@ -44,6 +45,8 @@ export default function OrdenEditarModal({
   const [clienteSearchModal, setClienteSearchModal] = useState(""); // Búsqueda dentro del modal
   const [showClienteModal, setShowClienteModal] = useState(false);
   const [showClienteCreateModal, setShowClienteCreateModal] = useState(false);
+  const [modalCorte, setModalCorte] = useState({ isOpen: false, producto: null });
+  const [cortesPendientesLocal, setCortesPendientesLocal] = useState([]);
   // Array de métodos de pago: [{ tipo: "EFECTIVO", monto: 50000, banco: "" }, ...]
   const [metodosPago, setMetodosPago] = useState([]);
   const [observacionesAdicionales, setObservacionesAdicionales] = useState(""); // Observaciones sin método de pago
@@ -287,6 +290,8 @@ export default function OrdenEditarModal({
       setShowClienteModal(false);
       matchHechoRef.current = { ordenId: null, hecho: false }; // Resetear el flag cuando se cierra el modal
       setBancos([]); // Limpiar bancos al cerrar
+      setModalCorte({ isOpen: false, producto: null });
+      setCortesPendientesLocal([]);
       return;
     }
 
@@ -859,45 +864,100 @@ export default function OrdenEditarModal({
     });
   };
 
+  const resolverPrecioPorSede = (producto, sedeId) => {
+    const s = Number(sedeId);
+    const p1 = Number(producto?.precio1 ?? 0);
+    const p2 = Number(producto?.precio2 ?? 0);
+    const p3 = Number(producto?.precio3 ?? 0);
+
+    if (s === 1 && p1 > 0) return p1;
+    if (s === 2 && p2 > 0) return p2;
+    if (s === 3 && p3 > 0) return p3;
+
+    return p1 || p2 || p3 || Number(producto?.precioUsado ?? 0) || Number(producto?.precio ?? 0) || 0;
+  };
+
   const addProducto = (item) => {
+    const productoId = item.id || item.productoId;
+    if (!productoId) {
+      showError(`El producto "${item.nombre || item.codigo}" no tiene un ID válido. Por favor, recarga la página.`);
+      return;
+    }
+
+    const yaExiste = form.items.some((i) => i.codigo === item.codigo && !i.eliminar);
+    if (yaExiste) {
+      showWarning("Este producto ya está en la lista");
+      return;
+    }
+
+    const precioUnitario = resolverPrecioPorSede(item, form?.sedeId);
+    const nuevo = {
+      id: null,
+      productoId: productoId,
+      codigo: item.codigo,
+      nombre: item.nombre,
+      cantidad: 1,
+      precioUnitario: precioUnitario,
+      totalLinea: precioUnitario,
+      eliminar: false,
+      color: item.color,
+    };
+
+    setForm((prev) => ({
+      ...prev,
+      items: [...prev.items, nuevo],
+    }));
+  };
+
+  const abrirModalCorte = (producto) => {
+    const precioUsado = resolverPrecioPorSede(producto, form?.sedeId);
+    setModalCorte({ isOpen: true, producto: { ...producto, precioUsado } });
+  };
+
+  const cerrarModalCorte = () => {
+    setModalCorte({ isOpen: false, producto: null });
+  };
+
+  const handleCortarDesdeModal = async (corteParaVender, corteSobrante) => {
+    const precioCorte = Number(corteParaVender?.precioUsado || 0);
+    if (precioCorte <= 0) {
+      showError("No se pudo calcular el precio del corte. Verifica la sede y el precio del producto.");
+      return;
+    }
+
+    // Agregar el corte al listado de items de la orden
     setForm((prev) => {
-      const yaExiste = prev.items.some((i) => i.codigo === item.codigo && !i.eliminar);
-      if (yaExiste) {
-        showWarning("Este producto ya está en la lista");
-        return prev; // evitar duplicados
-      }
-      
-      //  LOG: Verificar datos del producto antes de agregar
-      const productoId = item.id || item.productoId;
+      if (!prev) return prev;
 
-      
-      if (!productoId) {
-
-        showError(`El producto "${item.nombre || item.codigo}" no tiene un ID válido. Por favor, recarga la página.`);
-        return prev;
-      }
-      
-      // Obtener el precio según la sede del usuario (necesitamos acceso a la sede)
-      const precioUnitario = item.precio1 || 0; // Por ahora usar precio1, después se puede mejorar
-      
-      const nuevo = {
+      const nuevoItem = {
         id: null,
-        productoId: productoId, // Usar item.id o item.productoId
-        codigo: item.codigo,
-        nombre: item.nombre,
-        cantidad: 1,
-        precioUnitario: precioUnitario,
-        totalLinea: precioUnitario, // 1 * precioUnitario
+        productoId: Number(corteParaVender.productoOriginal || 0) || null,
+        codigo: corteParaVender.codigo || "",
+        nombre: corteParaVender.nombre || "",
+        color: corteParaVender.color || "",
+        cantidad: Number(corteParaVender.cantidadVender || 1),
+        precioUnitario: precioCorte,
+        totalLinea: precioCorte * Number(corteParaVender.cantidadVender || 1),
         eliminar: false,
-        color: item.color, // Incluir el color del producto
+        esCorte: true,
+        medidaCorte: corteParaVender.medidaCorte || null,
+        productoOriginal: corteParaVender.productoOriginal || null,
+        esCorteDeCorte: Boolean(corteSobrante?.cortarDesdeCorteExistente || corteParaVender?.esCorteExistente),
+        ...(corteParaVender.reutilizarCorteSolicitadoId ? { reutilizarCorteSolicitadoId: Number(corteParaVender.reutilizarCorteSolicitadoId) } : {})
       };
-      
 
-      
-      const nuevosItems = [...prev.items, nuevo];
-      
-      return { ...prev, items: nuevosItems };
+      return {
+        ...prev,
+        items: [...prev.items, nuevoItem]
+      };
     });
+
+    // Guardar corte pendiente para que viaje en payload.cortes
+    if (corteSobrante) {
+      setCortesPendientesLocal((prev) => [...prev, corteSobrante]);
+    }
+
+    cerrarModalCorte();
   };
 
   const marcarEliminar = (idx) => {
@@ -918,6 +978,10 @@ export default function OrdenEditarModal({
 
     // Determinar si es creación o edición
     const esCreacion = !form.id || form.id === null;
+    const cortesPendientesCombinados = [
+      ...(Array.isArray(cortesPendientes) ? cortesPendientes : []),
+      ...(Array.isArray(cortesPendientesLocal) ? cortesPendientesLocal : []),
+    ];
     
     if (esCreacion) {
       // Validaciones antes de crear la orden
@@ -1188,7 +1252,7 @@ export default function OrdenEditarModal({
       // IMPORTANTE: El backend ahora incrementa inventario de AMBOS cortes (+1 cada uno)
       // Luego, al procesar la venta, decrementa el solicitado (-1)
       // Resultado: Solicitado queda en 0, Sobrante queda en +1
-      const cortesEnriquecidos = (Array.isArray(cortesPendientes) ? cortesPendientes : [])
+      const cortesEnriquecidos = cortesPendientesCombinados
         .filter((corteSobrante) => {
           // Verificar si existe un item activo que corresponda a este corte sobrante
           // El corte sobrante tiene productoId que coincide con el productoId del item del corte solicitado
@@ -1228,7 +1292,7 @@ export default function OrdenEditarModal({
       const cortesFinales = [
         // Cortes solicitados (del carrito - cortes de cortes)
         ...cortesDelCarrito.map(c => {
-          const sobranteCorrespondiente = cortesPendientes.find(
+          const sobranteCorrespondiente = cortesPendientesCombinados.find(
             s => Number(s.productoId) === Number(c.productoOriginal)
           );
           
@@ -1498,7 +1562,7 @@ export default function OrdenEditarModal({
       .map((i) => {
         const productoId = Number(i.productoId);
         
-        return {
+        const item = {
           id: i.id ?? null,
           productoId: productoId,
           cantidad: Number(i.cantidad),
@@ -1507,13 +1571,85 @@ export default function OrdenEditarModal({
           // reutilizarCorteSolicitadoId es opcional
           ...(i.reutilizarCorteSolicitadoId ? { reutilizarCorteSolicitadoId: Number(i.reutilizarCorteSolicitadoId) } : {})
         };
+
+        if (i.nombre) {
+          item.nombre = String(i.nombre);
+        }
+
+        return item;
       }),
 };
+
+    // Incluir cortes pendientes en edición para que backend procese y reasigne IDs
+    const cortesDelCarritoEditar = itemsActivosEditar.filter(i => i.esCorteDeCorte === true);
+
+    const cortesEnriquecidosEditar = cortesPendientesCombinados
+      .filter((corteSobrante) => {
+        const itemCorrespondiente = itemsActivosEditar.find(item =>
+          Number(item.productoId) === Number(corteSobrante.productoId) ||
+          Number(item.productoOriginal) === Number(corteSobrante.productoId)
+        );
+        return !!itemCorrespondiente;
+      })
+      .map((c) => {
+        const sedeId = Number(payload.sedeId);
+        const cantidadesPorSede = [
+          { sedeId: 1, cantidad: sedeId === 1 ? Number(c.cantidad || 1) : 0 },
+          { sedeId: 2, cantidad: sedeId === 2 ? Number(c.cantidad || 1) : 0 },
+          { sedeId: 3, cantidad: sedeId === 3 ? Number(c.cantidad || 1) : 0 }
+        ];
+
+        return {
+          productoId: Number(c.productoId),
+          medidaSolicitada: Number(c.medidaSolicitada),
+          cantidad: Number(c.cantidad || 1),
+          precioUnitarioSolicitado: Number(c.precioUnitarioSolicitado),
+          precioUnitarioSobrante: Number(c.precioUnitarioSobrante),
+          cantidadesPorSede,
+          ...(c.reutilizarCorteId && { reutilizarCorteId: Number(c.reutilizarCorteId) }),
+          ...(c.reutilizarCorteSobranteId && { reutilizarCorteSobranteId: Number(c.reutilizarCorteSobranteId) }),
+          ...(c.medidaSobrante && { medidaSobrante: Number(c.medidaSobrante) }),
+          esSobrante: c.esSobrante !== undefined ? Boolean(c.esSobrante) : true,
+        };
+      });
+
+    const cortesFinalesEditar = [
+      ...cortesDelCarritoEditar.map((c) => {
+        const sobranteCorrespondiente = cortesPendientesCombinados.find(
+          s => Number(s.productoId) === Number(c.productoOriginal)
+        );
+
+        const sedeId = Number(payload.sedeId);
+        return {
+          productoId: Number(c.productoOriginal || c.productoId),
+          medidaSolicitada: Number(c.medidaCorte),
+          medidaSobrante: sobranteCorrespondiente ? Number(sobranteCorrespondiente.medidaSobrante) : 0,
+          precioUnitarioSolicitado: Number(c.precioUnitario || c.precioUsado || 0),
+          precioUnitarioSobrante: sobranteCorrespondiente ? Number(sobranteCorrespondiente.precioUnitarioSobrante) : 0,
+          cantidad: Number(c.cantidad || 1),
+          cantidadesPorSede: [
+            { sedeId: 1, cantidad: sedeId === 1 ? Number(c.cantidad || 1) : 0 },
+            { sedeId: 2, cantidad: sedeId === 2 ? Number(c.cantidad || 1) : 0 },
+            { sedeId: 3, cantidad: sedeId === 3 ? Number(c.cantidad || 1) : 0 }
+          ],
+          ...(c.reutilizarCorteSolicitadoId && { reutilizarCorteId: Number(c.reutilizarCorteSolicitadoId) }),
+          ...(sobranteCorrespondiente?.reutilizarCorteId && { reutilizarCorteSobranteId: Number(sobranteCorrespondiente.reutilizarCorteId) })
+        };
+      }),
+      ...cortesEnriquecidosEditar.filter(c =>
+        !cortesDelCarritoEditar.some(cc => Number(cc.productoOriginal) === Number(c.productoId))
+      )
+    ];
+
+    const payloadConCortesEditar = {
+      ...payload,
+      cortes: cortesFinalesEditar,
+    };
 
     // Usar el endpoint específico para órdenes de venta si es una venta
     let data;
     if (form.venta) {
-      data = await actualizarOrdenVenta(form.id, payload);
+      data = await actualizarOrdenVenta(form.id, payloadConCortesEditar);
     } else {
       data = await actualizarOrden(form.id, payload);
     }
@@ -2621,21 +2757,22 @@ export default function OrdenEditarModal({
               <table className="inv-table">
                 <thead>
                   <tr>
-                    <th style={{ width: "55%" }}>Nombre</th>
-                    <th style={{ width: "30%" }}>Código</th>
+                    <th style={{ width: "45%" }}>Nombre</th>
+                    <th style={{ width: "20%" }}>Código</th>
                     <th style={{ width: "15%" }}>Color</th>
+                    <th style={{ width: "20%" }}>Acción</th>
                   </tr>
                 </thead>
                 <tbody>
                   {loadingProductos ? (
                     <tr>
-                      <td colSpan={3} className="empty" style={{ textAlign: 'center', padding: '2rem', color: '#666' }}>
+                      <td colSpan={4} className="empty" style={{ textAlign: 'center', padding: '2rem', color: '#666' }}>
                         Cargando productos...
                       </td>
                     </tr>
                   ) : catalogoFiltrado.length === 0 ? (
                     <tr>
-                      <td colSpan={3} className="empty" style={{ textAlign: 'center', padding: '2rem' }}>
+                      <td colSpan={4} className="empty" style={{ textAlign: 'center', padding: '2rem' }}>
                         {selectedCategoryId ? 'No hay productos en esta categoría' : 'Selecciona una categoría para ver productos'}
                       </td>
                     </tr>
@@ -2655,6 +2792,28 @@ export default function OrdenEditarModal({
                           >
                             {p.color ?? "N/A"}
                           </span>
+                        </td>
+                        <td>
+                          <div style={{ display: 'flex', gap: '0.25rem' }}>
+                            <button
+                              type="button"
+                              className="btn-guardar"
+                              style={{ padding: '0.3rem 0.5rem', fontSize: '0.75rem' }}
+                              onClick={(e) => { e.stopPropagation(); addProducto(p); }}
+                            >
+                              Agregar
+                            </button>
+                            {(String(p.tipo || "").toUpperCase() === "PERFIL") && (
+                              <button
+                                type="button"
+                                className="btn-cancelar"
+                                style={{ padding: '0.3rem 0.5rem', fontSize: '0.75rem' }}
+                                onClick={(e) => { e.stopPropagation(); abrirModalCorte(p); }}
+                              >
+                                Cortar
+                              </button>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     ))
@@ -2886,6 +3045,13 @@ export default function OrdenEditarModal({
           }
         }}
         clientesExistentes={clientes}
+      />
+
+      <CortarModal
+        isOpen={modalCorte.isOpen}
+        onClose={cerrarModalCorte}
+        producto={modalCorte.producto}
+        onCortar={handleCortarDesdeModal}
       />
 
       <ConfirmDialog />

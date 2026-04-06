@@ -493,6 +493,11 @@ export async function actualizarOrdenVenta(id, payload) {
         if (item.reutilizarCorteSolicitadoId) {
           itemData.reutilizarCorteSolicitadoId = parseInt(item.reutilizarCorteSolicitadoId);
         }
+
+        // nombre es opcional, pero importante para cortes
+        if (item.nombre) {
+          itemData.nombre = String(item.nombre);
+        }
         
         return itemData;
       }),
@@ -502,7 +507,14 @@ export async function actualizarOrdenVenta(id, payload) {
         medidaSolicitada: parseInt(corte.medidaSolicitada),
         cantidad: parseInt(corte.cantidad || 1),
         precioUnitarioSolicitado: parseFloat(corte.precioUnitarioSolicitado),
-        precioUnitarioSobrante: parseFloat(corte.precioUnitarioSobrante)
+        precioUnitarioSobrante: parseFloat(corte.precioUnitarioSobrante),
+        ...(corte.reutilizarCorteId ? { reutilizarCorteId: parseInt(corte.reutilizarCorteId) } : {}),
+        ...(Array.isArray(corte.cantidadesPorSede) ? { cantidadesPorSede: corte.cantidadesPorSede.map(cp => ({
+          sedeId: parseInt(cp.sedeId),
+          cantidad: parseInt(cp.cantidad || 0)
+        })) } : {}),
+        ...(corte.esSobrante !== undefined ? { esSobrante: Boolean(corte.esSobrante) } : {}),
+        ...(corte.medidaSobrante !== undefined && corte.medidaSobrante !== null ? { medidaSobrante: parseInt(corte.medidaSobrante) } : {})
       })) : []
     };
     
