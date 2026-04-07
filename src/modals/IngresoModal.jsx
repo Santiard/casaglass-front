@@ -203,6 +203,10 @@ export default function IngresoModal({
   }, [categorias, selectedCategoryId]);
 
   // Catálogo filtrado por búsqueda y categoría
+  const obtenerCodigoProducto = (p) => (
+    p?.codigo ?? p?.codigoProducto ?? p?.producto?.codigo ?? ""
+  );
+
   const catalogoFiltrado = useMemo(() => {
     let filtered = catalogoProductosFiltrados;
     
@@ -231,7 +235,7 @@ export default function IngresoModal({
       filtered = filtered.filter(
         (p) =>
           (p.nombre ?? "").toLowerCase().includes(q) ||
-          (p.codigo ?? "").toLowerCase().includes(q)
+          obtenerCodigoProducto(p).toLowerCase().includes(q)
       );
     }
     
@@ -753,7 +757,7 @@ export default function IngresoModal({
                         <td onDoubleClick={(e) => { 
                           e.stopPropagation(); 
                           if (editable || !isEdit) addProducto(item); 
-                        }}>{item.codigo ?? "-"}</td>
+                        }}>{obtenerCodigoProducto(item) || "-"}</td>
                         <td onDoubleClick={(e) => { 
                           e.stopPropagation(); 
                           if (editable || !isEdit) addProducto(item); 

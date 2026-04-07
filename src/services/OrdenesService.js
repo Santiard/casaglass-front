@@ -241,7 +241,8 @@ export async function crearOrdenOriginal(payload) {
 //  PUT /api/ordenes/tabla/{id} (endpoint correcto del backend)
 export async function actualizarOrden(id, payload) {
   if (!id) throw new Error("ID de la orden no proporcionado");
-  const { data } = await api.put(`ordenes/tabla/${id}`, payload);
+  // Confirmar desde tabla debe usar endpoint de venta para ejecutar plan pendiente de cortes.
+  const { data } = await api.put(`ordenes/venta/${id}`, payload);
   return data;
 }
 
@@ -554,10 +555,24 @@ export async function eliminarOrden(id) {
   return true;
 }
 
+// DELETE /api/ordenes/{id}/eliminar-anulada
+export async function eliminarOrdenAnulada(id) {
+  if (!id) throw new Error("ID de la orden no proporcionado");
+  const { data } = await api.delete(`ordenes/${id}/eliminar-anulada`);
+  return data;
+}
+
 // PUT /api/ordenes/{id}/anular
 export async function anularOrden(id) {
   if (!id) throw new Error("ID de la orden no proporcionado");
   const { data } = await api.put(`ordenes/${id}/anular`);
+  return data;
+}
+
+// PUT /api/creditos/{creditoId}/anular
+export async function anularOrdenDesdeCredito(creditoId) {
+  if (!creditoId) throw new Error("ID del crédito no proporcionado");
+  const { data } = await api.put(`creditos/${creditoId}/anular`);
   return data;
 }
 

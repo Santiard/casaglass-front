@@ -9,6 +9,9 @@ export function useConfirm() {
     confirmText: "Confirmar",
     cancelText: "Cancelar",
     type: "warning",
+    closeOnBackdrop: true,
+    showCloseButton: false,
+    closeValue: false,
     resolve: null,
   });
 
@@ -18,6 +21,9 @@ export function useConfirm() {
     confirmText = "Confirmar",
     cancelText = "Cancelar",
     type = "warning",
+    closeOnBackdrop = true,
+    showCloseButton = false,
+    closeValue = false,
   }) => {
     return new Promise((resolve) => {
       setConfirmState({
@@ -27,12 +33,26 @@ export function useConfirm() {
         confirmText,
         cancelText,
         type,
+        closeOnBackdrop,
+        showCloseButton,
+        closeValue,
         resolve,
       });
     });
   }, []);
 
   const handleClose = useCallback(() => {
+    if (confirmState.resolve) {
+      confirmState.resolve(confirmState.closeValue);
+    }
+    setConfirmState((prev) => ({
+      ...prev,
+      isOpen: false,
+      resolve: null,
+    }));
+  }, [confirmState.resolve, confirmState.closeValue]);
+
+  const handleCancel = useCallback(() => {
     if (confirmState.resolve) {
       confirmState.resolve(false);
     }
@@ -58,12 +78,15 @@ export function useConfirm() {
     <ConfirmModal
       isOpen={confirmState.isOpen}
       onClose={handleClose}
+      onCancel={handleCancel}
       onConfirm={handleConfirm}
       title={confirmState.title}
       message={confirmState.message}
       confirmText={confirmState.confirmText}
       cancelText={confirmState.cancelText}
       type={confirmState.type}
+      closeOnBackdrop={confirmState.closeOnBackdrop}
+      showCloseButton={confirmState.showCloseButton}
     />
   );
 

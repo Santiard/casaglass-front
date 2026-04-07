@@ -40,6 +40,7 @@ export default function OrdenesTable({
   data = [],
   onEditar,
   onAnular,
+  onEliminarAnulada,
   onCrear,
   onFacturar,
   onConfirmarVenta,
@@ -667,6 +668,18 @@ export default function OrdenesTable({
                             <span className="btnAnular-text">Anular</span>
                           </button>
                         )}
+
+                        {/* Botón Eliminar solo visible si la orden YA está anulada */}
+                        {estaAnulada && onEliminarAnulada && (
+                          <button
+                            className="btnAnular"
+                            onClick={() => onEliminarAnulada?.(o)}
+                            title="Eliminar orden anulada"
+                          >
+                            <img className="iconButton" src={eliminar} />
+                            <span className="btnAnular-text">Eliminar</span>
+                          </button>
+                        )}
                       </td>
                     </tr>
 
@@ -682,6 +695,7 @@ export default function OrdenesTable({
                                   <tr>
                                     <th>Código</th>
                                     <th>Producto</th>
+                                    <th>Color</th>
                                     <th>Cantidad</th>
                                     <th>Precio Unit.</th>
                                     <th>Total Línea</th>
@@ -692,6 +706,7 @@ export default function OrdenesTable({
                                     <tr key={`item-${d.id || i}-${id}`}>
                                       <td>{d.producto?.codigo ?? "-"}</td>
                                       <td>{resolverNombreItemOrden(d)}</td>
+                                      <td>{d.producto?.color || d.color || "-"}</td>
                                       <td className="text-center">{d.cantidad}</td>
                                       <td>${d.precioUnitario?.toLocaleString("es-CO")}</td>
                                       <td>${d.totalLinea?.toLocaleString("es-CO")}</td>

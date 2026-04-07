@@ -8,6 +8,7 @@ import {
   crearOrden,
   actualizarOrden,
   anularOrden,
+  eliminarOrdenAnulada,
   marcarOrdenComoFacturada,
   confirmarVenta,
   obtenerOrden,
@@ -178,6 +179,7 @@ export default function OrdenesPage() {
     if (!confirmacion) return;
     
     try {
+      // TEST TEMPORAL: forzar anulación directa por orden para aislar comportamiento.
       const response = await anularOrden(orden.id);
       
       // Mostrar mensaje de éxito
@@ -186,6 +188,28 @@ export default function OrdenesPage() {
       await fetchData(); // Refrescar tabla
     } catch (e) {
       const msg = e?.response?.data?.message || "No se pudo anular la orden.";
+      showError(msg);
+    }
+  };
+
+  // Eliminar orden anulada (borrado físico)
+  const handleEliminarAnulada = async (orden) => {
+    const confirmacion = await confirm({
+      title: "Eliminar orden anulada",
+      message: `Esta acción es irreversible.\n\nSe eliminará permanentemente la orden #${orden.numero}.\n\n¿Deseas continuar?`,
+      confirmText: "Sí, eliminar definitivamente",
+      cancelText: "Cancelar",
+      type: "danger"
+    });
+
+    if (!confirmacion) return;
+
+    try {
+      const response = await eliminarOrdenAnulada(orden.id);
+      showSuccess(response?.message || `Orden #${orden.numero} eliminada correctamente.`);
+      await fetchData();
+    } catch (e) {
+      const msg = e?.response?.data?.message || e?.response?.data?.error || "No se pudo eliminar la orden anulada.";
       showError(msg);
     }
   };
@@ -275,6 +299,7 @@ export default function OrdenesPage() {
           loading={loading}
           onEditar={handleGuardar}
           onAnular={handleAnular}
+          onEliminarAnulada={handleEliminarAnulada}
           onCrear={(o) => handleGuardar(o, false)}
           onFacturar={handleFacturar}
           onConfirmarVenta={handleConfirmarVenta}

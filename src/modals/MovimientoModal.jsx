@@ -122,6 +122,10 @@ export default function MovimientoModal({
   }, [isOpen, movimiento]);
 
   // Filtro de catálogo por categoría y búsqueda
+  const obtenerCodigoProducto = (p) => (
+    p?.codigo ?? p?.codigoProducto ?? p?.producto?.codigo ?? ""
+  );
+
   const catalogoFiltrado = useMemo(() => {
     let filtered = catalogoProductos;
     
@@ -156,7 +160,7 @@ export default function MovimientoModal({
       filtered = filtered.filter(
         (p) =>
           (p.nombre ?? "").toLowerCase().includes(q) ||
-          (p.codigo ?? "").toLowerCase().includes(q)
+          obtenerCodigoProducto(p).toLowerCase().includes(q)
       );
     }
     
@@ -650,7 +654,7 @@ export default function MovimientoModal({
                         <td onDoubleClick={(e) => { 
                           e.stopPropagation(); 
                           if (canEditProducts) addProducto(item); 
-                        }}>{item.codigo ?? "-"}</td>
+                        }}>{obtenerCodigoProducto(item) || "-"}</td>
                         <td onDoubleClick={(e) => { 
                           e.stopPropagation(); 
                           if (canEditProducts) addProducto(item); 

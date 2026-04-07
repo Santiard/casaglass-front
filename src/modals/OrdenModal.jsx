@@ -7,7 +7,7 @@ import CortarModal from "./CortarModal.jsx";
 import { listarSedes } from "../services/SedesService.js";
 import { listarTrabajadores } from "../services/TrabajadoresService.js";
 import { listarCategorias } from "../services/CategoriasService.js";
-import { actualizarOrden, obtenerOrden, actualizarOrdenVenta, crearOrdenVenta } from "../services/OrdenesService.js";
+import { obtenerOrden, actualizarOrdenVenta, crearOrdenVenta } from "../services/OrdenesService.js";
 import { listarBancos } from "../services/BancosService.js";
 import { useToast } from "../context/ToastContext.jsx";
 import { useConfirm } from "../hooks/useConfirm.jsx";
@@ -739,6 +739,10 @@ export default function OrdenEditarModal({
   // =============================
   // Filtro de catálogo
   // =============================
+  const obtenerCodigoProducto = (p) => (
+    p?.codigo ?? p?.codigoProducto ?? p?.producto?.codigo ?? ""
+  );
+
   const catalogoFiltrado = useMemo(() => {
     let filtered = catalogoProductos;
     
@@ -781,7 +785,7 @@ export default function OrdenEditarModal({
       filtered = filtered.filter(
         (p) =>
           (p.nombre ?? "").toLowerCase().includes(q) ||
-          (p.codigo ?? "").toLowerCase().includes(q)
+          obtenerCodigoProducto(p).toLowerCase().includes(q)
       );
     }
     
@@ -1080,8 +1084,16 @@ export default function OrdenEditarModal({
           message: `¿Deseas abonar $${valorAPagarCrear.toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} a la orden en el proceso?${(retencionFuenteCrear > 0 || retencionIcaCrear > 0) ? `\n\n(Total facturado: $${totalOrden.toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} - Retenciones: $${(retencionFuenteCrear + retencionIcaCrear).toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})` : ''}`,
           confirmText: "Sí, abonar (Contado)",
           cancelText: "No, no abonar (Crédito)",
-          type: "info"
+          type: "info",
+          closeOnBackdrop: false,
+          showCloseButton: true,
+          closeValue: null,
         });
+
+        // Si se cierra con X, no tomar decisión automática ni guardar.
+        if (deseaAbonar === null) {
+          return;
+        }
 
         // Si responde "Sí" → credito = false (contado)
         // Si responde "No" → credito = true (crédito)
@@ -1646,13 +1658,11 @@ export default function OrdenEditarModal({
       cortes: cortesFinalesEditar,
     };
 
-    // Usar el endpoint específico para órdenes de venta si es una venta
-    let data;
-    if (form.venta) {
-      data = await actualizarOrdenVenta(form.id, payloadConCortesEditar);
-    } else {
-      data = await actualizarOrden(form.id, payload);
-    }
+    // Usar siempre el endpoint /ordenes/venta/{id} desde este modal.
+    // El backend ahora maneja:
+    // - venta=false + cortes => plan PLANIFICADO (sin mover inventario)
+    // - venta=true => ejecución del plan pendiente
+    const data = await actualizarOrdenVenta(form.id, payloadConCortesEditar);
     
     // Manejar respuesta del nuevo endpoint PUT /api/ordenes/venta/{id}
     if (data?.mensaje && data?.orden) {
@@ -2785,7 +2795,7 @@ export default function OrdenEditarModal({
                         title="Doble clic para agregar"
                       >
                         <td onDoubleClick={(e) => { e.stopPropagation(); addProducto(p); }}>{p.nombre}</td>
-                        <td onDoubleClick={(e) => { e.stopPropagation(); addProducto(p); }}>{p.codigo ?? "-"}</td>
+                        <td onDoubleClick={(e) => { e.stopPropagation(); addProducto(p); }}>{obtenerCodigoProducto(p) || "-"}</td>
                         <td onDoubleClick={(e) => { e.stopPropagation(); addProducto(p); }}>
                           <span className={`color-badge color-${(p.color || 'NA').toLowerCase().replace(/\s+/g, '-')}`}
                             style={{ display: 'inline-block', minWidth: 48, textAlign: 'center' }}
