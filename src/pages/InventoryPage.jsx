@@ -19,7 +19,7 @@ import CorteModal from "../modals/CorteModal.jsx";
 import { listarInventarioCompleto, listarInventarioAgrupado, listarCortesInventarioCompleto, actualizarInventarioPorProducto } from "../services/InventarioService";
 //corte
 import {listarInventarioCortesAgrupado} from "../services/InventarioCorteService.js";
-import { crearCorte, actualizarCorte, eliminarCorte, unirCortes } from "../services/CortesService.js";
+import { crearCorte, actualizarCorte, actualizarCorteCompleto, eliminarCorte, unirCortes } from "../services/CortesService.js";
 
 
 import "../styles/InventoryPage.css";
@@ -609,7 +609,16 @@ export default function InventoryPage() {
       const editando = !!editingCorte?.id;
       
       if (editando) {
-        await actualizarCorte(editingCorte.id, corte);
+        const cambioCantidadesPorSede =
+          Number(corte.cantidadInsula ?? 0) !== Number(editingCorte.cantidadInsula ?? 0) ||
+          Number(corte.cantidadCentro ?? 0) !== Number(editingCorte.cantidadCentro ?? 0) ||
+          Number(corte.cantidadPatios ?? 0) !== Number(editingCorte.cantidadPatios ?? 0);
+
+        if (cambioCantidadesPorSede) {
+          await actualizarCorteCompleto(editingCorte.id, corte);
+        } else {
+          await actualizarCorte(editingCorte.id, corte);
+        }
       } else {
         await crearCorte(corte);
       }

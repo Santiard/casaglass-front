@@ -7,7 +7,7 @@ import CortarModal from "./CortarModal.jsx";
 import { listarSedes } from "../services/SedesService.js";
 import { listarTrabajadores } from "../services/TrabajadoresService.js";
 import { listarCategorias } from "../services/CategoriasService.js";
-import { obtenerOrden, actualizarOrdenVenta, crearOrdenVenta } from "../services/OrdenesService.js";
+import { obtenerOrden, actualizarOrden, actualizarOrdenVenta, crearOrdenVenta } from "../services/OrdenesService.js";
 import { listarBancos } from "../services/BancosService.js";
 import { useToast } from "../context/ToastContext.jsx";
 import { useConfirm } from "../hooks/useConfirm.jsx";
@@ -15,7 +15,7 @@ import eliminar from "../assets/eliminar.png";
 
 import { api } from "../lib/api";
 import { getTodayLocalDate, toLocalDateOnly } from "../lib/dateUtils.js";
-import { listarInventarioCompleto } from "../services/InventarioService.js";
+import { listarInventarioCompleto, listarCortesInventarioCompleto } from "../services/InventarioService.js";
 import { getBusinessSettings } from "../services/businessSettingsService.js";
 
 export default function OrdenEditarModal({
@@ -37,6 +37,7 @@ export default function OrdenEditarModal({
   const [sedes, setSedes] = useState([]);
   const [categorias, setCategorias] = useState([]);
   const [catalogoProductos, setCatalogoProductos] = useState([]);
+  const [catalogoTipo, setCatalogoTipo] = useState("productos");
   const [loadingProductos, setLoadingProductos] = useState(false); // Estado de carga de productos
   const [search, setSearch] = useState("");
   const [selectedCategoryId, setSelectedCategoryId] = useState(null);
@@ -566,12 +567,14 @@ export default function OrdenEditarModal({
       try {
         setLoadingProductos(true);
 
-        const params = { categoriaId: selectedCategoryId };
-        const productos = await listarInventarioCompleto(params, true, null);
-        
-
-        
-        setCatalogoProductos(productos || []);
+        if (catalogoTipo === "cortes") {
+          const cortes = await listarCortesInventarioCompleto({}, true, null);
+          setCatalogoProductos(cortes || []);
+        } else {
+          const params = { categoriaId: selectedCategoryId };
+          const productos = await listarInventarioCompleto(params, true, null);
+          setCatalogoProductos(productos || []);
+        }
       } catch (e) {
 
         showError("No se pudieron cargar los productos");
@@ -582,7 +585,7 @@ export default function OrdenEditarModal({
     };
     
     fetchProductosPorCategoria();
-  }, [selectedCategoryId, isOpen, showError]);
+  }, [selectedCategoryId, isOpen, showError, catalogoTipo]);
 
   // ========== Seleccionar primera categoría por defecto ==========
   useEffect(() => {
@@ -1658,11 +1661,12 @@ export default function OrdenEditarModal({
       cortes: cortesFinalesEditar,
     };
 
-    // Usar siempre el endpoint /ordenes/venta/{id} desde este modal.
-    // El backend ahora maneja:
-    // - venta=false + cortes => plan PLANIFICADO (sin mover inventario)
-    // - venta=true => ejecución del plan pendiente
-    const data = await actualizarOrdenVenta(form.id, payloadConCortesEditar);
+    // En edición: decidir endpoint por tipo de orden
+    // - venta=true  => /ordenes/venta/{id} con payload de venta (incluye cortes)
+    // - venta=false => /ordenes/tabla/{id} con payload tipo tabla
+    const data = form.venta
+      ? await actualizarOrdenVenta(form.id, payloadConCortesEditar)
+      : await actualizarOrden(form.id, payload);
     
     // Manejar respuesta del nuevo endpoint PUT /api/ordenes/venta/{id}
     if (data?.mensaje && data?.orden) {
@@ -2732,8 +2736,23 @@ export default function OrdenEditarModal({
           {/* PANEL DERECHO */}
           <div className="pane pane-right">
             <div className="inv-header">
-              <h3>Catálogo de Productos</h3>
+              <h3>Catálogo de {catalogoTipo === "cortes" ? "Cortes" : "Productos"}</h3>
               <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+                <select
+                  className="filter-select"
+                  value={catalogoTipo}
+                  onChange={(e) => setCatalogoTipo(e.target.value)}
+                  style={{
+                    padding: "0.5rem",
+                    borderRadius: "4px",
+                    border: "1px solid #ddd",
+                    fontSize: "0.9rem",
+                    minWidth: "120px"
+                  }}
+                >
+                  <option value="productos">Productos</option>
+                  <option value="cortes">Cortes</option>
+                </select>
                 <input
                   className="inv-search"
                   type="text"
@@ -2777,13 +2796,15 @@ export default function OrdenEditarModal({
                   {loadingProductos ? (
                     <tr>
                       <td colSpan={4} className="empty" style={{ textAlign: 'center', padding: '2rem', color: '#666' }}>
-                        Cargando productos...
+                        Cargando {catalogoTipo === "cortes" ? "cortes" : "productos"}...
                       </td>
                     </tr>
                   ) : catalogoFiltrado.length === 0 ? (
                     <tr>
                       <td colSpan={4} className="empty" style={{ textAlign: 'center', padding: '2rem' }}>
-                        {selectedCategoryId ? 'No hay productos en esta categoría' : 'Selecciona una categoría para ver productos'}
+                        {selectedCategoryId
+                          ? `No hay ${catalogoTipo === "cortes" ? "cortes" : "productos"} en esta categoría`
+                          : `Selecciona una categoría para ver ${catalogoTipo === "cortes" ? "cortes" : "productos"}`}
                       </td>
                     </tr>
                   ) : (

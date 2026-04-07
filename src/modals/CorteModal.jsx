@@ -167,6 +167,9 @@ export default function CorteModal({ isOpen, onClose, onSave, corte }) {
     // Si es edición, incluir el id
     if (isEditing && formData.id) {
       backendPayload.id = formData.id;
+      backendPayload.cantidadInsula = parseInt(formData.cantidadInsula || 0, 10);
+      backendPayload.cantidadCentro = parseInt(formData.cantidadCentro || 0, 10);
+      backendPayload.cantidadPatios = parseInt(formData.cantidadPatios || 0, 10);
     }
 
     onSave(backendPayload);

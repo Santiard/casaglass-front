@@ -82,3 +82,20 @@ export async function eliminarCorte(id) {
     throw error;
   }
 }
+
+/**
+ * Actualizar corte incluyendo inventario por sede
+ * PUT /api/cortes/{id}/completo
+ */
+export async function actualizarCorteCompleto(id, payload) {
+  try {
+    const { data } = await api.put(`${base}/${id}/completo`, payload, {
+      headers: {
+        'Content-Type': 'application/json',
+      }
+    });
+    return data;
+  } catch (error) {
+    throw error;
+  }
+}
