@@ -78,6 +78,32 @@ export default function EntregaDetallePanel({ entrega, onClose }){
           </div>
         )}
       </div>
+
+      {/* Resumen del mes */}
+      {entrega.resumenMes && (
+        <div style={{ marginTop: "20px", paddingTop: "15px", borderTop: "1px solid #ddd", fontSize: "0.95rem" }}>
+          {/* Fila 1: Análisis del mes */}
+          <div style={{ marginBottom: "15px" }}>
+            <h4 style={{ margin: "0 0 8px 0", color: "#1e2753" }}>
+              ANÁLISIS DEL MES {entrega.resumenMes.mesNombre || entrega.resumenMes.mes || ""}
+            </h4>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", fontSize: "0.9rem", lineHeight: "1.6" }}>
+              <div>💰 Ventas mes: {fmtCOP(entrega.resumenMes.totalVentasDelMes ?? 0)}</div>
+              <div>💵 Abonos mes: {fmtCOP(entrega.resumenMes.totalAbonasDelMes ?? 0)}</div>
+              <div>📊 Deudas mes: {fmtCOP(entrega.resumenMes.totalDeudasDelMes ?? 0)}</div>
+              <div>🏧 Entregado mes: {fmtCOP(entrega.resumenMes.totalEntregadoDelMes ?? 0)}</div>
+              <div style={{ fontWeight: "bold", color: "#1e2753" }}>💸 Esta entrega: {fmtCOP(entrega.resumenMes.totalEstaEntrega ?? 0)}</div>
+            </div>
+          </div>
+
+          {/* Fila 2: Histórico acumulado */}
+          <div style={{ paddingTop: "12px", borderTop: "1px solid #e0e0e0", marginTop: "12px" }}>
+            <h4 style={{ margin: "0 0 8px 0", color: "#1e2753" }}>HISTÓRICO ACUMULADO</h4>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", fontSize: "0.9rem", lineHeight: "1.6" }}>
+              <div>📈 Deudas pendientes: {fmtCOP(entrega.resumenMes.totalDeudasHistorico ?? 0)}</div>
+              <div>💸 Abonos históricos: {fmtCOP(entrega.resumenMes.totalAbonosHistorico ?? 0)}</div>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
-  );
-}

@@ -290,9 +290,8 @@ export default function OrdenesTable({
         arr = arr.filter((o) => o.estado === filtroEstado);
       }
 
-      if (filtroSedeId) {
-        arr = arr.filter((o) => Number(o?.sede?.id ?? o?.sedeId ?? 0) === Number(filtroSedeId));
-      }
+      // NOTA: No filtrar por sedeId aquí porque el servidor ya lo hizo en fetchData
+      // Incluir el filtro de sede aquí solo volvería a filtrar innecesariamente
       
       return { pageData: arr, total, maxPage, curPage, start };
     }

@@ -1076,17 +1076,35 @@ export default function EntregasImprimirModal({ entregas = [], isOpen, onClose }
             {/* Resumen del mes */}
             {resumenMes && (
               <div style={{ marginTop: "20px", paddingTop: "15px", borderTop: "1px solid #ccc" }}>
-                <div style={{ fontSize: "0.9rem", fontWeight: "bold", marginBottom: "8px", color: "#1e2753" }}>
-                  RESUMEN DEL MES {resumenMes.mesNombre || resumenMes.mes || ""}
+                {/* Fila 1: Análisis del mes */}
+                <div style={{ marginBottom: "15px" }}>
+                  <div style={{ fontSize: "0.9rem", fontWeight: "bold", marginBottom: "8px", color: "#1e2753" }}>
+                    ANÁLISIS DEL MES {resumenMes.mesNombre || resumenMes.mes || ""}
+                  </div>
+                  <div style={{ fontSize: "0.85rem", lineHeight: "1.6", color: "#333" }}>
+                    <div>💰 Total ventas del mes: ${Number(resumenMes.totalVentasDelMes ?? resumenMes.totalVentasMes ?? 0).toLocaleString("es-CO")}</div>
+                    <div>💵 Total abonos del mes: ${Number(resumenMes.totalAbonasDelMes ?? resumenMes.totalAbonosDelMes ?? 0).toLocaleString("es-CO")}</div>
+                    <div>📊 Total deudas del mes: ${Number(resumenMes.totalDeudasDelMes ?? resumenMes.totalDeudasMes ?? 0).toLocaleString("es-CO")}</div>
+                    <div>🏧 Total entregado del mes: ${Number(resumenMes.totalEntregadoDelMes ?? 0).toLocaleString("es-CO")}</div>
+                    <div style={{ fontWeight: "bold", color: "#1e2753" }}>💸 Total de esta entrega: ${Number(resumenMes.totalEstaEntrega ?? 0).toLocaleString("es-CO")}</div>
+                  </div>
                 </div>
-                <div style={{ fontSize: "0.85rem", lineHeight: "1.5" }}>
-                  <div>Total ventas del mes: ${Number(resumenMes.totalVentasDelMes ?? resumenMes.totalVentasMes ?? 0).toLocaleString("es-CO")}</div>
-                  <div>Total deudas del mes: ${Number(resumenMes.totalDeudasDelMes ?? resumenMes.totalDeudasMes ?? 0).toLocaleString("es-CO")}</div>
-                  <div>Total abonos del mes: ${Number(resumenMes.totalAbonasDelMes ?? resumenMes.totalAbonosDelMes ?? 0).toLocaleString("es-CO")}</div>
-                  <div>Total entregado del mes: ${Number(resumenMes.totalEntregadoDelMes ?? 0).toLocaleString("es-CO")}</div>
-                  <div>Total de esta entrega: ${Number(resumenMes.totalEstaEntrega ?? 0).toLocaleString("es-CO")}</div>
-                  {resumenMes.sede && <div>Sede: {resumenMes.sede}</div>}
-                  {resumenMes.trabajador && <div>Trabajador: {resumenMes.trabajador}</div>}
+
+                {/* Fila 2: Histórico acumulado (nuevos campos) */}
+                <div style={{ paddingTop: "12px", borderTop: "1px solid #e0e0e0" }}>
+                  <div style={{ fontSize: "0.9rem", fontWeight: "bold", marginBottom: "8px", color: "#1e2753" }}>
+                    HISTÓRICO ACUMULADO
+                  </div>
+                  <div style={{ fontSize: "0.85rem", lineHeight: "1.6", color: "#333" }}>
+                    <div>📈 Deudas totales pendientes: ${Number(resumenMes.totalDeudasHistorico ?? 0).toLocaleString("es-CO")}</div>
+                    <div>💸 Abonos históricos: ${Number(resumenMes.totalAbonosHistorico ?? 0).toLocaleString("es-CO")}</div>
+                  </div>
+                </div>
+
+                {/* Información adicional */}
+                <div style={{ marginTop: "10px", fontSize: "0.8rem", color: "#666" }}>
+                  {resumenMes.sede && <div>📍 Sede: {resumenMes.sede}</div>}
+                  {resumenMes.trabajador && <div>👤 Trabajador: {resumenMes.trabajador}</div>}
                 </div>
               </div>
             )}
