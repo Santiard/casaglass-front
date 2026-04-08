@@ -490,6 +490,9 @@ export default function RemisionImprimirModal({ orden, isOpen, onClose }) {
                 
                 <span className="remision-client-label">CIUDAD:</span>
                 <span className="remision-client-value">{form.cliente.ciudad || "-"}</span>
+                
+                <span className="remision-client-label">CORREO:</span>
+                <span className="remision-client-value">{form.cliente.correo || "-"}</span>
               </div>
 
               {/* Fechas */}

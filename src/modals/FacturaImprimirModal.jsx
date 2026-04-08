@@ -478,6 +478,7 @@ export default function FacturaImprimirModal({ factura, isOpen, onClose }) {
                 <p>NIT: {form.cliente?.nit || "-"}</p>
                 {form.cliente?.direccion && <p>Dirección: {form.cliente.direccion}</p>}
                 {form.cliente?.ciudad && <p>Ciudad: {form.cliente.ciudad}</p>}
+                {form.cliente?.correo && <p>Correo: {form.cliente.correo}</p>}
               </div>
 
               <div className="factura-imprimir-info-section">

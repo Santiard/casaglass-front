@@ -56,6 +56,10 @@ export default function OrdenesTable({
   clienteSeleccionado,
   setClienteSeleccionado,
   setShowClienteModal,
+  sedes = [],
+  filtroSedeId = "",
+  setFiltroSedeId,
+  isAdmin = false,
 }) {
   const { showError } = useToast();
   const navigate = useNavigate();
@@ -285,6 +289,10 @@ export default function OrdenesTable({
       if (filtroEstado) {
         arr = arr.filter((o) => o.estado === filtroEstado);
       }
+
+      if (filtroSedeId) {
+        arr = arr.filter((o) => Number(o?.sede?.id ?? o?.sedeId ?? 0) === Number(filtroSedeId));
+      }
       
       return { pageData: arr, total, maxPage, curPage, start };
     }
@@ -314,6 +322,10 @@ export default function OrdenesTable({
     if (filtroEstado) {
       arr = arr.filter((o) => o.estado === filtroEstado);
     }
+
+    if (filtroSedeId) {
+      arr = arr.filter((o) => Number(o?.sede?.id ?? o?.sedeId ?? 0) === Number(filtroSedeId));
+    }
     
     //  Ordenar por fecha descendente (más recientes primero)
     // Clonar array para evitar mutar el original
@@ -336,7 +348,7 @@ export default function OrdenesTable({
     const start = (curPage - 1) * rowsPerPageState;
     const pageData = arr.slice(start, start + rowsPerPageState);
     return { pageData, total, maxPage, curPage, start };
-  }, [data, query, page, rowsPerPageState, filtroEstado, serverSidePagination, totalElements, totalPages, currentPage, pageSize]);
+  }, [data, query, page, rowsPerPageState, filtroEstado, filtroSedeId, serverSidePagination, totalElements, totalPages, currentPage, pageSize]);
 
   const { pageData, total, maxPage, curPage, start } = filtrados;
 
@@ -401,7 +413,24 @@ export default function OrdenesTable({
               setQuery(e.target.value);
               setPage(1);
             }}
+            style={{ width: '150px', minWidth: '130px' }}
           />
+
+          <select
+            className="clientes-input ordenes-estado-filter"
+            value={filtroSedeId}
+            onChange={(e) => {
+              setFiltroSedeId?.(e.target.value);
+              setPage(1);
+            }}
+            disabled={!isAdmin}
+            title={isAdmin ? "Filtrar por sede" : "Como vendedor solo ves tu sede"}
+          >
+            <option value="">Todas las sedes</option>
+            {sedes.map((s) => (
+              <option key={s.id} value={String(s.id)}>{s.nombre}</option>
+            ))}
+          </select>
           
           <select
             className="clientes-input ordenes-estado-filter"
@@ -446,11 +475,12 @@ export default function OrdenesTable({
             Buscar Cliente
           </button>
           
-          {(query || filtroEstado) && (
+          {(query || filtroEstado || filtroSedeId) && (
             <button
               onClick={() => {
                 setQuery("");
                 setFiltroEstado("");
+                setFiltroSedeId?.("");
                 setPage(1);
               }}
               className="btn-clear-filters"

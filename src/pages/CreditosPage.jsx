@@ -3,17 +3,21 @@ import { useNavigate, useLocation } from "react-router-dom";
 import CreditosTable from "../componets/CreditosTable";
 import { api } from "../lib/api.js";
 import { listarClientes, crearCliente } from "../services/ClientesService.js";
+import { listarSedes } from "../services/SedesService.js";
 import ClienteModal from "../modals/ClienteModal.jsx";
 import HistoricoAbonosClienteModal from "../modals/HistoricoAbonosClienteModal.jsx";
 import HistoricoAbonosGeneralModal from "../modals/HistoricoAbonosGeneralModal.jsx";
+import { useAuth } from "../context/AuthContext.jsx";
 import addIcon from "../assets/add.png";
 import "../styles/Creditos.css";
 
 const CreditosPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { isAdmin, user, sedeId: sedeIdUsuario } = useAuth();
   const [creditos, setCreditos] = useState([]);
   const [clientes, setClientes] = useState([]);
+  const [sedes, setSedes] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isReloading, setIsReloading] = useState(false);
   const [error, setError] = useState("");
@@ -23,6 +27,7 @@ const CreditosPage = () => {
   const [showClienteCreateModal, setShowClienteCreateModal] = useState(false);
   const [clienteSearchModal, setClienteSearchModal] = useState("");
   const [filtroEstado, setFiltroEstado] = useState("");
+  const [filtroSedeId, setFiltroSedeId] = useState("");
   const [rowsPerPage, setRowsPerPage] = useState(50);
   const [isHistoricoClienteModalOpen, setIsHistoricoClienteModalOpen] = useState(false);
   const [isHistoricoGeneralModalOpen, setIsHistoricoGeneralModalOpen] = useState(false);
@@ -31,27 +36,49 @@ const CreditosPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(50);
 
+  const construirParamsCreditos = (page, size) => {
+    const params = {
+      page,
+      size
+    };
+
+    if (filtroCliente) {
+      params.clienteId = Number(filtroCliente);
+    }
+    if (filtroEstado) {
+      params.estado = filtroEstado;
+    }
+    if (isAdmin && filtroSedeId) {
+      params.sedeId = Number(filtroSedeId);
+    }
+
+    // Admin: ve todos los créditos sin restricción por trabajador/sede.
+    // Vendedor: enviar trabajadorId para que backend filtre por su sede asignada.
+    if (!isAdmin) {
+      if (user?.id) {
+        params.trabajadorId = Number(user.id);
+      } else if (sedeIdUsuario) {
+        // Fallback defensivo para evitar exponer todas las sedes si no hay user.id.
+        params.sedeId = Number(sedeIdUsuario);
+      }
+    }
+
+    return params;
+  };
+
   const loadData = async (page = 1, size = 50) => {
     setIsLoading(true);
     setError("");
     
     try {
       // Construir parámetros para el backend (usar filtros del backend en lugar de filtrar en frontend)
-      const params = {
-        page: page,
-        size: size
-      };
-      if (filtroCliente) {
-        params.clienteId = Number(filtroCliente);
-      }
-      if (filtroEstado) {
-        params.estado = filtroEstado;
-      }
+      const params = construirParamsCreditos(page, size);
       
       // Cargar créditos y clientes usando la instancia api centralizada
-      const [creditosResponse, clientesData] = await Promise.all([
+      const [creditosResponse, clientesData, sedesData] = await Promise.all([
         api.get("/creditos", { params }),
-        listarClientes()
+        listarClientes(),
+        listarSedes()
       ]);
       
       // Manejar respuesta paginada o array directo
@@ -76,11 +103,13 @@ const CreditosPage = () => {
       }
       
       setClientes(clientesData);
+      setSedes(Array.isArray(sedesData) ? sedesData : []);
     } catch (err) {
       // Error loading data
       setError(`Error cargando datos: ${err.message}`);
       setCreditos([]);
       setClientes([]);
+      setSedes([]);
     } finally {
       setIsLoading(false);
     }
@@ -100,7 +129,7 @@ const CreditosPage = () => {
     // Cargar datos iniciales
     loadData(1, pageSize);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location.search, filtroCliente, filtroEstado]); // Solo recargar si cambian estos valores
+  }, [location.search, filtroCliente, filtroEstado, filtroSedeId]); // Solo recargar si cambian estos valores
 
   // Recargar cuando cambie la página o el tamaño
   useEffect(() => {
@@ -138,16 +167,7 @@ const CreditosPage = () => {
     
     try {
       // Usar los mismos filtros que se están aplicando
-      const params = {
-        page: currentPage,
-        size: pageSize
-      };
-      if (filtroCliente) {
-        params.clienteId = Number(filtroCliente);
-      }
-      if (filtroEstado) {
-        params.estado = filtroEstado;
-      }
+      const params = construirParamsCreditos(currentPage, pageSize);
       
       const response = await api.get("/creditos", { params });
       
@@ -525,6 +545,18 @@ const CreditosPage = () => {
           <option value="CERRADO">Cerrado</option>
           <option value="VENCIDO">Vencido</option>
           <option value="ANULADO">Anulado</option>
+        </select>
+
+        <select
+          value={filtroSedeId}
+          onChange={(e) => setFiltroSedeId(e.target.value)}
+          disabled={!isAdmin}
+          title={isAdmin ? "Filtrar por sede" : "Como vendedor solo ves tu sede"}
+        >
+          <option value="">Todas las sedes</option>
+          {sedes.map((s) => (
+            <option key={s.id} value={s.id}>{s.nombre}</option>
+          ))}
         </select>
 
         <div className="rows-per-page" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>

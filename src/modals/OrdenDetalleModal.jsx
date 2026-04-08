@@ -130,7 +130,24 @@ export default function OrdenDetalleModal({ ordenId, facturaId, isOpen, onClose 
   };
 
   const resolverNombreItem = (item) => {
-    return item?.nombre || item?.nombreProducto || item?.producto?.nombre || "-";
+    const nombreBase = (item?.nombre || item?.nombreProducto || item?.producto?.nombre || "-").toString().trim();
+
+    const categoriaNombre = (
+      item?.producto?.categoria?.nombre
+      || item?.producto?.categoria
+      || item?.categoria?.nombre
+      || item?.categoria
+      || item?.categoriaNombre
+      || ""
+    ).toString().toLowerCase();
+
+    const esVidrio = categoriaNombre === "vidrio" || item?.producto?.esVidrio === true;
+    if (!esVidrio) return nombreBase;
+
+    const mm = item?.producto?.mm ?? item?.mm;
+    if (mm === null || mm === undefined || mm === "") return nombreBase;
+
+    return `[${mm}mm] ${nombreBase}`;
   };
 
   const IVA_FACTOR = 1.19;

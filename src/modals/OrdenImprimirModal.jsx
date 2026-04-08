@@ -221,7 +221,23 @@ export default function OrdenImprimirModal({ orden, isOpen, onClose }) {
       return `Corte de ${medida} CMS`;
     }
 
-    return item?.producto?.nombre || nombreItem || "-";
+    const nombreBase = (item?.producto?.nombre || nombreItem || "-").toString().trim();
+    const categoriaNombre = (
+      item?.producto?.categoria?.nombre
+      || item?.producto?.categoria
+      || item?.categoria?.nombre
+      || item?.categoria
+      || item?.categoriaNombre
+      || ""
+    ).toString().toLowerCase();
+
+    const esVidrio = categoriaNombre === "vidrio" || item?.producto?.esVidrio === true;
+    if (!esVidrio) return nombreBase;
+
+    const mm = item?.producto?.mm ?? item?.mm;
+    if (mm === null || mm === undefined || mm === "") return nombreBase;
+
+    return `[${mm}mm] ${nombreBase}`;
   };
 
   // Función para crear ventana de impresión (compartida entre imprimir y PDF)
@@ -567,7 +583,10 @@ export default function OrdenImprimirModal({ orden, isOpen, onClose }) {
 
                   <div className="orden-imprimir-info-section">
                     <h3>Cliente</h3>
-                    <p>{form.cliente.nombre || "-"}</p>
+                    <p>
+                      <strong>{form.cliente.nombre || "-"}</strong>
+                      {form.cliente.correo && <><br />{form.cliente.correo}</> }
+                    </p>
                   </div>
                 </div>
 
@@ -651,7 +670,10 @@ export default function OrdenImprimirModal({ orden, isOpen, onClose }) {
 
                   <div className="orden-imprimir-info-section">
                     <h3>Cliente</h3>
-                    <p>{form.cliente.nombre || "-"}</p>
+                    <p>
+                      <strong>{form.cliente.nombre || "-"}</strong>
+                      {form.cliente.correo && <><br />{form.cliente.correo}</> }
+                    </p>
                   </div>
                 </div>
 

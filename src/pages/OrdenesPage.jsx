@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { listarClientes } from "../services/ClientesService";
+import { listarSedes } from "../services/SedesService.js";
 import OrdenesTable from "../componets/OrdenesTable";
 import "../styles/Table.css";
 import {
@@ -29,18 +30,22 @@ export default function OrdenesPage() {
   const [clienteSeleccionado, setClienteSeleccionado] = useState(null);
   const [clienteSearchModal, setClienteSearchModal] = useState("");
   const [showClienteModal, setShowClienteModal] = useState(false);
+  const [sedes, setSedes] = useState([]);
+  const [filtroSedeId, setFiltroSedeId] = useState("");
   const [loading, setLoading] = useState(false);
   const [totalElements, setTotalElements] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
 
-  const fetchData = useCallback(async (page = 1, size = 20, clienteId = null) => {
+  const fetchData = useCallback(async (page = 1, size = 20, clienteId = null, sedeFiltroId = "") => {
     setLoading(true);
     try {
-      // Si no es admin, filtrar por sede del usuario
+      // Si no es admin, siempre usar su sede.
+      // Si es admin, permitir filtro por sede opcional.
+      const sedeFiltroAplicada = isAdmin ? (sedeFiltroId || "") : sedeId;
       const params = {
-        ...(isAdmin ? {} : { sedeId }),
+        ...(sedeFiltroAplicada ? { sedeId: Number(sedeFiltroAplicada) } : {}),
         ...(clienteId ? { clienteId } : {}),
         page: page,
         size: size
@@ -85,10 +90,14 @@ export default function OrdenesPage() {
     }
   }, [showClienteModal]);
 
+  useEffect(() => {
+    listarSedes().then((s) => setSedes(Array.isArray(s) ? s : []));
+  }, []);
+
   // Cargar datos iniciales y cuando cambia el cliente seleccionado
   useEffect(() => {
-    fetchData(1, pageSize, clienteSeleccionado?.id || null);
-  }, [isAdmin, sedeId, clienteSeleccionado, pageSize]);
+    fetchData(1, pageSize, clienteSeleccionado?.id || null, filtroSedeId);
+  }, [isAdmin, sedeId, clienteSeleccionado, pageSize, filtroSedeId]);
 
   //  Guardar (editar o crear)
   const handleGuardar = async (orden, isEdit) => {
@@ -284,12 +293,12 @@ export default function OrdenesPage() {
     if (newSize !== pageSize) {
       setPageSize(newSize);
       setCurrentPage(1);
-      fetchData(1, newSize, clienteSeleccionado?.id || null);
+      fetchData(1, newSize, clienteSeleccionado?.id || null, filtroSedeId);
     } else {
       setCurrentPage(newPage);
-      fetchData(newPage, newSize, clienteSeleccionado?.id || null);
+      fetchData(newPage, newSize, clienteSeleccionado?.id || null, filtroSedeId);
     }
-  }, [pageSize, fetchData, clienteSeleccionado]);
+  }, [pageSize, fetchData, clienteSeleccionado, filtroSedeId]);
 
   return (
     <div className="clientes-page">
@@ -313,6 +322,10 @@ export default function OrdenesPage() {
           clienteSeleccionado={clienteSeleccionado}
           setClienteSeleccionado={setClienteSeleccionado}
           setShowClienteModal={setShowClienteModal}
+          sedes={sedes}
+          filtroSedeId={filtroSedeId}
+          setFiltroSedeId={setFiltroSedeId}
+          isAdmin={isAdmin}
         />
       </div>
       {/* Modal de búsqueda de clientes */}

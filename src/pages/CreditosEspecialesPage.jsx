@@ -222,15 +222,15 @@ const CreditosEspecialesPage = () => {
           {/* Contenido según la vista */}
           {view === "creditos" ? (
             <>
-              <div className="filtros-creditos" style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap', marginBottom: '1.5rem' }}>
+              <div className="filtros-creditos" style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', flexWrap: 'nowrap', overflowX: 'auto', whiteSpace: 'nowrap', marginBottom: '0.5rem', padding: '0.35rem 0.5rem' }}>
                 <button
               onClick={() => window.location.href = '/web/abono'}
               className="btn-agregar-abono"
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '0.375rem',
-                padding: '0.625rem 1rem',
+                gap: '0.25rem',
+                padding: '0.4rem 0.65rem',
                 background: 'var(--color-dark-blue)',
                 color: 'white',
                 fontWeight: '500',
@@ -238,7 +238,10 @@ const CreditosEspecialesPage = () => {
                 borderRadius: '9999px',
                 cursor: 'pointer',
                 transition: 'background-color 0.2s ease',
-                whiteSpace: 'nowrap'
+                whiteSpace: 'nowrap',
+                fontSize: '0.78rem',
+                lineHeight: 1.1,
+                minHeight: '32px'
               }}
               onMouseEnter={e => e.target.style.background = 'var(--color-light-blue)'}
               onMouseLeave={e => e.target.style.background = 'var(--color-dark-blue)'}
@@ -251,8 +254,8 @@ const CreditosEspecialesPage = () => {
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '0.5rem',
-                padding: '0.625rem 1rem',
+                gap: '0.3rem',
+                padding: '0.4rem 0.65rem',
                 background: '#27ae60',
                 color: 'white',
                 fontWeight: '500',
@@ -260,28 +263,33 @@ const CreditosEspecialesPage = () => {
                 borderRadius: '9999px',
                 cursor: 'pointer',
                 transition: 'background-color 0.2s ease',
-                whiteSpace: 'nowrap'
+                whiteSpace: 'nowrap',
+                fontSize: '0.78rem',
+                lineHeight: 1.1,
+                minHeight: '32px'
               }}
               onMouseEnter={e => e.target.style.background = '#229954'}
               onMouseLeave={e => e.target.style.background = '#27ae60'}
             >
-              <img src={estado} alt="Estado de Cuenta" style={{ width: '20px', height: '20px', filter: 'brightness(0) invert(1)' }} />
+              <img src={estado} alt="Estado de Cuenta" style={{ width: '14px', height: '14px', filter: 'brightness(0) invert(1)' }} />
               Estado de Cuenta
             </button>
 
             <button
               onClick={() => setIsHistoricoClienteModalOpen(true)}
               style={{
-                padding: '0.5rem 1rem',
-                fontSize: '0.9rem',
+                padding: '0.4rem 0.65rem',
+                fontSize: '0.78rem',
                 whiteSpace: 'nowrap',
                 background: '#fff',
                 color: '#1e2753',
-                border: '2px solid #1e2753',
+                border: '1px solid #1e2753',
                 borderRadius: '9999px',
                 cursor: 'pointer',
                 fontWeight: '600',
-                transition: 'all 0.2s ease'
+                transition: 'all 0.2s ease',
+                lineHeight: 1.1,
+                minHeight: '32px'
               }}
               onMouseEnter={e => {
                 e.target.style.background = '#1e2753';
@@ -298,16 +306,18 @@ const CreditosEspecialesPage = () => {
             <button
               onClick={() => setIsHistoricoGeneralModalOpen(true)}
               style={{
-                padding: '0.5rem 1rem',
-                fontSize: '0.9rem',
+                padding: '0.4rem 0.65rem',
+                fontSize: '0.78rem',
                 whiteSpace: 'nowrap',
                 background: '#fff',
                 color: '#1e2753',
-                border: '2px solid #1e2753',
+                border: '1px solid #1e2753',
                 borderRadius: '9999px',
                 cursor: 'pointer',
                 fontWeight: '600',
-                transition: 'all 0.2s ease'
+                transition: 'all 0.2s ease',
+                lineHeight: 1.1,
+                minHeight: '32px'
               }}
               onMouseEnter={e => {
                 e.target.style.background = '#1e2753';
@@ -321,7 +331,7 @@ const CreditosEspecialesPage = () => {
               Histórico General
             </button>
 
-            <select value={filtroEstado} onChange={e => setFiltroEstado(e.target.value)} style={{ padding: '0.4rem 0.5rem', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '0.875rem', background: '#fff', outline: 'none', minWidth: '140px' }}>
+            <select value={filtroEstado} onChange={e => setFiltroEstado(e.target.value)} style={{ padding: '0.3rem 0.45rem', border: '1px solid #d1d5db', borderRadius: '9999px', fontSize: '0.78rem', background: '#fff', outline: 'none', minWidth: '112px', height: '32px' }}>
               <option value="">Todos los estados</option>
               <option value="ABIERTO">Abierto</option>
               <option value="CERRADO">Cerrado</option>
@@ -329,8 +339,8 @@ const CreditosEspecialesPage = () => {
               <option value="ANULADO">Anulado</option>
             </select>
 
-            <div className="rows-per-page" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <span style={{ fontSize: '0.875rem', fontWeight: '500', color: 'var(--color-white)' }}>Filas:</span>
+            <div className="rows-per-page" style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', paddingInline: '0.25rem' }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: '500', color: 'var(--color-white)' }}>Filas:</span>
               <select
                 className="clientes-select"
                 value={pageSize}
@@ -339,13 +349,14 @@ const CreditosEspecialesPage = () => {
                   handlePageChange(1, newSize);
                 }}
                 style={{
-                  padding: '0.4rem 0.5rem',
+                  padding: '0.3rem 0.4rem',
                   border: '1px solid #d1d5db',
-                  borderRadius: '6px',
-                  fontSize: '0.875rem',
+                  borderRadius: '9999px',
+                  fontSize: '0.78rem',
                   background: '#fff',
                   outline: 'none',
-                  width: '70px'
+                  width: '62px',
+                  height: '32px'
                 }}
               >
                 {[5, 10, 20, 50, 100, 200].map(n => <option key={n} value={n}>{n}</option>)}

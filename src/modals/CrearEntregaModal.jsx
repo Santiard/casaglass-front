@@ -89,10 +89,11 @@ const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores, se
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]); // Solo ejecutar cuando se abre/cierra el modal
 
-  // Cargar órdenes disponibles cuando se seleccionan sede y fecha (solo un día)
+  // Cargar pendientes cuando se selecciona sede.
+  // El backend resuelve el rango automáticamente desde la última entrega.
   useEffect(() => {
-    // Solo cargar si el modal está abierto y hay sede y fecha
-    if (isOpen && formData.sedeId && formData.fechaEntrega) {
+    // Solo cargar si el modal está abierto y hay sede
+    if (isOpen && formData.sedeId) {
       cargarOrdenesDisponibles();
     } else {
       // Limpiar órdenes si no hay datos completos o el modal está cerrado
@@ -102,7 +103,7 @@ const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores, se
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, formData.sedeId, formData.fechaEntrega, reloadKey]); // Incluir reloadKey para forzar recarga
+  }, [isOpen, formData.sedeId, reloadKey]); // Incluir reloadKey para forzar recarga
 
   const cargarOrdenesDisponibles = async () => {
     // Leer valores actuales del estado para evitar problemas de closure
@@ -119,12 +120,12 @@ const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores, se
     
     try {
       setLoadingOrdenes(true);
-      // Usar la misma fecha para desde y hasta (solo un día)
+      // Fecha usada para filtrar reembolsos del listado visual.
       const fechaUnica = fechaActual;
       
       // Cargar órdenes, abonos y reembolsos en paralelo
       const [ordenes, reembolsos] = await Promise.all([
-        EntregasService.obtenerOrdenesDisponibles(sedeIdActual, fechaUnica, fechaUnica),
+        EntregasService.obtenerOrdenesDisponibles(sedeIdActual),
         ReembolsosVentaService.listarReembolsos({
           fecha: fechaUnica,
           sedeId: sedeIdActual,
@@ -612,14 +613,8 @@ const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores, se
       const modalidadEntrega = metodosUsados.length === 1 ? metodosUsados[0] : 'MIXTO';
 
       // Revalidar órdenes disponibles para concurrencia/eligibilidad
-      // Usar la misma fecha para desde y hasta (solo un día)
-      const fechaUnica = formData.fechaEntrega;
       try {
-        const elegibles = await EntregasService.obtenerOrdenesDisponibles(
-          formData.sedeId,
-          fechaUnica,
-          fechaUnica
-        );
+        const elegibles = await EntregasService.obtenerOrdenesDisponibles(formData.sedeId);
         // Validar órdenes a contado - FILTRAR solo las que tienen venta: true
         const ordenesContadoValidas = (elegibles?.ordenesContado || []).filter(o => o.venta === true);
         
@@ -640,7 +635,7 @@ const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores, se
         const ordenesIds = Array.isArray(formData.ordenesIds) ? formData.ordenesIds : [];
         const ordenesInvalidas = ordenesIds.filter(id => !ordenesContadoIds.has(id));
         if (ordenesInvalidas.length > 0) {
-          setError(`Algunas órdenes ya no son elegibles para entrega: ${ordenesInvalidas.join(', ')}. Pueden estar en otra entrega, no pertenecer a esta sede, estar fuera del rango de fechas, o no estar confirmadas (venta: false). Actualiza la selección.`);
+          setError(`Algunas órdenes ya no son elegibles para entrega: ${ordenesInvalidas.join(', ')}. Pueden estar en otra entrega, no pertenecer a esta sede, estar fuera del rango aplicado, o no estar confirmadas (venta: false). Actualiza la selección.`);
           setLoading(false);
           return;
         }
@@ -830,7 +825,7 @@ const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores, se
                       style={{ flex: 1 }}
                     />
                     <small style={{ color: '#666', fontSize: '0.85em' }}>
-                      Solo se pueden agregar ingresos de esta fecha
+                      Esta fecha se guarda en la entrega; los pendientes se calculan automáticamente desde la última entrega.
                     </small>
                   </div>
                 </div>
@@ -842,7 +837,7 @@ const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores, se
           {/* Resumen de Ingresos (automático) */}
           {validarStep(1) && (
             <div className="form-step">
-              <h3>Ingresos del Día</h3>
+              <h3>Ingresos Pendientes del Rango Automático</h3>
               
               {loadingOrdenes ? (
                 <div className="loading-ordenes">Cargando órdenes y abonos disponibles...</div>
@@ -975,7 +970,7 @@ const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores, se
                       color: '#1976d2',
                       textAlign: 'center'
                     }}>
-                      Se incluirán automáticamente todas las órdenes a contado, abonos y reembolsos (egresos) del día seleccionado. 
+                      Se incluirán automáticamente todas las órdenes a contado y abonos del rango automático, más los reembolsos (egresos) del día seleccionado. 
                       Solo se muestran órdenes y abonos de órdenes confirmadas (venta: true).
                       {Array.isArray(reembolsosDisponibles) && reembolsosDisponibles.length > 0 && (
                         <div style={{ marginTop: '8px', color: '#d32f2f', fontWeight: '500' }}>

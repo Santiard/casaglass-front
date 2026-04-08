@@ -74,13 +74,13 @@ const EntregasService = {
   },
 
   // Obtener órdenes disponibles para entrega
-  obtenerOrdenesDisponibles: async (sedeId, fechaDesde, fechaHasta) => {
+  // `desde` y `hasta` son opcionales; si no se envían, el backend calcula el rango automáticamente.
+  obtenerOrdenesDisponibles: async (sedeId, fechaDesde = null, fechaHasta = null) => {
     try {
-      const params = new URLSearchParams({
-        sedeId: sedeId,
-        desde: fechaDesde,
-        hasta: fechaHasta
-      });
+      const params = new URLSearchParams();
+      params.append('sedeId', sedeId);
+      if (fechaDesde) params.append('desde', fechaDesde);
+      if (fechaHasta) params.append('hasta', fechaHasta);
       
       const response = await api.get(`entregas-dinero/ordenes-disponibles?${params}`);
       return response.data;

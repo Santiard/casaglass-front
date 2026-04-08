@@ -1073,14 +1073,20 @@ export default function EntregasImprimirModal({ entregas = [], isOpen, onClose }
               </div>
             )}
 
-            {/* Resumen del mes - versión simple */}
+            {/* Resumen del mes */}
             {resumenMes && (
               <div style={{ marginTop: "20px", paddingTop: "15px", borderTop: "1px solid #ccc" }}>
-                <div style={{ fontSize: "0.85rem", fontWeight: "bold", marginBottom: "5px" }}>
-                  TOTAL VENTAS DEL MES: {resumenMes.mesNombre} - ${resumenMes.totalVentasMes.toLocaleString("es-CO")}
+                <div style={{ fontSize: "0.9rem", fontWeight: "bold", marginBottom: "8px", color: "#1e2753" }}>
+                  RESUMEN DEL MES {resumenMes.mesNombre || resumenMes.mes || ""}
                 </div>
-                <div style={{ fontSize: "0.85rem", fontWeight: "bold" }}>
-                  TOTAL CRÉDITOS ACTIVOS: ${resumenMes.totalCreditosActivosMes.toLocaleString("es-CO")}
+                <div style={{ fontSize: "0.85rem", lineHeight: "1.5" }}>
+                  <div>Total ventas del mes: ${Number(resumenMes.totalVentasDelMes ?? resumenMes.totalVentasMes ?? 0).toLocaleString("es-CO")}</div>
+                  <div>Total deudas del mes: ${Number(resumenMes.totalDeudasDelMes ?? resumenMes.totalDeudasMes ?? 0).toLocaleString("es-CO")}</div>
+                  <div>Total abonos del mes: ${Number(resumenMes.totalAbonasDelMes ?? resumenMes.totalAbonosDelMes ?? 0).toLocaleString("es-CO")}</div>
+                  <div>Total entregado del mes: ${Number(resumenMes.totalEntregadoDelMes ?? 0).toLocaleString("es-CO")}</div>
+                  <div>Total de esta entrega: ${Number(resumenMes.totalEstaEntrega ?? 0).toLocaleString("es-CO")}</div>
+                  {resumenMes.sede && <div>Sede: {resumenMes.sede}</div>}
+                  {resumenMes.trabajador && <div>Trabajador: {resumenMes.trabajador}</div>}
                 </div>
               </div>
             )}
