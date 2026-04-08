@@ -1076,35 +1076,20 @@ export default function EntregasImprimirModal({ entregas = [], isOpen, onClose }
             {/* Resumen del mes */}
             {resumenMes && (
               <div style={{ marginTop: "20px", paddingTop: "15px", borderTop: "1px solid #ccc" }}>
-                {/* Fila 1: Análisis del mes */}
-                <div style={{ marginBottom: "15px" }}>
-                  <div style={{ fontSize: "0.9rem", fontWeight: "bold", marginBottom: "8px", color: "#1e2753" }}>
-                    ANÁLISIS DEL MES {resumenMes.mesNombre || resumenMes.mes || ""}
-                  </div>
-                  <div style={{ fontSize: "0.85rem", lineHeight: "1.6", color: "#333" }}>
-                    <div>💰 Total ventas del mes: ${Number(resumenMes.totalVentasDelMes ?? resumenMes.totalVentasMes ?? 0).toLocaleString("es-CO")}</div>
-                    <div>💵 Total abonos del mes: ${Number(resumenMes.totalAbonasDelMes ?? resumenMes.totalAbonosDelMes ?? 0).toLocaleString("es-CO")}</div>
-                    <div>📊 Total deudas del mes: ${Number(resumenMes.totalDeudasDelMes ?? resumenMes.totalDeudasMes ?? 0).toLocaleString("es-CO")}</div>
-                    <div>🏧 Total entregado del mes: ${Number(resumenMes.totalEntregadoDelMes ?? 0).toLocaleString("es-CO")}</div>
-                    <div style={{ fontWeight: "bold", color: "#1e2753" }}>💸 Total de esta entrega: ${Number(resumenMes.totalEstaEntrega ?? 0).toLocaleString("es-CO")}</div>
-                  </div>
+                <div style={{ fontSize: "0.9rem", fontWeight: "bold", marginBottom: "8px", color: "#1e2753" }}>
+                  RESUMEN DEL MES {resumenMes.mesNombre || resumenMes.mes || ""}
                 </div>
-
-                {/* Fila 2: Histórico acumulado (nuevos campos) */}
-                <div style={{ paddingTop: "12px", borderTop: "1px solid #e0e0e0" }}>
-                  <div style={{ fontSize: "0.9rem", fontWeight: "bold", marginBottom: "8px", color: "#1e2753" }}>
-                    HISTÓRICO ACUMULADO
-                  </div>
-                  <div style={{ fontSize: "0.85rem", lineHeight: "1.6", color: "#333" }}>
-                    <div>📈 Deudas totales pendientes: ${Number(resumenMes.totalDeudasHistorico ?? 0).toLocaleString("es-CO")}</div>
-                    <div>💸 Abonos históricos: ${Number(resumenMes.totalAbonosHistorico ?? 0).toLocaleString("es-CO")}</div>
-                  </div>
+                <div style={{ fontSize: "0.85rem", lineHeight: "1.6", color: "#333" }}>
+                  <div><strong>TOTAL DE DINERO ENTREGADO:</strong> ${Number(resumenMes.totalDineroEntregado ?? 0).toLocaleString("es-CO")}</div>
+                  <div style={{ color: "#666", marginBottom: "6px" }}>Esta entrega</div>
+                  <div><strong>TOTAL DEL MES:</strong> ${Number(resumenMes.totalDelMes ?? 0).toLocaleString("es-CO")}</div>
+                  <div style={{ color: "#666", marginBottom: "6px" }}>Entregas de dinero de la sede en el mes</div>
+                  <div><strong>TOTAL DEUDAS MENSUALES:</strong> ${Number(resumenMes.totalDeudasMensuales ?? 0).toLocaleString("es-CO")}</div>
+                  <div style={{ color: "#666" }}>Saldos pendientes (creditos abiertos) de la sede en el mes</div>
                 </div>
-
-                {/* Información adicional */}
                 <div style={{ marginTop: "10px", fontSize: "0.8rem", color: "#666" }}>
-                  {resumenMes.sede && <div>📍 Sede: {resumenMes.sede}</div>}
-                  {resumenMes.trabajador && <div>👤 Trabajador: {resumenMes.trabajador}</div>}
+                  {resumenMes.sede && <div>Sede: {resumenMes.sede}</div>}
+                  {resumenMes.trabajador && <div>Trabajador: {resumenMes.trabajador}</div>}
                 </div>
               </div>
             )}

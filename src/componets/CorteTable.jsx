@@ -1,5 +1,6 @@
 import eliminar from "../assets/eliminar.png";
 import editar from "../assets/editar.png";
+import "../styles/Table.css";
 
 export default function CorteTable({ data = [], onEditar, onEliminar, isAdmin = true, userSede = "" }) {
   return (
@@ -45,7 +46,7 @@ export default function CorteTable({ data = [], onEditar, onEliminar, isAdmin = 
         <tbody>
           {data.length === 0 && (
             <tr>
-              <td colSpan={isAdmin ? 12 : 7} className="empty">Sin resultados</td>
+              <td colSpan={isAdmin ? 14 : 8} className="empty">Sin resultados</td>
             </tr>
           )}
 
@@ -63,7 +64,11 @@ export default function CorteTable({ data = [], onEditar, onEliminar, isAdmin = 
                 <td>{c.codigo}</td>
                 <td>{c.nombre}</td>
                 <td>{c.categoria?.nombre || c.categoria || "-"}</td>
-                <td>{c.color ?? "N/A"}</td>
+                <td>
+                  <span className={`color-badge color-${(c.color || "NA").toLowerCase().replace(/\s+/g, "-")}`}>
+                    {c.color ?? "N/A"}
+                  </span>
+                </td>
                 <td>{c.largoCm ?? "-"}</td>
                 
                 {/* Columnas de inventario según el rol */}

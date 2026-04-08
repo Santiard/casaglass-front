@@ -82,27 +82,29 @@ export default function EntregaDetallePanel({ entrega, onClose }){
       {/* Resumen del mes */}
       {entrega.resumenMes && (
         <div style={{ marginTop: "20px", paddingTop: "15px", borderTop: "1px solid #ddd", fontSize: "0.95rem" }}>
-          {/* Fila 1: Análisis del mes */}
-          <div style={{ marginBottom: "15px" }}>
-            <h4 style={{ margin: "0 0 8px 0", color: "#1e2753" }}>
-              ANÁLISIS DEL MES {entrega.resumenMes.mesNombre || entrega.resumenMes.mes || ""}
-            </h4>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", fontSize: "0.9rem", lineHeight: "1.6" }}>
-              <div>💰 Ventas mes: {fmtCOP(entrega.resumenMes.totalVentasDelMes ?? 0)}</div>
-              <div>💵 Abonos mes: {fmtCOP(entrega.resumenMes.totalAbonasDelMes ?? 0)}</div>
-              <div>📊 Deudas mes: {fmtCOP(entrega.resumenMes.totalDeudasDelMes ?? 0)}</div>
-              <div>🏧 Entregado mes: {fmtCOP(entrega.resumenMes.totalEntregadoDelMes ?? 0)}</div>
-              <div style={{ fontWeight: "bold", color: "#1e2753" }}>💸 Esta entrega: {fmtCOP(entrega.resumenMes.totalEstaEntrega ?? 0)}</div>
+          <h4 style={{ margin: "0 0 10px 0", color: "#1e2753" }}>
+            RESUMEN DEL MES {entrega.resumenMes.mesNombre || entrega.resumenMes.mes || ""}
+          </h4>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "10px" }}>
+            <div style={{ background: "#f8f9fa", border: "1px solid #e0e0e0", borderRadius: "8px", padding: "10px" }}>
+              <div style={{ fontWeight: "700", color: "#1e2753", marginBottom: "4px" }}>TOTAL DE DINERO ENTREGADO</div>
+              <div style={{ fontSize: "1rem", fontWeight: "700" }}>{fmtCOP(entrega.resumenMes.totalDineroEntregado ?? 0)}</div>
+              <div style={{ fontSize: "0.85rem", color: "#666" }}>Esta entrega</div>
+            </div>
+            <div style={{ background: "#f8f9fa", border: "1px solid #e0e0e0", borderRadius: "8px", padding: "10px" }}>
+              <div style={{ fontWeight: "700", color: "#1e2753", marginBottom: "4px" }}>TOTAL DEL MES</div>
+              <div style={{ fontSize: "1rem", fontWeight: "700" }}>{fmtCOP(entrega.resumenMes.totalDelMes ?? 0)}</div>
+              <div style={{ fontSize: "0.85rem", color: "#666" }}>Entregas de dinero de la sede en el mes</div>
+            </div>
+            <div style={{ background: "#f8f9fa", border: "1px solid #e0e0e0", borderRadius: "8px", padding: "10px" }}>
+              <div style={{ fontWeight: "700", color: "#1e2753", marginBottom: "4px" }}>TOTAL DEUDAS MENSUALES</div>
+              <div style={{ fontSize: "1rem", fontWeight: "700" }}>{fmtCOP(entrega.resumenMes.totalDeudasMensuales ?? 0)}</div>
+              <div style={{ fontSize: "0.85rem", color: "#666" }}>Saldos pendientes (creditos abiertos) de la sede en el mes</div>
             </div>
           </div>
-
-          {/* Fila 2: Histórico acumulado */}
-          <div style={{ paddingTop: "12px", borderTop: "1px solid #e0e0e0", marginTop: "12px" }}>
-            <h4 style={{ margin: "0 0 8px 0", color: "#1e2753" }}>HISTÓRICO ACUMULADO</h4>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", fontSize: "0.9rem", lineHeight: "1.6" }}>
-              <div>📈 Deudas pendientes: {fmtCOP(entrega.resumenMes.totalDeudasHistorico ?? 0)}</div>
-              <div>💸 Abonos históricos: {fmtCOP(entrega.resumenMes.totalAbonosHistorico ?? 0)}</div>
-            </div>
+          <div style={{ marginTop: "10px", fontSize: "0.85rem", color: "#666" }}>
+            {entrega.resumenMes.sede && <div>Sede: {entrega.resumenMes.sede}</div>}
+            {entrega.resumenMes.trabajador && <div>Trabajador: {entrega.resumenMes.trabajador}</div>}
           </div>
         </div>
       )}

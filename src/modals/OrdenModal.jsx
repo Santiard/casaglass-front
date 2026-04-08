@@ -1203,9 +1203,8 @@ export default function OrdenEditarModal({
         sedeId: Number(form.sedeId),
         // trabajadorId es opcional según la documentación
         ...(form.trabajadorId ? { trabajadorId: Number(form.trabajadorId) } : {}),
-        // ✅ Separar items normales de cortes de cortes
+        // ✅ Mantener items de venta y enviar cortes por separado para inventario
         items: itemsActivos
-          .filter(i => !i.esCorteDeCorte) // Excluir cortes de cortes del array items[]
           .filter(i => {
             // Filtrar items inválidos (sin productoId, cantidad 0, precio 0)
             const productoId = Number(i.productoId);

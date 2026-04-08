@@ -189,55 +189,12 @@ export default function OrdenImprimirModal({ orden, isOpen, onClose }) {
         })
       : "-";
 
-  const formatearMedidaCm = (valor) => {
-    const n = Number(valor);
-    if (!Number.isFinite(n) || n <= 0) return null;
-    return Number.isInteger(n) ? String(n) : String(parseFloat(n.toFixed(2)));
-  };
-
   const resolverNombreItem = (item) => {
-    const nombreItem = (item?.nombre || item?.nombreProducto || "").toString().trim();
-    if (/corte\s+de/i.test(nombreItem)) return nombreItem;
+    const nombreSnapshot = (item?.nombre ?? "").toString().trim();
+    if (nombreSnapshot) return nombreSnapshot;
 
-    const cortesCreados = Array.isArray(form?.cortesCreados) ? form.cortesCreados : [];
-    const productoIdItem = Number(item?.productoId || item?.producto?.id || 0);
-
-    const corteRelacionado = cortesCreados.find((c) => {
-      const productoBase = Number(c?.productoBase || c?.productoBaseId || c?.productoId || 0);
-      const corteId = Number(c?.corteId || c?.id || 0);
-      return (productoBase > 0 && productoBase === productoIdItem) || (corteId > 0 && corteId === productoIdItem);
-    });
-
-    const medida = formatearMedidaCm(
-      corteRelacionado?.medidaSolicitada
-      || corteRelacionado?.medidaCorte
-      || corteRelacionado?.medida
-      || item?.medidaCorte
-      || item?.medidaSolicitada
-      || item?.medida
-    );
-
-    if (medida) {
-      return `Corte de ${medida} CMS`;
-    }
-
-    const nombreBase = (item?.producto?.nombre || nombreItem || "-").toString().trim();
-    const categoriaNombre = (
-      item?.producto?.categoria?.nombre
-      || item?.producto?.categoria
-      || item?.categoria?.nombre
-      || item?.categoria
-      || item?.categoriaNombre
-      || ""
-    ).toString().toLowerCase();
-
-    const esVidrio = categoriaNombre === "vidrio" || item?.producto?.esVidrio === true;
-    if (!esVidrio) return nombreBase;
-
-    const mm = item?.producto?.mm ?? item?.mm;
-    if (mm === null || mm === undefined || mm === "") return nombreBase;
-
-    return `[${mm}mm] ${nombreBase}`;
+    const nombreFallback = (item?.nombreProducto || item?.producto?.nombre || "-").toString().trim();
+    return nombreFallback || "-";
   };
 
   // Función para crear ventana de impresión (compartida entre imprimir y PDF)

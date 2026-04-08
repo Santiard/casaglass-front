@@ -118,12 +118,12 @@ export default function AdminPage() {
     }
   };
 
-  // Calcular utilidad neta (asumiendo un margen aproximado del 30% como ejemplo)
+  // Calcular utilidad neta con margen estimado del 18%
   const utilidadNeta = useMemo(() => {
     if (!dashboardData?.resumenGeneral) return 0;
     const montoVentas = dashboardData.resumenGeneral.montoTotalVentas || 0;
-    // Margen estimado del 30% (esto debería venir del backend si hay costos)
-    return montoVentas * 0.30;
+    // Margen estimado del 18% (si backend envía costos/margen, se debe usar ese valor)
+    return montoVentas * 0.18;
   }, [dashboardData]);
 
   // Transformar ventasPorDia para la gráfica mensual (agrupar por mes)
@@ -256,7 +256,7 @@ export default function AdminPage() {
         <KPICard
           title="Utilidad Neta Estimada"
           value={fmtCOP(utilidadNeta)}
-          subtitle={`Margen estimado: 30%`}
+          subtitle={`Margen estimado: 18%`}
           color="#10b981"
         />
         <KPICard
