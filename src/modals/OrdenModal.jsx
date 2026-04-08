@@ -891,7 +891,19 @@ export default function OrdenEditarModal({
       return;
     }
 
-    const yaExiste = form.items.some((i) => i.codigo === item.codigo && !i.eliminar);
+    const normalizar = (v) => String(v ?? "").trim().toLowerCase();
+    const codigoNuevo = normalizar(item.codigo);
+    const nombreNuevo = normalizar(item.nombre);
+    const colorNuevo = normalizar(item.color);
+
+    const yaExiste = form.items.some((i) => {
+      if (i.eliminar) return false;
+      return (
+        normalizar(i.codigo) === codigoNuevo &&
+        normalizar(i.nombre) === nombreNuevo &&
+        normalizar(i.color) === colorNuevo
+      );
+    });
     if (yaExiste) {
       showWarning("Este producto ya está en la lista");
       return;
