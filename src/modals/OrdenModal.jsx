@@ -397,6 +397,7 @@ export default function OrdenEditarModal({
       // Inicializar formulario vacío si no hay ID válido
       setForm({
         id: null,
+        numero: orden?.numero ?? orden?.numeroOrden ?? orden?.nroOrden ?? null,
         fecha: getTodayLocalDate(),
         obra: orden?.obra ?? "",
         descripcion: orden?.descripcion ?? "",
@@ -447,6 +448,7 @@ export default function OrdenEditarModal({
     
       const base = {
       id: Number(orden.id) || null,
+      numero: orden?.numero ?? orden?.numeroOrden ?? orden?.nroOrden ?? null,
       fecha: toLocalDateOnly(orden.fecha),
       obra: orden.obra ?? "",
       descripcion: orden.descripcion ?? "",
