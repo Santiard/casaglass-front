@@ -603,6 +603,7 @@ export default function OrdenImprimirModal({ orden, isOpen, onClose }) {
                     <tr>
                       <th>{esFormatoAntiguoSede1 ? "CANT" : "Cantidad"}</th>
                       <th>Producto</th>
+                      {esFormatoAntiguoSede1 && <th>Color</th>}
                       <th>Tipo</th>
                       {!esFormatoAntiguoSede1 && <th>Color</th>}
                       <th>{esFormatoAntiguoSede1 ? "Precio Unitario" : "Valor Unitario"}</th>
@@ -612,7 +613,7 @@ export default function OrdenImprimirModal({ orden, isOpen, onClose }) {
                   <tbody>
                     {form.items.length === 0 ? (
                       <tr>
-                        <td colSpan={esFormatoAntiguoSede1 ? 5 : 6} className="empty">Sin ítems</td>
+                        <td colSpan={esFormatoAntiguoSede1 ? 6 : 6} className="empty">Sin ítems</td>
                       </tr>
                     ) : (
                       form.items.map((item, index) => {
@@ -637,6 +638,7 @@ export default function OrdenImprimirModal({ orden, isOpen, onClose }) {
                           <tr key={item.id || index}>
                             <td className="text-center">{cantidadImpresion}</td>
                             <td>{nombreProducto}</td>
+                            {esFormatoAntiguoSede1 && <td>{item.producto?.color || "-"}</td>}
                             <td>{esFormatoAntiguoSede1 ? tipoImpresion : (formatearTipoUnidad(item) || item.producto?.tipo || "-")}</td>
                             {!esFormatoAntiguoSede1 && <td>{item.producto?.color || "-"}</td>}
                             <td>${item.precioUnitario?.toLocaleString("es-CO") || "0"}</td>
@@ -693,6 +695,7 @@ export default function OrdenImprimirModal({ orden, isOpen, onClose }) {
                     <tr>
                       <th>{esFormatoAntiguoSede1 ? "CANT" : "Cantidad"}</th>
                       <th>Producto</th>
+                      {esFormatoAntiguoSede1 && <th>Color</th>}
                       <th>Tipo</th>
                       {!esFormatoAntiguoSede1 && <th>Color</th>}
                     </tr>
@@ -700,7 +703,7 @@ export default function OrdenImprimirModal({ orden, isOpen, onClose }) {
                   <tbody>
                     {form.items.length === 0 ? (
                       <tr>
-                        <td colSpan={esFormatoAntiguoSede1 ? 3 : 4} className="empty">Sin ítems</td>
+                        <td colSpan={esFormatoAntiguoSede1 ? 4 : 4} className="empty">Sin ítems</td>
                       </tr>
                     ) : (
                       form.items.map((item, index) => {
@@ -724,6 +727,7 @@ export default function OrdenImprimirModal({ orden, isOpen, onClose }) {
                           <tr key={item.id || index}>
                             <td className="text-center">{cantidadImpresion}</td>
                             <td>{nombreProducto}</td>
+                            {esFormatoAntiguoSede1 && <td>{item.producto?.color || "-"}</td>}
                             <td>{esFormatoAntiguoSede1 ? tipoImpresion : (formatearTipoUnidad(item) || item.producto?.tipo || "-")}</td>
                             {!esFormatoAntiguoSede1 && <td>{item.producto?.color || "-"}</td>}
                           </tr>
