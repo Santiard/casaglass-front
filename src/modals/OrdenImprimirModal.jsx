@@ -601,8 +601,8 @@ export default function OrdenImprimirModal({ orden, isOpen, onClose }) {
                 <table className="orden-imprimir-table">
                   <thead>
                     <tr>
-                      <th>{esFormatoAntiguoSede1 ? "CANT" : "Cantidad"}</th>
                       <th>Producto</th>
+                      <th>{esFormatoAntiguoSede1 ? "CANT" : "Cantidad"}</th>
                       {esFormatoAntiguoSede1 && <th>Color</th>}
                       <th>Tipo</th>
                       {!esFormatoAntiguoSede1 && <th>Color</th>}
@@ -636,8 +636,8 @@ export default function OrdenImprimirModal({ orden, isOpen, onClose }) {
                         
                         return (
                           <tr key={item.id || index}>
-                            <td className="text-center">{cantidadImpresion}</td>
                             <td>{nombreProducto}</td>
+                            <td className="text-center">{cantidadImpresion}</td>
                             {esFormatoAntiguoSede1 && <td>{item.producto?.color || "-"}</td>}
                             <td>{esFormatoAntiguoSede1 ? tipoImpresion : (formatearTipoUnidad(item) || item.producto?.tipo || "-")}</td>
                             {!esFormatoAntiguoSede1 && <td>{item.producto?.color || "-"}</td>}
@@ -693,8 +693,8 @@ export default function OrdenImprimirModal({ orden, isOpen, onClose }) {
                 <table className="orden-imprimir-table">
                   <thead>
                     <tr>
-                      <th>{esFormatoAntiguoSede1 ? "CANT" : "Cantidad"}</th>
                       <th>Producto</th>
+                      <th>{esFormatoAntiguoSede1 ? "CANT" : "Cantidad"}</th>
                       {esFormatoAntiguoSede1 && <th>Color</th>}
                       <th>Tipo</th>
                       {!esFormatoAntiguoSede1 && <th>Color</th>}
@@ -725,8 +725,8 @@ export default function OrdenImprimirModal({ orden, isOpen, onClose }) {
                         
                         return (
                           <tr key={item.id || index}>
-                            <td className="text-center">{cantidadImpresion}</td>
                             <td>{nombreProducto}</td>
+                            <td className="text-center">{cantidadImpresion}</td>
                             {esFormatoAntiguoSede1 && <td>{item.producto?.color || "-"}</td>}
                             <td>{esFormatoAntiguoSede1 ? tipoImpresion : (formatearTipoUnidad(item) || item.producto?.tipo || "-")}</td>
                             {!esFormatoAntiguoSede1 && <td>{item.producto?.color || "-"}</td>}

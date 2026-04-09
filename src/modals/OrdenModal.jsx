@@ -757,6 +757,14 @@ export default function OrdenEditarModal({
     p?.codigo ?? p?.codigoProducto ?? p?.producto?.codigo ?? ""
   );
 
+  const obtenerCantidadDisponibleCatalogo = (p) => {
+    const sedeId = Number(form?.sedeId || defaultSedeId || 0);
+    if (sedeId === 1) return Number(p?.cantidadInsula ?? 0);
+    if (sedeId === 2) return Number(p?.cantidadCentro ?? 0);
+    if (sedeId === 3) return Number(p?.cantidadPatios ?? 0);
+    return Number(p?.cantidadTotal ?? 0);
+  };
+
   const catalogoFiltrado = useMemo(() => {
     let filtered = catalogoProductos;
     
@@ -2937,22 +2945,23 @@ export default function OrdenEditarModal({
               <table className="inv-table">
                 <thead>
                   <tr>
-                    <th style={{ width: "45%" }}>Nombre</th>
-                    <th style={{ width: "20%" }}>Código</th>
-                    <th style={{ width: "15%" }}>Color</th>
+                    <th style={{ width: "18%" }}>Código</th>
+                    <th style={{ width: "34%" }}>Nombre</th>
+                    <th style={{ width: "12%" }}>Color</th>
+                    <th style={{ width: "16%", textAlign: "right" }}>Cant.</th>
                     <th style={{ width: "20%" }}>Acción</th>
                   </tr>
                 </thead>
                 <tbody>
                   {loadingProductos ? (
                     <tr>
-                      <td colSpan={4} className="empty" style={{ textAlign: 'center', padding: '2rem', color: '#666' }}>
+                      <td colSpan={5} className="empty" style={{ textAlign: 'center', padding: '2rem', color: '#666' }}>
                         Cargando {catalogoTipoActivo === "cortes" ? "cortes" : "productos"}...
                       </td>
                     </tr>
                   ) : catalogoFiltrado.length === 0 ? (
                     <tr>
-                      <td colSpan={4} className="empty" style={{ textAlign: 'center', padding: '2rem' }}>
+                      <td colSpan={5} className="empty" style={{ textAlign: 'center', padding: '2rem' }}>
                         {selectedCategoryId
                           ? `No hay ${catalogoTipoActivo === "cortes" ? "cortes" : "productos"} en esta categoría`
                           : `Selecciona una categoría para ver ${catalogoTipoActivo === "cortes" ? "cortes" : "productos"}`}
@@ -2966,14 +2975,20 @@ export default function OrdenEditarModal({
                         style={{ cursor: "pointer" }}
                         title="Doble clic para agregar"
                       >
-                        <td onDoubleClick={(e) => { e.stopPropagation(); addProducto(p); }}>{p.nombre}</td>
                         <td onDoubleClick={(e) => { e.stopPropagation(); addProducto(p); }}>{obtenerCodigoProducto(p) || "-"}</td>
+                        <td onDoubleClick={(e) => { e.stopPropagation(); addProducto(p); }}>{p.nombre}</td>
                         <td onDoubleClick={(e) => { e.stopPropagation(); addProducto(p); }}>
                           <span className={`color-badge color-${(p.color || 'NA').toLowerCase().replace(/\s+/g, '-')}`}
                             style={{ display: 'inline-block', minWidth: 48, textAlign: 'center' }}
                           >
                             {p.color ?? "N/A"}
                           </span>
+                        </td>
+                        <td
+                          onDoubleClick={(e) => { e.stopPropagation(); addProducto(p); }}
+                          style={{ textAlign: "right", fontVariantNumeric: "tabular-nums" }}
+                        >
+                          {obtenerCantidadDisponibleCatalogo(p)}
                         </td>
                         <td>
                           <div style={{ display: 'flex', gap: '0.25rem' }}>
