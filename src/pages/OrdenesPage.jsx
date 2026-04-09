@@ -125,7 +125,7 @@ export default function OrdenesPage() {
   const handleConfirmarVenta = async (orden) => {
     const esCotizacion = Boolean(orden.venta === false);
     const mensaje = esCotizacion
-      ? `¿Estás seguro de que deseas confirmar la cotización #${orden.numero} como venta?\n\nEsta acción marcará la orden como vendida y conservará su configuración actual.`
+      ? `¿Estás seguro de que deseas confirmar la cotización #${orden.numero} como venta?\n\nEsta acción marcará la orden como vendida y la convertirá automáticamente en CRÉDITO para que puedas registrar abonos.`
       : `¿Estás seguro de que deseas confirmar la venta de la orden #${orden.numero}?\n\nEsta acción marcará la orden como vendida y permitirá manejarla en contabilidad.`;
     
     const confirmacion = await confirm({
@@ -163,7 +163,7 @@ export default function OrdenesPage() {
       const response = await confirmarVenta(orden.id, ordenCompleta);
       
       if (esCotizacion) {
-        showSuccess(`Cotización #${response.numero || orden.numero} confirmada como venta exitosamente.`);
+        showSuccess(`Cotización #${response.numero || orden.numero} confirmada como venta y convertida a CRÉDITO exitosamente.`);
       } else {
         showSuccess(`Orden #${response.numero || orden.numero} confirmada como venta exitosamente.`);
       }

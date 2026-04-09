@@ -336,6 +336,7 @@ export async function actualizarRetencionIca(ordenId, payload) {
 export async function confirmarVenta(id, ordenCompleta) {
   if (!id) throw new Error("ID de la orden no proporcionado");
   if (!ordenCompleta) throw new Error("Datos de la orden no proporcionados");
+  const eraCotizacion = Boolean(ordenCompleta.venta === false);
 
   // Validar IDs requeridos
   const clienteId = ordenCompleta.clienteId || ordenCompleta.cliente?.id;
@@ -435,8 +436,8 @@ export async function confirmarVenta(id, ordenCompleta) {
       obra: ordenCompleta.obra || "",
       descripcion: ordenCompleta.descripcion || null,
       venta: true, // Cambiar a true (confirmar como venta)
-      // Conservar el valor real de crédito; no forzarlo durante la confirmación.
-      credito: Boolean(ordenCompleta.credito),
+      // Si era cotización, convertir automáticamente en crédito para habilitar abonos.
+      credito: eraCotizacion ? true : Boolean(ordenCompleta.credito),
       tieneRetencionFuente: Boolean(ordenCompleta.tieneRetencionFuente ?? false),
       tieneRetencionIca: Boolean(ordenCompleta.tieneRetencionIca ?? false),
       ...(ordenCompleta.porcentajeIca !== undefined && ordenCompleta.porcentajeIca !== null 

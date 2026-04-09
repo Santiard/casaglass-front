@@ -199,6 +199,52 @@ export default function OrdenImprimirModal({ orden, isOpen, onClose }) {
     return nombreFallback || "-";
   };
 
+  const resolverEsVidrio = (item) => {
+    const esVidrioCanonico = item?.producto?.esVidrio ?? item?.esVidrio;
+    if (typeof esVidrioCanonico === "boolean") {
+      return esVidrioCanonico;
+    }
+
+    const categoriaNombre = item?.producto?.categoriaNombre ?? item?.categoriaNombre ?? item?.producto?.categoria?.nombre ?? item?.categoria?.nombre ?? item?.producto?.categoria ?? item?.categoria ?? "";
+    return String(categoriaNombre).toUpperCase().trim() === "VIDRIO";
+  };
+
+  const resolverEspesorVidrio = (item) => {
+    const mm = item?.producto?.mm ?? item?.mm;
+    if (mm !== null && mm !== undefined && mm !== "") {
+      const numero = Number(mm);
+      if (Number.isFinite(numero) && numero > 0) {
+        return numero;
+      }
+    }
+
+    const grosorMm = item?.producto?.grosorMm ?? item?.grosorMm;
+    if (grosorMm !== null && grosorMm !== undefined && grosorMm !== "") {
+      const numero = Number(grosorMm);
+      if (Number.isFinite(numero) && numero > 0) {
+        return numero;
+      }
+    }
+
+    return null;
+  };
+
+  const resolverNombreImpresion = (item) => {
+    const nombreBase = resolverNombreItem(item);
+    const esVidrio = resolverEsVidrio(item);
+
+    if (!esVidrio) {
+      return nombreBase;
+    }
+
+    const mm = resolverEspesorVidrio(item);
+    if (!Number.isFinite(mm) || mm <= 0) {
+      return nombreBase;
+    }
+
+    return `${nombreBase} ${mm}MM`;
+  };
+
   const resolverTipoImpresion = (item) => {
     const tipoRaw = (item?.tipoUnidad ?? item?.producto?.tipoUnidad ?? item?.producto?.tipo ?? "").toString().trim().toUpperCase();
     if (tipoRaw === "UNID") return "UNIDAD";
@@ -601,8 +647,8 @@ export default function OrdenImprimirModal({ orden, isOpen, onClose }) {
                 <table className="orden-imprimir-table">
                   <thead>
                     <tr>
-                      <th>Producto</th>
                       <th>{esFormatoAntiguoSede1 ? "CANT" : "Cantidad"}</th>
+                      <th>Producto</th>
                       {esFormatoAntiguoSede1 && <th>Color</th>}
                       <th>Tipo</th>
                       {!esFormatoAntiguoSede1 && <th>Color</th>}
@@ -617,7 +663,7 @@ export default function OrdenImprimirModal({ orden, isOpen, onClose }) {
                       </tr>
                     ) : (
                       form.items.map((item, index) => {
-                        const nombreProducto = resolverNombreItem(item);
+                        const nombreProducto = resolverNombreImpresion(item);
                         const tipoImpresion = resolverTipoImpresion(item);
                         const cantidadImpresion = resolverCantidadImpresion(item);
                         const totalImpresion = resolverTotalImpresion(item);
@@ -636,8 +682,8 @@ export default function OrdenImprimirModal({ orden, isOpen, onClose }) {
                         
                         return (
                           <tr key={item.id || index}>
-                            <td>{nombreProducto}</td>
                             <td className="text-center">{cantidadImpresion}</td>
+                            <td>{nombreProducto}</td>
                             {esFormatoAntiguoSede1 && <td>{item.producto?.color || "-"}</td>}
                             <td>{esFormatoAntiguoSede1 ? tipoImpresion : (formatearTipoUnidad(item) || item.producto?.tipo || "-")}</td>
                             {!esFormatoAntiguoSede1 && <td>{item.producto?.color || "-"}</td>}
@@ -693,8 +739,8 @@ export default function OrdenImprimirModal({ orden, isOpen, onClose }) {
                 <table className="orden-imprimir-table">
                   <thead>
                     <tr>
-                      <th>Producto</th>
                       <th>{esFormatoAntiguoSede1 ? "CANT" : "Cantidad"}</th>
+                      <th>Producto</th>
                       {esFormatoAntiguoSede1 && <th>Color</th>}
                       <th>Tipo</th>
                       {!esFormatoAntiguoSede1 && <th>Color</th>}
@@ -707,7 +753,7 @@ export default function OrdenImprimirModal({ orden, isOpen, onClose }) {
                       </tr>
                     ) : (
                       form.items.map((item, index) => {
-                        const nombreProducto = resolverNombreItem(item);
+                        const nombreProducto = resolverNombreImpresion(item);
                         const tipoImpresion = resolverTipoImpresion(item);
                         const cantidadImpresion = resolverCantidadImpresion(item);
                         
@@ -725,8 +771,8 @@ export default function OrdenImprimirModal({ orden, isOpen, onClose }) {
                         
                         return (
                           <tr key={item.id || index}>
-                            <td>{nombreProducto}</td>
                             <td className="text-center">{cantidadImpresion}</td>
+                            <td>{nombreProducto}</td>
                             {esFormatoAntiguoSede1 && <td>{item.producto?.color || "-"}</td>}
                             <td>{esFormatoAntiguoSede1 ? tipoImpresion : (formatearTipoUnidad(item) || item.producto?.tipo || "-")}</td>
                             {!esFormatoAntiguoSede1 && <td>{item.producto?.color || "-"}</td>}

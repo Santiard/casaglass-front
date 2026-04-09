@@ -157,6 +157,50 @@ export default function FacturaImprimirModal({ factura, isOpen, onClose }) {
     return item?.nombre || item?.nombreProducto || item?.producto?.nombre || "-";
   };
 
+  const resolverEsVidrio = (item) => {
+    const esVidrioCanonico = item?.producto?.esVidrio ?? item?.esVidrio;
+    if (typeof esVidrioCanonico === "boolean") {
+      return esVidrioCanonico;
+    }
+
+    const categoriaNombre = item?.producto?.categoriaNombre ?? item?.categoriaNombre ?? item?.producto?.categoria?.nombre ?? item?.categoria?.nombre ?? item?.producto?.categoria ?? item?.categoria ?? "";
+    return String(categoriaNombre).toUpperCase().trim() === "VIDRIO";
+  };
+
+  const resolverEspesorVidrio = (item) => {
+    const mm = item?.producto?.mm ?? item?.mm;
+    if (mm !== null && mm !== undefined && mm !== "") {
+      const numero = Number(mm);
+      if (Number.isFinite(numero) && numero > 0) {
+        return numero;
+      }
+    }
+
+    const grosorMm = item?.producto?.grosorMm ?? item?.grosorMm;
+    if (grosorMm !== null && grosorMm !== undefined && grosorMm !== "") {
+      const numero = Number(grosorMm);
+      if (Number.isFinite(numero) && numero > 0) {
+        return numero;
+      }
+    }
+
+    return null;
+  };
+
+  const resolverNombreImpresion = (item) => {
+    const nombreBase = resolverNombreItem(item);
+    if (!resolverEsVidrio(item)) {
+      return nombreBase;
+    }
+
+    const espesorMm = resolverEspesorVidrio(item);
+    if (!Number.isFinite(espesorMm) || espesorMm <= 0) {
+      return nombreBase;
+    }
+
+    return `${nombreBase} ${espesorMm}MM`;
+  };
+
   // Función para crear ventana de impresión (compartida entre imprimir y PDF)
   const crearVentanaImpresion = () => {
     const contenido = document.getElementById('printable-factura-content').innerHTML;
@@ -499,7 +543,7 @@ export default function FacturaImprimirModal({ factura, isOpen, onClose }) {
                   <th>Tipo</th>
                   <th>Producto</th>
                   <th className="text-right">Valor Unitario (sin IVA)</th>
-                  <th className="text-right">Valor Total (sin IVA)</th>
+                  <th className="text-right">Valor Unitario (con IVA)</th>
                 </tr>
               </thead>
               <tbody>
@@ -513,9 +557,9 @@ export default function FacturaImprimirModal({ factura, isOpen, onClose }) {
                       <td className="text-center">{item.cantidad || 0}</td>
                       <td>{item.producto?.color || "-"}</td>
                       <td>{item.producto?.tipo || "-"}</td>
-                      <td>{resolverNombreItem(item)}</td>
+                      <td>{resolverNombreImpresion(item)}</td>
                       <td className="text-right">${sinIva(item.precioUnitario).toLocaleString("es-CO")}</td>
-                      <td className="text-right">${sinIva(item.totalLinea).toLocaleString("es-CO")}</td>
+                      <td className="text-right">${Number(item.precioUnitario || 0).toLocaleString("es-CO")}</td>
                     </tr>
                   ))
                 )}
