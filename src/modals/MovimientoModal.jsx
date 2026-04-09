@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import "../styles/MovimientoNuevoModal.css";
 import CategorySidebar from "../componets/CategorySidebar.jsx";
 import { listarCategorias } from "../services/CategoriasService.js";
+import { listarInventarioCompleto } from "../services/InventarioService.js";
 import { getTodayLocalDate, toLocalDateOnly } from "../lib/dateUtils.js";
 import { actualizarDetallesBatch } from "../services/TrasladosService.js";
 
@@ -30,6 +31,8 @@ export default function MovimientoModal({
   const [editableWithin2d, setEditableWithin2d] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+  const [catalogoPorSede, setCatalogoPorSede] = useState([]);
+  const [loadingCatalogo, setLoadingCatalogo] = useState(false);
 
   // En edición: permitimos cambiar cabecera Y productos si NO está confirmado
   // Los productos se editan usando endpoints de detalles (agregar, eliminar, actualizar)
@@ -121,13 +124,68 @@ export default function MovimientoModal({
     }
   }, [isOpen, movimiento]);
 
+  // Cargar catálogo bajo demanda cuando se selecciona sede origen
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const sedeOrigenId = Number(form.sedeOrigenId || 0);
+    if (!sedeOrigenId) {
+      setCatalogoPorSede([]);
+      return;
+    }
+
+    let cancelled = false;
+
+    const cargarCatalogoPorSede = async () => {
+      setLoadingCatalogo(true);
+      try {
+        const productos = await listarInventarioCompleto({ sedeId: sedeOrigenId }, true, null);
+        if (cancelled) return;
+
+        const normalizados = (productos || [])
+          .filter((p) => p.largoCm === undefined || p.largoCm === null) // Excluir cortes
+          .map((p) => ({
+            id: p.id,
+            nombre: p.nombre,
+            codigo: p.codigo ?? "",
+            categoria: p.categoria?.nombre ?? p.categoria ?? "",
+            color: p.color,
+            cantidadInsula: Number(p.cantidadInsula ?? 0),
+            cantidadCentro: Number(p.cantidadCentro ?? 0),
+            cantidadPatios: Number(p.cantidadPatios ?? 0),
+            cantidadTotal: Number(p.cantidadTotal ?? 0),
+          }));
+
+        setCatalogoPorSede(normalizados);
+      } catch (e) {
+        if (cancelled) return;
+        setCatalogoPorSede([]);
+        setErrorMsg("No se pudo cargar el catálogo para la sede origen seleccionada.");
+      } finally {
+        if (!cancelled) {
+          setLoadingCatalogo(false);
+        }
+      }
+    };
+
+    cargarCatalogoPorSede();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen, form.sedeOrigenId]);
+
   // Filtro de catálogo por categoría y búsqueda
   const obtenerCodigoProducto = (p) => (
     p?.codigo ?? p?.codigoProducto ?? p?.producto?.codigo ?? ""
   );
 
   const catalogoFiltrado = useMemo(() => {
-    let filtered = catalogoProductos;
+    const sourceCatalogo = Number(form.sedeOrigenId)
+      ? (catalogoPorSede.length > 0 ? catalogoPorSede : catalogoProductos)
+      : [];
+
+    let filtered = sourceCatalogo;
     
     // Filtrar cortes: excluir productos que tengan largoCm (son cortes)
     // Los cortes nunca se compran o trasladan, solo se quedan en la sede donde son generados
@@ -165,7 +223,15 @@ export default function MovimientoModal({
     }
     
     return filtered;
-  }, [catalogoProductos, search, selectedCategoryId, selectedColor, categorias]);
+  }, [catalogoProductos, catalogoPorSede, form.sedeOrigenId, search, selectedCategoryId, selectedColor, categorias]);
+
+  const obtenerUnidadesSedeOrigen = (item) => {
+    const sedeOrigen = Number(form.sedeOrigenId || 0);
+    if (sedeOrigen === 1) return Number(item?.cantidadInsula ?? 0);
+    if (sedeOrigen === 2) return Number(item?.cantidadCentro ?? 0);
+    if (sedeOrigen === 3) return Number(item?.cantidadPatios ?? 0);
+    return Number(item?.cantidadTotal ?? 0);
+  };
 
   // Validaciones
   const mismaSede =
@@ -583,7 +649,7 @@ export default function MovimientoModal({
                 placeholder="Buscar por nombre o código…"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                disabled={!canEditProducts}
+                disabled={!canEditProducts || !form.sedeOrigenId}
                 style={{ flex: 1, minWidth: '160px' }}
               />
               <select
@@ -597,7 +663,7 @@ export default function MovimientoModal({
                   fontSize: "0.9rem",
                   minWidth: "140px"
                 }}
-                disabled={!canEditProducts}
+                disabled={!canEditProducts || !form.sedeOrigenId}
               >
                 <option value="">Todos los colores</option>
                 <option value="MATE">MATE</option>
@@ -618,15 +684,28 @@ export default function MovimientoModal({
               <table className="inv-table">
                 <thead>
                   <tr>
-                    <th style={{ width: "55%" }}>Nombre</th>
-                    <th style={{ width: "30%" }}>Código</th>
-                    <th style={{ width: "15%" }}>Color</th>
+                    <th style={{ width: "45%" }}>Nombre</th>
+                    <th style={{ width: "22%" }}>Código</th>
+                    <th style={{ width: "13%" }}>Color</th>
+                    <th style={{ width: "20%", textAlign: "right" }}>Unid. origen</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {catalogoFiltrado.length === 0 ? (
+                  {!form.sedeOrigenId ? (
                     <tr>
-                      <td colSpan={3} className="empty">
+                      <td colSpan={4} className="empty">
+                        Selecciona sede origen para cargar el catálogo.
+                      </td>
+                    </tr>
+                  ) : loadingCatalogo ? (
+                    <tr>
+                      <td colSpan={4} className="empty">
+                        Cargando catálogo...
+                      </td>
+                    </tr>
+                  ) : catalogoFiltrado.length === 0 ? (
+                    <tr>
+                      <td colSpan={4} className="empty">
                         Sin resultados
                       </td>
                     </tr>
@@ -659,6 +738,15 @@ export default function MovimientoModal({
                           e.stopPropagation(); 
                           if (canEditProducts) addProducto(item); 
                         }}>{item.color ?? "-"}</td>
+                        <td
+                          onDoubleClick={(e) => {
+                            e.stopPropagation();
+                            if (canEditProducts) addProducto(item);
+                          }}
+                          style={{ textAlign: "right", fontVariantNumeric: "tabular-nums" }}
+                        >
+                          {obtenerUnidadesSedeOrigen(item)}
+                        </td>
                       </tr>
                     ))
                   )}

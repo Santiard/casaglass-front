@@ -3,6 +3,7 @@ import "../styles/OrdenImprimirModal.css";
 import { obtenerOrden, obtenerOrdenDetalle } from "../services/OrdenesService.js";
 import { obtenerFacturaPorOrden } from "../services/FacturasService.js";
 import html2pdf from "html2pdf.js";
+import { esSedeSinControlCortes, formatearTipoUnidad, obtenerCmBaseItem } from "../lib/ordenUnidadUtils.js";
 
 export default function OrdenImprimirModal({ orden, isOpen, onClose }) {
   // Cargar SIEMPRE la orden detallada (con items completos)
@@ -178,6 +179,7 @@ export default function OrdenImprimirModal({ orden, isOpen, onClose }) {
   const totalOrden = form.total !== null 
     ? form.total 
     : form.items.reduce((sum, item) => sum + (item.totalLinea || 0), 0); // Fallback: calcular si no viene del backend
+  const esFormatoAntiguoSede1 = esSedeSinControlCortes(form?.sede?.id);
 
   // Formatear fecha
   const fmtFecha = (iso) =>
@@ -195,6 +197,52 @@ export default function OrdenImprimirModal({ orden, isOpen, onClose }) {
 
     const nombreFallback = (item?.nombreProducto || item?.producto?.nombre || "-").toString().trim();
     return nombreFallback || "-";
+  };
+
+  const resolverTipoImpresion = (item) => {
+    const tipoRaw = (item?.tipoUnidad ?? item?.producto?.tipoUnidad ?? item?.producto?.tipo ?? "").toString().trim().toUpperCase();
+    if (tipoRaw === "UNID") return "UNIDAD";
+    if (tipoRaw === "CM") {
+      const cmBase = Number(obtenerCmBaseItem(item) ?? 0);
+      if (Number.isFinite(cmBase) && cmBase > 0) {
+        return `CM(${cmBase})`;
+      }
+      return "CM";
+    }
+    return tipoRaw || "-";
+  };
+
+  const resolverCantidadImpresion = (item) => {
+    const tipo = resolverTipoImpresion(item);
+    if (esFormatoAntiguoSede1 && tipo.startsWith("CM")) {
+      const medidaDirecta = Number(item?.medidaCorte ?? 0);
+      if (Number.isFinite(medidaDirecta) && medidaDirecta > 0) {
+        return medidaDirecta;
+      }
+
+      const nombre = resolverNombreItem(item);
+      const match = nombre.match(/corte\s+de\s+(\d+)/i);
+      if (match?.[1]) {
+        return Number(match[1]);
+      }
+
+      const cmBase = Number(obtenerCmBaseItem(item) ?? 0);
+      if (Number.isFinite(cmBase) && cmBase > 0) {
+        return cmBase;
+      }
+    }
+
+    return Number(item?.cantidad ?? 0);
+  };
+
+  const resolverTotalImpresion = (item) => {
+    const cantidadUnidades = Number(item?.cantidad ?? 0);
+    const unitario = Number(item?.precioUnitario ?? 0);
+    const totalCalculado = cantidadUnidades * unitario;
+    if (Number.isFinite(totalCalculado) && totalCalculado > 0) {
+      return totalCalculado;
+    }
+    return Number(item?.totalLinea ?? 0);
   };
 
   // Función para crear ventana de impresión (compartida entre imprimir y PDF)
@@ -395,15 +443,17 @@ export default function OrdenImprimirModal({ orden, isOpen, onClose }) {
                 color: #000 !important;
                 border: none !important;
                 border-bottom: 2px solid #000 !important;
-                padding: 6px 8px;
+                padding: 3px 6px;
                 font-size: 0.85rem;
+                line-height: 1.1;
               }
               
               .orden-imprimir-table td {
                 color: #000 !important;
                 border: none !important;
-                padding: 5px 8px;
+                padding: 2px 6px;
                 font-size: 0.85rem;
+                line-height: 1.1;
               }
               
               .orden-imprimir-table tbody tr:nth-child(even) {
@@ -547,26 +597,29 @@ export default function OrdenImprimirModal({ orden, isOpen, onClose }) {
                   </div>
                 </div>
 
-                {/* Items con color y tipo */}
+                {/* Items */}
                 <table className="orden-imprimir-table">
                   <thead>
                     <tr>
-                      <th>Cantidad</th>
-                      <th>Color</th>
-                      <th>Tipo</th>
+                      <th>{esFormatoAntiguoSede1 ? "CANT" : "Cantidad"}</th>
                       <th>Producto</th>
-                      <th>Valor Unitario</th>
-                      <th>Valor Total</th>
+                      <th>Tipo</th>
+                      {!esFormatoAntiguoSede1 && <th>Color</th>}
+                      <th>{esFormatoAntiguoSede1 ? "Precio Unitario" : "Valor Unitario"}</th>
+                      <th>{esFormatoAntiguoSede1 ? "Precio Total" : "Valor Total"}</th>
                     </tr>
                   </thead>
                   <tbody>
                     {form.items.length === 0 ? (
                       <tr>
-                        <td colSpan={6} className="empty">Sin ítems</td>
+                        <td colSpan={esFormatoAntiguoSede1 ? 5 : 6} className="empty">Sin ítems</td>
                       </tr>
                     ) : (
                       form.items.map((item, index) => {
                         const nombreProducto = resolverNombreItem(item);
+                        const tipoImpresion = resolverTipoImpresion(item);
+                        const cantidadImpresion = resolverCantidadImpresion(item);
+                        const totalImpresion = resolverTotalImpresion(item);
                         
                         console.log(`🏷️ [OrdenImprimirModal] Renderizando item ${index + 1}:`, {
                           itemId: item.id,
@@ -582,12 +635,12 @@ export default function OrdenImprimirModal({ orden, isOpen, onClose }) {
                         
                         return (
                           <tr key={item.id || index}>
-                            <td className="text-center">{item.cantidad || 0}</td>
-                            <td>{item.producto?.color || "-"}</td>
-                            <td>{item.producto?.tipo || "-"}</td>
+                            <td className="text-center">{cantidadImpresion}</td>
                             <td>{nombreProducto}</td>
+                            <td>{esFormatoAntiguoSede1 ? tipoImpresion : (formatearTipoUnidad(item) || item.producto?.tipo || "-")}</td>
+                            {!esFormatoAntiguoSede1 && <td>{item.producto?.color || "-"}</td>}
                             <td>${item.precioUnitario?.toLocaleString("es-CO") || "0"}</td>
-                            <td>${item.totalLinea?.toLocaleString("es-CO") || "0"}</td>
+                            <td>${totalImpresion.toLocaleString("es-CO") || "0"}</td>
                           </tr>
                         );
                       })
@@ -638,20 +691,22 @@ export default function OrdenImprimirModal({ orden, isOpen, onClose }) {
                 <table className="orden-imprimir-table">
                   <thead>
                     <tr>
-                      <th>Cantidad</th>
-                      <th>Color</th>
-                      <th>Tipo</th>
+                      <th>{esFormatoAntiguoSede1 ? "CANT" : "Cantidad"}</th>
                       <th>Producto</th>
+                      <th>Tipo</th>
+                      {!esFormatoAntiguoSede1 && <th>Color</th>}
                     </tr>
                   </thead>
                   <tbody>
                     {form.items.length === 0 ? (
                       <tr>
-                        <td colSpan={4} className="empty">Sin ítems</td>
+                        <td colSpan={esFormatoAntiguoSede1 ? 3 : 4} className="empty">Sin ítems</td>
                       </tr>
                     ) : (
                       form.items.map((item, index) => {
                         const nombreProducto = resolverNombreItem(item);
+                        const tipoImpresion = resolverTipoImpresion(item);
+                        const cantidadImpresion = resolverCantidadImpresion(item);
                         
                         console.log(`🏷️ [OrdenImprimirModal - Trabajadores] Renderizando item ${index + 1}:`, {
                           itemId: item.id,
@@ -667,10 +722,10 @@ export default function OrdenImprimirModal({ orden, isOpen, onClose }) {
                         
                         return (
                           <tr key={item.id || index}>
-                            <td className="text-center">{item.cantidad || 0}</td>
-                            <td>{item.producto?.color || "-"}</td>
-                            <td>{item.producto?.tipo || "-"}</td>
+                            <td className="text-center">{cantidadImpresion}</td>
                             <td>{nombreProducto}</td>
+                            <td>{esFormatoAntiguoSede1 ? tipoImpresion : (formatearTipoUnidad(item) || item.producto?.tipo || "-")}</td>
+                            {!esFormatoAntiguoSede1 && <td>{item.producto?.color || "-"}</td>}
                           </tr>
                         );
                       })

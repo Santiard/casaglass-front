@@ -76,6 +76,8 @@ function transformarInventarioDTO(productos, isAdmin = true, userSedeId = null, 
       nombre: producto.nombre,
       posicion: producto.posicion,
       tipo: producto.tipo,
+      tipoUnidad: producto.tipoUnidad || producto.unidad || producto.unidadMedida || producto.tipo_unidad || null,
+      cmBase: producto.cmBase ?? producto.cm_base ?? null,
       color: producto.color,
       categoria: categoriaNombre || (producto.categoria?.nombre) || null, // Nombre de categoría para filtros (compatibilidad)
       categoriaId: categoriaId || producto.categoria?.id || producto.categoriaId || producto.categoria_id, // ID para filtros por ID
@@ -199,6 +201,8 @@ function transformarCortesDTO(cortes, isAdmin = true, userSedeId = null) {
       nombre: corte.nombre,
       posicion: corte.posicion,
       tipo: corte.tipo,
+      tipoUnidad: corte.tipoUnidad || corte.unidad || corte.unidadMedida || corte.tipo_unidad || null,
+      cmBase: corte.cmBase ?? corte.cm_base ?? null,
       color: corte.color,
       categoria: corte.categoria,
       descripcion: corte.descripcion,

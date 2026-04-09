@@ -133,18 +133,128 @@
 
 /* Productos seleccionados */
 .selected-products { margin-top: 8px; }
-.mini-table { width: 100%; border-collapse: collapse; }
-.mini-table th, .mini-table td {
-  border-bottom: 1px solid #e6e8f0;
-  padding: 8px;
-  text-align: left;
+.items-card {
+  margin-top: 0.5rem;
+  padding: 0.75rem;
+  border: 1px solid #e6e8f0;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #ffffff 0%, #f9fbff 100%);
+  overflow: auto;
+  min-height: 0;
+}
+.items-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+.item-card {
+  border: 1px solid #dde3ef;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(30, 39, 83, 0.06);
+  padding: 0.75rem;
+}
+.item-card__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+.item-card__main {
+  min-width: 0;
+  flex: 1;
+}
+.item-card__title {
   font-size: 0.95rem;
+  font-weight: 700;
+  color: #1e2753;
+  line-height: 1.2;
+  margin-bottom: 0.35rem;
+  word-break: break-word;
+}
+.item-card__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  align-items: center;
+}
+.item-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  background: #eef2ff;
+  color: #334155;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+.item-card__delete {
+  flex: 0 0 auto;
+  align-self: flex-start;
+}
+.item-card__grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+.item-field {
+  display: grid;
+  gap: 0.35rem;
+  min-width: 0;
+}
+.item-field span {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #4b5563;
+}
+.item-field--total {
+  align-content: end;
+  padding: 0.55rem 0.65rem;
+  border-radius: 10px;
+  background: #f5f7ff;
+  border: 1px solid #e5e8f7;
+}
+.item-field--total strong {
+  font-size: 0.98rem;
+  color: #1e2753;
+  font-variant-numeric: tabular-nums;
+}
+.mini-table-control {
+  width: 100%;
+  min-height: 38px;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid #c2c2c3;
+  border-radius: 8px;
+  background: #fff;
+  font-size: 0.92rem;
+}
+.mini-table-input--compact {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.mini-table-control:disabled {
+  background: #f3f5fa;
+  color: #7a8091;
 }
 .qty-input {
   width: 100%;
   padding: 6px 8px;
   border: 1px solid #c2c2c3;
   border-radius: 8px;
+}
+@media (max-width: 1250px) {
+  .item-card__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 1000px) {
+  .items-card {
+    max-height: 420px;
+  }
+  .item-card__grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* Inventario */

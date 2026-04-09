@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { obtenerOrdenDetalle } from "../services/OrdenesService.js";
 import { obtenerFactura } from "../services/FacturasService.js";
 import { getBusinessSettings } from "../services/businessSettingsService.js";
+import { esSedeUno, formatearTipoUnidad, obtenerCmBaseItem, tieneDatosUnidadSedeUno } from "../lib/ordenUnidadUtils.js";
 import "../styles/IngresoDetalleModal.css";
 
 export default function OrdenDetalleModal({ ordenId, facturaId, isOpen, onClose }) {
@@ -181,6 +182,7 @@ export default function OrdenDetalleModal({ ordenId, facturaId, isOpen, onClose 
     : (factura?.orden?.porcentajeIca !== undefined && factura?.orden?.porcentajeIca !== null 
       ? Number(factura.orden.porcentajeIca) 
       : null);
+  const mostrarCamposUnidad = esSedeUno(orden?.sede?.id || factura?.orden?.sede?.id) || detalles.some(tieneDatosUnidadSedeUno);
 
   return (
     <div className="modal-overlay" onClick={onClose} style={{ overflowY: 'auto', maxHeight: '100vh' }}>
@@ -283,6 +285,8 @@ export default function OrdenDetalleModal({ ordenId, facturaId, isOpen, onClose 
                   <tr>
                     <th>Código</th>
                     <th>Producto</th>
+                    {mostrarCamposUnidad && <th>Tipo unidad</th>}
+                    {mostrarCamposUnidad && <th>CM base</th>}
                     <th>Cantidad</th>
                     <th>Precio Unit. (sin IVA)</th>
                     <th>Total Línea (sin IVA)</th>
@@ -291,7 +295,7 @@ export default function OrdenDetalleModal({ ordenId, facturaId, isOpen, onClose 
                 <tbody>
                   {detalles.length === 0 ? (
                     <tr>
-                      <td colSpan={5} className="empty">
+                        <td colSpan={mostrarCamposUnidad ? 7 : 5} className="empty">
                         Sin ítems
                       </td>
                     </tr>
@@ -300,6 +304,8 @@ export default function OrdenDetalleModal({ ordenId, facturaId, isOpen, onClose 
                       <tr key={d.id || `item-${i}`}>
                         <td>{d.producto?.codigo ?? "-"}</td>
                         <td>{resolverNombreItem(d)}</td>
+                          {mostrarCamposUnidad && <td>{formatearTipoUnidad(d)}</td>}
+                          {mostrarCamposUnidad && <td>{obtenerCmBaseItem(d) ?? "-"}</td>}
                         <td style={{ textAlign: "center" }}>{d.cantidad ?? "-"}</td>
                         <td>{fmtCOP(sinIva(d.precioUnitario))}</td>
                         <td>{fmtCOP(sinIva(d.totalLinea))}</td>

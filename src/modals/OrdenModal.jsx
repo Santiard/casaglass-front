@@ -17,6 +17,7 @@ import { api } from "../lib/api";
 import { getTodayLocalDate, toLocalDateOnly } from "../lib/dateUtils.js";
 import { listarInventarioCompleto, listarCortesInventarioCompleto } from "../services/InventarioService.js";
 import { getBusinessSettings } from "../services/businessSettingsService.js";
+import { esSedeUno, normalizarTipoUnidad, obtenerCmBaseItem, obtenerTipoUnidadItem } from "../lib/ordenUnidadUtils.js";
 
 export default function OrdenEditarModal({
   orden,
@@ -67,6 +68,10 @@ export default function OrdenEditarModal({
     { value: "TRANSFERENCIA", label: "Transferencia" },
     { value: "CHEQUE", label: "Cheque" }
   ];
+
+  const sedeActualId = Number(form?.sedeId || defaultSedeId || 0);
+  const esSedeUnoActual = esSedeUno(sedeActualId);
+  const catalogoTipoActivo = esSedeUnoActual ? "productos" : catalogoTipo;
   
   // Función para parsear la descripción y extraer métodos de pago
   const parsearDescripcion = (descripcion) => {
@@ -335,6 +340,8 @@ export default function OrdenEditarModal({
               productoId: Number((p.productoOriginal ?? p.id) ?? 0) || null,
               codigo: p.codigo ?? "",
               nombre: p.nombre ?? "",
+              tipoUnidad: normalizarTipoUnidad(p.tipoUnidad ?? p.producto?.tipoUnidad ?? p.tipo ?? "", esSedeUno(defaultSedeId) ? "UNID" : ""),
+              cmBase: obtenerCmBaseItem(p),
               cantidad: Number(p.cantidadVender ?? 1),
               precioUnitario: Number(p.precioUsado ?? 0),
               totalLinea: Number((p.precioUsado ?? 0) * (p.cantidadVender ?? 1)),
@@ -409,6 +416,8 @@ export default function OrdenEditarModal({
           productoId: i.producto?.id ?? null,
           codigo: i.producto?.codigo ?? "",
           nombre: i.nombre || i.nombreProducto || i.producto?.nombre || "",
+          tipoUnidad: normalizarTipoUnidad(i.tipoUnidad ?? i.producto?.tipoUnidad ?? i.producto?.tipo ?? "", esSedeUno(orden?.sede?.id) ? "UNID" : ""),
+          cmBase: obtenerCmBaseItem(i),
           color: i.producto?.color ?? "", // Agregar color del producto
           cantidad: Number(i.cantidad ?? 1),
           precioUnitario: Number(i.precioUnitario ?? 0),
@@ -461,6 +470,8 @@ export default function OrdenEditarModal({
             productoId: i.producto?.id ?? null, // Puede ser null si viene de /api/ordenes/tabla
             codigo: i.producto?.codigo ?? "",
             nombre: i.nombre || i.nombreProducto || i.producto?.nombre || "",
+            tipoUnidad: normalizarTipoUnidad(i.tipoUnidad ?? i.producto?.tipoUnidad ?? i.producto?.tipo ?? "", esSedeUno(orden?.sede?.id) ? "UNID" : ""),
+            cmBase: obtenerCmBaseItem(i),
             color: i.producto?.color ?? "", // Agregar color del producto
             cantidad: Number(i.cantidad ?? 1),
             precioUnitario: Number(i.precioUnitario ?? 0),
@@ -567,7 +578,7 @@ export default function OrdenEditarModal({
       try {
         setLoadingProductos(true);
 
-        if (catalogoTipo === "cortes") {
+        if (catalogoTipoActivo === "cortes") {
           const cortes = await listarCortesInventarioCompleto({}, true, null);
           setCatalogoProductos(cortes || []);
         } else {
@@ -585,7 +596,7 @@ export default function OrdenEditarModal({
     };
     
     fetchProductosPorCategoria();
-  }, [selectedCategoryId, isOpen, showError, catalogoTipo]);
+  }, [selectedCategoryId, isOpen, showError, catalogoTipoActivo]);
 
   // ========== Seleccionar primera categoría por defecto ==========
   useEffect(() => {
@@ -834,6 +845,10 @@ export default function OrdenEditarModal({
     );
   }
 
+  // Solo mostrar campos de unidad (tipoUnidad, cmBase) para SEDE 1
+  // Las otras sedes usan el flujo antiguo sin estos campos
+  const mostrarCamposUnidad = esSedeUnoActual;
+
   // =============================
   // Handlers
   // =============================
@@ -856,6 +871,13 @@ export default function OrdenEditarModal({
         item.precioUnitario = Number(value) || 0;
         // Recalcular total de línea automáticamente
         item.totalLinea = (item.cantidad || 0) * item.precioUnitario;
+      } else if (field === "tipoUnidad") {
+        item.tipoUnidad = normalizarTipoUnidad(value, "UNID");
+        if (item.tipoUnidad !== "CM") {
+          item.cmBase = null;
+        }
+      } else if (field === "cmBase") {
+        item.cmBase = value === "" ? null : Number(value);
       } else {
         item[field] = field === "totalLinea" ? Number(value) : value;
       }
@@ -915,6 +937,8 @@ export default function OrdenEditarModal({
       productoId: productoId,
       codigo: item.codigo,
       nombre: item.nombre,
+      tipoUnidad: normalizarTipoUnidad(item.tipoUnidad ?? item.producto?.tipoUnidad ?? item.tipo ?? "", esSedeUno(form?.sedeId) ? "UNID" : ""),
+      cmBase: obtenerCmBaseItem(item),
       cantidad: 1,
       precioUnitario: precioUnitario,
       totalLinea: precioUnitario,
@@ -954,6 +978,8 @@ export default function OrdenEditarModal({
         codigo: corteParaVender.codigo || "",
         nombre: corteParaVender.nombre || "",
         color: corteParaVender.color || "",
+        tipoUnidad: normalizarTipoUnidad(corteParaVender.tipoUnidad ?? corteParaVender.tipo ?? "", "CM"),
+        cmBase: obtenerCmBaseItem(corteParaVender),
         cantidad: Number(corteParaVender.cantidadVender || 1),
         precioUnitario: precioCorte,
         totalLinea: precioCorte * Number(corteParaVender.cantidadVender || 1),
@@ -1045,6 +1071,30 @@ export default function OrdenEditarModal({
         return;
       }
 
+      const esSedeUnoOrden = esSedeUno(form.sedeId);
+      const itemsActivosNormalizados = itemsActivos.map((item) => {
+        const tipoUnidad = normalizarTipoUnidad(item.tipoUnidad, esSedeUnoOrden ? "UNID" : "");
+        const cmBase = tipoUnidad === "CM"
+          ? (Number(item.cmBase) > 0 ? Number(item.cmBase) : null)
+          : null;
+
+        return {
+          ...item,
+          tipoUnidad,
+          cmBase,
+        };
+      });
+
+      // En sede 1, cmBase es obligatorio solo al confirmar venta (venta=true).
+      // En cotización (venta=false) se permite cmBase null porque aún no se conoce el origen.
+      if (esSedeUnoOrden && Boolean(form.venta)) {
+        const itemsCmSinBase = itemsActivosNormalizados.filter((item) => item.tipoUnidad === "CM" && !(Number(item.cmBase) > 0));
+        if (itemsCmSinBase.length > 0) {
+          showError("Cuando el tipo de unidad es CM debes indicar una base en centímetros para cada línea.");
+          return;
+        }
+      }
+
       // Verificar si el cliente es JAIRO JAVIER VELANDIA
       const clienteSeleccionado = form.clienteId 
         ? clientes.find(c => String(c.id) === String(form.clienteId))
@@ -1053,7 +1103,7 @@ export default function OrdenEditarModal({
 
       // Calcular el subtotal de la orden (suma de totalLinea de todos los items)
       // El precio ya incluye IVA, así que el subtotal es el precio completo
-      const subtotal = itemsActivos.reduce((sum, item) => sum + (item.totalLinea || 0), 0);
+      const subtotal = itemsActivosNormalizados.reduce((sum, item) => sum + (item.totalLinea || 0), 0);
       const totalOrden = subtotal;
 
       // Calcular retención de fuente si está marcada (ANTES de usar en construirDescripcion)
@@ -1216,7 +1266,7 @@ export default function OrdenEditarModal({
         // trabajadorId es opcional según la documentación
         ...(form.trabajadorId ? { trabajadorId: Number(form.trabajadorId) } : {}),
         // ✅ Mantener items de venta y enviar cortes por separado para inventario
-        items: itemsActivos
+        items: itemsActivosNormalizados
           .filter(i => {
             // Filtrar items inválidos (sin productoId, cantidad 0, precio 0)
             const productoId = Number(i.productoId);
@@ -1258,6 +1308,18 @@ export default function OrdenEditarModal({
             // Esto permite que el backend guarde el nombre con la medida del corte
             if (i.nombre) {
               item.nombre = i.nombre;
+            }
+
+            if (i.tipoUnidad) {
+              item.tipoUnidad = normalizarTipoUnidad(i.tipoUnidad, esSedeUnoOrden ? "UNID" : "");
+            }
+
+            // cmBase es opcional - solo enviar si está definido y es mayor a 0
+            if (i.cmBase !== null && i.cmBase !== undefined && i.cmBase !== "") {
+              const cmBaseNum = Number(i.cmBase);
+              if (cmBaseNum > 0) {
+                item.cmBase = cmBaseNum;
+              }
             }
             
             // Si es un corte que debe reutilizar un existente, agregar el ID
@@ -1351,7 +1413,7 @@ export default function OrdenEditarModal({
 
       const payloadConCortes = {
         ...payload,
-        cortes: cortesFinales,
+        cortes: esSedeUnoOrden ? [] : cortesFinales,
       };
 
       // VALIDACIÓN CLIENTE: prevenir payloads incompletos que causen 500 en backend
@@ -1376,6 +1438,10 @@ export default function OrdenEditarModal({
               errores.push(`cortes[${idx}].cantidadesPorSede inválida o sin cantidades`);
             }
           });
+        }
+
+        if (esSedeUnoOrden && p.cortes && Array.isArray(p.cortes) && p.cortes.length > 0) {
+          errores.push("La sede 1 no debe enviar cortes en el payload");
         }
 
         return errores;
@@ -1448,9 +1514,32 @@ export default function OrdenEditarModal({
     // Editar orden existente
     // Filtrar items activos (no eliminados)
     const itemsActivosEditar = form.items.filter(i => !i.eliminar);
+    const esSedeUnoOrdenEditar = esSedeUno(form.sedeId);
+    const itemsActivosNormalizadosEditar = itemsActivosEditar.map((item) => {
+      const tipoUnidad = normalizarTipoUnidad(item.tipoUnidad, esSedeUnoOrdenEditar ? "UNID" : "");
+      const cmBase = tipoUnidad === "CM"
+        ? (Number(item.cmBase) > 0 ? Number(item.cmBase) : null)
+        : null;
+
+      return {
+        ...item,
+        tipoUnidad,
+        cmBase,
+      };
+    });
+
+    // En sede 1, cmBase es obligatorio solo al confirmar venta (venta=true).
+    // En cotización (venta=false) se permite cmBase null porque aún no se conoce el origen.
+    if (esSedeUnoOrdenEditar && Boolean(form.venta)) {
+      const itemsCmSinBase = itemsActivosNormalizadosEditar.filter((item) => item.tipoUnidad === "CM" && !(Number(item.cmBase) > 0));
+      if (itemsCmSinBase.length > 0) {
+        showError("Cuando el tipo de unidad es CM debes indicar una base en centímetros para cada línea.");
+        return;
+      }
+    }
     
     // Calcular el total de la orden para edición
-    const subtotalEditar = itemsActivosEditar.reduce((sum, item) => sum + (item.totalLinea || 0), 0);
+    const subtotalEditar = itemsActivosNormalizadosEditar.reduce((sum, item) => sum + (item.totalLinea || 0), 0);
     const totalOrdenEditar = subtotalEditar;
     
     // Calcular subtotal sin IVA (base imponible) - se usa para ambas retenciones
@@ -1575,7 +1664,7 @@ export default function OrdenEditarModal({
     clienteId: form.clienteId ? Number(form.clienteId) : null,
     trabajadorId: form.trabajadorId ? Number(form.trabajadorId) : null,
     sedeId: form.sedeId ? Number(form.sedeId) : null,
-    items: form.items
+    items: itemsActivosNormalizadosEditar
       .filter(i => !i.eliminar) // Filtrar items eliminados
       .filter(i => {
         // Filtrar items inválidos (sin productoId, cantidad 0, precio 0)
@@ -1602,14 +1691,22 @@ export default function OrdenEditarModal({
           item.nombre = String(i.nombre);
         }
 
+        if (i.tipoUnidad) {
+          item.tipoUnidad = normalizarTipoUnidad(i.tipoUnidad, esSedeUnoOrdenEditar ? "UNID" : "");
+        }
+
+        if (Number(i.cmBase) > 0) {
+          item.cmBase = Number(i.cmBase);
+        }
+
         return item;
       }),
 };
 
     // Incluir cortes pendientes en edición para que backend procese y reasigne IDs
-    const cortesDelCarritoEditar = itemsActivosEditar.filter(i => i.esCorteDeCorte === true);
+    const cortesDelCarritoEditar = esSedeUnoOrdenEditar ? [] : itemsActivosEditar.filter(i => i.esCorteDeCorte === true);
 
-    const cortesEnriquecidosEditar = cortesPendientesCombinados
+    const cortesEnriquecidosEditar = esSedeUnoOrdenEditar ? [] : cortesPendientesCombinados
       .filter((corteSobrante) => {
         const itemCorrespondiente = itemsActivosEditar.find(item =>
           Number(item.productoId) === Number(corteSobrante.productoId) ||
@@ -1639,7 +1736,7 @@ export default function OrdenEditarModal({
         };
       });
 
-    const cortesFinalesEditar = [
+    const cortesFinalesEditar = esSedeUnoOrdenEditar ? [] : [
       ...cortesDelCarritoEditar.map((c) => {
         const sobranteCorrespondiente = cortesPendientesCombinados.find(
           s => Number(s.productoId) === Number(c.productoOriginal)
@@ -1669,7 +1766,7 @@ export default function OrdenEditarModal({
 
     const payloadConCortesEditar = {
       ...payload,
-      cortes: cortesFinalesEditar,
+      cortes: esSedeUnoOrdenEditar ? [] : cortesFinalesEditar,
     };
 
     // En edición: decidir endpoint por tipo de orden
@@ -2613,81 +2710,28 @@ export default function OrdenEditarModal({
               </div>
             </div>
             
-            <table className="mini-table">
-              <thead>
-                <tr>
-                  <th>Nombre</th>
-                  <th>Código</th>
-                  <th>Color</th>
-                  <th>Cant.</th>
-                  <th>Precio</th>
-                  <th>Total</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                {form.items.filter(i => !i.eliminar).map((i, idx) => (
-                  <tr key={idx}>
-                    <td>{i.nombre}</td>
-                    <td>{i.codigo}</td>
-                    <td>
-                      <span
-                        className={`color-badge color-${(i.color || 'NA').toLowerCase().replace(/\s+/g, '-')}`}
-                        style={{
-                          display: 'inline-block',
-                          minWidth: 32,
-                          textAlign: 'center',
-                        }}
-                      >
-                        {(i.color ?? 'NA')}
-                      </span>
-                    </td>
-                    <td>
-                      <input
-                        type="number"
-                        value={i.cantidad || ""}
-                        min={0.01}
-                        step={0.01}
-                        placeholder="1"
-                        onChange={(e) =>
-                          handleItemChange(idx, "cantidad", e.target.value)
-                        }
-                      />
-                    </td>
-                    <td>
-                      <input
-                        type="number"
-                        value={i.precioUnitario || ""}
-                        step={0.01}
-                        min={0}
-                        placeholder="0.00"
-                        onChange={(e) =>
-                          handleItemChange(idx, "precioUnitario", e.target.value)
-                        }
-                        onKeyDown={(e) => {
-                          // Permitir: números, punto decimal, backspace, delete, tab, escape, enter, y teclas de navegación
-                          if (!/[0-9.]/.test(e.key) && 
-                              !['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'].includes(e.key) &&
-                              !(e.key === 'a' && e.ctrlKey) && // Ctrl+A
-                              !(e.key === 'c' && e.ctrlKey) && // Ctrl+C
-                              !(e.key === 'v' && e.ctrlKey) && // Ctrl+V
-                              !(e.key === 'x' && e.ctrlKey)) { // Ctrl+X
-                            e.preventDefault();
-                          }
-                        }}
-                        style={{ 
-                          width: '100%',
-                          textAlign: 'right'
-                        }}
-                        title="Precio unitario editable (puede aplicar descuentos)"
-                      />
-                    </td>
-                    <td>
-                      ${((i.cantidad || 0) * (i.precioUnitario || 0)).toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </td>
-                    <td>
+            <div className="items-list">
+              {form.items.filter(i => !i.eliminar).map((i, idx) => {
+                const cantidadNumero = Number(i.cantidad || 0);
+                const precioNumero = Number(i.precioUnitario || 0);
+                const totalLinea = cantidadNumero * precioNumero;
+                const tipoUnidad = obtenerTipoUnidadItem(i) || "UNID";
+                const esCM = tipoUnidad === "CM";
+
+                return (
+                  <article key={idx} className="item-card">
+                    <div className="item-card__header">
+                      <div className="item-card__main">
+                        <div className="item-card__title" title={i.nombre}>{i.nombre}</div>
+                        <div className="item-card__meta">
+                          <span className="item-pill">Código: {i.codigo || "-"}</span>
+                          <span className={`color-badge color-${(i.color || 'NA').toLowerCase().replace(/\s+/g, '-')}`}>
+                            {i.color ?? 'NA'}
+                          </span>
+                        </div>
+                      </div>
                       <button
-                        className="btnDelete"
+                        className="btnDelete item-card__delete"
                         onClick={() => {
                           setForm(prev => ({
                             ...prev,
@@ -2698,11 +2742,90 @@ export default function OrdenEditarModal({
                       >
                         <img src={eliminar} className="iconButton" alt="Eliminar" />
                       </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                    </div>
+
+                    <div
+                      className="item-card__grid"
+                      style={{ gridTemplateColumns: mostrarCamposUnidad ? 'repeat(5, minmax(0, 1fr))' : 'repeat(4, minmax(0, 1fr))' }}
+                    >
+                      {mostrarCamposUnidad && (
+                        <label className="item-field">
+                          <span>Tipo unidad</span>
+                          <select
+                            className="mini-table-control"
+                            value={tipoUnidad}
+                            onChange={(e) => handleItemChange(idx, "tipoUnidad", e.target.value)}
+                          >
+                            <option value="UNID">UNID</option>
+                            <option value="PERFIL">PERFIL</option>
+                            <option value="MT">MT</option>
+                            <option value="CM">CM</option>
+                          </select>
+                        </label>
+                      )}
+
+                      {mostrarCamposUnidad && (
+                        <label className="item-field">
+                          <span>CM base</span>
+                          <input
+                            className="mini-table-control mini-table-input--compact"
+                            type="number"
+                            value={esCM ? (i.cmBase || "") : (i.cmBase || "")}
+                            min={0}
+                            step={1}
+                            placeholder={esCM ? "Base cm" : "-"}
+                            disabled={!esCM}
+                            onChange={(e) => handleItemChange(idx, "cmBase", e.target.value)}
+                          />
+                        </label>
+                      )}
+
+                      <label className="item-field">
+                        <span>Cantidad</span>
+                        <input
+                          className="mini-table-control mini-table-input--compact"
+                          type="number"
+                          value={i.cantidad || ""}
+                          min={0.01}
+                          step={0.01}
+                          placeholder="1"
+                          onChange={(e) => handleItemChange(idx, "cantidad", e.target.value)}
+                        />
+                      </label>
+
+                      <label className="item-field">
+                        <span>Precio</span>
+                        <input
+                          className="mini-table-control mini-table-input--compact"
+                          type="number"
+                          value={i.precioUnitario || ""}
+                          step={0.01}
+                          min={0}
+                          placeholder="0.00"
+                          onChange={(e) => handleItemChange(idx, "precioUnitario", e.target.value)}
+                          onKeyDown={(e) => {
+                            if (!/[0-9.]/.test(e.key) && 
+                                !['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'].includes(e.key) &&
+                                !(e.key === 'a' && e.ctrlKey) &&
+                                !(e.key === 'c' && e.ctrlKey) &&
+                                !(e.key === 'v' && e.ctrlKey) &&
+                                !(e.key === 'x' && e.ctrlKey)) {
+                              e.preventDefault();
+                            }
+                          }}
+                          title="Precio unitario editable (puede aplicar descuentos)"
+                        />
+                      </label>
+
+                      <div className="item-field item-field--total">
+                        <span>Total</span>
+                        <strong>${totalLinea.toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
+                      </div>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
           </div>
 
           {/* PANEL CENTRAL */}
@@ -2747,23 +2870,40 @@ export default function OrdenEditarModal({
           {/* PANEL DERECHO */}
           <div className="pane pane-right">
             <div className="inv-header">
-              <h3>Catálogo de {catalogoTipo === "cortes" ? "Cortes" : "Productos"}</h3>
+              <h3>Catálogo de {catalogoTipoActivo === "cortes" ? "Cortes" : "Productos"}</h3>
               <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
-                <select
-                  className="filter-select"
-                  value={catalogoTipo}
-                  onChange={(e) => setCatalogoTipo(e.target.value)}
-                  style={{
-                    padding: "0.5rem",
-                    borderRadius: "4px",
-                    border: "1px solid #ddd",
-                    fontSize: "0.9rem",
-                    minWidth: "120px"
-                  }}
-                >
-                  <option value="productos">Productos</option>
-                  <option value="cortes">Cortes</option>
-                </select>
+                {esSedeUnoActual ? (
+                  <div
+                    style={{
+                      padding: "0.5rem 0.75rem",
+                      borderRadius: "4px",
+                      border: "1px solid #ddd",
+                      fontSize: "0.85rem",
+                      minWidth: "160px",
+                      backgroundColor: "#f8f9fa",
+                      color: "#495057",
+                      whiteSpace: "nowrap"
+                    }}
+                  >
+                    Modo sede 1: sin cortes
+                  </div>
+                ) : (
+                  <select
+                    className="filter-select"
+                    value={catalogoTipoActivo}
+                    onChange={(e) => setCatalogoTipo(e.target.value)}
+                    style={{
+                      padding: "0.5rem",
+                      borderRadius: "4px",
+                      border: "1px solid #ddd",
+                      fontSize: "0.9rem",
+                      minWidth: "120px"
+                    }}
+                  >
+                    <option value="productos">Productos</option>
+                    <option value="cortes">Cortes</option>
+                  </select>
+                )}
                 <input
                   className="inv-search"
                   type="text"
@@ -2807,15 +2947,15 @@ export default function OrdenEditarModal({
                   {loadingProductos ? (
                     <tr>
                       <td colSpan={4} className="empty" style={{ textAlign: 'center', padding: '2rem', color: '#666' }}>
-                        Cargando {catalogoTipo === "cortes" ? "cortes" : "productos"}...
+                        Cargando {catalogoTipoActivo === "cortes" ? "cortes" : "productos"}...
                       </td>
                     </tr>
                   ) : catalogoFiltrado.length === 0 ? (
                     <tr>
                       <td colSpan={4} className="empty" style={{ textAlign: 'center', padding: '2rem' }}>
                         {selectedCategoryId
-                          ? `No hay ${catalogoTipo === "cortes" ? "cortes" : "productos"} en esta categoría`
-                          : `Selecciona una categoría para ver ${catalogoTipo === "cortes" ? "cortes" : "productos"}`}
+                          ? `No hay ${catalogoTipoActivo === "cortes" ? "cortes" : "productos"} en esta categoría`
+                          : `Selecciona una categoría para ver ${catalogoTipoActivo === "cortes" ? "cortes" : "productos"}`}
                       </td>
                     </tr>
                   ) : (

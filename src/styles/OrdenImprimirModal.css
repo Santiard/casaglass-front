@@ -162,19 +162,21 @@
 }
 
 .orden-imprimir-table th {
-  padding: 10px 12px;
+  padding: 6px 10px;
   text-align: left;
   font-weight: 600;
   font-size: 0.85rem;
   border: 1px solid #1e2753;
+  line-height: 1.15;
 }
 
 .orden-imprimir-table td {
-  padding: 8px 12px;
+  padding: 4px 10px;
   border-bottom: 1px solid #e0e0e0;
   border-right: 1px solid #f0f0f0;
   font-size: 0.85rem;
   color: #333;
+  line-height: 1.15;
 }
 
 .orden-imprimir-table tbody tr:nth-child(even) {
@@ -351,15 +353,17 @@
     color: #000 !important;
     border: none !important;
     border-bottom: 2px solid #000 !important;
-    padding: 6px 8px !important;
+    padding: 3px 6px !important;
     font-size: 0.85rem !important;
+    line-height: 1.1 !important;
   }
   
   .orden-imprimir-table td {
     color: #000 !important;
     border: none !important;
-    padding: 5px 8px !important;
+    padding: 2px 6px !important;
     font-size: 0.85rem !important;
+    line-height: 1.1 !important;
   }
   
   .orden-imprimir-table tbody tr:nth-child(even) {

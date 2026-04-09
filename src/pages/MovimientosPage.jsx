@@ -6,7 +6,7 @@ import MovimientoDetalleModal from "../modals/MovimientoDetalleModal.jsx";
 // Estos dos servicios deben existir en tu proyecto.
 // Si la ruta difiere, ajusta adentro de cada servicio.
 import { listarSedes } from "../services/SedesService.js";
-import { listarProductos } from "../services/ProductosService.js";
+import { listarInventarioCompleto } from "../services/InventarioService.js";
 
 import {
   listarTraslados,
@@ -75,7 +75,7 @@ export default function MovimientosPage() {
         // Cargar sedes y productos (no necesitan paginación)
         const [sedesRes, prodsRes] = await Promise.all([
           listarSedes(),       // GET /api/sedes  => [{id, nombre, ...}]
-          listarProductos(),   // GET /api/productos => [{id, nombre, codigo}]
+          listarInventarioCompleto({}, true, null),   // GET /api/inventario-completo => incluye cantidades por sede
         ]);
         setSedes(Array.isArray(sedesRes) ? sedesRes : []);
         // Filtrar cortes: excluir productos que tengan largoCm (son cortes)
@@ -89,6 +89,10 @@ export default function MovimientosPage() {
               codigo: p.codigo ?? "",
               categoria: p.categoria?.nombre ?? p.categoria ?? "", //  Extraemos el nombre si es objeto
               color: p.color, // Incluir color para filtro
+              cantidadInsula: Number(p.cantidadInsula ?? 0),
+              cantidadCentro: Number(p.cantidadCentro ?? 0),
+              cantidadPatios: Number(p.cantidadPatios ?? 0),
+              cantidadTotal: Number(p.cantidadTotal ?? 0),
             }))
         );
         // Cargar traslados con paginación

@@ -1,4 +1,5 @@
 import { api } from "../lib/api";
+import { esSedeSinControlCortes } from "../lib/ordenUnidadUtils.js";
 
 /* ================================================
    ÓRDENES - CRUD PRINCIPAL
@@ -163,6 +164,8 @@ export async function crearOrdenVenta(payload) {
           precioUnitario: parseFloat(item.precioUnitario),
           // 🆕 CRÍTICO: Incluir el nombre si existe (para cortes con medida)
           ...(item.nombre ? { nombre: item.nombre } : {}),
+          ...(item.tipoUnidad ? { tipoUnidad: String(item.tipoUnidad).toUpperCase() } : {}),
+          ...(item.cmBase !== undefined && item.cmBase !== null && item.cmBase !== "" ? { cmBase: parseFloat(item.cmBase) } : {}),
           // reutilizarCorteSolicitadoId es opcional
           ...(item.reutilizarCorteSolicitadoId ? { reutilizarCorteSolicitadoId: parseInt(item.reutilizarCorteSolicitadoId) } : {})
         };
@@ -333,10 +336,20 @@ export async function actualizarRetencionIca(ordenId, payload) {
 export async function confirmarVenta(id, ordenCompleta) {
   if (!id) throw new Error("ID de la orden no proporcionado");
   if (!ordenCompleta) throw new Error("Datos de la orden no proporcionados");
-  
-  // Si la orden era una cotización (venta === false), al confirmarla como venta
-  // automáticamente se convierte en crédito ya que no se pueden agregar métodos de pago
-  const eraCotizacion = Boolean(ordenCompleta.venta === false);
+
+  // Validar IDs requeridos
+  const clienteId = ordenCompleta.clienteId || ordenCompleta.cliente?.id;
+  const sedeId = ordenCompleta.sedeId || ordenCompleta.sede?.id;
+
+  if (!clienteId) {
+    throw new Error("La orden no tiene clienteId. No se puede confirmar la venta.");
+  }
+
+  if (!sedeId) {
+    throw new Error("La orden no tiene sedeId. No se puede confirmar la venta.");
+  }
+
+  const esSedeSinControl = esSedeSinControlCortes(sedeId);
   
   // Validar y filtrar items con productoId válido
   const itemsValidos = (Array.isArray(ordenCompleta.items) ? ordenCompleta.items : [])
@@ -386,7 +399,15 @@ export async function confirmarVenta(id, ordenCompleta) {
         cantidad: Number(item.cantidad ?? 1),
         precioUnitario: Number(item.precioUnitario ?? 0),
         totalLinea: Number(item.totalLinea ?? 0),
-        ...(item.reutilizarCorteSolicitadoId ? { reutilizarCorteSolicitadoId: Number(item.reutilizarCorteSolicitadoId) } : {})
+        ...(esSedeSinControl
+          ? {
+              nombre: item.nombre || item.nombreProducto || item.producto?.nombre || "",
+              tipoUnidad: String(item.tipoUnidad ?? item.producto?.tipoUnidad ?? item.producto?.tipo ?? "").toUpperCase() || undefined,
+              cmBase: (item.cmBase === null || item.cmBase === undefined || item.cmBase === "") ? null : Number(item.cmBase),
+            }
+          : {
+              ...(item.reutilizarCorteSolicitadoId ? { reutilizarCorteSolicitadoId: Number(item.reutilizarCorteSolicitadoId) } : {})
+            })
       };
     })
     .filter(item => item !== null); // Filtrar items inválidos
@@ -395,17 +416,17 @@ export async function confirmarVenta(id, ordenCompleta) {
   if (itemsValidos.length === 0) {
     throw new Error("La orden no tiene items válidos con productoId. No se puede confirmar la venta.");
   }
-  
-  // Validar IDs requeridos
-  const clienteId = ordenCompleta.clienteId || ordenCompleta.cliente?.id;
-  const sedeId = ordenCompleta.sedeId || ordenCompleta.sede?.id;
-  
-  if (!clienteId) {
-    throw new Error("La orden no tiene clienteId. No se puede confirmar la venta.");
-  }
-  
-  if (!sedeId) {
-    throw new Error("La orden no tiene sedeId. No se puede confirmar la venta.");
+
+  // En sede 1, exigir cmBase para items CM antes de llamar al PUT.
+  if (esSedeSinControl) {
+    const faltantesCM = itemsValidos.some((i) =>
+      String(i.tipoUnidad || "").toUpperCase() === "CM" &&
+      (i.cmBase == null || Number(i.cmBase) <= 0)
+    );
+
+    if (faltantesCM) {
+      throw new Error("Falta ingresar CMs de donde salió el corte.");
+    }
   }
   
     // Construir payload con todos los campos necesarios
@@ -414,9 +435,8 @@ export async function confirmarVenta(id, ordenCompleta) {
       obra: ordenCompleta.obra || "",
       descripcion: ordenCompleta.descripcion || null,
       venta: true, // Cambiar a true (confirmar como venta)
-      // Si era cotización, automáticamente se convierte en crédito
-      // Si ya era venta, mantener el valor de crédito que tenía
-      credito: eraCotizacion ? true : Boolean(ordenCompleta.credito),
+      // Conservar el valor real de crédito; no forzarlo durante la confirmación.
+      credito: Boolean(ordenCompleta.credito),
       tieneRetencionFuente: Boolean(ordenCompleta.tieneRetencionFuente ?? false),
       tieneRetencionIca: Boolean(ordenCompleta.tieneRetencionIca ?? false),
       ...(ordenCompleta.porcentajeIca !== undefined && ordenCompleta.porcentajeIca !== null 
@@ -425,7 +445,18 @@ export async function confirmarVenta(id, ordenCompleta) {
       clienteId: Number(clienteId),
       sedeId: Number(sedeId),
       ...(ordenCompleta.trabajadorId || ordenCompleta.trabajador?.id ? { trabajadorId: Number(ordenCompleta.trabajadorId || ordenCompleta.trabajador?.id) } : {}),
-      items: itemsValidos
+      items: esSedeSinControl
+        ? itemsValidos.map((item) => ({
+            id: item.id,
+            productoId: item.productoId,
+            cantidad: item.cantidad,
+            precioUnitario: item.precioUnitario,
+            totalLinea: item.totalLinea,
+            nombre: item.nombre,
+            tipoUnidad: item.tipoUnidad,
+            cmBase: item.cmBase,
+          }))
+        : itemsValidos
     };
   
   const { data } = await api.put(`ordenes/tabla/${id}`, payload);

@@ -3,6 +3,7 @@ import "../styles/CrudModal.css";
 import { listarCortesInventarioCompleto } from "../services/InventarioService";
 import { useAuth } from "../hooks/useAuth";
 import { useToast } from "../context/ToastContext.jsx";
+import { esSedeUno } from "../lib/ordenUnidadUtils.js";
 
 export default function CortarModal({ 
   isOpen, 
@@ -19,6 +20,7 @@ export default function CortarModal({
   const [corteSeleccionadoId, setCorteSeleccionadoId] = useState("");
   const sedeContexto = Number(sedeFiltroId || sedeIdUsuario || 0);
   const usarFiltroSede = Number.isFinite(sedeContexto) && sedeContexto > 0;
+  const esSedeUnoContexto = esSedeUno(sedeContexto);
 
   const obtenerCantidadPorSede = (corte, sedeId) => {
     if (sedeId === 1) return Number(corte.cantidadInsula ?? 0);
@@ -34,6 +36,11 @@ export default function CortarModal({
   useEffect(() => {
     async function cargarCortes() {
       if (!isOpen || !producto) return;
+      if (esSedeUnoContexto) {
+        setCortesDisponibles([]);
+        setCorteSeleccionadoId("");
+        return;
+      }
       try {
         // Filtrar por producto actual y, si hay sede de contexto, limitar a esa sede
         const params = usarFiltroSede ? { sedeId: sedeContexto } : {};
@@ -66,7 +73,7 @@ export default function CortarModal({
       }
     }
     cargarCortes();
-  }, [isOpen, producto, isAdmin, sedeIdUsuario, sedeFiltroId]);
+  }, [isOpen, producto, isAdmin, sedeIdUsuario, sedeFiltroId, esSedeUnoContexto]);
 
   // Prevenir cierre/recarga de pestaña cuando el modal está abierto
   useEffect(() => {
@@ -157,11 +164,13 @@ export default function CortarModal({
         cantidadVender: 1,
         precioUsado: precioCorteRedondeado,
         esCorte: true,
+        tipoUnidad: "CM",
+        cmBase: null, // Se llena automáticamente al ejecutar el corte (600 si es entero, otro valor si es existente)
         medidaCorte: cortesCalculados.medidaCorte,
         // productoOriginal debe indicar el origen del material del que se corta.
         // Si se seleccionó un corte existente como base, usar su id para que la orden
         // reste stock de ese corte. Si no, usar el id del producto original.
-        productoOriginal: corteBase && corteBase.id ? Number(corteBase.id) : producto.id
+        productoOriginal: esSedeUnoContexto ? Number(producto.id) : (corteBase && corteBase.id ? Number(corteBase.id) : producto.id)
       };
       
       console.log('✂️ [CortarModal] Corte creado para agregar al carrito:', {
@@ -177,7 +186,7 @@ export default function CortarModal({
       let corteSobrante = {
         // productoId indica el origen del sobrante: si se está partiendo un corte existente
         // debe ser el id del corte base (corteBase.id). En caso contrario usar el producto.
-        productoId: corteBase && corteBase.id ? Number(corteBase.id) : producto.id,
+        productoId: esSedeUnoContexto ? Number(producto.id) : (corteBase && corteBase.id ? Number(corteBase.id) : producto.id),
         medidaSolicitada: cortesCalculados.medidaCorte,
         cantidad: 1,
         precioUnitarioSolicitado: precioCorteRedondeado,
@@ -186,7 +195,7 @@ export default function CortarModal({
       };
 
       // Si se seleccionó un corte existente como base, indicar al backend que debe partir ese corte
-      if (corteBase && corteBase.id) {
+      if (!esSedeUnoContexto && corteBase && corteBase.id) {
         corteSobrante = {
           ...corteSobrante,
           corteBaseId: corteBase.id,
@@ -199,6 +208,11 @@ export default function CortarModal({
       // NOTA: El backend ahora usa el código base del producto (sin sufijo de medida)
       // Se busca por: código base + largoCm + categoría + color
       try {
+        if (esSedeUnoContexto) {
+          corteParaVender.esCorteExistente = false;
+        }
+        
+        if (!esSedeUnoContexto) {
         // Usar el mismo endpoint que la tabla para garantizar formato consistente
         const params = usarFiltroSede ? { sedeId: sedeContexto } : {};
         const existentes = await listarCortesInventarioCompleto(
@@ -256,6 +270,7 @@ export default function CortarModal({
           // Corte sobrante existente encontrado - Reutilizando
         } else {
           // Corte sobrante nuevo - El backend creará uno nuevo
+        }
         }
       } catch (lookupErr) {
         // No se pudo verificar cortes existentes
@@ -336,43 +351,52 @@ export default function CortarModal({
               )}
             </div>
             {/* Columna 2: Tabla de cortes existentes */}
-            <div>
-              <strong>Cortes existentes en inventario</strong>
-              <div style={{ maxHeight: '250px', overflowY: 'auto', marginTop: '0.5rem' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.95rem' }}>
-                  <thead>
-                    <tr style={{ background: '#f1f1f1' }}>
-                      <th style={{ padding: '0.4rem', border: '1px solid #e0e0e0' }}>Medida (cm)</th>
-                      <th style={{ padding: '0.4rem', border: '1px solid #e0e0e0' }}>Acción</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {cortesDisponibles.length === 0 ? (
-                      <tr><td colSpan={2} style={{ textAlign: 'center', padding: '1rem' }}>No hay cortes disponibles</td></tr>
-                    ) : (
-                      cortesDisponibles.map(corte => (
-                        <tr key={corte.id}>
-                          <td style={{ padding: '0.4rem', border: '1px solid #e0e0e0' }}>{corte.largoCm || corte.largo}</td>
-                          <td style={{ padding: '0.4rem', border: '1px solid #e0e0e0' }}>
-                            <button
-                              type="button"
-                              style={{ padding: '0.2rem 0.7rem', fontSize: '0.95rem', background: corteSeleccionadoId === corte.id ? '#007bff' : '#e0e0e0', color: corteSeleccionadoId === corte.id ? '#fff' : '#333', border: 'none', borderRadius: '0.25rem', cursor: 'pointer' }}
-                              onClick={() => {
-                                setCorteSeleccionadoId(corte.id);
-                                // No llenar automáticamente la medida: el usuario debe ingresar la medida a extraer
-                                setMedidaCorte("");
-                              }}
-                            >
-                              Seleccionar
-                            </button>
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
+            {esSedeUnoContexto ? (
+              <div>
+                <strong>Modo sede 1</strong>
+                <div style={{ marginTop: '0.5rem', padding: '1rem', backgroundColor: '#f8f9fa', border: '1px dashed #ccc', borderRadius: '0.5rem' }}>
+                  Este corte se generará desde el producto base. No se muestran cortes históricos.
+                </div>
               </div>
-            </div>
+            ) : (
+              <div>
+                <strong>Cortes existentes en inventario</strong>
+                <div style={{ maxHeight: '250px', overflowY: 'auto', marginTop: '0.5rem' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.95rem' }}>
+                    <thead>
+                      <tr style={{ background: '#f1f1f1' }}>
+                        <th style={{ padding: '0.4rem', border: '1px solid #e0e0e0' }}>Medida (cm)</th>
+                        <th style={{ padding: '0.4rem', border: '1px solid #e0e0e0' }}>Acción</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {cortesDisponibles.length === 0 ? (
+                        <tr><td colSpan={2} style={{ textAlign: 'center', padding: '1rem' }}>No hay cortes disponibles</td></tr>
+                      ) : (
+                        cortesDisponibles.map(corte => (
+                          <tr key={corte.id}>
+                            <td style={{ padding: '0.4rem', border: '1px solid #e0e0e0' }}>{corte.largoCm || corte.largo}</td>
+                            <td style={{ padding: '0.4rem', border: '1px solid #e0e0e0' }}>
+                              <button
+                                type="button"
+                                style={{ padding: '0.2rem 0.7rem', fontSize: '0.95rem', background: corteSeleccionadoId === corte.id ? '#007bff' : '#e0e0e0', color: corteSeleccionadoId === corte.id ? '#fff' : '#333', border: 'none', borderRadius: '0.25rem', cursor: 'pointer' }}
+                                onClick={() => {
+                                  setCorteSeleccionadoId(corte.id);
+                                  // No llenar automáticamente la medida: el usuario debe ingresar la medida a extraer
+                                  setMedidaCorte("");
+                                }}
+                              >
+                                Seleccionar
+                              </button>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
           </div>
           <div className="modal-buttons" style={{ marginTop: '2rem' }}>
             <button 
