@@ -3094,6 +3094,7 @@ export default function OrdenEditarModal({
         onClose={cerrarModalCorte}
         producto={modalCorte.producto}
         onCortar={handleCortarDesdeModal}
+        sedeFiltroId={form?.sedeId ? Number(form.sedeId) : null}
       />
 
       <ConfirmDialog />

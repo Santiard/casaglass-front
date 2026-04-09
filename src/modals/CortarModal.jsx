@@ -8,7 +8,8 @@ export default function CortarModal({
   isOpen, 
   onClose, 
   producto, 
-  onCortar 
+  onCortar,
+  sedeFiltroId = null,
 }) {
   const { showError } = useToast();
   const { sedeId: sedeIdUsuario, isAdmin } = useAuth();
@@ -16,6 +17,15 @@ export default function CortarModal({
   const [loading, setLoading] = useState(false);
   const [cortesDisponibles, setCortesDisponibles] = useState([]);
   const [corteSeleccionadoId, setCorteSeleccionadoId] = useState("");
+  const sedeContexto = Number(sedeFiltroId || sedeIdUsuario || 0);
+  const usarFiltroSede = Number.isFinite(sedeContexto) && sedeContexto > 0;
+
+  const obtenerCantidadPorSede = (corte, sedeId) => {
+    if (sedeId === 1) return Number(corte.cantidadInsula ?? 0);
+    if (sedeId === 2) return Number(corte.cantidadCentro ?? 0);
+    if (sedeId === 3) return Number(corte.cantidadPatios ?? 0);
+    return Number(corte.cantidadTotal ?? 0);
+  };
   // corteBase será el objeto completo del corte seleccionado (si existe)
   const corteBase = useMemo(() => {
     return cortesDisponibles.find(c => String(c.id) === String(corteSeleccionadoId)) || null;
@@ -25,9 +35,13 @@ export default function CortarModal({
     async function cargarCortes() {
       if (!isOpen || !producto) return;
       try {
-        // Filtrar por producto actual
-        // Para vendedores, solicitar cortes filtrados a la sede del usuario
-        const cortes = await listarCortesInventarioCompleto({}, isAdmin, sedeIdUsuario);
+        // Filtrar por producto actual y, si hay sede de contexto, limitar a esa sede
+        const params = usarFiltroSede ? { sedeId: sedeContexto } : {};
+        const cortes = await listarCortesInventarioCompleto(
+          params,
+          usarFiltroSede ? false : isAdmin,
+          usarFiltroSede ? sedeContexto : sedeIdUsuario
+        );
         const productoCodigo = (producto.codigo || "").toString().trim();
         const productoCategoriaRaw = producto.categoria?.nombre || producto.categoria || "";
         const productoCategoria = (typeof productoCategoriaRaw === 'string' ? productoCategoriaRaw : productoCategoriaRaw.toString()).toLowerCase().trim();
@@ -39,7 +53,9 @@ export default function CortarModal({
           const categoria = (typeof categoriaRaw === 'string' ? categoriaRaw : categoriaRaw.toString()).toLowerCase().trim();
           const color = (c.color || "").toString().toLowerCase().trim();
           // Determinar cantidad/stock disponible (admitir varios nombres de campo)
-          const cantidadDisponible = Number(c.cantidadTotal ?? c.cantidadInsula ?? c.cantidadCentro ?? c.cantidadPatios ?? c.stock ?? c.cantidad ?? c.cant ?? c.cantidadDisponible ?? 0);
+          const cantidadDisponible = usarFiltroSede
+            ? obtenerCantidadPorSede(c, sedeContexto)
+            : Number(c.cantidadTotal ?? c.cantidadInsula ?? c.cantidadCentro ?? c.cantidadPatios ?? c.stock ?? c.cantidad ?? c.cant ?? c.cantidadDisponible ?? 0);
           // Ignorar cortes sin stock
           if (cantidadDisponible <= 0) return false;
           return codigo === productoCodigo && categoria === productoCategoria && color === productoColor;
@@ -50,7 +66,7 @@ export default function CortarModal({
       }
     }
     cargarCortes();
-  }, [isOpen, producto]);
+  }, [isOpen, producto, isAdmin, sedeIdUsuario, sedeFiltroId]);
 
   // Prevenir cierre/recarga de pestaña cuando el modal está abierto
   useEffect(() => {
@@ -184,7 +200,12 @@ export default function CortarModal({
       // Se busca por: código base + largoCm + categoría + color
       try {
         // Usar el mismo endpoint que la tabla para garantizar formato consistente
-        const existentes = await listarCortesInventarioCompleto({}, isAdmin, sedeIdUsuario);
+        const params = usarFiltroSede ? { sedeId: sedeContexto } : {};
+        const existentes = await listarCortesInventarioCompleto(
+          params,
+          usarFiltroSede ? false : isAdmin,
+          usarFiltroSede ? sedeContexto : sedeIdUsuario
+        );
         
         const productoCodigo = (producto.codigo || "").toString().trim();
         // El producto puede tener categoria como objeto {nombre: "PERFIL"} o como string "PERFIL"

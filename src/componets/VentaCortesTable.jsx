@@ -15,6 +15,7 @@ export default function VentaCortesTable({
   const [preciosSeleccionados, setPreciosSeleccionados] = useState({});
   const [modalCorte, setModalCorte] = useState({ isOpen: false, corte: null });
   const [productoSeleccionado, setProductoSeleccionado] = useState(null);
+  const sedeIdContexto = userSede === "Insula" ? 1 : userSede === "Centro" ? 2 : userSede === "Patios" ? 3 : null;
   // Abrir modal para cortar un corte existente
   const handleAbrirModalCorte = (corte) => {
     // Calcular el precio según la sede del usuario (igual que en VentaTable)
@@ -272,6 +273,7 @@ export default function VentaCortesTable({
           onClose={handleCerrarModalCorte}
           producto={modalCorte.corte}
           onCortar={handleCortar}
+          sedeFiltroId={sedeIdContexto}
         />
       )}
       

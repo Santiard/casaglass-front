@@ -1,8 +1,10 @@
 import "../styles/Table.css";
 import { useState } from "react";
 import CortarModal from "../modals/CortarModal.jsx";
+import { useAuth } from "../hooks/useAuth";
 
 export default function VenderTable({ data = [], onAgregarProducto, onActualizarPrecio, onCortarProducto }) {
+  const { sedeId } = useAuth();
   // Guardamos las cantidades locales por producto
   const [cantidades, setCantidades] = useState({});
   
@@ -165,6 +167,7 @@ export default function VenderTable({ data = [], onAgregarProducto, onActualizar
         onClose={handleCerrarModalCorte}
         producto={modalCorte.producto}
         onCortar={handleCortar}
+        sedeFiltroId={sedeId}
       />
     </div>
   );

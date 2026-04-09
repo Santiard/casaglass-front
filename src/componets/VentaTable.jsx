@@ -26,6 +26,8 @@ export default function VentaTable({
     producto: null
   });
 
+  const sedeIdContexto = userSede === "Insula" ? 1 : userSede === "Centro" ? 2 : userSede === "Patios" ? 3 : null;
+
   const isVidrio = (data || []).some(p => (p.categoria || "").toLowerCase() === "vidrio");
   // Si la categoría seleccionada es VIDRIO (ID: 26), solo mostrar INSULA
   const isCategoriaVidrio = categoryId === 26;
@@ -429,6 +431,7 @@ export default function VentaTable({
         onClose={handleCerrarModalCorte}
         producto={modalCorte.producto}
         onCortar={handleCortar}
+        sedeFiltroId={sedeIdContexto}
       />
     </div>
   );
