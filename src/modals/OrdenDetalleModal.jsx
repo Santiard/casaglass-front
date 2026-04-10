@@ -138,10 +138,11 @@ export default function OrdenDetalleModal({ ordenId, facturaId, isOpen, onClose 
     return nombreFallback || "-";
   };
 
-  const IVA_FACTOR = 1.19;
+  const IVA_FACTOR = 1 + ((Number(ivaRate) || 19) / 100);
   const sinIva = (valor) => {
     const n = Number(valor);
     if (!Number.isFinite(n)) return 0;
+    if (!Number.isFinite(IVA_FACTOR) || IVA_FACTOR <= 0) return n;
     return n / IVA_FACTOR;
   };
 

@@ -14,13 +14,9 @@ function normalizarOrden(orden) {
   // Si la estructura ya es la esperada, devolver tal cual
   return orden;
 }
-
-function resolverNombreItemOrden(item) {
-  return item?.nombre || item?.nombreProducto || item?.producto?.nombre || "-";
-}
 import "../styles/Table.css";
 import "../styles/OrdenesTable.css";
-import { useMemo, useState, Fragment } from "react";
+import { useMemo, useState } from "react";
 import editar from "../assets/editar.png";
 import eliminar from "../assets/eliminar.png";
 import add from "../assets/add.png";
@@ -32,6 +28,7 @@ import FacturarOrdenModal from "../modals/FacturarOrdenModal.jsx";
 import FacturarMultiplesOrdenesModal from "../modals/FacturarMultiplesOrdenesModal.jsx";
 import HistoricoClienteModal from "../modals/HistoricoClienteModal.jsx";
 import HistoricoGeneralModal from "../modals/HistoricoGeneralModal.jsx";
+import OrdenDetalleModal from "../modals/OrdenDetalleModal.jsx";
 import FacturarOpcionesModal from "../componets/FacturarOpcionesModal.jsx";
 import { useToast } from "../context/ToastContext.jsx";
 import { obtenerOrden, obtenerOrdenDetalle } from "../services/OrdenesService.js";
@@ -66,9 +63,10 @@ export default function OrdenesTable({
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
   const [rowsPerPageState, setRowsPerPageState] = useState(rowsPerPage);
-  const [expanded, setExpanded] = useState({});
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [ordenEditando, setOrdenEditando] = useState(null);
+  const [isOrdenDetalleOpen, setIsOrdenDetalleOpen] = useState(false);
+  const [ordenDetalleId, setOrdenDetalleId] = useState(null);
   const [filtroEstado, setFiltroEstado] = useState(""); // Filtro de estado
   const [isImprimirModalOpen, setIsImprimirModalOpen] = useState(false);
   const [ordenImprimir, setOrdenImprimir] = useState(null);
@@ -80,11 +78,6 @@ export default function OrdenesTable({
   const [isFacturarMultiplesModalOpen, setIsFacturarMultiplesModalOpen] = useState(false);
   const [isHistoricoModalOpen, setIsHistoricoModalOpen] = useState(false);
   const [isHistoricoGeneralModalOpen, setIsHistoricoGeneralModalOpen] = useState(false);
-
-  //  Alternar expandir/ocultar items
-  const toggleExpand = (ordenId) => {
-    setExpanded((prev) => ({ ...prev, [ordenId]: !prev[ordenId] }));
-  };
 
   //  Formatear fecha local (sin conversión de zona horaria)
   const fmtFecha = (iso) => {
@@ -565,10 +558,8 @@ export default function OrdenesTable({
 
             {!loading &&
               pageData.map((o) => {
-                const detalles = Array.isArray(o.items) ? o.items : [];
                 // Usar función calcularTotal que prioriza total del backend
                 const totalOrden = calcularTotal(o);
-                const id = o.id;
 
                 const yaFacturada = Boolean(o.facturada === true);
                 const yaPagada = Boolean(o.pagada || o.factura?.pagada || (o.factura && o.factura.fechaPago));
@@ -581,8 +572,7 @@ export default function OrdenesTable({
                 const tieneSaldoPendiente = saldoPendiente === null || saldoPendiente > 0; // Si saldoPendiente es null, asumimos que tiene saldo (por compatibilidad)
                 
                 return (
-                  <Fragment key={`orden-${id}`}>
-                    <tr>
+                    <tr key={`orden-${o.id}`}>
                       <td>{o.numero}</td>
                       <td>{o.numeroFactura || '-'}</td>
                       <td>{fmtFecha(o.fecha)}</td>
@@ -595,9 +585,12 @@ export default function OrdenesTable({
                       <td className="actions-cell">
                         <button
                           className="btnLink"
-                          onClick={() => toggleExpand(id)}
+                          onClick={() => {
+                            setOrdenDetalleId(o.id);
+                            setIsOrdenDetalleOpen(true);
+                          }}
                         >
-                          {expanded[id] ? "Ocultar" : "Detalles"}
+                          Detalles
                         </button>
 
                         <button
@@ -711,99 +704,6 @@ export default function OrdenesTable({
                         )}
                       </td>
                     </tr>
-
-                    {expanded[id] && (
-                      <tr key={`detalles-${id}`}>
-                        <td colSpan={10} style={{ padding: 0 }}>
-                          {detalles.length === 0 ? (
-                            <div className="empty-sub">Sin ítems.</div>
-                          ) : (
-                            <div className="orden-detalles-container" style={{ width: '100%', padding: '1rem' }}>
-                              <table className="orden-detalles-table" style={{ width: '100%' }}>
-                                <thead>
-                                  <tr>
-                                    <th>Código</th>
-                                    <th>Producto</th>
-                                    <th>Color</th>
-                                    <th>Cantidad</th>
-                                    <th>Precio Unit.</th>
-                                    <th>Total Línea</th>
-                                  </tr>
-                                </thead>
-                                <tbody>
-                                  {detalles.map((d, i) => (
-                                    <tr key={`item-${d.id || i}-${id}`}>
-                                      <td>{d.producto?.codigo ?? "-"}</td>
-                                      <td>{resolverNombreItemOrden(d)}</td>
-                                      <td>{d.producto?.color || d.color || "-"}</td>
-                                      <td className="text-center">{d.cantidad}</td>
-                                      <td>${d.precioUnitario?.toLocaleString("es-CO")}</td>
-                                      <td>${d.totalLinea?.toLocaleString("es-CO")}</td>
-                                    </tr>
-                                  ))}
-                                </tbody>
-                              </table>
-                              
-                              {/* Totales de la orden */}
-                              <div style={{ marginTop: '1rem', padding: '0.75rem', backgroundColor: '#f5f5f5', borderRadius: '0.375rem' }}>
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.5rem', fontSize: '0.9rem' }}>
-                                  {(() => {
-                                    // USAR DIRECTAMENTE LOS VALORES DEL BACKEND (fuente de verdad)
-                                    // Los valores vienen del OrdenTablaDTO del backend:
-                                    // - subtotal: Base sin IVA
-                                    // - iva: IVA calculado
-                                    // - retencionFuente: Retención en la fuente
-                                    // - retencionIca: Retención ICA (NUEVO)
-                                    // - total: Total facturado
-                                    // Convertir null/undefined a 0 para todos los valores monetarios
-                                    const subtotal = (typeof o.subtotal === 'number' && o.subtotal !== null && o.subtotal !== undefined) ? o.subtotal : 0;
-                                    const iva = (typeof o.iva === 'number' && o.iva !== null && o.iva !== undefined) ? o.iva : 0;
-                                    const retencionFuente = (typeof o.retencionFuente === 'number' && o.retencionFuente !== null && o.retencionFuente !== undefined) ? o.retencionFuente : 0;
-                                    const retencionIca = (typeof o.retencionIca === 'number' && o.retencionIca !== null && o.retencionIca !== undefined) ? o.retencionIca : 0;
-                                    const tieneRetencionIca = Boolean(o.tieneRetencionIca ?? false);
-                                    const porcentajeIca = o.porcentajeIca !== undefined && o.porcentajeIca !== null ? Number(o.porcentajeIca) : null;
-                                    
-                                    // El total facturado viene del backend (o.total), si no está disponible usar totalOrden calculado
-                                    const totalFacturado = (typeof o.total === 'number' && o.total !== null && o.total !== undefined) ? o.total : totalOrden;
-                                    
-                                    // Calcular total de retenciones
-                                    const totalRetenciones = retencionFuente + retencionIca;
-                                    
-                                    return (
-                                      <>
-                                        <div>
-                                          <strong>Subtotal (sin IVA):</strong> ${subtotal.toLocaleString("es-CO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                        </div>
-                                        <div>
-                                          <strong>IVA (19%):</strong> ${iva.toLocaleString("es-CO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                        </div>
-                                        {tieneRetencionIca && retencionIca > 0 && (
-                                          <div>
-                                            <strong>Retención ICA{porcentajeIca ? ` (${porcentajeIca}%)` : ''}:</strong> ${retencionIca.toLocaleString("es-CO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                          </div>
-                                        )}
-                                        <div>
-                                          <strong>Retención en la Fuente:</strong> ${retencionFuente.toLocaleString("es-CO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                        </div>
-                                        <div style={{ fontWeight: 'bold', fontSize: '1rem' }}>
-                                          <strong>Total Facturado:</strong> ${totalFacturado.toLocaleString("es-CO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                        </div>
-                                        {totalRetenciones > 0 && (
-                                          <div style={{ fontSize: '0.85rem', color: '#666' }}>
-                                            <strong>Valor a Pagar:</strong> ${(totalFacturado - totalRetenciones).toLocaleString("es-CO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                          </div>
-                                        )}
-                                      </>
-                                    );
-                                  })()}
-                                </div>
-                              </div>
-                            </div>
-                          )}
-                        </td>
-                      </tr>
-                    )}
-                  </Fragment>
                 );
               })}
           </tbody>
@@ -890,6 +790,16 @@ export default function OrdenesTable({
         onClose={() => {
           setIsImprimirModalOpen(false);
           setOrdenImprimir(null);
+        }}
+      />
+
+      {/* Modal de detalle de orden */}
+      <OrdenDetalleModal
+        ordenId={ordenDetalleId}
+        isOpen={isOrdenDetalleOpen}
+        onClose={() => {
+          setIsOrdenDetalleOpen(false);
+          setOrdenDetalleId(null);
         }}
       />
 

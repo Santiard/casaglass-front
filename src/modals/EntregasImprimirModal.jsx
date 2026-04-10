@@ -63,7 +63,7 @@ export default function EntregasImprimirModal({ entregas = [], isOpen, onClose }
         // Orden a CONTADO: extraer de detalle.descripcion
         const desc = det.descripcion || "";
         if (desc && desc.trim()) {
-          const partes = desc.toUpperCase().split('|').map(p => p.trim());
+          const partes = desc.toUpperCase().split(/[\n|]/).map(p => p.trim()).filter(p => p);
           const metodosEncontrados = [];
           
           for (const parte of partes) {
@@ -571,8 +571,8 @@ export default function EntregasImprimirModal({ entregas = [], isOpen, onClose }
                             const desc = detalle.descripcion || "";
                             if (desc && desc.trim()) {
                               // Parsear la descripción para extraer métodos de pago
-                              // Formato típico: "EFECTIVO: 100.000 | TRANSFERENCIA: 50.000"
-                              const partes = desc.toUpperCase().split('|').map(p => p.trim());
+                              // Formato típico: "Método de pago: MIXTO\nEfectivo: $28.000\nTransferencia: NEQUI - Monto: $973.450"
+                              const partes = desc.toUpperCase().split(/[\n|]/).map(p => p.trim()).filter(p => p);
                               const metodosEncontrados = [];
                               
                               for (const parte of partes) {

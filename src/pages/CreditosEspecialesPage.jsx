@@ -10,6 +10,7 @@ import HistoricoAbonosClienteModal from "../modals/HistoricoAbonosClienteModal.j
 import HistoricoAbonosGeneralModal from "../modals/HistoricoAbonosGeneralModal.jsx";
 import MarcarPagadosModal from "../modals/MarcarPagadosModal.jsx";
 import DetalleEntregaEspecialModal from "../modals/DetalleEntregaEspecialModal.jsx";
+import OrdenDetalleModal from "../modals/OrdenDetalleModal.jsx";
 import estado from "../assets/estado.png";
 import "../styles/Creditos.css";
 
@@ -48,6 +49,8 @@ const CreditosEspecialesPage = () => {
   const [loadingEntregas, setLoadingEntregas] = useState(false);
   const [isDetalleEntregaOpen, setIsDetalleEntregaOpen] = useState(false);
   const [entregaSeleccionada, setEntregaSeleccionada] = useState(null);
+  const [isOrdenDetalleOpen, setIsOrdenDetalleOpen] = useState(false);
+  const [ordenDetalleId, setOrdenDetalleId] = useState(null);
 
   // Calcular total de créditos seleccionados
   const totalSeleccionado = creditos
@@ -164,6 +167,20 @@ const CreditosEspecialesPage = () => {
   const handleVerDetalleEntrega = (entrega) => {
     setEntregaSeleccionada(entrega);
     setIsDetalleEntregaOpen(true);
+  };
+
+  const handleVerOrdenCredito = (credito) => {
+    const idOrden = credito?.orden?.id;
+    if (!idOrden) {
+      setToast({
+        isVisible: true,
+        message: "Este crédito no tiene una orden asociada para mostrar detalle.",
+        type: "warning"
+      });
+      return;
+    }
+    setOrdenDetalleId(idOrden);
+    setIsOrdenDetalleOpen(true);
   };
 
   useEffect(() => {
@@ -369,6 +386,7 @@ const CreditosEspecialesPage = () => {
             clientes={clientes}
             filtroCliente={filtroCliente}
             onSeleccionarCredito={handleSeleccionarCredito}
+            onVerOrden={handleVerOrdenCredito}
             creditosSeleccionados={creditosSeleccionados}
             modoEspecial={true}
             rowsPerPage={pageSize}
@@ -434,6 +452,14 @@ const CreditosEspecialesPage = () => {
           setEntregaSeleccionada(null);
         }}
         entregaId={entregaSeleccionada?.id}
+      />
+      <OrdenDetalleModal
+        ordenId={ordenDetalleId}
+        isOpen={isOrdenDetalleOpen}
+        onClose={() => {
+          setIsOrdenDetalleOpen(false);
+          setOrdenDetalleId(null);
+        }}
       />
     </div>
   );

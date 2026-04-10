@@ -5,6 +5,7 @@ import "../styles/Table.css";
 const CreditosTable = ({ 
   creditos, 
   onAbrirAbonoModal, 
+  onVerOrden,
   clientes = [],
   filtroCliente = null,
   rowsPerPage: rowsPerPageProp = 10,
@@ -150,9 +151,15 @@ const CreditosTable = ({
                   <td className="actions-cell">
                     <button 
                       className="btn-ver-detalles"
-                      onClick={() => toggleExpandido(credito.id)}
+                      onClick={() => {
+                        if (modoEspecial && onVerOrden) {
+                          onVerOrden(credito);
+                          return;
+                        }
+                        toggleExpandido(credito.id);
+                      }}
                     >
-                      {expandido === credito.id ? "Ocultar" : "Ver"}
+                      {modoEspecial ? "Ver" : (expandido === credito.id ? "Ocultar" : "Ver")}
                     </button>
                     
                     {modoEspecial && credito.estado === "ABIERTO" ? (
@@ -177,7 +184,7 @@ const CreditosTable = ({
                     )}
                   </td>
                 </tr>
-                {expandido === credito.id && (
+                {!modoEspecial && expandido === credito.id && (
                   <tr className="detalle-abonos">
                     <td colSpan="10">
                       <h4>Abonos realizados</h4>
