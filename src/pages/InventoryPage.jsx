@@ -716,6 +716,7 @@ export default function InventoryPage() {
                 filters={corteFilters}
                 setFilters={setCorteFilters}
                 onAdd={isAdmin ? handleAddCorte : null}
+                onUnirCortes={handleUnirCortes}
                 view={view}
                 setView={setView}
               />

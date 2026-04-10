@@ -1856,7 +1856,8 @@ export default function OrdenEditarModal({
                 ) : null;
               })()}
 
-              {/* Sección de Métodos de Pago */}
+              {/* Sección de Métodos de Pago (solo para ventas) */}
+              {Boolean(form.venta) && (
               <div style={{ gridColumn: '1 / -1', marginTop: '0.5rem' }}>
                 <div style={{ 
                   padding: '1rem',
@@ -2302,6 +2303,7 @@ export default function OrdenEditarModal({
                   })()}
                 </div>
               </div>
+              )}
 
               <label style={{ gridColumn: '1 / -1' }}>
                 Observaciones Adicionales

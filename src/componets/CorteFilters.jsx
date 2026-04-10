@@ -7,6 +7,7 @@ export default function CorteFilters({
   filters = {},
   setFilters,
   onAdd,
+  onUnirCortes,
   view,        // 👈 recibido desde InventoryPage
   setView,     // 👈 recibido desde InventoryPage
 }) {
@@ -14,6 +15,12 @@ export default function CorteFilters({
     <div className="filters-toolbar">
       {/*  Switch Producto / Corte dentro de la barra */}
       <ViewSwitcher value={view} onChange={setView} />
+
+      {onUnirCortes && (
+        <button className="btn-unir" onClick={onUnirCortes} title="Unir cortes existentes">
+          UNIR CORTES
+        </button>
+      )}
 
       {/*  Búsqueda */}
       <input

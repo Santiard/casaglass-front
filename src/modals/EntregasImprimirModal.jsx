@@ -22,6 +22,59 @@ export default function EntregasImprimirModal({ entregas = [], isOpen, onClose }
     ? entregas 
     : entregas.filter(e => entregasSeleccionadas.includes(e.id));
 
+  useEffect(() => {
+    if (!isOpen || entregasParaImprimir.length === 0) return;
+
+    console.groupCollapsed(
+      `[EntregasImprimirModal] Verificación de mapeo de medios - entrega(s): ${entregasParaImprimir.map(e => e.id).join(', ')}`
+    );
+
+    entregasParaImprimir.forEach((entrega) => {
+      console.groupCollapsed(
+        `[Entrega #${entrega.id}] ${entrega.sedeNombre || entrega.sede?.nombre || 'Sin sede'} - ${entrega.fechaEntrega || 'Sin fecha'}`
+      );
+
+      (entrega.detalles || []).forEach((detalle, index) => {
+        const textoBase = detalle.ventaCredito ? (detalle.metodoPago || '') : (detalle.descripcion || '');
+        const { medio, metodosDetectados } = resolverMedioPagoDesdeTexto(textoBase);
+
+        const efectivo = parseNumeroMonto((textoBase.match(/Efectivo:\s*\$?([\d.,]+)/i) || [])[1]);
+        const transferencia = (() => {
+          let total = 0;
+          const regex = /Transferencia:\s*.*?(?:-\s*Monto:\s*\$?|:\s*\$?)([\d.,]+)/gi;
+          let match;
+          while ((match = regex.exec(textoBase)) !== null) {
+            total += parseNumeroMonto(match[1]);
+          }
+          return total;
+        })();
+        const cheque = parseNumeroMonto((textoBase.match(/Cheque:\s*\$?([\d.,]+)/i) || [])[1]);
+        const deposito = parseNumeroMonto((textoBase.match(/Dep[oó]sito:\s*\$?([\d.,]+)/i) || [])[1]);
+
+        console.log(`[Entrega #${entrega.id}] Orden #${detalle.numeroOrden || detalle.ordenId || detalle.id || index + 1}`, {
+          cliente: detalle.clienteNombre || '-',
+          ventaCredito: Boolean(detalle.ventaCredito),
+          valorEntregado: detalle.ventaCredito
+            ? Number(detalle.abonosDelPeriodo) || 0
+            : (Number(detalle.total) || 0) - (Number(detalle.retencionFuente) || 0) - (Number(detalle.retencionIca) || 0),
+          medioDerivado: medio || 'SIN DETECTAR',
+          metodosDetectados,
+          montoEfectivoDetectado: efectivo,
+          montoTransferenciaDetectado: transferencia,
+          montoChequeDetectado: cheque,
+          montoDepositoDetectado: deposito,
+          modalidadEntregaFallback: entrega.modalidadEntrega || null,
+          descripcion: detalle.descripcion || null,
+          metodoPago: detalle.metodoPago || null,
+        });
+      });
+
+      console.groupEnd();
+    });
+
+    console.groupEnd();
+  }, [isOpen, entregasParaImprimir]);
+
   // Extraer resumen del mes de la primera entrega (todas tienen los mismos datos del mes)
   const resumenMes = entregasParaImprimir.length > 0 ? entregasParaImprimir[0].resumenMes : null;
 
@@ -36,6 +89,44 @@ export default function EntregasImprimirModal({ entregas = [], isOpen, onClose }
       month: "2-digit",
       day: "2-digit",
     });
+  };
+
+  const parseNumeroMonto = (texto) => {
+    if (!texto) return 0;
+    const limpio = String(texto).replace(/[\s$]/g, "").replace(/\./g, "").replace(/,/g, ".");
+    const valor = Number(limpio);
+    return Number.isFinite(valor) ? valor : 0;
+  };
+
+  const resolverMedioPagoDesdeTexto = (texto) => {
+    const desc = String(texto || "");
+    if (!desc.trim()) return { medio: null, metodosDetectados: [] };
+
+    const efectivo = parseNumeroMonto((desc.match(/Efectivo:\s*\$?([\d.,]+)/i) || [])[1]);
+    const cheques = parseNumeroMonto((desc.match(/Cheque:\s*\$?([\d.,]+)/i) || [])[1]);
+    const depositos = parseNumeroMonto((desc.match(/Dep[oó]sito:\s*\$?([\d.,]+)/i) || [])[1]);
+
+    let transferencias = 0;
+    const transferenciasRegex = /Transferencia:\s*.*?(?:-\s*Monto:\s*\$?|:\s*\$?)([\d.,]+)/gi;
+    let match;
+    while ((match = transferenciasRegex.exec(desc)) !== null) {
+      transferencias += parseNumeroMonto(match[1]);
+    }
+
+    const metodosDetectados = [];
+    if (efectivo > 0) metodosDetectados.push("EFECTIVO");
+    if (transferencias > 0) metodosDetectados.push("TRANSFERENCIA");
+    if (cheques > 0) metodosDetectados.push("CHEQUE");
+    if (depositos > 0) metodosDetectados.push("DEPÓSITO");
+
+    let medio = null;
+    if (metodosDetectados.length === 1) {
+      medio = metodosDetectados[0];
+    } else if (metodosDetectados.length > 1) {
+      medio = "MIXTO";
+    }
+
+    return { medio, metodosDetectados };
   };
 
   // ✅ SOLUCIÓN: Calcular valores entregados por método de pago desde los detalles
@@ -567,39 +658,14 @@ export default function EntregasImprimirModal({ entregas = [], isOpen, onClose }
                           let medio = "MIXTO"; // Por defecto
                           
                           if (!detalle.ventaCredito) {
-                            // Orden a CONTADO: extraer de detalle.descripcion
-                            const desc = detalle.descripcion || "";
-                            if (desc && desc.trim()) {
-                              // Parsear la descripción para extraer métodos de pago
-                              // Formato típico: "Método de pago: MIXTO\nEfectivo: $28.000\nTransferencia: NEQUI - Monto: $973.450"
-                              const partes = desc.toUpperCase().split(/[\n|]/).map(p => p.trim()).filter(p => p);
-                              const metodosEncontrados = [];
-                              
-                              for (const parte of partes) {
-                                // Ignorar RETEFUENTE (es una deducción, no un método de pago)
-                                if (parte.includes('RETEFUENTE')) continue;
-                                
-                                if (parte.includes('EFECTIVO')) {
-                                  metodosEncontrados.push('EFECTIVO');
-                                } else if (parte.includes('TRANSFERENCIA')) {
-                                  metodosEncontrados.push('TRANSFERENCIA');
-                                } else if (parte.includes('CHEQUE')) {
-                                  metodosEncontrados.push('CHEQUE');
-                                } else if (parte.includes('DEPÓSITO') || parte.includes('DEPOSITO')) {
-                                  metodosEncontrados.push('DEPÓSITO');
-                                }
-                              }
-                              
-                              // Si hay un solo método, usarlo; si hay múltiples, usar MIXTO
-                              if (metodosEncontrados.length === 1) {
-                                medio = metodosEncontrados[0];
-                              } else if (metodosEncontrados.length > 1) {
-                                medio = "MIXTO";
-                              }
+                            // Orden a CONTADO: usar montos detectados en la descripción
+                            const { medio: medioDetectado } = resolverMedioPagoDesdeTexto(detalle.descripcion || "");
+                            if (medioDetectado) {
+                              medio = medioDetectado;
                             }
-                            
-                            // Si no se pudo extraer de la descripción, usar el de la entrega como fallback
-                            if (medio === "MIXTO" && !desc.trim()) {
+
+                            // Si no se pudo extraer, usar el de la entrega como fallback
+                            if (!medioDetectado && !(detalle.descripcion || "").trim()) {
                               medio = entrega.modalidadEntrega || 
                                       (entrega.montoEfectivo > 0 ? "EFECTIVO" : 
                                        entrega.montoTransferencia > 0 ? "TRANSFERENCIA" :
@@ -610,34 +676,11 @@ export default function EntregasImprimirModal({ entregas = [], isOpen, onClose }
                             // Formato: "EFECTIVO: 100.000 | TRANSFERENCIA: 50.000 (Banco de Bogotá) | RETEFUENTE Orden #1057: 12.500"
                             const metodoPago = detalle.metodoPago || "";
                             if (metodoPago && metodoPago.trim()) {
-                              // Parsear el método de pago del abono
-                              const metodoUpper = metodoPago.toUpperCase();
-                              // Dividir por " | " para obtener cada método
-                              const partes = metodoUpper.split('|').map(p => p.trim());
-                              const metodosEncontrados = [];
-                              
-                              for (const parte of partes) {
-                                // Ignorar RETEFUENTE (es una deducción, no un método de pago)
-                                if (parte.includes('RETEFUENTE')) continue;
-                                
-                                if (parte.includes('EFECTIVO')) {
-                                  metodosEncontrados.push('EFECTIVO');
-                                } else if (parte.includes('TRANSFERENCIA')) {
-                                  metodosEncontrados.push('TRANSFERENCIA');
-                                } else if (parte.includes('CHEQUE')) {
-                                  metodosEncontrados.push('CHEQUE');
-                                } else if (parte.includes('DEPÓSITO') || parte.includes('DEPOSITO')) {
-                                  metodosEncontrados.push('DEPÓSITO');
-                                }
-                              }
-                              
-                              // Si hay un solo método, usarlo; si hay múltiples, usar MIXTO
-                              if (metodosEncontrados.length === 1) {
-                                medio = metodosEncontrados[0];
-                              } else if (metodosEncontrados.length > 1) {
-                                medio = "MIXTO";
+                              const { medio: medioDetectado } = resolverMedioPagoDesdeTexto(metodoPago);
+                              if (medioDetectado) {
+                                medio = medioDetectado;
                               } else {
-                                // Si no se encontró ningún método reconocido, usar el string completo o fallback
+                                // Si no se encontró ningún monto reconocido, usar el string completo o fallback
                                 medio = metodoPago.length > 50 ? "MIXTO" : metodoPago;
                               }
                             } else {
