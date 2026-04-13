@@ -37,8 +37,9 @@ export default function OrdenesPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
+  const [filtroEstadoPago, setFiltroEstadoPago] = useState("");
 
-  const fetchData = useCallback(async (page = 1, size = 20, clienteId = null, sedeFiltroId = "") => {
+  const fetchData = useCallback(async (page = 1, size = 20, clienteId = null, sedeFiltroId = "", estadoPago = "") => {
     setLoading(true);
     try {
       // Si no es admin, siempre usar su sede.
@@ -47,6 +48,7 @@ export default function OrdenesPage() {
       const params = {
         ...(sedeFiltroAplicada ? { sedeId: Number(sedeFiltroAplicada) } : {}),
         ...(clienteId ? { clienteId } : {}),
+        ...(estadoPago ? { estadoPago } : {}),
         page: page,
         size: size
       };
@@ -96,8 +98,8 @@ export default function OrdenesPage() {
 
   // Cargar datos iniciales y cuando cambia el cliente seleccionado
   useEffect(() => {
-    fetchData(1, pageSize, clienteSeleccionado?.id || null, filtroSedeId);
-  }, [isAdmin, sedeId, clienteSeleccionado, pageSize, filtroSedeId]);
+    fetchData(1, pageSize, clienteSeleccionado?.id || null, filtroSedeId, filtroEstadoPago);
+  }, [isAdmin, sedeId, clienteSeleccionado, pageSize, filtroSedeId, filtroEstadoPago]);
 
   //  Guardar (editar o crear)
   const handleGuardar = async (orden, isEdit) => {
@@ -293,12 +295,12 @@ export default function OrdenesPage() {
     if (newSize !== pageSize) {
       setPageSize(newSize);
       setCurrentPage(1);
-      fetchData(1, newSize, clienteSeleccionado?.id || null, filtroSedeId);
+      fetchData(1, newSize, clienteSeleccionado?.id || null, filtroSedeId, filtroEstadoPago);
     } else {
       setCurrentPage(newPage);
-      fetchData(newPage, newSize, clienteSeleccionado?.id || null, filtroSedeId);
+      fetchData(newPage, newSize, clienteSeleccionado?.id || null, filtroSedeId, filtroEstadoPago);
     }
-  }, [pageSize, fetchData, clienteSeleccionado, filtroSedeId]);
+  }, [pageSize, fetchData, clienteSeleccionado, filtroSedeId, filtroEstadoPago]);
 
   return (
     <div className="clientes-page">
@@ -325,6 +327,8 @@ export default function OrdenesPage() {
           sedes={sedes}
           filtroSedeId={filtroSedeId}
           setFiltroSedeId={setFiltroSedeId}
+          filtroEstadoPago={filtroEstadoPago}
+          setFiltroEstadoPago={setFiltroEstadoPago}
           isAdmin={isAdmin}
         />
       </div>

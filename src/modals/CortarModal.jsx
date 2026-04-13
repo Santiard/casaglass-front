@@ -16,6 +16,7 @@ export default function CortarModal({
   const { sedeId: sedeIdUsuario, isAdmin } = useAuth();
   const [medidaCorte, setMedidaCorte] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showVentaTotalAlert, setShowVentaTotalAlert] = useState(false);
   const [cortesDisponibles, setCortesDisponibles] = useState([]);
   const [corteSeleccionadoId, setCorteSeleccionadoId] = useState("");
   const sedeContexto = Number(sedeFiltroId || sedeIdUsuario || 0);
@@ -136,19 +137,8 @@ export default function CortarModal({
     };
   }, [producto, medidaCorte, corteBase]);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    
-    if (!cortesCalculados) {
-      showError("Por favor ingrese una medida válida");
-      return;
-    }
-
-    if (cortesCalculados.medidaSobrante < 0) {
-      showError("La medida del corte no puede ser mayor a 600 cm");
-      return;
-    }
-
+  const ejecutarCorte = async () => {
+    if (!cortesCalculados) return;
     setLoading(true);
 
     try {
@@ -160,7 +150,7 @@ export default function CortarModal({
       const corteParaVender = {
         ...producto,
         id: `corte_${producto.id}_${Date.now()}`, // ID único para el corte
-        nombre: `Corte de ${cortesCalculados.medidaCorte} CMS`,
+        nombre: `${producto.nombre} Corte de ${cortesCalculados.medidaCorte} CMS`,
         cantidadVender: 1,
         precioUsado: precioCorteRedondeado,
         esCorte: true,
@@ -183,28 +173,32 @@ export default function CortarModal({
       });
 
       // Crear el corte sobrante para enviar al backend
-      let corteSobrante = {
-        // productoId indica el origen del sobrante: si se está partiendo un corte existente
-        // debe ser el id del corte base (corteBase.id). En caso contrario usar el producto.
-        productoId: esSedeUnoContexto ? Number(producto.id) : (corteBase && corteBase.id ? Number(corteBase.id) : producto.id),
-        medidaSolicitada: cortesCalculados.medidaCorte,
-        cantidad: 1,
-        precioUnitarioSolicitado: precioCorteRedondeado,
-        precioUnitarioSobrante: precioSobranteRedondeado,
-        medidaSobrante: cortesCalculados.medidaSobrante,
-      };
-
-      // Si se seleccionó un corte existente como base, indicar al backend que debe partir ese corte
-      if (!esSedeUnoContexto && corteBase && corteBase.id) {
+      // ⚠️ IMPORTANTE: Solo crear corte sobrante si medidaSobrante > 0
+      // Si venden el 100% del corte, no habrá sobrante
+      let corteSobrante = null;
+      if (cortesCalculados.medidaSobrante > 0) {
         corteSobrante = {
-          ...corteSobrante,
+          // productoId indica el origen del sobrante: si se está partiendo un corte existente
+          // debe ser el id del corte base (corteBase.id). En caso contrario usar el producto.
+          productoId: esSedeUnoContexto ? Number(producto.id) : (corteBase && corteBase.id ? Number(corteBase.id) : producto.id),
+          medidaSolicitada: cortesCalculados.medidaCorte,
+          cantidad: 1,
+          precioUnitarioSolicitado: precioCorteRedondeado,
+          precioUnitarioSobrante: precioSobranteRedondeado,
+          medidaSobrante: cortesCalculados.medidaSobrante,
+        };
+
+        // Si se seleccionó un corte existente como base, indicar al backend que debe partir ese corte
+        if (!esSedeUnoContexto && corteBase && corteBase.id) {
+          corteSobrante = {
+            ...corteSobrante,
           corteBaseId: corteBase.id,
           corteBaseMedidaOriginal: Number(corteBase.largoCm || corteBase.largo || 0),
           cortarDesdeCorteExistente: true
         };
       }
 
-      // Verificar si ya existen cortes para reutilizar
+      // Verificar si ya existen cortes para reutilizar (solo si hay sobrante)
       // NOTA: El backend ahora usa el código base del producto (sin sufijo de medida)
       // Se busca por: código base + largoCm + categoría + color
       try {
@@ -259,21 +253,24 @@ export default function CortarModal({
           // Corte solicitado nuevo - El backend creará uno nuevo
         }
 
-        // Buscar corte SOBRANTE (el que queda en inventario)
-        const coincidenteSobrante = buscarCoincidencia(largoSobrante);
-        if (coincidenteSobrante?.id) {
-          // Marcar para reutilizar corte sobrante existente
-          corteSobrante = {
-            ...corteSobrante,
-            reutilizarCorteId: coincidenteSobrante.id,
-          };
-          // Corte sobrante existente encontrado - Reutilizando
-        } else {
-          // Corte sobrante nuevo - El backend creará uno nuevo
+        // Buscar corte SOBRANTE SOLO SI EXISTE (solo si hay sobrante)
+        if (corteSobrante && corteSobrante.medidaSobrante > 0) {
+          const coincidenteSobrante = buscarCoincidencia(largoSobrante);
+          if (coincidenteSobrante?.id) {
+            // Marcar para reutilizar corte sobrante existente
+            corteSobrante = {
+              ...corteSobrante,
+              reutilizarCorteId: coincidenteSobrante.id,
+            };
+            // Corte sobrante existente encontrado - Reutilizando
+          } else {
+            // Corte sobrante nuevo - El backend creará uno nuevo
+          }
         }
         }
       } catch (lookupErr) {
         // No se pudo verificar cortes existentes
+      }
       }
 
       // Llamar a la función de corte
@@ -292,15 +289,43 @@ export default function CortarModal({
     }
   };
 
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!cortesCalculados) {
+      showError("Por favor ingrese una medida válida");
+      return;
+    }
+
+    if (cortesCalculados.medidaSobrante < 0) {
+      showError("La medida del corte no puede ser mayor a " + cortesCalculados.largoBase + " cm");
+      return;
+    }
+
+    // Si venden el 100% del corte, mostrar alerta visual antes de continuar
+    if (cortesCalculados.medidaSobrante === 0) {
+      setShowVentaTotalAlert(true);
+      return;
+    }
+
+    await ejecutarCorte();
+  };
+
+  const handleConfirmarVentaTotal = async () => {
+    setShowVentaTotalAlert(false);
+    await ejecutarCorte();
+  };
+
   const handleClose = () => {
     setMedidaCorte("");
+    setShowVentaTotalAlert(false);
     onClose();
   };
 
   if (!isOpen || !producto) return null;
 
   return (
-    <div className="modal-overlay" style={{ overflowY: 'auto', maxHeight: '100vh' }}>
+    <div className="modal-overlay" style={{ overflowY: 'auto', maxHeight: '100vh', position: 'relative' }}>
       <div className="modal-container" style={{ maxHeight: '90vh', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
         <h2> Cortar Perfil</h2>
         <form onSubmit={handleSubmit} className="form">
@@ -417,6 +442,69 @@ export default function CortarModal({
           </div>
         </form>
       </div>
+
+      {showVentaTotalAlert && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(16, 24, 40, 0.55)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '1rem',
+            zIndex: 2000,
+          }}
+        >
+          <div
+            style={{
+              width: '100%',
+              maxWidth: '460px',
+              background: '#ffffff',
+              borderRadius: '12px',
+              border: '1px solid #bcd3ff',
+              boxShadow: '0 18px 42px rgba(16, 24, 40, 0.28)',
+              overflow: 'hidden',
+            }}
+          >
+            <div style={{ background: 'linear-gradient(135deg, #eef4ff 0%, #dbe8ff 100%)', padding: '0.9rem 1rem', borderBottom: '1px solid #c6dbff' }}>
+              <h3 style={{ margin: 0, color: '#1e2753', fontSize: '1rem', fontWeight: 700 }}>Confirmar venta total del corte</h3>
+            </div>
+
+            <div style={{ padding: '1rem 1rem 0.25rem' }}>
+              <p style={{ margin: '0 0 0.75rem', color: '#1f2937', lineHeight: 1.5 }}>
+                Estás a punto de vender la totalidad del corte (<strong>{cortesCalculados?.medidaCorte} cm</strong>).
+              </p>
+              <p style={{ margin: '0 0 0.75rem', color: '#1e2753', lineHeight: 1.5, fontWeight: 600 }}>
+                No quedará corte sobrante en inventario.
+              </p>
+              <p style={{ margin: '0 0 0.5rem', color: '#374151' }}>
+                ¿Deseas continuar?
+              </p>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.65rem', padding: '1rem', borderTop: '1px solid #eef2f7' }}>
+              <button
+                type="button"
+                className="btn-cancelar"
+                onClick={() => setShowVentaTotalAlert(false)}
+                disabled={loading}
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                className="btn-guardar"
+                onClick={handleConfirmarVentaTotal}
+                disabled={loading}
+                style={{ background: '#1e2753', borderColor: '#1e2753' }}
+              >
+                {loading ? 'Procesando...' : 'Sí, continuar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

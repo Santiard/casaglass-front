@@ -409,6 +409,22 @@
   font-weight: 600;
 }
 
+/* Estado de pago badge */
+.estado-pago-badge {
+  font-weight: 600;
+  font-size: 0.75rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 6px;
+  display: inline-block;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+
+.estado-pago-badge:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .ordenes-table-container {

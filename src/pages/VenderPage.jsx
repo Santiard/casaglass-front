@@ -314,8 +314,13 @@ export default function VenderPage() {
       // 1. Agregar el corte al carrito
       setProductosCarrito(prev => [...prev, corteConMarca]);
       
-      // 2. Guardar el corte sobrante en el estado para enviarlo después de facturar
-      setCortesPendientes(prev => [...prev, corteSobrante]);
+      // 2. Guardar el corte sobrante en el estado SOLO SI EXISTE y es válido
+      // Si medidaSobrante es 0 o null, no agregarlo (significa que se vendió el 100%)
+      if (corteSobrante && corteSobrante.medidaSobrante > 0) {
+        setCortesPendientes(prev => [...prev, corteSobrante]);
+      } else {
+        console.log('✅ [VenderPage] No hay corte sobrante (se vendió el 100% del corte)');
+      }
       
       
     } catch (error) {

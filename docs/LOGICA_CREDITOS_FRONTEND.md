@@ -8,6 +8,37 @@ El sistema de créditos en el frontend funciona en dos niveles:
 
 ---
 
+## Actualización Tabla de Órdenes (2026-04-12)
+
+### Cambios de frontend
+- Se eliminó la columna **Estado** de la tabla de órdenes.
+- Se mantiene y prioriza la columna **Estado Pago**.
+- Se agregó filtro de **Estado Pago** en el toolbar de órdenes.
+
+### Contrato esperado para backend
+- Endpoint: `GET /api/ordenes/tabla`
+- Debe aceptar parámetro opcional `estadoPago`.
+- Valores esperados para `estadoPago`:
+   - `PAGADO`
+   - `ABONADO`
+   - `NO PAGADO`
+- Si `estadoPago` viene vacío o no se envía, el backend debe devolver todos los registros (sin filtrar por estado de pago).
+
+### Ejemplos
+- `GET /api/ordenes/tabla?page=1&size=20`
+- `GET /api/ordenes/tabla?page=1&size=20&estadoPago=PAGADO`
+- `GET /api/ordenes/tabla?page=1&size=20&sedeId=2&estadoPago=ABONADO`
+
+### Respuesta esperada (por cada orden)
+- Mantener `estadoPago` en cada item de `content`.
+- Valores de salida esperados: `PAGADO`, `ABONADO`, `NO PAGADO`.
+
+### Nota de compatibilidad
+- El frontend ya no depende del campo `estado` para la visualización principal en la tabla de órdenes.
+- El backend puede seguir enviando `estado` sin problema, pero no se renderiza en la grilla principal.
+
+---
+
 ## 1. Atributo `credito` del Cliente
 
 ### Ubicación

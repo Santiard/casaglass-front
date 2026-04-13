@@ -56,6 +56,8 @@ export default function OrdenesTable({
   sedes = [],
   filtroSedeId = "",
   setFiltroSedeId,
+  filtroEstadoPago = "",
+  setFiltroEstadoPago,
   isAdmin = false,
 }) {
   const { showError } = useToast();
@@ -67,7 +69,6 @@ export default function OrdenesTable({
   const [ordenEditando, setOrdenEditando] = useState(null);
   const [isOrdenDetalleOpen, setIsOrdenDetalleOpen] = useState(false);
   const [ordenDetalleId, setOrdenDetalleId] = useState(null);
-  const [filtroEstado, setFiltroEstado] = useState(""); // Filtro de estado
   const [isImprimirModalOpen, setIsImprimirModalOpen] = useState(false);
   const [ordenImprimir, setOrdenImprimir] = useState(null);
   const [isRemisionModalOpen, setIsRemisionModalOpen] = useState(false);
@@ -124,6 +125,19 @@ export default function OrdenesTable({
     // Si no, calcular desde items (subtotal)
     if (!Array.isArray(orden?.items)) return 0;
     return orden.items.reduce((sum, item) => sum + (item.totalLinea || 0), 0);
+  };
+
+  //  Formatear estado de pago
+  const formatearEstadoPago = (estadoPago) => {
+    if (!estadoPago) return { texto: 'SIN INFO', color: '#999', bgColor: '#f0f0f0' };
+    
+    const estado = estadoPago.toUpperCase();
+    const textos = {
+      'PAGADO': { texto: 'PAGADO', color: '#27ae60', bgColor: '#d5f4e6' },
+      'ABONADO': { texto: 'ABONADO', color: '#2980b9', bgColor: '#d6eaf8' },
+      'NO PAGADO': { texto: 'NO PAGADO', color: '#e74c3c', bgColor: '#fadbd8' }
+    };
+    return textos[estado] || { texto: estado, color: '#999', bgColor: '#f0f0f0' };
   };
 
   //  Formatear estado de la orden
@@ -260,7 +274,7 @@ export default function OrdenesTable({
       const curPage = currentPage || 1;
       const start = (curPage - 1) * pageSize;
       
-      // Aplicar solo filtros del lado del cliente (búsqueda y estado)
+      // Aplicar solo filtros del lado del cliente (búsqueda)
       // Nota: Idealmente estos filtros también deberían ir al servidor
       let arr = data;
       const q = query.trim().toLowerCase();
@@ -279,10 +293,6 @@ export default function OrdenesTable({
         );
       }
       
-      if (filtroEstado) {
-        arr = arr.filter((o) => o.estado === filtroEstado);
-      }
-
       // NOTA: No filtrar por sedeId aquí porque el servidor ya lo hizo en fetchData
       // Incluir el filtro de sede aquí solo volvería a filtrar innecesariamente
       
@@ -310,11 +320,6 @@ export default function OrdenesTable({
       );
     }
     
-    // Filtro por estado
-    if (filtroEstado) {
-      arr = arr.filter((o) => o.estado === filtroEstado);
-    }
-
     if (filtroSedeId) {
       arr = arr.filter((o) => Number(o?.sede?.id ?? o?.sedeId ?? 0) === Number(filtroSedeId));
     }
@@ -340,7 +345,7 @@ export default function OrdenesTable({
     const start = (curPage - 1) * rowsPerPageState;
     const pageData = arr.slice(start, start + rowsPerPageState);
     return { pageData, total, maxPage, curPage, start };
-  }, [data, query, page, rowsPerPageState, filtroEstado, filtroSedeId, serverSidePagination, totalElements, totalPages, currentPage, pageSize]);
+  }, [data, query, page, rowsPerPageState, filtroSedeId, serverSidePagination, totalElements, totalPages, currentPage, pageSize]);
 
   const { pageData, total, maxPage, curPage, start } = filtrados;
 
@@ -426,15 +431,16 @@ export default function OrdenesTable({
           
           <select
             className="clientes-input ordenes-estado-filter"
-            value={filtroEstado}
+            value={filtroEstadoPago}
             onChange={(e) => {
-              setFiltroEstado(e.target.value);
+              setFiltroEstadoPago?.(e.target.value);
               setPage(1);
             }}
           >
-            <option value="">Todos los estados</option>
-            <option value="ACTIVA">Activas</option>
-            <option value="ANULADA">Anuladas</option>
+            <option value="">Todos los estados de pago</option>
+            <option value="PAGADO">Pagado</option>
+            <option value="ABONADO">Abonado</option>
+            <option value="NO PAGADO">No pagado</option>
           </select>
           {/* Filtro por cliente */}
           <label style={{ fontWeight: 600, color: '#1e2753', marginRight: 4, whiteSpace: 'nowrap' }}>Cliente:</label>
@@ -467,11 +473,11 @@ export default function OrdenesTable({
             Buscar Cliente
           </button>
           
-          {(query || filtroEstado || filtroSedeId) && (
+          {(query || filtroEstadoPago || filtroSedeId) && (
             <button
               onClick={() => {
                 setQuery("");
-                setFiltroEstado("");
+                setFiltroEstadoPago?.("");
                 setFiltroSedeId?.("");
                 setPage(1);
               }}
@@ -541,7 +547,7 @@ export default function OrdenesTable({
               <th>Sede</th>
               <th>Tipo</th>
               <th>Crédito</th>
-              <th>Estado</th>
+              <th>Estado Pago</th>
               <th>Total</th>
               <th>Acciones</th>
             </tr>
@@ -571,6 +577,8 @@ export default function OrdenesTable({
                 const saldoPendiente = esCredito ? (o.creditoDetalle?.saldoPendiente ?? null) : 0;
                 const tieneSaldoPendiente = saldoPendiente === null || saldoPendiente > 0; // Si saldoPendiente es null, asumimos que tiene saldo (por compatibilidad)
                 
+                const estadoPagoInfo = formatearEstadoPago(o.estadoPago);
+                
                 return (
                     <tr key={`orden-${o.id}`}>
                       <td>{o.numero}</td>
@@ -580,7 +588,20 @@ export default function OrdenesTable({
                       <td>{o.sede?.nombre ?? "-"}</td>
                       <td>{o.venta ? "Venta" : "Cotización"}</td>
                       <td>{o.credito ? "Sí" : "No"}</td>
-                      <td>{formatearEstado(o.estado)}</td>
+                      <td>
+                        <span className="estado-pago-badge" style={{
+                          backgroundColor: estadoPagoInfo.bgColor,
+                          color: estadoPagoInfo.color,
+                          padding: '0.35rem 0.75rem',
+                          borderRadius: '6px',
+                          fontSize: '0.75rem',
+                          fontWeight: '600',
+                          display: 'inline-block',
+                          whiteSpace: 'nowrap'
+                        }}>
+                          {estadoPagoInfo.texto}
+                        </span>
+                      </td>
                       <td>${totalOrden.toLocaleString("es-CO")}</td>
                       <td className="actions-cell">
                         <button

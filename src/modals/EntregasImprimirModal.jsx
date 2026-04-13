@@ -129,6 +129,55 @@ export default function EntregasImprimirModal({ entregas = [], isOpen, onClose }
     return { medio, metodosDetectados };
   };
 
+  const obtenerMontosDetalle = (detalle) => {
+    return {
+      efectivo: Number(detalle?.montoEfectivo) || 0,
+      transferencia: Number(detalle?.montoTransferencia) || 0,
+      cheque: Number(detalle?.montoCheque) || 0,
+      deposito: Number(detalle?.montoDeposito) || 0,
+    };
+  };
+
+  const normalizarMedioPago = (medioRaw) => {
+    const medio = String(medioRaw || "").toUpperCase().trim();
+    if (!medio) return null;
+    if (medio === "DEPOSITO") return "DEPÓSITO";
+    if (["EFECTIVO", "TRANSFERENCIA", "CHEQUE", "DEPÓSITO", "MIXTO"].includes(medio)) {
+      return medio;
+    }
+    return null;
+  };
+
+  const resolverMedioPagoDetalle = (detalle, entrega) => {
+    // 1) Priorizar campo estructurado del backend
+    const medioBackend = normalizarMedioPago(detalle?.medioPago);
+    if (medioBackend) return medioBackend;
+
+    // 2) Derivar por montos estructurados del detalle
+    const montos = obtenerMontosDetalle(detalle);
+    const metodosConValor = [];
+    if (montos.efectivo > 0) metodosConValor.push("EFECTIVO");
+    if (montos.transferencia > 0) metodosConValor.push("TRANSFERENCIA");
+    if (montos.cheque > 0) metodosConValor.push("CHEQUE");
+    if (montos.deposito > 0) metodosConValor.push("DEPÓSITO");
+
+    if (metodosConValor.length === 1) return metodosConValor[0];
+    if (metodosConValor.length > 1) return "MIXTO";
+
+    // 3) Fallback a texto legado
+    const textoBase = detalle?.ventaCredito ? (detalle?.metodoPago || "") : (detalle?.descripcion || "");
+    const { medio } = resolverMedioPagoDesdeTexto(textoBase);
+    if (medio) return medio;
+
+    // 4) Fallback final: modalidad de entrega / montos globales de la entrega
+    return entrega?.modalidadEntrega ||
+      (Number(entrega?.montoEfectivo) > 0 ? "EFECTIVO" :
+       Number(entrega?.montoTransferencia) > 0 ? "TRANSFERENCIA" :
+       Number(entrega?.montoCheque) > 0 ? "CHEQUE" :
+       Number(entrega?.montoDeposito) > 0 ? "DEPÓSITO" :
+       "MIXTO");
+  };
+
   // ✅ SOLUCIÓN: Calcular valores entregados por método de pago desde los detalles
   const calcularTotalesPorEntrega = (entrega) => {
     let totalOrdenes = 0;
@@ -148,68 +197,44 @@ export default function EntregasImprimirModal({ entregas = [], isOpen, onClose }
         valorEntregado = Number(det.abonosDelPeriodo) || 0;
       }
       
-      // Determinar método de pago usando la misma lógica del componente
-      let metodo = "MIXTO";
-      if (!det.ventaCredito) {
-        // Orden a CONTADO: extraer de detalle.descripcion
-        const desc = det.descripcion || "";
-        if (desc && desc.trim()) {
-          const partes = desc.toUpperCase().split(/[\n|]/).map(p => p.trim()).filter(p => p);
-          const metodosEncontrados = [];
-          
-          for (const parte of partes) {
-            if (parte.includes('RETEFUENTE')) continue;
-            if (parte.includes('EFECTIVO')) metodosEncontrados.push('EFECTIVO');
-            else if (parte.includes('TRANSFERENCIA')) metodosEncontrados.push('TRANSFERENCIA');
-            else if (parte.includes('CHEQUE')) metodosEncontrados.push('CHEQUE');
-            else if (parte.includes('DEPÓSITO') || parte.includes('DEPOSITO')) metodosEncontrados.push('DEPÓSITO');
-          }
-          
-          if (metodosEncontrados.length === 1) {
-            metodo = metodosEncontrados[0];
-          }
-        }
+      // 1) Priorizar montos estructurados por detalle
+      const montosDetalle = obtenerMontosDetalle(det);
+      const totalMontosDetalle = montosDetalle.efectivo + montosDetalle.transferencia + montosDetalle.cheque + montosDetalle.deposito;
+
+      if (totalMontosDetalle > 0) {
+        // Escalar si hay pequeñas diferencias entre suma de montos y valorEntregado
+        const factor = valorEntregado / totalMontosDetalle;
+        porMetodo.efectivo += montosDetalle.efectivo * factor;
+        porMetodo.transferencia += montosDetalle.transferencia * factor;
+        porMetodo.cheque += montosDetalle.cheque * factor;
+        porMetodo.deposito += montosDetalle.deposito * factor;
       } else {
-        // Orden a CRÉDITO: usar detalle.metodoPago
-        const metodoPago = det.metodoPago || "";
-        if (metodoPago && metodoPago.trim()) {
-          const metodoUpper = metodoPago.toUpperCase();
-          if (metodoUpper.includes('EFECTIVO') && !metodoUpper.includes('TRANSFERENCIA') && !metodoUpper.includes('CHEQUE')) {
-            metodo = 'EFECTIVO';
-          } else if (metodoUpper.includes('TRANSFERENCIA') && !metodoUpper.includes('EFECTIVO') && !metodoUpper.includes('CHEQUE')) {
-            metodo = 'TRANSFERENCIA';
-          } else if (metodoUpper.includes('CHEQUE') && !metodoUpper.includes('EFECTIVO') && !metodoUpper.includes('TRANSFERENCIA')) {
-            metodo = 'CHEQUE';
-          } else if (metodoUpper.includes('DEPÓSITO') || metodoUpper.includes('DEPOSITO')) {
-            metodo = 'DEPÓSITO';
-          }
+        // 2) Fallback por medio derivado
+        const metodo = resolverMedioPagoDetalle(det, entrega);
+        switch(metodo) {
+          case 'EFECTIVO':
+            porMetodo.efectivo += valorEntregado;
+            break;
+          case 'TRANSFERENCIA':
+            porMetodo.transferencia += valorEntregado;
+            break;
+          case 'CHEQUE':
+            porMetodo.cheque += valorEntregado;
+            break;
+          case 'DEPÓSITO':
+            porMetodo.deposito += valorEntregado;
+            break;
+          default:
+            // Fallback final proporcional a montos globales de entrega
+            const totalBackend = (Number(entrega.montoEfectivo) || 0) + (Number(entrega.montoTransferencia) || 0) + (Number(entrega.montoCheque) || 0) + (Number(entrega.montoDeposito) || 0);
+            if (totalBackend > 0) {
+              porMetodo.efectivo += valorEntregado * (Number(entrega.montoEfectivo) || 0) / totalBackend;
+              porMetodo.transferencia += valorEntregado * (Number(entrega.montoTransferencia) || 0) / totalBackend;
+              porMetodo.cheque += valorEntregado * (Number(entrega.montoCheque) || 0) / totalBackend;
+              porMetodo.deposito += valorEntregado * (Number(entrega.montoDeposito) || 0) / totalBackend;
+            }
+            break;
         }
-      }
-      
-      // Asignar valor al método correspondiente
-      switch(metodo) {
-        case 'EFECTIVO':
-          porMetodo.efectivo += valorEntregado;
-          break;
-        case 'TRANSFERENCIA':
-          porMetodo.transferencia += valorEntregado;
-          break;
-        case 'CHEQUE':
-          porMetodo.cheque += valorEntregado;
-          break;
-        case 'DEPÓSITO':
-          porMetodo.deposito += valorEntregado;
-          break;
-        default:
-          // Si no se puede clasificar, distribuir proporcionalmente según los montos del backend
-          const totalBackend = (Number(entrega.montoEfectivo) || 0) + (Number(entrega.montoTransferencia) || 0) + (Number(entrega.montoCheque) || 0) + (Number(entrega.montoDeposito) || 0);
-          if (totalBackend > 0) {
-            porMetodo.efectivo += valorEntregado * (Number(entrega.montoEfectivo) || 0) / totalBackend;
-            porMetodo.transferencia += valorEntregado * (Number(entrega.montoTransferencia) || 0) / totalBackend;
-            porMetodo.cheque += valorEntregado * (Number(entrega.montoCheque) || 0) / totalBackend;
-            porMetodo.deposito += valorEntregado * (Number(entrega.montoDeposito) || 0) / totalBackend;
-          }
-          break;
       }
       
       totalOrdenes += total;
@@ -611,6 +636,7 @@ export default function EntregasImprimirModal({ entregas = [], isOpen, onClose }
                     <thead>
                       <tr>
                         <th>N° Orden</th>
+                        <th>Fecha</th>
                         <th>Cliente</th>
                         <th>Total Orden</th>
                         <th>Saldo</th>
@@ -622,7 +648,7 @@ export default function EntregasImprimirModal({ entregas = [], isOpen, onClose }
                     <tbody>
                       {entrega.detalles?.length === 0 ? (
                         <tr>
-                          <td colSpan={7} className="empty">Sin órdenes</td>
+                          <td colSpan={8} className="empty">Sin órdenes</td>
                         </tr>
                       ) : (
                         entrega.detalles?.map((detalle, idx) => {
@@ -654,51 +680,12 @@ export default function EntregasImprimirModal({ entregas = [], isOpen, onClose }
                             ? Math.max(0, (Number(detalle.total) || 0) - Math.abs(valorEntregado))
                             : 0; // Contado siempre tiene saldo 0
                           
-                          // Medio de pago - extraer del detalle individual
-                          let medio = "MIXTO"; // Por defecto
-                          
-                          if (!detalle.ventaCredito) {
-                            // Orden a CONTADO: usar montos detectados en la descripción
-                            const { medio: medioDetectado } = resolverMedioPagoDesdeTexto(detalle.descripcion || "");
-                            if (medioDetectado) {
-                              medio = medioDetectado;
-                            }
+                          // Medio de pago: priorizar campos estructurados del backend
+                          const medio = resolverMedioPagoDetalle(detalle, entrega);
 
-                            // Si no se pudo extraer, usar el de la entrega como fallback
-                            if (!medioDetectado && !(detalle.descripcion || "").trim()) {
-                              medio = entrega.modalidadEntrega || 
-                                      (entrega.montoEfectivo > 0 ? "EFECTIVO" : 
-                                       entrega.montoTransferencia > 0 ? "TRANSFERENCIA" :
-                                       entrega.montoCheque > 0 ? "CHEQUE" : "DEPÓSITO");
-                            }
-                          } else {
-                            // Orden a CRÉDITO (abono): usar detalle.metodoPago
-                            // Formato: "EFECTIVO: 100.000 | TRANSFERENCIA: 50.000 (Banco de Bogotá) | RETEFUENTE Orden #1057: 12.500"
-                            const metodoPago = detalle.metodoPago || "";
-                            if (metodoPago && metodoPago.trim()) {
-                              const { medio: medioDetectado } = resolverMedioPagoDesdeTexto(metodoPago);
-                              if (medioDetectado) {
-                                medio = medioDetectado;
-                              } else {
-                                // Si no se encontró ningún monto reconocido, usar el string completo o fallback
-                                medio = metodoPago.length > 50 ? "MIXTO" : metodoPago;
-                              }
-                            } else {
-                              // Fallback: usar el de la entrega
-                              medio = entrega.modalidadEntrega || 
-                                      (entrega.montoEfectivo > 0 ? "EFECTIVO" : 
-                                       entrega.montoTransferencia > 0 ? "TRANSFERENCIA" :
-                                       entrega.montoCheque > 0 ? "CHEQUE" : "DEPÓSITO");
-                            }
-                          }
-
-                          // Extraer retención del método de pago
-                          let retencion = null;
-                          const metodoPagoStr = detalle.ventaCredito ? (detalle.metodoPago || "") : (detalle.descripcion || "");
-                          const retencionMatch = metodoPagoStr.match(/RETEFUENTE.*?:\s*([0-9.,]+)/i);
-                          if (retencionMatch) {
-                            retencion = retencionMatch[1];
-                          }
+                          // Retención total por detalle (priorizar campos numéricos)
+                          const retencionTotal = (Number(detalle.retencionFuente) || 0) + (Number(detalle.retencionIca) || 0);
+                          const retencion = retencionTotal > 0 ? retencionTotal.toLocaleString("es-CO") : null;
 
                           return (
                             <tr 
@@ -723,6 +710,7 @@ export default function EntregasImprimirModal({ entregas = [], isOpen, onClose }
                                 )}
                                 {detalle.numeroOrden || "-"}
                               </td>
+                              <td>{fmtFecha(detalle.fechaAbono || detalle.fechaOrden || detalle.fecha || entrega.fechaEntrega)}</td>
                               <td>{detalle.clienteNombre || detalle.cliente?.nombre || "-"}</td>
                               <td>${(Number(detalle.total) || 0).toLocaleString("es-CO")}</td>
                               <td>${saldo.toLocaleString("es-CO")}</td>
@@ -780,196 +768,112 @@ export default function EntregasImprimirModal({ entregas = [], isOpen, onClose }
                         });
                         return; // No procesar como método de pago normal
                       }
-                      
-                      let metodoPagoStr = "";
 
-                      // DEBUG: Ver método de pago para devoluciones
-                      if (esDevolucion) {
-                        console.log(`🔍 [EntregasImprimirModal] Método de pago para devolución:`, {
-                          numeroOrden,
-                          metodoPagoStr,
-                          descripcion: detalle.descripcion,
-                          metodoPago: detalle.metodoPago
-                        });
-                      }
-                      
-                      // Obtener el string completo del método de pago
-                      if (esAbono) {
-                        // Para abonos: usar metodoPago
-                        metodoPagoStr = detalle.metodoPago || "";
-                      } else {
-                        // Para órdenes a contado: usar descripcion
-                        metodoPagoStr = detalle.descripcion || "";
-                        
-                        // Normalizar formato alternativo del backend (con saltos de línea)
-                        if (metodoPagoStr.includes('\n') || metodoPagoStr.includes('Método de pago:')) {
-                          const lineas = metodoPagoStr.split('\n').map(l => l.trim()).filter(Boolean);
-                          const partes = [];
-                          
-                          lineas.forEach(linea => {
-                            // Parsear "Efectivo: $6.500.000"
-                            const efectivoMatch = linea.match(/Efectivo:\s*\$?([\d.,]+)/i);
-                            if (efectivoMatch) {
-                              partes.push(`EFECTIVO: ${efectivoMatch[1]}`);
-                            }
-                            
-                            // Parsear "Transferencia: BANCOLOMBIA - Monto: $30.000.000"
-                            const transferenciaMatch = linea.match(/Transferencia:\s*([A-Z\s]+)\s*-\s*Monto:\s*\$?([\d.,]+)/i);
-                            if (transferenciaMatch) {
-                              const banco = transferenciaMatch[1].trim();
-                              const monto = transferenciaMatch[2];
-                              partes.push(`TRANSFERENCIA: ${monto} (${banco})`);
-                            }
-                            
-                            // Parsear "Cheque: $100.000"
-                            const chequeMatch = linea.match(/Cheque:\s*\$?([\d.,]+)/i);
-                            if (chequeMatch) {
-                              partes.push(`CHEQUE: ${chequeMatch[1]}`);
-                            }
-                          });
-                          
-                          metodoPagoStr = partes.join(' | ');
+                      const retencionTotal = (Number(detalle.retencionFuente) || 0) + (Number(detalle.retencionIca) || 0);
+                      const retencion = retencionTotal > 0 ? retencionTotal.toLocaleString("es-CO") : null;
+                      const ordenItemBase = {
+                        orden: numeroOrden,
+                        esAbono,
+                        esDevolucion,
+                        reembolsoId,
+                        observacionReembolso,
+                        retencion,
+                      };
+
+                      const agregarMetodoPago = (tipo, monto) => {
+                        const montoNum = Number(monto) || 0;
+                        if (montoNum <= 0) return false;
+                        const montoStr = montoNum.toLocaleString("es-CO");
+                        const clave = `${tipo}|${montoStr}`;
+                        if (!metodosPago[clave]) {
+                          metodosPago[clave] = {
+                            tipo,
+                            monto: montoStr,
+                            cliente: nombreCliente,
+                            ordenes: []
+                          };
                         }
+                        metodosPago[clave].ordenes.push({ ...ordenItemBase });
+                        return true;
+                      };
+
+                      // 1) Priorizar texto del backend para preservar detalle de bancos
+                      let metodoPagoStr = esAbono ? (detalle.metodoPago || "") : (detalle.descripcion || "");
+
+                      if (!esAbono && (metodoPagoStr.includes('\n') || metodoPagoStr.includes('Método de pago:'))) {
+                        const lineas = metodoPagoStr.split('\n').map(l => l.trim()).filter(Boolean);
+                        const partesNormalizadas = [];
+
+                        lineas.forEach(linea => {
+                          const efectivoMatch = linea.match(/Efectivo:\s*\$?([\d.,]+)/i);
+                          if (efectivoMatch) partesNormalizadas.push(`EFECTIVO: ${efectivoMatch[1]}`);
+
+                          const transferenciaMatch = linea.match(/Transferencia:\s*([A-Z\s]+)\s*-\s*Monto:\s*\$?([\d.,]+)/i);
+                          if (transferenciaMatch) {
+                            const banco = transferenciaMatch[1].trim();
+                            const monto = transferenciaMatch[2];
+                            partesNormalizadas.push(`TRANSFERENCIA: ${monto} (${banco})`);
+                          }
+
+                          const chequeMatch = linea.match(/Cheque:\s*\$?([\d.,]+)/i);
+                          if (chequeMatch) partesNormalizadas.push(`CHEQUE: ${chequeMatch[1]}`);
+
+                          const depositoMatch = linea.match(/Dep[óo]sito:\s*\$?([\d.,]+)/i);
+                          if (depositoMatch) partesNormalizadas.push(`DEPÓSITO: ${depositoMatch[1]}`);
+                        });
+
+                        metodoPagoStr = partesNormalizadas.join(' | ');
                       }
-                      
-                      // DEBUG: Ver método de pago para devoluciones
-                      if (esDevolucion) {
-                        console.log(`🔍 [EntregasImprimirModal] Método de pago para devolución:`, {
-                          numeroOrden,
-                          metodoPagoStr,
-                          descripcion: detalle.descripcion,
-                          metodoPago: detalle.metodoPago
+
+                      let agregoDesdeTexto = false;
+                      if (metodoPagoStr.trim()) {
+                        const partes = metodoPagoStr.split(/[\n|]/).map(p => p.trim()).filter(Boolean);
+                        partes.forEach(parte => {
+                          const efectivoMatch = parte.match(/EFECTIVO:\s*([0-9.,]+)/i);
+                          if (efectivoMatch) {
+                            agregoDesdeTexto = agregarMetodoPago("EFECTIVO", parseNumeroMonto(efectivoMatch[1])) || agregoDesdeTexto;
+                          }
+
+                          const transferenciaMatch = parte.match(/TRANSFERENCIA:\s*([0-9.,]+)\s*\(([^)]+)\)/i);
+                          if (transferenciaMatch) {
+                            const monto = parseNumeroMonto(transferenciaMatch[1]);
+                            const banco = transferenciaMatch[2].trim();
+                            agregoDesdeTexto = agregarMetodoPago(`TRANSFERENCIA ${banco}`, monto) || agregoDesdeTexto;
+                          }
+
+                          const transferenciaSimpleMatch = parte.match(/TRANSFERENCIA:\s*([0-9.,]+)/i);
+                          if (transferenciaSimpleMatch && !transferenciaMatch) {
+                            agregoDesdeTexto = agregarMetodoPago("TRANSFERENCIA", parseNumeroMonto(transferenciaSimpleMatch[1])) || agregoDesdeTexto;
+                          }
+
+                          const chequeMatch = parte.match(/CHEQUE:\s*([0-9.,]+)/i);
+                          if (chequeMatch) {
+                            agregoDesdeTexto = agregarMetodoPago("CHEQUE", parseNumeroMonto(chequeMatch[1])) || agregoDesdeTexto;
+                          }
+
+                          const depositoMatch = parte.match(/DEP[OÓ]SITO:\s*([0-9.,]+)/i);
+                          if (depositoMatch) {
+                            agregoDesdeTexto = agregarMetodoPago("DEPÓSITO", parseNumeroMonto(depositoMatch[1])) || agregoDesdeTexto;
+                          }
                         });
                       }
-                      
-                      if (!metodoPagoStr.trim()) {
-                        console.log(`⚠️ [EntregasImprimirModal] Sin método de pago para:`, {
-                          numeroOrden,
-                          esDevolucion,
-                          esAbono,
-                          metodoPago: detalle.metodoPago,
-                          descripcion: detalle.descripcion
-                        });
+
+                      if (agregoDesdeTexto) return;
+
+                      // 2) Fallback a montos estructurados del backend por detalle
+                      const montos = obtenerMontosDetalle(detalle);
+                      const tieneMontosEstructurados = Object.values(montos).some((v) => v > 0);
+                      if (tieneMontosEstructurados) {
+                        agregarMetodoPago("EFECTIVO", montos.efectivo);
+                        agregarMetodoPago("TRANSFERENCIA", montos.transferencia);
+                        agregarMetodoPago("CHEQUE", montos.cheque);
+                        agregarMetodoPago("DEPÓSITO", montos.deposito);
                         return;
                       }
-                      
-                      // Parsear el string para extraer cada método de pago
-                      const partes = metodoPagoStr.split('|').map(p => p.trim());
-                      let retencion = null;
-                      
-                      partes.forEach(parte => {
-                        // Extraer RETEFUENTE (solo una vez por orden)
-                        const retencionMatch = parte.match(/RETEFUENTE.*?:\s*([0-9.,]+)/i);
-                        if (retencionMatch) {
-                          retencion = retencionMatch[1];
-                          return; // No procesar como método de pago
-                        }
-                        
-                        // EFECTIVO
-                        const efectivoMatch = parte.match(/EFECTIVO:\s*([0-9.,]+)/i);
-                        if (efectivoMatch) {
-                          const monto = efectivoMatch[1];
-                          const clave = `EFECTIVO|${monto}`;
-                          if (!metodosPago[clave]) {
-                            metodosPago[clave] = {
-                              tipo: "EFECTIVO",
-                              monto: monto,
-                              cliente: nombreCliente,
-                              ordenes: []
-                            };
-                          }
-                          metodosPago[clave].ordenes.push({
-                            orden: numeroOrden,
-                            esAbono,
-                            esDevolucion,
-                            reembolsoId,
-                            observacionReembolso,
-                            retencion: null
-                          });
-                        }
-                        
-                        // TRANSFERENCIA (con banco)
-                        const transferenciaMatch = parte.match(/TRANSFERENCIA:\s*([0-9.,]+)\s*\(([^)]+)\)/i);
-                        if (transferenciaMatch) {
-                          const monto = transferenciaMatch[1];
-                          const banco = transferenciaMatch[2].trim();
-                          const clave = `TRANSFERENCIA ${banco}|${monto}`;
-                          if (!metodosPago[clave]) {
-                            metodosPago[clave] = {
-                              tipo: `TRANSFERENCIA ${banco}`,
-                              monto: monto,
-                              cliente: nombreCliente,
-                              ordenes: []
-                            };
-                          }
-                          metodosPago[clave].ordenes.push({
-                            orden: numeroOrden,
-                            esAbono,
-                            esDevolucion,
-                            reembolsoId,
-                            observacionReembolso,
-                            retencion: null
-                          });
-                        }
-                        
-                        // CHEQUE
-                        const chequeMatch = parte.match(/CHEQUE:\s*([0-9.,]+)/i);
-                        if (chequeMatch) {
-                          const monto = chequeMatch[1];
-                          const clave = `CHEQUE|${monto}`;
-                          if (!metodosPago[clave]) {
-                            metodosPago[clave] = {
-                              tipo: "CHEQUE",
-                              monto: monto,
-                              cliente: nombreCliente,
-                              ordenes: []
-                            };
-                          }
-                          metodosPago[clave].ordenes.push({
-                            orden: numeroOrden,
-                            esAbono,
-                            esDevolucion,
-                            reembolsoId,
-                            observacionReembolso,
-                            retencion: null
-                          });
-                        }
-                        
-                        // DEPÓSITO
-                        const depositoMatch = parte.match(/DEP[OÓ]SITO:\s*([0-9.,]+)/i);
-                        if (depositoMatch) {
-                          const monto = depositoMatch[1];
-                          const clave = `DEPÓSITO|${monto}`;
-                          if (!metodosPago[clave]) {
-                            metodosPago[clave] = {
-                              tipo: "DEPÓSITO",
-                              monto: monto,
-                              cliente: nombreCliente,
-                              ordenes: []
-                            };
-                          }
-                          metodosPago[clave].ordenes.push({
-                            orden: numeroOrden,
-                            esAbono,
-                            esDevolucion,
-                            reembolsoId,
-                            observacionReembolso,
-                            retencion: null
-                          });
-                        }
-                      });
-                      
-                      // Agregar la retención a la orden correspondiente
-                      if (retencion) {
-                        for (const clave in metodosPago) {
-                          const grupo = metodosPago[clave];
-                          const ordenItem = grupo.ordenes.find(o => o.orden === numeroOrden && !o.retencion);
-                          if (ordenItem) {
-                            ordenItem.retencion = retencion;
-                            break;
-                          }
-                        }
-                      }
+
+                      // 3) Último fallback: medio simple + monto principal
+                      const medioSimple = resolverMedioPagoDetalle(detalle, entrega);
+                      agregarMetodoPago(medioSimple || "MIXTO", Number(detalle.abonosDelPeriodo) || Number(detalle.total) || 0);
                     });
                     
                     // Generar las líneas agrupadas por método de pago
