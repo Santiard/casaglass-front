@@ -5,6 +5,7 @@ import { useAuth } from "../context/AuthContext.jsx";
 import editar from "../assets/editar.png";
 import add from "../assets/add.png";
 import MovimientoModal from "../modals/MovimientoModal.jsx";
+import TrasladoImprimirModal from "../modals/TrasladoImprimirModal.jsx";
 import { useConfirm } from "../hooks/useConfirm.jsx";
 import { useToast } from "../context/ToastContext.jsx";
 
@@ -42,6 +43,10 @@ export default function MovimientosTable({
   const [page, setPage] = useState(1);
   const [rowsPerPageLocal, setRowsPerPageLocal] = useState(rowsPerPage);
   const [expanded, setExpanded] = useState({});
+
+  // Estado para impresión de traslado
+  const [isImprimirModalOpen, setIsImprimirModalOpen] = useState(false);
+  const [trasladoImprimir, setTrasladoImprimir] = useState(null);
   
   // Usar estados externos si se proporcionan, sino usar internos
   const [internalIsModalOpen, setInternalIsModalOpen] = useState(false);
@@ -339,6 +344,7 @@ export default function MovimientosTable({
                         )}
                       </td>
                       <td>
+
                         {/* Botón Ver Detalles - Abre modal */}
                         <button
                           className="btnLink"
@@ -346,6 +352,20 @@ export default function MovimientosTable({
                           type="button"
                         >
                           Ver Detalles
+                        </button>
+
+                        {/* Botón Imprimir Traslado */}
+                        <button
+                          className="btnLink"
+                          style={{ color: '#2563eb', marginLeft: 8 }}
+                          onClick={() => {
+                            setTrasladoImprimir(mov);
+                            setIsImprimirModalOpen(true);
+                          }}
+                          type="button"
+                          title="Imprimir traslado"
+                        >
+                          🖨️ Imprimir
                         </button>
 
                         {/* Determinar permisos basados en sede del trabajador */}
@@ -469,6 +489,7 @@ export default function MovimientosTable({
         </div>
       </div>
 
+
       <MovimientoModal
         isOpen={isModalOpen}
         onClose={() => {
@@ -479,6 +500,16 @@ export default function MovimientosTable({
         movimiento={movimientoEditando}
         sedes={sedes}
         catalogoProductos={catalogoProductos}
+      />
+
+      {/* Modal de impresión de traslado */}
+      <TrasladoImprimirModal
+        isOpen={isImprimirModalOpen}
+        traslado={trasladoImprimir}
+        onClose={() => {
+          setIsImprimirModalOpen(false);
+          setTrasladoImprimir(null);
+        }}
       />
 
       <ConfirmDialog />

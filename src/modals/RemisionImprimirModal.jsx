@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import "../styles/RemisionImprimirModal.css";
 import { obtenerOrdenDetalle } from "../services/OrdenesService.js";
 import { obtenerFacturaPorOrden } from "../services/FacturasService.js";
+import { esSedeSinControlCortes, formatearTipoUnidad, obtenerCmBaseItem } from "../lib/ordenUnidadUtils.js";
 import html2pdf from "html2pdf.js";
 import logocasaglass from "../assets/logocasaglass.png";
 
@@ -134,10 +135,46 @@ export default function RemisionImprimirModal({ orden, isOpen, onClose }) {
   const fechaFormateada = parsearFecha(form.fecha);
 
   // Determinar unidad del producto (por defecto UNID, pero puede ser CM, M, etc.)
-  const obtenerUnidad = (item) => {
-    // Si el producto tiene una unidad definida, usarla
-    // Por ahora usamos UNID por defecto, pero puedes ajustar según tus datos
-    return item.producto?.unidad || "UNID";
+
+  // Helpers igual que en OrdenImprimirModal.jsx
+  const resolverNombreItem = (item) => {
+    const nombreSnapshot = (item?.nombre ?? "").toString().trim();
+    if (nombreSnapshot) return nombreSnapshot;
+    const nombreFallback = (item?.nombreProducto || item?.producto?.nombre || "-").toString().trim();
+    return nombreFallback || "-";
+  };
+
+  const resolverTipoImpresion = (item) => {
+    const tipoRaw = (item?.tipoUnidad ?? item?.producto?.tipoUnidad ?? item?.producto?.tipo ?? "").toString().trim().toUpperCase();
+    if (tipoRaw === "UNID") return "UNIDAD";
+    if (tipoRaw === "CM") {
+      const cmBase = Number(obtenerCmBaseItem(item) ?? 0);
+      if (Number.isFinite(cmBase) && cmBase > 0) {
+        return `CM(${cmBase})`;
+      }
+      return "CM";
+    }
+    return tipoRaw || "-";
+  };
+
+  const resolverCantidadImpresion = (item, esSede1) => {
+    const tipo = resolverTipoImpresion(item);
+    if (esSede1 && tipo.startsWith("CM")) {
+      const medidaDirecta = Number(item?.medidaCorte ?? 0);
+      if (Number.isFinite(medidaDirecta) && medidaDirecta > 0) {
+        return medidaDirecta;
+      }
+      const nombre = resolverNombreItem(item);
+      const match = nombre.match(/corte\s+de\s+(\d+)/i);
+      if (match?.[1]) {
+        return Number(match[1]);
+      }
+      const cmBase = Number(obtenerCmBaseItem(item) ?? 0);
+      if (Number.isFinite(cmBase) && cmBase > 0) {
+        return cmBase;
+      }
+    }
+    return Number(item?.cantidad ?? 0);
   };
 
   const crearVentanaImpresion = () => {
@@ -524,38 +561,48 @@ export default function RemisionImprimirModal({ orden, isOpen, onClose }) {
             </div>
 
             {/* Tabla de items */}
-            <table className="remision-table">
-              <thead>
-                <tr>
-                  <th>CANT</th>
-                  <th>DESCRIPCION</th>
-                  <th>UNID</th>
-                  <th>VR. UNITARIO</th>
-                  <th>VALOR TOTAL</th>
-                </tr>
-              </thead>
-              <tbody>
-                {form.items.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} style={{ textAlign: 'center', padding: '20px' }}>Sin ítems</td>
-                  </tr>
-                ) : (
-                  form.items.map((item, index) => (
-                    <tr key={item.id || index}>
-                      <td>{item.cantidad || 0}</td>
-                      <td className="text-left">
-                        {item.producto?.nombre || "-"}
-                        {item.producto?.color && ` ${item.producto.color}`}
-                        {item.producto?.tipo && ` ${item.producto.tipo}`}
-                      </td>
-                      <td>{obtenerUnidad(item)}</td>
-                      <td className="text-right">${(item.precioUnitario || 0).toLocaleString("es-CO")}</td>
-                      <td className="text-right">${(item.totalLinea || 0).toLocaleString("es-CO")}</td>
+            {(() => {
+              const esSede1 = esSedeSinControlCortes(form?.sede?.id);
+              return (
+                <table className="remision-table">
+                  <thead>
+                    <tr>
+                      <th>{esSede1 ? "CANT" : "Cantidad"}</th>
+                      <th>Descripción</th>
+                      {esSede1 && <th>Color</th>}
+                      <th>Tipo</th>
+                      {!esSede1 && <th>Color</th>}
+                      <th>{esSede1 ? "Precio Unitario" : "VR. UNITARIO"}</th>
+                      <th>{esSede1 ? "Precio Total" : "VALOR TOTAL"}</th>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                  </thead>
+                  <tbody>
+                    {form.items.length === 0 ? (
+                      <tr>
+                        <td colSpan={esSede1 ? 6 : 6} style={{ textAlign: 'center', padding: '20px' }}>Sin ítems</td>
+                      </tr>
+                    ) : (
+                      form.items.map((item, index) => {
+                        const nombreProducto = resolverNombreItem(item);
+                        const tipoImpresion = resolverTipoImpresion(item);
+                        const cantidadImpresion = resolverCantidadImpresion(item, esSede1);
+                        return (
+                          <tr key={item.id || index}>
+                            <td>{cantidadImpresion}</td>
+                            <td className="text-left">{nombreProducto}</td>
+                            {esSede1 && <td>{item.producto?.color || "-"}</td>}
+                            <td>{esSede1 ? tipoImpresion : (formatearTipoUnidad(item) || item.producto?.tipo || "-")}</td>
+                            {!esSede1 && <td>{item.producto?.color || "-"}</td>}
+                            <td className="text-right">${(item.precioUnitario || 0).toLocaleString("es-CO")}</td>
+                            <td className="text-right">${(item.totalLinea || 0).toLocaleString("es-CO")}</td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              );
+            })()}
 
             {/* Footer con firmas y total */}
             <div className="remision-footer">
