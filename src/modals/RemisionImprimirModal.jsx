@@ -6,6 +6,35 @@ import { esSedeSinControlCortes, formatearTipoUnidad, obtenerCmBaseItem } from "
 import html2pdf from "html2pdf.js";
 import logocasaglass from "../assets/logocasaglass.png";
 
+/** Campos de retención que esperamos del detalle de orden (GET /api/ordenes/{id}/detalle). */
+function extraerRetencionesOrden(o) {
+  if (!o || typeof o !== "object") {
+    return {
+      tieneRetencionFuente: false,
+      retencionFuente: 0,
+      tieneRetencionIca: false,
+      retencionIca: 0,
+      porcentajeIca: null,
+    };
+  }
+  const reteF = Number(o.retencionFuente);
+  const reteI = Number(o.retencionIca);
+  const pctIca =
+    o.porcentajeIca !== undefined && o.porcentajeIca !== null && o.porcentajeIca !== ""
+      ? Number(o.porcentajeIca)
+      : null;
+  return {
+    tieneRetencionFuente: Boolean(o.tieneRetencionFuente),
+    retencionFuente: Number.isFinite(reteF) ? reteF : 0,
+    tieneRetencionIca: Boolean(o.tieneRetencionIca),
+    retencionIca: Number.isFinite(reteI) ? reteI : 0,
+    porcentajeIca: Number.isFinite(pctIca) ? pctIca : null,
+  };
+}
+
+const fmtCOPRemision = (n) =>
+  `$${Number(n || 0).toLocaleString("es-CO", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+
 export default function RemisionImprimirModal({ orden, isOpen, onClose }) {
   const [form, setForm] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -69,6 +98,7 @@ export default function RemisionImprimirModal({ orden, isOpen, onClose }) {
           sede: ordenDetallada.sede || {},
           trabajador: ordenDetallada.trabajador || {},
           items: ordenDetallada.items || [],
+          ...extraerRetencionesOrden(ordenDetallada),
         };
         setForm(base);
       } catch (error) {
@@ -88,6 +118,7 @@ export default function RemisionImprimirModal({ orden, isOpen, onClose }) {
           sede: orden.sede || {},
           trabajador: orden.trabajador || {},
           items: orden.items || [],
+          ...extraerRetencionesOrden(orden),
         };
         setForm(base);
       } finally {
@@ -120,6 +151,15 @@ export default function RemisionImprimirModal({ orden, isOpen, onClose }) {
   const totalOrden = form.total !== null 
     ? form.total 
     : form.items.reduce((sum, item) => sum + (item.totalLinea || 0), 0);
+
+  const mostrarReteFuente =
+    Boolean(form.tieneRetencionFuente) || Number(form.retencionFuente || 0) > 0;
+  const mostrarReteIca =
+    Boolean(form.tieneRetencionIca) || Number(form.retencionIca || 0) > 0;
+  const etiquetaIca =
+    form.porcentajeIca != null && Number.isFinite(Number(form.porcentajeIca))
+      ? `Retención ICA (${Number(form.porcentajeIca)}%)`
+      : "Retención ICA";
 
   // Formatear fecha para mostrar día, mes y año separados
   const parsearFecha = (iso) => {
@@ -410,6 +450,26 @@ export default function RemisionImprimirModal({ orden, isOpen, onClose }) {
               color: #000;
             }
             
+            .remision-retenciones {
+              margin-top: 10px;
+              margin-bottom: 10px;
+              text-align: right;
+              font-size: 9pt;
+              color: #000;
+            }
+            
+            .remision-retencion-line {
+              display: flex;
+              justify-content: flex-end;
+              align-items: baseline;
+              gap: 12px;
+              margin: 4px 0;
+            }
+            
+            .remision-retencion-label {
+              font-weight: 600;
+            }
+            
             @media print {
               body {
                 font-size: 10pt;
@@ -619,6 +679,22 @@ export default function RemisionImprimirModal({ orden, isOpen, onClose }) {
               </div>
               
               <div className="remision-total-section">
+                {(mostrarReteFuente || mostrarReteIca) && (
+                  <div className="remision-retenciones">
+                    {mostrarReteFuente && (
+                      <div className="remision-retencion-line">
+                        <span className="remision-retencion-label">Retención en la fuente:</span>
+                        <span>{fmtCOPRemision(form.retencionFuente)}</span>
+                      </div>
+                    )}
+                    {mostrarReteIca && (
+                      <div className="remision-retencion-line">
+                        <span className="remision-retencion-label">{etiquetaIca}:</span>
+                        <span>{fmtCOPRemision(form.retencionIca)}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
                 <div className="remision-total-label">TOTAL $:</div>
                 <div className="remision-total-value">${totalOrden.toLocaleString("es-CO", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</div>
               </div>
