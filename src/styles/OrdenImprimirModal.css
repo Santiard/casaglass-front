@@ -274,7 +274,8 @@
     width: 100% !important;
   }
   
-  #printable-orden-content {
+  #printable-orden-content,
+  #printable-traslado-content {
     position: relative !important;
     left: auto !important;
     top: auto !important;

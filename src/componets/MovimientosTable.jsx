@@ -10,6 +10,7 @@ import { useConfirm } from "../hooks/useConfirm.jsx";
 import { useToast } from "../context/ToastContext.jsx";
 
 import { getTodayLocalDate, toLocalDateOnly } from "../lib/dateUtils.js";
+import { obtenerTraslado } from "../services/TrasladosService.js";
 
 export default function MovimientosTable({
   data = [],
@@ -44,9 +45,10 @@ export default function MovimientosTable({
   const [rowsPerPageLocal, setRowsPerPageLocal] = useState(rowsPerPage);
   const [expanded, setExpanded] = useState({});
 
-  // Estado para impresión de traslado
+  // Estado para impresión de traslado (misma fuente que "Ver detalles": GET /traslados/:id)
   const [isImprimirModalOpen, setIsImprimirModalOpen] = useState(false);
   const [trasladoImprimir, setTrasladoImprimir] = useState(null);
+  const [imprimirCargandoId, setImprimirCargandoId] = useState(null);
   
   // Usar estados externos si se proporcionan, sino usar internos
   const [internalIsModalOpen, setInternalIsModalOpen] = useState(false);
@@ -354,18 +356,36 @@ export default function MovimientosTable({
                           Ver Detalles
                         </button>
 
-                        {/* Botón Imprimir Traslado */}
+                        {/* Botón Imprimir Traslado — carga traslado completo para mismos datos que el modal de detalles */}
                         <button
-                          className="btnLink"
-                          style={{ color: '#2563eb', marginLeft: 8 }}
-                          onClick={() => {
-                            setTrasladoImprimir(mov);
-                            setIsImprimirModalOpen(true);
-                          }}
                           type="button"
+                          style={{
+                            marginLeft: 8,
+                            padding: "5px 12px",
+                            borderRadius: 6,
+                            border: "none",
+                            cursor: imprimirCargandoId === id ? "default" : "pointer",
+                            backgroundColor: imprimirCargandoId === id ? "#94a3b8" : "#2563eb",
+                            color: "#fff",
+                            fontSize: "0.85rem",
+                            fontWeight: 600,
+                          }}
+                          disabled={imprimirCargandoId === id}
+                          onClick={async () => {
+                            setImprimirCargandoId(id);
+                            try {
+                              const completo = await obtenerTraslado(id);
+                              setTrasladoImprimir(completo);
+                              setIsImprimirModalOpen(true);
+                            } catch (e) {
+                              showError("No se pudo cargar el traslado para imprimir.");
+                            } finally {
+                              setImprimirCargandoId(null);
+                            }
+                          }}
                           title="Imprimir traslado"
                         >
-                          🖨️ Imprimir
+                          {imprimirCargandoId === id ? "Cargando…" : "Imprimir"}
                         </button>
 
                         {/* Determinar permisos basados en sede del trabajador */}
