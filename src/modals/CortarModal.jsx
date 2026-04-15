@@ -147,10 +147,17 @@ export default function CortarModal({
       const precioCorteRedondeado = cortesCalculados.precioCorte || 0;
       const precioSobranteRedondeado = cortesCalculados.precioSobrante || 0;
 
+      const medidaCorteTexto = `${cortesCalculados.medidaCorte}CMS`;
+      const medidaCorteBase = Number(corteBase?.largoCm || corteBase?.largo || 0);
+      const etiquetaOrigenCorte =
+        !esSedeUnoContexto && corteBase && medidaCorteBase > 0
+          ? ` CM(${medidaCorteBase})`
+          : "";
+
       const corteParaVender = {
         ...producto,
         id: `corte_${producto.id}_${Date.now()}`, // ID único para el corte
-        nombre: `${producto.nombre} Corte de ${cortesCalculados.medidaCorte} CMS`,
+        nombre: `${producto.nombre} Corte de ${medidaCorteTexto}${etiquetaOrigenCorte}`,
         cantidadVender: 1,
         precioUsado: precioCorteRedondeado,
         esCorte: true,

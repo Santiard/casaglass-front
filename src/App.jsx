@@ -39,6 +39,30 @@ function App() {
     }
   }, []);
 
+  // Evita que el scroll del mouse cambie accidentalmente los inputs numéricos
+  useEffect(() => {
+    const handleWheelOnNumberInput = (event) => {
+      const target = event.target;
+      if (
+        target instanceof HTMLInputElement &&
+        target.type === "number" &&
+        document.activeElement === target
+      ) {
+        target.blur();
+      }
+    };
+
+    document.addEventListener("wheel", handleWheelOnNumberInput, {
+      capture: true,
+    });
+
+    return () => {
+      document.removeEventListener("wheel", handleWheelOnNumberInput, {
+        capture: true,
+      });
+    };
+  }, []);
+
   return (
     <Router basename={routerBasename}>
       <AuthProvider>

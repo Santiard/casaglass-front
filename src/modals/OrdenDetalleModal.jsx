@@ -132,10 +132,21 @@ export default function OrdenDetalleModal({ ordenId, facturaId, isOpen, onClose 
 
   const resolverNombreItem = (item) => {
     const nombreSnapshot = (item?.nombre ?? "").toString().trim();
-    if (nombreSnapshot) return nombreSnapshot;
+    const nombreBase = nombreSnapshot || (item?.nombreProducto || item?.producto?.nombre || "-").toString().trim() || "-";
 
-    const nombreFallback = (item?.nombreProducto || item?.producto?.nombre || "-").toString().trim();
-    return nombreFallback || "-";
+    // En cotizaciones de cortes de cortes, el backend puede devolver solo "Corte de XCMS".
+    // Para mantener el contexto operativo en Detalles, reconstruimos el sufijo CM(base)
+    // desde el nombre del producto origen cuando exista.
+    if (/CM\(\d+\)/i.test(nombreBase)) return nombreBase;
+
+    const nombreProductoOrigen = (item?.producto?.nombre || "").toString();
+    if (!/corte\s+de\s+\d+/i.test(nombreProductoOrigen)) return nombreBase;
+
+    const matchBase = nombreProductoOrigen.match(/corte\s+de\s+(\d+)/i);
+    const medidaBase = Number(matchBase?.[1] || 0);
+    if (!Number.isFinite(medidaBase) || medidaBase <= 0) return nombreBase;
+
+    return `${nombreBase} CM(${medidaBase})`;
   };
 
   const IVA_FACTOR = 1 + ((Number(ivaRate) || 19) / 100);
