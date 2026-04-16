@@ -1,6 +1,7 @@
 import React, { useState, useEffect, Fragment } from "react";
 import { listarClientes } from "../services/ClientesService.js";
-import { listarAbonosPorCliente, listarCreditosCliente } from "../services/AbonosService.js";
+import { listarAbonosPorCliente, listarCreditosCliente, eliminarAbono } from "../services/AbonosService.js";
+import ConfirmModal from "../componets/ConfirmModal.jsx";
 import { useToast } from "../context/ToastContext.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import "../styles/Table.css";
@@ -20,6 +21,8 @@ export default function HistoricoAbonosClienteModal({ isOpen, onClose }) {
   const [creditosCompletos, setCreditosCompletos] = useState([]); // Almacenar todos los créditos sin filtrar
   const [loading, setLoading] = useState(false);
   const [expanded, setExpanded] = useState({});
+  const [eliminandoAbonoId, setEliminandoAbonoId] = useState(null);
+  const [confirmEliminar, setConfirmEliminar] = useState({ open: false, abono: null });
   const [fechaDesde, setFechaDesde] = useState("");
   const [fechaHasta, setFechaHasta] = useState("");
 
@@ -170,6 +173,29 @@ export default function HistoricoAbonosClienteModal({ isOpen, onClose }) {
   // Alternar expandir/ocultar detalles
   const toggleExpand = (abonoId) => {
     setExpanded((prev) => ({ ...prev, [abonoId]: !prev[abonoId] }));
+  };
+
+  const handleEliminarAbono = (abono) => {
+    if (!abono.id) {
+      showError("No se puede eliminar: faltan datos del abono.");
+      return;
+    }
+    setConfirmEliminar({ open: true, abono });
+  };
+
+  const confirmarEliminarAbono = async () => {
+    const abono = confirmEliminar.abono;
+    setConfirmEliminar({ open: false, abono: null });
+    setEliminandoAbonoId(abono.id);
+    try {
+      await eliminarAbono(abono.id);
+      setAbonos((prev) => prev.filter((a) => a.id !== abono.id));
+      setAbonosCompletos((prev) => prev.filter((a) => a.id !== abono.id));
+    } catch (err) {
+      showError(err?.response?.data?.message || "No se pudo eliminar el abono.");
+    } finally {
+      setEliminandoAbonoId(null);
+    }
   };
 
   // Función para crear ventana de impresión
@@ -801,7 +827,6 @@ export default function HistoricoAbonosClienteModal({ isOpen, onClose }) {
                   <tr>
                     <th>Orden</th>
                     <th>Fecha</th>
-                    <th>Obra</th>
                     <th>Total Crédito</th>
                     <th>Total Abonado</th>
                     <th>Saldo Pendiente</th>
@@ -814,7 +839,6 @@ export default function HistoricoAbonosClienteModal({ isOpen, onClose }) {
                     <tr key={credito.id}>
                       <td className="center">#{credito.orden?.numero || '-'}</td>
                       <td className="center">{fmtFecha(credito.orden?.fecha)}</td>
-                      <td>{credito.orden?.obra || '-'}</td>
                       <td className="right">{fmtCOP(credito.totalCredito || 0)}</td>
                       <td className="right">{fmtCOP(credito.totalAbonado || 0)}</td>
                       <td className="right">{fmtCOP(credito.saldoPendiente || 0)}</td>
@@ -1114,16 +1138,40 @@ export default function HistoricoAbonosClienteModal({ isOpen, onClose }) {
                                 {fmtCOP(abono.saldo || 0)}
                               </td>
                               <td style={{ padding: '0.75rem', textAlign: 'center' }}>
-                                <button
-                                  className="btnLink"
-                                  onClick={() => toggleExpand(abonoId)}
-                                  style={{
-                                    fontSize: '0.75rem',
-                                    padding: '0.3125rem 0.625rem'
-                                  }}
-                                >
-                                  {expanded[abonoId] ? "Ocultar" : "Detalles"}
-                                </button>
+                                <div style={{ display: 'flex', gap: '0.4rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+                                  <button
+                                    className="btnLink"
+                                    onClick={() => toggleExpand(abonoId)}
+                                    style={{
+                                      fontSize: '0.75rem',
+                                      padding: '0.3125rem 0.625rem'
+                                    }}
+                                  >
+                                    {expanded[abonoId] ? "Ocultar" : "Detalles"}
+                                  </button>
+                                  {isAdmin && (
+                                    <button
+                                      onClick={() => handleEliminarAbono(abono)}
+                                      disabled={eliminandoAbonoId === abonoId}
+                                      style={{
+                                        fontSize: '0.75rem',
+                                        padding: '0.3125rem 0.625rem',
+                                        background: eliminandoAbonoId === abonoId ? '#ccc' : '#e74c3c',
+                                        color: '#fff',
+                                        border: 'none',
+                                        borderRadius: '4px',
+                                        cursor: eliminandoAbonoId === abonoId ? 'not-allowed' : 'pointer',
+                                        fontWeight: '600',
+                                        transition: 'background 0.2s'
+                                      }}
+                                      onMouseEnter={(e) => { if (eliminandoAbonoId !== abonoId) e.target.style.background = '#c0392b'; }}
+                                      onMouseLeave={(e) => { if (eliminandoAbonoId !== abonoId) e.target.style.background = '#e74c3c'; }}
+                                      title="Eliminar abono"
+                                    >
+                                      {eliminandoAbonoId === abonoId ? "..." : "Eliminar"}
+                                    </button>
+                                  )}
+                                </div>
                               </td>
                             </tr>
 
@@ -1277,7 +1325,6 @@ export default function HistoricoAbonosClienteModal({ isOpen, onClose }) {
                       <tr>
                         <th style={{ padding: '0.75rem', textAlign: 'left', borderRight: '1px solid #e0e0e0', color: '#fff' }}>Orden</th>
                         <th style={{ padding: '0.75rem', textAlign: 'left', borderRight: '1px solid #e0e0e0', color: '#fff' }}>Fecha</th>
-                        <th style={{ padding: '0.75rem', textAlign: 'left', borderRight: '1px solid #e0e0e0', color: '#fff' }}>Obra</th>
                         <th style={{ padding: '0.75rem', textAlign: 'right', borderRight: '1px solid #e0e0e0', color: '#fff' }}>Total Crédito</th>
                         <th style={{ padding: '0.75rem', textAlign: 'right', borderRight: '1px solid #e0e0e0', color: '#fff' }}>Total Abonado</th>
                         <th style={{ padding: '0.75rem', textAlign: 'right', borderRight: '1px solid #e0e0e0', color: '#fff' }}>Saldo Pendiente</th>
@@ -1288,7 +1335,7 @@ export default function HistoricoAbonosClienteModal({ isOpen, onClose }) {
                     <tbody>
                       {creditos.length === 0 ? (
                         <tr>
-                          <td colSpan={8} style={{ 
+                          <td colSpan={7} style={{ 
                             padding: '3rem', 
                             textAlign: 'center', 
                             color: '#666',
@@ -1312,9 +1359,6 @@ export default function HistoricoAbonosClienteModal({ isOpen, onClose }) {
                             </td>
                             <td style={{ padding: '0.75rem', borderRight: '1px solid #e0e0e0' }}>
                               {fmtFecha(credito.orden?.fecha)}
-                            </td>
-                            <td style={{ padding: '0.75rem', borderRight: '1px solid #e0e0e0' }}>
-                              {credito.orden?.obra || '-'}
                             </td>
                             <td style={{ padding: '0.75rem', textAlign: 'right', borderRight: '1px solid #e0e0e0', fontWeight: '600' }}>
                               {fmtCOP(credito.totalCredito || 0)}
@@ -1583,6 +1627,21 @@ export default function HistoricoAbonosClienteModal({ isOpen, onClose }) {
           </div>
         </div>
       )}
+
+      <ConfirmModal
+        isOpen={confirmEliminar.open}
+        onClose={() => setConfirmEliminar({ open: false, abono: null })}
+        onConfirm={confirmarEliminarAbono}
+        type="danger"
+        title="Eliminar abono"
+        message={
+          confirmEliminar.abono
+            ? `¿Seguro que deseas eliminar el abono${confirmEliminar.abono.factura ? ` #${confirmEliminar.abono.factura}` : ''}?\n\nMonto: ${fmtCOP(confirmEliminar.abono.total || 0)}\n\nEsta acción no se puede deshacer.`
+            : '¿Seguro que deseas eliminar este abono?'
+        }
+        confirmText="Sí, eliminar"
+        cancelText="Cancelar"
+      />
     </>
   );
 }

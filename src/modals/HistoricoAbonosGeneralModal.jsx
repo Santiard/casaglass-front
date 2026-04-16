@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { listarAbonos, listarAbonosPorFecha } from "../services/AbonosService.js";
+import { listarAbonos, listarAbonosPorFecha, eliminarAbono } from "../services/AbonosService.js";
+import ConfirmModal from "../componets/ConfirmModal.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useToast } from "../context/ToastContext.jsx";
 import "../styles/Table.css";
@@ -9,6 +10,8 @@ export default function HistoricoAbonosGeneralModal({ isOpen, onClose }) {
   const { showError } = useToast();
   const [abonos, setAbonos] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [eliminandoAbonoId, setEliminandoAbonoId] = useState(null);
+  const [confirmEliminar, setConfirmEliminar] = useState({ open: false, abono: null });
   // Función helper para obtener fecha local sin problemas de zona horaria
   const obtenerFechaLocal = (fecha = new Date()) => {
     const año = fecha.getFullYear();
@@ -348,6 +351,28 @@ export default function HistoricoAbonosGeneralModal({ isOpen, onClose }) {
     }
   };
 
+  const handleEliminarAbono = (abono) => {
+    if (!abono.id) {
+      showError("No se puede eliminar: faltan datos del abono.");
+      return;
+    }
+    setConfirmEliminar({ open: true, abono });
+  };
+
+  const confirmarEliminarAbono = async () => {
+    const abono = confirmEliminar.abono;
+    setConfirmEliminar({ open: false, abono: null });
+    setEliminandoAbonoId(abono.id);
+    try {
+      await eliminarAbono(abono.id);
+      setAbonos((prev) => prev.filter((a) => a.id !== abono.id));
+    } catch (err) {
+      showError(err?.response?.data?.message || "No se pudo eliminar el abono.");
+    } finally {
+      setEliminandoAbonoId(null);
+    }
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -597,7 +622,10 @@ export default function HistoricoAbonosGeneralModal({ isOpen, onClose }) {
                       <th style={{ padding: '0.3rem 0.5rem', textAlign: 'left', borderRight: '1px solid #fff', fontSize: '0.7rem' }}>CLIENTE</th>
                       <th style={{ padding: '0.3rem 0.5rem', textAlign: 'left', borderRight: '1px solid #fff', fontSize: '0.7rem' }}>MÉTODO DE PAGO</th>
                       <th style={{ padding: '0.3rem 0.5rem', textAlign: 'right', borderRight: '1px solid #fff', fontSize: '0.7rem' }}>TOTAL</th>
-                      <th style={{ padding: '0.3rem 0.5rem', textAlign: 'right', fontSize: '0.7rem' }}>SALDO POST-ABONO</th>
+                      <th style={{ padding: '0.3rem 0.5rem', textAlign: 'right', borderRight: isAdmin ? '1px solid #fff' : undefined, fontSize: '0.7rem' }}>SALDO POST-ABONO</th>
+                      {isAdmin && (
+                        <th style={{ padding: '0.3rem 0.5rem', textAlign: 'center', fontSize: '0.7rem' }}>ACCIONES</th>
+                      )}
                     </tr>
                   </thead>
                   <tbody>
@@ -628,9 +656,33 @@ export default function HistoricoAbonosGeneralModal({ isOpen, onClose }) {
                           <td style={{ padding: '0.2rem 0.5rem', textAlign: 'right', borderRight: '1px solid #e0e0e0', fontWeight: '600', fontSize: '0.7rem' }}>
                             {fmtCOP(abono.total || 0)}
                           </td>
-                          <td style={{ padding: '0.2rem 0.5rem', textAlign: 'right', fontSize: '0.7rem' }}>
+                          <td style={{ padding: '0.2rem 0.5rem', textAlign: 'right', borderRight: isAdmin ? '1px solid #e0e0e0' : undefined, fontSize: '0.7rem' }}>
                             {fmtCOP(abono.saldo || 0)}
                           </td>
+                          {isAdmin && (
+                            <td style={{ padding: '0.2rem 0.5rem', textAlign: 'center', fontSize: '0.7rem' }}>
+                              <button
+                                onClick={() => handleEliminarAbono(abono)}
+                                disabled={eliminandoAbonoId === abono.id}
+                                style={{
+                                  fontSize: '0.65rem',
+                                  padding: '0.2rem 0.5rem',
+                                  background: eliminandoAbonoId === abono.id ? '#ccc' : '#e74c3c',
+                                  color: '#fff',
+                                  border: 'none',
+                                  borderRadius: '4px',
+                                  cursor: eliminandoAbonoId === abono.id ? 'not-allowed' : 'pointer',
+                                  fontWeight: '600',
+                                  transition: 'background 0.2s'
+                                }}
+                                onMouseEnter={(e) => { if (eliminandoAbonoId !== abono.id) e.target.style.background = '#c0392b'; }}
+                                onMouseLeave={(e) => { if (eliminandoAbonoId !== abono.id) e.target.style.background = '#e74c3c'; }}
+                                title="Eliminar abono"
+                              >
+                                {eliminandoAbonoId === abono.id ? "..." : "Eliminar"}
+                              </button>
+                            </td>
+                          )}
                         </tr>
                       );
                     })}
@@ -801,6 +853,21 @@ export default function HistoricoAbonosGeneralModal({ isOpen, onClose }) {
           </div>
         </div>
       </div>
+
+      <ConfirmModal
+        isOpen={confirmEliminar.open}
+        onClose={() => setConfirmEliminar({ open: false, abono: null })}
+        onConfirm={confirmarEliminarAbono}
+        type="danger"
+        title="Eliminar abono"
+        message={
+          confirmEliminar.abono
+            ? `¿Seguro que deseas eliminar el abono${confirmEliminar.abono.factura ? ` #${confirmEliminar.abono.factura}` : ''}?\n\nMonto: ${fmtCOP(confirmEliminar.abono.total || 0)}\n\nEsta acción no se puede deshacer.`
+            : '¿Seguro que deseas eliminar este abono?'
+        }
+        confirmText="Sí, eliminar"
+        cancelText="Cancelar"
+      />
     </div>
   );
 }

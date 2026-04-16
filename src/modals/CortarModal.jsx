@@ -148,16 +148,21 @@ export default function CortarModal({
       const precioSobranteRedondeado = cortesCalculados.precioSobrante || 0;
 
       const medidaCorteTexto = `${cortesCalculados.medidaCorte}CMS`;
-      const medidaCorteBase = Number(corteBase?.largoCm || corteBase?.largo || 0);
+      const medidaCorteBase = cortesCalculados.largoBase;
       const etiquetaOrigenCorte =
-        !esSedeUnoContexto && corteBase && medidaCorteBase > 0
+        !esSedeUnoContexto && medidaCorteBase > 0
           ? ` CM(${medidaCorteBase})`
           : "";
 
+      // Quitar cualquier "Corte de X CMS" y "CM(X)" previos del nombre para evitar duplicados
+      const nombreBaseProducto = producto.nombre
+        .replace(/\s*Corte de \d+\s*CMS?(\s*CM\(\d+\))?\s*/gi, "")
+        .trim();
+
       const corteParaVender = {
         ...producto,
-        id: `corte_${producto.id}_${Date.now()}`, // ID único para el corte
-        nombre: `${producto.nombre} Corte de ${medidaCorteTexto}${etiquetaOrigenCorte}`,
+        id: `corte_${producto.id}_${Date.now()}`,
+        nombre: `${nombreBaseProducto} Corte de ${medidaCorteTexto}${etiquetaOrigenCorte}`,
         cantidadVender: 1,
         precioUsado: precioCorteRedondeado,
         esCorte: true,

@@ -116,6 +116,22 @@ export async function listarCreditosPendientes(clienteId) {
 }
 
 /**
+ * Eliminar un abono por su ID
+ * @param {number} abonoId - ID del abono a eliminar
+ * @returns {Promise<void>}
+ */
+export async function eliminarAbono(abonoId) {
+  if (!abonoId) {
+    throw new Error("abonoId es obligatorio para eliminar un abono");
+  }
+  try {
+    await api.delete(`/abonos/${abonoId}`);
+  } catch (error) {
+    throw error;
+  }
+}
+
+/**
  * Listar TODOS los créditos de un cliente (histórico completo)
  * Incluye créditos abiertos, cerrados, anulados - sin filtros
  * 

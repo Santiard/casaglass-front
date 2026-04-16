@@ -1,4 +1,8 @@
 import React, { useState, useMemo, Fragment, useEffect } from "react";
+import { eliminarAbono } from "../services/AbonosService.js";
+import { useAuth } from "../context/AuthContext.jsx";
+import { useToast } from "../context/ToastContext.jsx";
+import ConfirmModal from "./ConfirmModal.jsx";
 import "../styles/Creditos.css";
 import "../styles/Table.css";
 
@@ -20,13 +24,38 @@ const CreditosTable = ({
   onSeleccionarCredito,
   creditosSeleccionados = [],
   totalSeleccionado = 0,
+  onAbonoEliminado,
 }) => {
+  const { isAdmin } = useAuth();
+  const { showError } = useToast();
   const [expandido, setExpandido] = useState(null);
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(rowsPerPageProp);
+  const [eliminandoAbonoId, setEliminandoAbonoId] = useState(null);
+  const [abonosEliminadosIds, setAbonosEliminadosIds] = useState(new Set());
+  const [confirmEliminar, setConfirmEliminar] = useState({ open: false, abono: null });
 
   const toggleExpandido = (id) => {
     setExpandido(expandido === id ? null : id);
+  };
+
+  const handleEliminarAbono = (abono) => {
+    setConfirmEliminar({ open: true, abono });
+  };
+
+  const confirmarEliminarAbono = async () => {
+    const abono = confirmEliminar.abono;
+    setConfirmEliminar({ open: false, abono: null });
+    setEliminandoAbonoId(abono.id);
+    try {
+      await eliminarAbono(abono.id);
+      setAbonosEliminadosIds((prev) => new Set([...prev, abono.id]));
+      if (onAbonoEliminado) onAbonoEliminado(abono.id);
+    } catch (err) {
+      showError(err?.response?.data?.message || "No se pudo eliminar el abono.");
+    } finally {
+      setEliminandoAbonoId(null);
+    }
   };
 
   // Paginación
@@ -103,6 +132,8 @@ const CreditosTable = ({
   useEffect(() => {
     setRowsPerPage(rowsPerPageProp);
   }, [rowsPerPageProp]);
+
+  const abonoConfirm = confirmEliminar.abono;
 
   return (
     <div className="tabla-creditos">
@@ -198,10 +229,13 @@ const CreditosTable = ({
                               <th>Total</th>
                               <th>Retefuente</th>
                               <th>Saldo post-abono</th>
+                              {isAdmin && <th>Acciones</th>}
                             </tr>
                           </thead>
                           <tbody>
-                            {credito.abonos.map((a) => (
+                            {credito.abonos
+                              .filter((a) => !abonosEliminadosIds.has(a.id))
+                              .map((a) => (
                               <tr key={a.id}>
                                 <td>{a.fecha}</td>
                                 <td>{a.metodoPago}</td>
@@ -209,6 +243,27 @@ const CreditosTable = ({
                                 <td>${a.total.toLocaleString()}</td>
                                 <td>{a.retencionFuente ? `$${a.retencionFuente.toLocaleString()}` : "-"}</td>
                                 <td>${a.saldo.toLocaleString()}</td>
+                                {isAdmin && (
+                                  <td style={{ textAlign: 'center' }}>
+                                    <button
+                                      onClick={() => handleEliminarAbono(a)}
+                                      disabled={eliminandoAbonoId === a.id}
+                                      style={{
+                                        fontSize: '0.72rem',
+                                        padding: '0.2rem 0.5rem',
+                                        background: eliminandoAbonoId === a.id ? '#ccc' : '#e74c3c',
+                                        color: '#fff',
+                                        border: 'none',
+                                        borderRadius: '4px',
+                                        cursor: eliminandoAbonoId === a.id ? 'not-allowed' : 'pointer',
+                                        fontWeight: '600',
+                                      }}
+                                      title="Eliminar abono"
+                                    >
+                                      {eliminandoAbonoId === a.id ? "..." : "Eliminar"}
+                                    </button>
+                                  </td>
+                                )}
                               </tr>
                             ))}
                           </tbody>
@@ -276,6 +331,20 @@ const CreditosTable = ({
           </div>
         </div>
       )}
+      <ConfirmModal
+        isOpen={confirmEliminar.open}
+        onClose={() => setConfirmEliminar({ open: false, abono: null })}
+        onConfirm={confirmarEliminarAbono}
+        type="danger"
+        title="Eliminar abono"
+        message={
+          abonoConfirm
+            ? `¿Seguro que deseas eliminar el abono${abonoConfirm.factura ? ` #${abonoConfirm.factura}` : ''}?\n\nMonto: $${(abonoConfirm.total || 0).toLocaleString('es-CO')}\n\nEsta acción no se puede deshacer.`
+            : '¿Seguro que deseas eliminar este abono?'
+        }
+        confirmText="Sí, eliminar"
+        cancelText="Cancelar"
+      />
     </div>
   );
 };
