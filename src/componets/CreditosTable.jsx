@@ -229,7 +229,7 @@ const CreditosTable = ({
                               <th>Total</th>
                               <th>Retefuente</th>
                               <th>Saldo post-abono</th>
-                              {isAdmin && <th>Acciones</th>}
+                              <th>Acciones</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -243,8 +243,7 @@ const CreditosTable = ({
                                 <td>${a.total.toLocaleString()}</td>
                                 <td>{a.retencionFuente ? `$${a.retencionFuente.toLocaleString()}` : "-"}</td>
                                 <td>${a.saldo.toLocaleString()}</td>
-                                {isAdmin && (
-                                  <td style={{ textAlign: 'center' }}>
+                                <td style={{ textAlign: 'center' }}>
                                     <button
                                       onClick={() => handleEliminarAbono(a)}
                                       disabled={eliminandoAbonoId === a.id}
@@ -263,7 +262,6 @@ const CreditosTable = ({
                                       {eliminandoAbonoId === a.id ? "..." : "Eliminar"}
                                     </button>
                                   </td>
-                                )}
                               </tr>
                             ))}
                           </tbody>

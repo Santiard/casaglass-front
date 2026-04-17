@@ -622,10 +622,8 @@ export default function HistoricoAbonosGeneralModal({ isOpen, onClose }) {
                       <th style={{ padding: '0.3rem 0.5rem', textAlign: 'left', borderRight: '1px solid #fff', fontSize: '0.7rem' }}>CLIENTE</th>
                       <th style={{ padding: '0.3rem 0.5rem', textAlign: 'left', borderRight: '1px solid #fff', fontSize: '0.7rem' }}>MÉTODO DE PAGO</th>
                       <th style={{ padding: '0.3rem 0.5rem', textAlign: 'right', borderRight: '1px solid #fff', fontSize: '0.7rem' }}>TOTAL</th>
-                      <th style={{ padding: '0.3rem 0.5rem', textAlign: 'right', borderRight: isAdmin ? '1px solid #fff' : undefined, fontSize: '0.7rem' }}>SALDO POST-ABONO</th>
-                      {isAdmin && (
-                        <th style={{ padding: '0.3rem 0.5rem', textAlign: 'center', fontSize: '0.7rem' }}>ACCIONES</th>
-                      )}
+                      <th style={{ padding: '0.3rem 0.5rem', textAlign: 'right', borderRight: '1px solid #fff', fontSize: '0.7rem' }}>SALDO POST-ABONO</th>
+                      <th style={{ padding: '0.3rem 0.5rem', textAlign: 'center', fontSize: '0.7rem' }}>ACCIONES</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -656,11 +654,10 @@ export default function HistoricoAbonosGeneralModal({ isOpen, onClose }) {
                           <td style={{ padding: '0.2rem 0.5rem', textAlign: 'right', borderRight: '1px solid #e0e0e0', fontWeight: '600', fontSize: '0.7rem' }}>
                             {fmtCOP(abono.total || 0)}
                           </td>
-                          <td style={{ padding: '0.2rem 0.5rem', textAlign: 'right', borderRight: isAdmin ? '1px solid #e0e0e0' : undefined, fontSize: '0.7rem' }}>
+                          <td style={{ padding: '0.2rem 0.5rem', textAlign: 'right', borderRight: '1px solid #e0e0e0', fontSize: '0.7rem' }}>
                             {fmtCOP(abono.saldo || 0)}
                           </td>
-                          {isAdmin && (
-                            <td style={{ padding: '0.2rem 0.5rem', textAlign: 'center', fontSize: '0.7rem' }}>
+                          <td style={{ padding: '0.2rem 0.5rem', textAlign: 'center', fontSize: '0.7rem' }}>
                               <button
                                 onClick={() => handleEliminarAbono(abono)}
                                 disabled={eliminandoAbonoId === abono.id}
@@ -682,7 +679,6 @@ export default function HistoricoAbonosGeneralModal({ isOpen, onClose }) {
                                 {eliminandoAbonoId === abono.id ? "..." : "Eliminar"}
                               </button>
                             </td>
-                          )}
                         </tr>
                       );
                     })}

@@ -1149,28 +1149,26 @@ export default function HistoricoAbonosClienteModal({ isOpen, onClose }) {
                                   >
                                     {expanded[abonoId] ? "Ocultar" : "Detalles"}
                                   </button>
-                                  {isAdmin && (
-                                    <button
-                                      onClick={() => handleEliminarAbono(abono)}
-                                      disabled={eliminandoAbonoId === abonoId}
-                                      style={{
-                                        fontSize: '0.75rem',
-                                        padding: '0.3125rem 0.625rem',
-                                        background: eliminandoAbonoId === abonoId ? '#ccc' : '#e74c3c',
-                                        color: '#fff',
-                                        border: 'none',
-                                        borderRadius: '4px',
-                                        cursor: eliminandoAbonoId === abonoId ? 'not-allowed' : 'pointer',
-                                        fontWeight: '600',
-                                        transition: 'background 0.2s'
-                                      }}
-                                      onMouseEnter={(e) => { if (eliminandoAbonoId !== abonoId) e.target.style.background = '#c0392b'; }}
-                                      onMouseLeave={(e) => { if (eliminandoAbonoId !== abonoId) e.target.style.background = '#e74c3c'; }}
-                                      title="Eliminar abono"
-                                    >
-                                      {eliminandoAbonoId === abonoId ? "..." : "Eliminar"}
-                                    </button>
-                                  )}
+                                  <button
+                                    onClick={() => handleEliminarAbono(abono)}
+                                    disabled={eliminandoAbonoId === abonoId}
+                                    style={{
+                                      fontSize: '0.75rem',
+                                      padding: '0.3125rem 0.625rem',
+                                      background: eliminandoAbonoId === abonoId ? '#ccc' : '#e74c3c',
+                                      color: '#fff',
+                                      border: 'none',
+                                      borderRadius: '4px',
+                                      cursor: eliminandoAbonoId === abonoId ? 'not-allowed' : 'pointer',
+                                      fontWeight: '600',
+                                      transition: 'background 0.2s'
+                                    }}
+                                    onMouseEnter={(e) => { if (eliminandoAbonoId !== abonoId) e.target.style.background = '#c0392b'; }}
+                                    onMouseLeave={(e) => { if (eliminandoAbonoId !== abonoId) e.target.style.background = '#e74c3c'; }}
+                                    title="Eliminar abono"
+                                  >
+                                    {eliminandoAbonoId === abonoId ? "..." : "Eliminar"}
+                                  </button>
                                 </div>
                               </td>
                             </tr>
