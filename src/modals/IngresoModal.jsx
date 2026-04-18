@@ -716,21 +716,22 @@ export default function IngresoModal({
               <table className="inv-table">
                 <thead>
                   <tr>
-                    <th style={{ width: "55%" }}>Nombre</th>
-                    <th style={{ width: "30%" }}>Código</th>
+                    <th style={{ width: "45%" }}>Nombre</th>
+                    <th style={{ width: "25%" }}>Código</th>
                     <th style={{ width: "15%" }}>Color</th>
+                    <th style={{ width: "15%", textAlign: 'right' }}>Costo</th>
                   </tr>
                 </thead>
                 <tbody>
                   {loadingProductos ? (
                     <tr>
-                      <td colSpan={3} className="empty" style={{ textAlign: 'center', padding: '2rem', color: '#666' }}>
+                      <td colSpan={4} className="empty" style={{ textAlign: 'center', padding: '2rem', color: '#666' }}>
                         Cargando productos...
                       </td>
                     </tr>
                   ) : catalogoFiltrado.length === 0 ? (
                     <tr>
-                      <td colSpan={3} className="empty" style={{ textAlign: 'center', padding: '2rem' }}>
+                      <td colSpan={4} className="empty" style={{ textAlign: 'center', padding: '2rem' }}>
                         {selectedCategoryId ? 'No hay productos en esta categoría' : 'Selecciona una categoría para ver productos'}
                       </td>
                     </tr>
@@ -767,6 +768,17 @@ export default function IngresoModal({
                           >
                             {item.color ?? "N/A"}
                           </span>
+                        </td>
+                        <td
+                          style={{ textAlign: 'right', fontWeight: '500', color: '#1e2753' }}
+                          onDoubleClick={(e) => {
+                            e.stopPropagation();
+                            if (editable || !isEdit) addProducto(item);
+                          }}
+                        >
+                          {item.costo != null
+                            ? new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(item.costo)
+                            : '—'}
                         </td>
                       </tr>
                     ))

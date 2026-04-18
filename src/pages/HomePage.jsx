@@ -25,8 +25,11 @@ export default function HomePage(){
   const [dashboardData, setDashboardData] = useState({
     sede: {},
     ventasHoy: {},
+    ventasMes: {},
     faltanteEntrega: {},
     creditosPendientes: {},
+    deudasMes: {},
+    deudasActivas: {},
     trasladosPendientes: { totalPendientes: 0, trasladosRecibir: [], trasladosEnviar: [] },
     alertasStock: { total: 0, productosBajos: [] }
   });
@@ -51,9 +54,12 @@ export default function HomePage(){
         // Mantener estructura vacía en caso de error para evitar crashes
         setDashboardData({
           sede: { nombre: user?.sedeNombre || 'Sede Desconocida' },
-          ventasHoy: { cantidad: 0, total: 0 },
+          ventasHoy: { cantidad: 0, total: 0, ventasContado: 0, ventasCredito: 0, totalContado: 0, totalCredito: 0 },
+          ventasMes: { cantidad: 0, total: 0, ventasContado: 0, ventasCredito: 0, totalContado: 0, totalCredito: 0 },
           faltanteEntrega: { montoFaltante: 0 },
           creditosPendientes: { totalCreditos: 0, montoPendiente: 0 },
+          deudasMes: { totalDeudas: 0, montoTotalDeudas: 0, montoPendiente: 0, deudasAbiertas: 0, deudasCerradas: 0 },
+          deudasActivas: { totalDeudas: 0, montoTotalHistorico: 0, montoPendienteActivo: 0, deudasAbiertas: 0, deudasCerradas: 0, deudasAnuladas: 0 },
           trasladosPendientes: { totalPendientes: 0, trasladosRecibir: [], trasladosEnviar: [] },
           alertasStock: { total: 0, productosBajos: [] }
         });
@@ -175,6 +181,8 @@ export default function HomePage(){
   // Formatear traslados para el componente MovimientosPanel
   const trasladosFormateados = DashboardService.formatTrasladosForPanel(dashboardData.trasladosPendientes);
 
+  const fmt = (n) => new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(n ?? 0);
+
   // Mostrar mensaje de error si hay problemas
   if (error && !loading) {
     return (
@@ -248,14 +256,42 @@ export default function HomePage(){
         <KPICard
           title="Ventas de Hoy"
           value={String(dashboardData.ventasHoy?.cantidad ?? 0)}
-          subtitle={new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(dashboardData.ventasHoy?.total ?? 0)}
+          subtitle={`${fmt(dashboardData.ventasHoy?.total)} · Contado: ${fmt(dashboardData.ventasHoy?.totalContado)} · Crédito: ${fmt(dashboardData.ventasHoy?.totalCredito)}`}
           color="#10b981"
         />
         <KPICard
-          title="Faltante desde última entrega"
-          value={new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(Math.max(0, dashboardData.faltanteEntrega?.montoFaltante ?? 0))}
-          subtitle={dashboardData.faltanteEntrega?.ultimaEntrega ? `Última entrega: ${new Date(dashboardData.faltanteEntrega.ultimaEntrega).toLocaleDateString("es-CO")}` : "Sin entregas previas"}
+          title="Ventas del Mes"
+          value={String(dashboardData.ventasMes?.cantidad ?? 0)}
+          subtitle={`${fmt(dashboardData.ventasMes?.total)} · Contado: ${fmt(dashboardData.ventasMes?.totalContado)} · Crédito: ${fmt(dashboardData.ventasMes?.totalCredito)}`}
+          color="#10b981"
+        />
+        <KPICard
+          title="Faltante por entregar"
+          value={fmt(Math.max(0, dashboardData.faltanteEntrega?.montoFaltante ?? 0))}
+          subtitle={
+            dashboardData.faltanteEntrega?.ultimaEntrega
+              ? `Última entrega: ${new Date(dashboardData.faltanteEntrega.ultimaEntrega).toLocaleDateString("es-CO")} · ${fmt(dashboardData.faltanteEntrega.montoUltimaEntrega)}`
+              : "Sin entregas previas"
+          }
           color="#f59e0b"
+        />
+        <KPICard
+          title="Créditos Activos"
+          value={String(dashboardData.creditosPendientes?.totalCreditos ?? 0)}
+          subtitle={`Saldo pendiente: ${fmt(dashboardData.creditosPendientes?.montoPendiente)} · Vencidos: ${dashboardData.creditosPendientes?.creditosVencidos?.length ?? 0}`}
+          color="#ef4444"
+        />
+        <KPICard
+          title="Deudas del Mes"
+          value={String(dashboardData.deudasMes?.totalDeudas ?? 0)}
+          subtitle={`Total: ${fmt(dashboardData.deudasMes?.montoTotalDeudas)} · Pendiente: ${fmt(dashboardData.deudasMes?.montoPendiente)} · Abiertas: ${dashboardData.deudasMes?.deudasAbiertas ?? 0}`}
+          color="#8b5cf6"
+        />
+        <KPICard
+          title="Deudas Históricas"
+          value={String(dashboardData.deudasActivas?.totalDeudas ?? 0)}
+          subtitle={`Pendiente activo: ${fmt(dashboardData.deudasActivas?.montoPendienteActivo)} · Abiertas: ${dashboardData.deudasActivas?.deudasAbiertas ?? 0} · Cerradas: ${dashboardData.deudasActivas?.deudasCerradas ?? 0}`}
+          color="#6366f1"
         />
         <KPICard
           title="Traslados Pendientes"
