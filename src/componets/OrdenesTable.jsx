@@ -570,12 +570,17 @@ export default function OrdenesTable({
                 const yaFacturada = Boolean(o.facturada === true);
                 const yaPagada = Boolean(o.pagada || o.factura?.pagada || (o.factura && o.factura.fechaPago));
                 const estaAnulada = o.estado?.toLowerCase() === 'anulada';
-                // Solo mostrar botón anular si NO está facturada, NO está pagada y NO está anulada
-                const puedeAnular = !yaFacturada && !yaPagada && !estaAnulada;
                 // Verificar si la orden a crédito tiene saldo pendiente
                 const esCredito = Boolean(o.credito);
                 const saldoPendiente = esCredito ? (o.creditoDetalle?.saldoPendiente ?? null) : 0;
                 const tieneSaldoPendiente = saldoPendiente === null || saldoPendiente > 0; // Si saldoPendiente es null, asumimos que tiene saldo (por compatibilidad)
+                // Crédito cerrado: estado CERRADO o saldo llegó a 0 (cruce de cuentas / pagado total)
+                const creditoCerrado = esCredito && (
+                  o.creditoDetalle?.estado?.toUpperCase() === 'CERRADO' ||
+                  (saldoPendiente !== null && saldoPendiente <= 0)
+                );
+                // Solo mostrar botón anular si NO está facturada, NO está pagada, NO anulada y crédito no cerrado
+                const puedeAnular = !yaFacturada && !yaPagada && !estaAnulada && !creditoCerrado;
                 
                 const estadoPagoInfo = formatearEstadoPago(o.estadoPago);
                 
@@ -694,8 +699,13 @@ export default function OrdenesTable({
                               showError("Error al cargar los datos completos de la orden. Intenta nuevamente.");
                             }
                           }}
-                          disabled={estaAnulada || yaFacturada || yaPagada}
-                          title={estaAnulada ? 'No se puede editar una orden anulada' : (yaFacturada || yaPagada) ? 'No se puede editar una orden facturada o pagada' : 'Editar orden'}
+                          disabled={estaAnulada || yaFacturada || yaPagada || creditoCerrado}
+                          title={
+                            estaAnulada ? 'No se puede editar una orden anulada' :
+                            creditoCerrado ? 'No se puede editar una orden cuyo crédito ya fue pagado (cruce de cuentas)' :
+                            (yaFacturada || yaPagada) ? 'No se puede editar una orden facturada o pagada' :
+                            'Editar orden'
+                          }
                         >
                           <img src={editar} className="iconButton" />
                         </button>
