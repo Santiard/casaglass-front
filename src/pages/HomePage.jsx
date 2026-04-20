@@ -22,6 +22,8 @@ export default function HomePage(){
   const [ventasDiaLoading, setVentasDiaLoading] = useState(true);
   const [ventasDia, setVentasDia] = useState([]);
   const [descargandoPrecios, setDescargandoPrecios] = useState(false);
+  const [seccionesExpandidas, setSeccionesExpandidas] = useState({ hoy: true, mes: false, historico: false });
+  const toggleSeccion = (seccion) => setSeccionesExpandidas(prev => ({ ...prev, [seccion]: !prev[seccion] }));
   const [dashboardData, setDashboardData] = useState({
     sede: {},
     ventasHoy: {},
@@ -245,7 +247,12 @@ export default function HomePage(){
         </div>
       )}
       
-      {/* KPI Cards estilo AdminPage */}
+      {/* ── ROW 1: HOY ── */}
+      <div className="kpi-section-label" onClick={() => toggleSeccion('hoy')} style={{ cursor: 'pointer', userSelect: 'none' }}>
+        <span>Hoy</span>
+        <span className="kpi-section-arrow">{seccionesExpandidas.hoy ? '▲' : '▼'}</span>
+      </div>
+      {seccionesExpandidas.hoy && (
       <div className="kpi-grid">
         <KPICard
           title="Sede"
@@ -255,18 +262,24 @@ export default function HomePage(){
         />
         <KPICard
           title="Ventas de Hoy"
-          value={String(dashboardData.ventasHoy?.cantidad ?? 0)}
-          subtitle={`${fmt(dashboardData.ventasHoy?.total)} · Contado: ${fmt(dashboardData.ventasHoy?.totalContado)} · Crédito: ${fmt(dashboardData.ventasHoy?.totalCredito)}`}
+          value={fmt(dashboardData.ventasHoy?.total)}
+          subtitle={`${dashboardData.ventasHoy?.cantidad ?? 0} venta(s) realizadas hoy`}
           color="#10b981"
         />
         <KPICard
-          title="Ventas del Mes"
-          value={String(dashboardData.ventasMes?.cantidad ?? 0)}
-          subtitle={`${fmt(dashboardData.ventasMes?.total)} · Contado: ${fmt(dashboardData.ventasMes?.totalContado)} · Crédito: ${fmt(dashboardData.ventasMes?.totalCredito)}`}
+          title="Contado Hoy"
+          value={fmt(dashboardData.ventasHoy?.totalContado)}
+          subtitle={`${dashboardData.ventasHoy?.ventasContado ?? 0} venta(s) al contado`}
           color="#10b981"
         />
         <KPICard
-          title="Faltante por entregar"
+          title="Crédito Hoy"
+          value={fmt(dashboardData.ventasHoy?.totalCredito)}
+          subtitle={`${dashboardData.ventasHoy?.ventasCredito ?? 0} venta(s) a crédito`}
+          color="#10b981"
+        />
+        <KPICard
+          title="Dinero para Cierre de Caja"
           value={fmt(Math.max(0, dashboardData.faltanteEntrega?.montoFaltante ?? 0))}
           subtitle={
             dashboardData.faltanteEntrega?.ultimaEntrega
@@ -275,22 +288,62 @@ export default function HomePage(){
           }
           color="#f59e0b"
         />
+      </div>
+      )}
+
+      {/* ── ROW 2: MES ── */}
+      <div className="kpi-section-label" onClick={() => toggleSeccion('mes')} style={{ cursor: 'pointer', userSelect: 'none' }}>
+        <span>Este mes</span>
+        <span className="kpi-section-arrow">{seccionesExpandidas.mes ? '▲' : '▼'}</span>
+      </div>
+      {seccionesExpandidas.mes && (
+      <div className="kpi-grid">
         <KPICard
-          title="Créditos Activos"
-          value={String(dashboardData.creditosPendientes?.totalCreditos ?? 0)}
-          subtitle={`Saldo pendiente: ${fmt(dashboardData.creditosPendientes?.montoPendiente)} · Vencidos: ${dashboardData.creditosPendientes?.creditosVencidos?.length ?? 0}`}
-          color="#ef4444"
+          title="Ventas del Mes"
+          value={fmt(dashboardData.ventasMes?.total)}
+          subtitle={`${dashboardData.ventasMes?.cantidad ?? 0} venta(s) en el mes`}
+          color="#10b981"
         />
         <KPICard
-          title="Deudas del Mes"
+          title="Contado del Mes"
+          value={fmt(dashboardData.ventasMes?.totalContado)}
+          subtitle={`${dashboardData.ventasMes?.ventasContado ?? 0} venta(s) al contado`}
+          color="#10b981"
+        />
+        <KPICard
+          title="Crédito del Mes"
+          value={fmt(dashboardData.ventasMes?.totalCredito)}
+          subtitle={`${dashboardData.ventasMes?.ventasCredito ?? 0} venta(s) a crédito`}
+          color="#10b981"
+        />
+        <KPICard
+          title="Creditos abiertos del Mes"
           value={String(dashboardData.deudasMes?.totalDeudas ?? 0)}
-          subtitle={`Total: ${fmt(dashboardData.deudasMes?.montoTotalDeudas)} · Pendiente: ${fmt(dashboardData.deudasMes?.montoPendiente)} · Abiertas: ${dashboardData.deudasMes?.deudasAbiertas ?? 0}`}
           color="#8b5cf6"
         />
         <KPICard
-          title="Deudas Históricas"
-          value={String(dashboardData.deudasActivas?.totalDeudas ?? 0)}
-          subtitle={`Pendiente activo: ${fmt(dashboardData.deudasActivas?.montoPendienteActivo)} · Abiertas: ${dashboardData.deudasActivas?.deudasAbiertas ?? 0} · Cerradas: ${dashboardData.deudasActivas?.deudasCerradas ?? 0}`}
+          title="Dinero Pendiente Creditos del Mes"
+          value={fmt(dashboardData.deudasMes?.montoPendiente)}
+          color="#8b5cf6"
+        />
+      </div>
+      )}
+
+      {/* ── ROW 3: HISTÓRICO ── */}
+      <div className="kpi-section-label" onClick={() => toggleSeccion('historico')} style={{ cursor: 'pointer', userSelect: 'none' }}>
+        <span>Histórico</span>
+        <span className="kpi-section-arrow">{seccionesExpandidas.historico ? '▲' : '▼'}</span>
+      </div>
+      {seccionesExpandidas.historico && (
+      <div className="kpi-grid">
+        <KPICard
+          title="Numero Total de Créditos Activos"
+          value={String(dashboardData.creditosPendientes?.totalCreditos ?? 0)}
+          color="#ef4444"
+        />
+        <KPICard
+          title="Monto Deudas Creditos Activos"
+          value={fmt(dashboardData.deudasActivas?.montoPendienteActivo)}
           color="#6366f1"
         />
         <KPICard
@@ -303,15 +356,13 @@ export default function HomePage(){
           title="Alertas de Stock"
           value={String(
             (dashboardData.alertasStock?.productosBajos || [])
-              .filter(p => {
-                const stock = p.stockActual || p.stock || 0;
-                return stock < 30;
-              }).length
+              .filter(p => (p.stockActual || p.stock || 0) < 30).length
           )}
-          subtitle="Productos con stock &lt; 30 unidades"
+          subtitle="Productos con stock < 30 unidades"
           color="#ef4444"
         />
       </div>
+      )}
 
       {/* Ventas del Día */}
       <DashboardSection 

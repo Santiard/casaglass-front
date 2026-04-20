@@ -4,12 +4,16 @@ export const DashboardService = {
   async getDashboardData(sedeId) {
     // Legacy support for HomePage widgets
     const { data } = await api.get(`sedes/${sedeId}/dashboard`);
-    const { sede, ventasHoy, faltanteEntrega, creditosPendientes, trasladosPendientes, alertasStock } = data || {};
+    console.log('📊 [Dashboard] GET /api/sedes/' + sedeId + '/dashboard →', data);
+    const { sede, ventasHoy, ventasMes, faltanteEntrega, creditosPendientes, deudasMes, deudasActivas, trasladosPendientes, alertasStock } = data || {};
     return {
       sede: sede || {},
       ventasHoy: ventasHoy || {},
+      ventasMes: ventasMes || {},
       faltanteEntrega: faltanteEntrega || {},
       creditosPendientes: creditosPendientes || {},
+      deudasMes: deudasMes || {},
+      deudasActivas: deudasActivas || {},
       trasladosPendientes: trasladosPendientes || { totalPendientes: 0, trasladosRecibir: [], trasladosEnviar: [] },
       alertasStock: alertasStock || { total: 0, productosBajos: [] },
     };
@@ -88,6 +92,13 @@ export const DashboardService = {
       ...trasladosEnviar.map(traslado => mapTraslado(traslado, 'ENVÍO', `A ${traslado.sedeDestino}`, 'SALIDA')),
     ];
     return trasladosFormateados.sort((a, b) => new Date(a.fechaEntrega) - new Date(b.fechaEntrega));
+  },
+
+  async getTarjetas(sedeId = null) {
+    const params = {};
+    if (sedeId) params.sedeId = sedeId;
+    const { data } = await api.get('dashboard/tarjetas', { params });
+    return data;
   },
 
   async getDashboardCompleto(desde = null, hasta = null) {

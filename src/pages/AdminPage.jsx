@@ -12,6 +12,7 @@ import IngresosVsCostosChart from "../componets/IngresosVsCostosChart.jsx";
 import StockCriticoTable from "../componets/StockCriticoTable.jsx";
 import { DashboardService } from "../services/DashboardService.js";
 import { listarTrabajadores, listarTrabajadoresTabla } from "../services/TrabajadoresService.js";
+import { listarSedes } from "../services/SedesService.js";
 
 const fmtCOP = (n) => `$${Number(n || 0).toLocaleString('es-CO')}`;
 
@@ -31,6 +32,14 @@ export default function AdminPage() {
   const [trabajadorId, setTrabajadorId] = useState(null);
   const [dashTrabajador, setDashTrabajador] = useState(null);
   const [trabajadoresResumen, setTrabajadoresResumen] = useState([]); // [{id,nombre,sedeNombre,montoTotal,contadoMonto,creditoMonto,totalOrdenes}]
+
+  // Tarjetas tipo HomePage
+  const [sedes, setSedes] = useState([]);
+  const [sedeIdTarjetas, setSedeIdTarjetas] = useState(null); // null = todas
+  const [tarjetasData, setTarjetasData] = useState(null);
+  const [loadingTarjetas, setLoadingTarjetas] = useState(false);
+  const [seccionesTarjetas, setSeccionesTarjetas] = useState({ hoy: true, mes: false, historico: false });
+  const toggleTarjeta = (sec) => setSeccionesTarjetas(prev => ({ ...prev, [sec]: !prev[sec] }));
 
   useEffect(() => {
     loadDashboardData();
@@ -103,6 +112,26 @@ export default function AdminPage() {
       }
     })();
   }, [trabajadores, fechaDesde, fechaHasta]);
+
+  // Cargar sedes para el selector
+  useEffect(() => {
+    listarSedes().then(setSedes).catch(() => setSedes([]));
+  }, []);
+
+  // Cargar tarjetas cuando cambia la sede seleccionada
+  useEffect(() => {
+    (async () => {
+      setLoadingTarjetas(true);
+      try {
+        const data = await DashboardService.getTarjetas(sedeIdTarjetas);
+        setTarjetasData(data);
+      } catch {
+        setTarjetasData(null);
+      } finally {
+        setLoadingTarjetas(false);
+      }
+    })();
+  }, [sedeIdTarjetas]);
 
   const loadDashboardData = async () => {
     setLoading(true);
@@ -210,42 +239,136 @@ export default function AdminPage() {
       <div className="dashboard-page-header">
         <h1>Dashboard Administrativo</h1>
         <p>Vista general del estado del negocio en todas las sedes</p>
-        <div style={{ display: "flex", gap: "1rem", marginTop: "1rem", alignItems: "center" }}>
-          <label>
-            Desde:
-            <input
-              type="date"
-              value={fechaDesde}
-              onChange={(e) => setFechaDesde(e.target.value)}
-              style={{ marginLeft: "0.5rem", padding: "0.25rem" }}
-            />
-          </label>
-          <label>
-            Hasta:
-            <input
-              type="date"
-              value={fechaHasta}
-              onChange={(e) => setFechaHasta(e.target.value)}
-              style={{ marginLeft: "0.5rem", padding: "0.25rem" }}
-            />
-          </label>
-          <button
-            onClick={loadDashboardData}
-            style={{
-              padding: "0.5rem 1rem",
-              backgroundColor: "var(--color-light-blue)",
-              color: "white",
-              border: "none",
-              borderRadius: "4px",
-              cursor: "pointer",
-            }}
-          >
-            Actualizar
-          </button>
-        </div>
       </div>
 
-      {/* KPIs */}
+      {/* ── TARJETAS POR SEDE (mismas que HomePage) ── */}
+      <DashboardSection
+        title="Resumen Operativo por Sede"
+        description="Indicadores en tiempo real — mismas tarjetas que ve el trabajador en su home"
+      >
+        {/* Selector de sede */}
+        <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "1.25rem" }}>
+          <label style={{ fontWeight: 600, fontSize: "0.9rem" }}>Sede:</label>
+          <select
+            value={sedeIdTarjetas ?? ""}
+            onChange={(e) => setSedeIdTarjetas(e.target.value ? Number(e.target.value) : null)}
+            style={{ padding: "0.35rem 0.6rem", borderRadius: "6px", border: "1px solid #d1d5db", fontSize: "0.9rem" }}
+          >
+            <option value="">Todas las sedes</option>
+            {sedes.map(s => (
+              <option key={s.id} value={s.id}>{s.nombre}</option>
+            ))}
+          </select>
+          {loadingTarjetas && <span style={{ color: "#6b7280", fontSize: "0.8rem" }}>Cargando…</span>}
+        </div>
+
+        {tarjetasData && (() => {
+          const d = tarjetasData;
+          const fmt = (n) => `$${Number(n || 0).toLocaleString('es-CO')}`;
+
+          return (
+            <>
+              {/* HOY */}
+              <div
+                className="kpi-section-label"
+                onClick={() => toggleTarjeta('hoy')}
+                style={{ cursor: 'pointer', userSelect: 'none' }}
+              >
+                <span>Hoy</span>
+                <span className="kpi-section-arrow">{seccionesTarjetas.hoy ? '▲' : '▼'}</span>
+              </div>
+              {seccionesTarjetas.hoy && (
+                <div className="kpi-grid" style={{ marginBottom: "1rem" }}>
+                  <KPICard title="Ventas de Hoy" value={fmt(d.ventasHoy?.total)} subtitle={`${d.ventasHoy?.cantidad ?? 0} venta(s) realizadas hoy`} color="#10b981" />
+                  <KPICard title="Contado Hoy" value={fmt(d.ventasHoy?.totalContado)} subtitle={`${d.ventasHoy?.ventasContado ?? 0} venta(s) al contado`} color="#10b981" />
+                  <KPICard title="Crédito Hoy" value={fmt(d.ventasHoy?.totalCredito)} subtitle={`${d.ventasHoy?.ventasCredito ?? 0} venta(s) a crédito`} color="#10b981" />
+                  <KPICard
+                    title="Dinero para Cierre de Caja"
+                    value={fmt(Math.max(0, d.faltanteEntrega?.montoFaltante ?? 0))}
+                    subtitle={d.faltanteEntrega?.ultimaEntrega
+                      ? `Última entrega: ${new Date(d.faltanteEntrega.ultimaEntrega).toLocaleDateString("es-CO")} · ${fmt(d.faltanteEntrega.montoUltimaEntrega)}`
+                      : "Sin entregas previas"}
+                    color="#f59e0b"
+                  />
+                </div>
+              )}
+
+              {/* ESTE MES */}
+              <div
+                className="kpi-section-label"
+                onClick={() => toggleTarjeta('mes')}
+                style={{ cursor: 'pointer', userSelect: 'none' }}
+              >
+                <span>Este mes</span>
+                <span className="kpi-section-arrow">{seccionesTarjetas.mes ? '▲' : '▼'}</span>
+              </div>
+              {seccionesTarjetas.mes && (
+                <div className="kpi-grid" style={{ marginBottom: "1rem" }}>
+                  <KPICard title="Ventas del Mes" value={fmt(d.ventasMes?.total)} subtitle={`${d.ventasMes?.cantidad ?? 0} venta(s) en el mes`} color="#10b981" />
+                  <KPICard title="Contado del Mes" value={fmt(d.ventasMes?.totalContado)} subtitle={`${d.ventasMes?.ventasContado ?? 0} venta(s) al contado`} color="#10b981" />
+                  <KPICard title="Crédito del Mes" value={fmt(d.ventasMes?.totalCredito)} subtitle={`${d.ventasMes?.ventasCredito ?? 0} venta(s) a crédito`} color="#10b981" />
+                  <KPICard title="Créditos abiertos del Mes" value={String(d.deudasMes?.totalDeudas ?? 0)} color="#8b5cf6" />
+                  <KPICard title="Dinero Pendiente Créditos del Mes" value={fmt(d.deudasMes?.montoPendiente)} color="#8b5cf6" />
+                </div>
+              )}
+
+              {/* HISTÓRICO */}
+              <div
+                className="kpi-section-label"
+                onClick={() => toggleTarjeta('historico')}
+                style={{ cursor: 'pointer', userSelect: 'none' }}
+              >
+                <span>Histórico</span>
+                <span className="kpi-section-arrow">{seccionesTarjetas.historico ? '▲' : '▼'}</span>
+              </div>
+              {seccionesTarjetas.historico && (
+                <div className="kpi-grid" style={{ marginBottom: "1rem" }}>
+                  <KPICard title="Número Total de Créditos Activos" value={String(d.creditosPendientes?.totalCreditos ?? 0)} color="#ef4444" />
+                  <KPICard title="Monto Deudas Créditos Activos" value={fmt(d.deudasActivas?.montoPendienteActivo)} color="#6366f1" />
+                  <KPICard title="Traslados Pendientes" value={String(d.trasladosPendientes?.totalPendientes ?? 0)} subtitle={`${d.trasladosPendientes?.trasladosRecibir?.length ?? 0} a recibir, ${d.trasladosPendientes?.trasladosEnviar?.length ?? 0} a enviar`} color="var(--color-light-blue)" />
+                  <KPICard
+                    title="Alertas de Stock"
+                    value={String((d.alertasStock?.productosBajos || []).filter(p => (p.stockActual || p.stock || 0) < 30).length)}
+                    subtitle="Productos con stock < 30 unidades"
+                    color="#ef4444"
+                  />
+                </div>
+              )}
+            </>
+          );
+        })()}
+      </DashboardSection>
+
+      {/* Filtro de fechas — afecta KPIs globales, gráficas y tablas */}
+      <div style={{ display: "flex", gap: "1rem", alignItems: "center", margin: "1.25rem 0 0.75rem", flexWrap: "wrap" }}>
+        <label style={{ fontWeight: 600, fontSize: "0.9rem" }}>
+          Desde:
+          <input
+            type="date"
+            value={fechaDesde}
+            onChange={(e) => setFechaDesde(e.target.value)}
+            style={{ marginLeft: "0.5rem", padding: "0.25rem 0.4rem", borderRadius: "6px", border: "1px solid #d1d5db" }}
+          />
+        </label>
+        <label style={{ fontWeight: 600, fontSize: "0.9rem" }}>
+          Hasta:
+          <input
+            type="date"
+            value={fechaHasta}
+            onChange={(e) => setFechaHasta(e.target.value)}
+            style={{ marginLeft: "0.5rem", padding: "0.25rem 0.4rem", borderRadius: "6px", border: "1px solid #d1d5db" }}
+          />
+        </label>
+        <button
+          onClick={loadDashboardData}
+          style={{ padding: "0.4rem 1rem", backgroundColor: "var(--color-light-blue)", color: "white", border: "none", borderRadius: "6px", cursor: "pointer", fontWeight: 600 }}
+        >
+          Actualizar
+        </button>
+        <span style={{ fontSize: "0.78rem", color: "#9ca3af" }}>Aplica a KPIs globales, gráficas y análisis</span>
+      </div>
+
+      {/* KPIs globales (filtrados por rango de fechas) */}
       <div className="kpi-grid">
         <KPICard
           title="Ventas Totales"

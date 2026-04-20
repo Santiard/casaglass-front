@@ -309,7 +309,7 @@ export default function EntregasImprimirModal({ entregas = [], isOpen, onClose }
             
             .entrega-header p {
               margin: 1px 0;
-              color: #666;
+              color: #000;
               font-size: 0.75rem;
             }
             
@@ -380,6 +380,19 @@ export default function EntregasImprimirModal({ entregas = [], isOpen, onClose }
               line-height: 1.4;
               color: #333;
               font-family: monospace;
+            }
+            
+            .resumen-cols {
+              display: flex;
+              gap: 16px;
+            }
+            .resumen-col {
+              flex: 1;
+            }
+            .resumen-divider {
+              width: 1px;
+              background: #ccc;
+              flex-shrink: 0;
             }
             
             .total {
@@ -622,13 +635,11 @@ export default function EntregasImprimirModal({ entregas = [], isOpen, onClose }
                   {/* Encabezado de entrega */}
                   <div className="entrega-header">
                     <h3>
-                      Entrega #{entrega.id} - Fecha: {fmtFecha(entrega.fechaEntrega)}
+                      Entrega #{entrega.id} — Fecha: {fmtFecha(entrega.fechaEntrega)}
+                      {isAdmin && (entrega.sede?.nombre || entrega.sedeNombre) && (
+                        <> · Sede: {entrega.sede?.nombre || entrega.sedeNombre}</>
+                      )}
                     </h3>
-                    {isAdmin && (
-                      <p>
-                        Sede: {entrega.sede?.nombre || "-"}
-                      </p>
-                    )}
                   </div>
 
                   {/* Tabla de órdenes */}
@@ -784,7 +795,7 @@ export default function EntregasImprimirModal({ entregas = [], isOpen, onClose }
                         const montoNum = Number(monto) || 0;
                         if (montoNum <= 0) return false;
                         const montoStr = montoNum.toLocaleString("es-CO");
-                        const clave = `${tipo}|${montoStr}`;
+                        const clave = `${nombreCliente}|${tipo}|${montoStr}`;
                         if (!metodosPago[clave]) {
                           metodosPago[clave] = {
                             tipo,
@@ -879,82 +890,33 @@ export default function EntregasImprimirModal({ entregas = [], isOpen, onClose }
                     // Generar las líneas agrupadas por método de pago
                     const lineas = [];
                     
-                    // PRIMERO: Mostrar devoluciones si hay alguna
-                    if (devoluciones.length > 0) {
-                      lineas.push("=== DEVOLUCIONES ===");
-                      lineas.push("");
-                      
-                      devoluciones.forEach(dev => {
-                        lineas.push(`${dev.nombreCliente} - ${dev.metodoPago}: $${dev.monto.toLocaleString("es-CO")}`);
-                        lineas.push(`Orden #${dev.numeroOrden}`);
-                        lineas.push(`  └─ Reembolso #${dev.reembolsoId || 'N/A'}${dev.observacionReembolso ? ` - ${dev.observacionReembolso}` : ''}`);
-                        lineas.push(""); // Línea vacía
-                      });
-                      
-                      if (Object.keys(metodosPago).length > 0) {
-                        lineas.push("=== MÉTODOS DE PAGO ===");
-                        lineas.push("");
-                      }
-                    }
-                    
-                    // SEGUNDO: Agrupar por cliente primero
+                    // PRIMERO: Devoluciones — una sola línea por devolución
+                    devoluciones.forEach(dev => {
+                      const reemb = dev.reembolsoId ? ` Reemb #${dev.reembolsoId}` : '';
+                      const obs   = dev.observacionReembolso ? ` - ${dev.observacionReembolso}` : '';
+                      lineas.push(`[DEV] ${dev.nombreCliente} — ${dev.metodoPago} $${dev.monto.toLocaleString("es-CO")}: Ord #${dev.numeroOrden}${reemb}${obs}`);
+                      lineas.push('');
+                    });
+
+                    // SEGUNDO: Agrupar por cliente
                     const porCliente = {};
                     Object.keys(metodosPago).forEach(clave => {
                       const grupo = metodosPago[clave];
-                      if (!porCliente[grupo.cliente]) {
-                        porCliente[grupo.cliente] = [];
-                      }
+                      if (!porCliente[grupo.cliente]) porCliente[grupo.cliente] = [];
                       porCliente[grupo.cliente].push({ clave, grupo });
                     });
                     
-                    // Generar líneas ordenadas por cliente
+                    // Una sola línea por grupo: "Cliente — TIPO $monto: Ord #X, ABONO #Y (-Ret $Z)"
                     Object.keys(porCliente).sort().forEach(cliente => {
-                      const pagosCliente = porCliente[cliente];
-                      
-                      pagosCliente.forEach(({ clave, grupo }) => {
-                        // Encabezado del método con cliente y monto
-                        lineas.push(`${grupo.cliente} - ${grupo.tipo}: $${grupo.monto}`);
-                        
-                        // Listar órdenes de este método
-                        grupo.ordenes.forEach(item => {
-                          let prefijo = "";
-                          
-                          if (item.esDevolucion) {
-                            prefijo = "DEVOLUCIÓN Orden";
-                          } else if (item.esAbono) {
-                            prefijo = "ABONO Orden";
-                          } else {
-                            prefijo = "Orden";
-                          }
-                          
-                          let linea = `${prefijo} #${item.orden}`;
-                          
-                          if (item.retencion) {
-                            linea += ` | (-) Retención: $${item.retencion}`;
-                          }
-                          
-                          lineas.push(linea);
-                          
-                          // Si es devolución, mostrar número de reembolso y motivo
-                          if (item.esDevolucion) {
-                            console.log(`🔍 [EntregasImprimirModal] Generando línea reembolso:`, {
-                              esDevolucion: item.esDevolucion,
-                              reembolsoId: item.reembolsoId,
-                              observacionReembolso: item.observacionReembolso,
-                              item
-                            });
-                            
-                            let lineaReembolso = `  └─ Reembolso #${item.reembolsoId || 'N/A'}`;
-                            if (item.observacionReembolso) {
-                              lineaReembolso += ` - ${item.observacionReembolso}`;
-                            }
-                            
-                            console.log(`🔍 [EntregasImprimirModal] Línea generada:`, lineaReembolso);
-                            lineas.push(lineaReembolso);
-                          }
+                      porCliente[cliente].forEach(({ grupo }) => {
+                        const partes = grupo.ordenes.map(item => {
+                          const prefijo = item.esAbono ? 'ABONO' : 'Ord';
+                          let txt = `${prefijo} #${item.orden}`;
+                          if (item.retencion) txt += ` (-Ret $${item.retencion})`;
+                          return txt;
                         });
-                        
-                        lineas.push(""); // Línea vacía entre métodos
+                        lineas.push(`${grupo.cliente} — ${grupo.tipo} $${grupo.monto}: ${partes.join(', ')}`);
+                        lineas.push('');
                       });
                     });
                     
@@ -1026,17 +988,22 @@ export default function EntregasImprimirModal({ entregas = [], isOpen, onClose }
                 <div style={{ fontSize: "0.9rem", fontWeight: "bold", marginBottom: "8px", color: "#1e2753" }}>
                   RESUMEN DEL MES {resumenMes.mesNombre || resumenMes.mes || ""}
                 </div>
-                <div style={{ fontSize: "0.85rem", lineHeight: "1.6", color: "#333" }}>
-                  <div><strong>TOTAL DE DINERO ENTREGADO:</strong> ${Number(resumenMes.totalDineroEntregado ?? 0).toLocaleString("es-CO")}</div>
-                  <div style={{ color: "#666", marginBottom: "6px" }}>Esta entrega</div>
-                  <div><strong>TOTAL DEL MES:</strong> ${Number(resumenMes.totalDelMes ?? 0).toLocaleString("es-CO")}</div>
-                  <div style={{ color: "#666", marginBottom: "6px" }}>Entregas de dinero de la sede en el mes</div>
-                  <div><strong>TOTAL DEUDAS MENSUALES:</strong> ${Number(resumenMes.totalDeudasMensuales ?? 0).toLocaleString("es-CO")}</div>
-                  <div style={{ color: "#666" }}>Saldos pendientes (creditos abiertos) de la sede en el mes</div>
-                </div>
-                <div style={{ marginTop: "10px", fontSize: "0.8rem", color: "#666" }}>
-                  {resumenMes.sede && <div>Sede: {resumenMes.sede}</div>}
-                  {resumenMes.trabajador && <div>Trabajador: {resumenMes.trabajador}</div>}
+                <div style={{ display: "flex", gap: "16px", fontSize: "0.85rem", lineHeight: "1.8", color: "#333" }}>
+                  {/* Columna izquierda: datos de la entrega */}
+                  <div style={{ flex: 1 }}>
+                    <div><strong>DINERO ENTREGADO (esta entrega):</strong> ${Number(resumenMes.totalDineroEntregado ?? 0).toLocaleString("es-CO")}</div>
+                    <div><strong>VENTAS DEL MES (contado + crédito):</strong> ${Number(resumenMes.totalDelMes ?? 0).toLocaleString("es-CO")}</div>
+                  </div>
+                  {/* Separador */}
+                  <div style={{ width: "1px", background: "#ccc", flexShrink: 0 }} />
+                  {/* Columna derecha: contexto de deudas */}
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: "0.72rem", color: "#888", marginBottom: "2px", textTransform: "uppercase", letterSpacing: "0.5px" }}>Contexto de deudas</div>
+                    <div><strong>DEL MES:</strong> ${Number(resumenMes.totalDeudasMensuales ?? 0).toLocaleString("es-CO")}</div>
+                    {resumenMes.totalCreditosActivosHistorico != null && (
+                      <div><strong>HISTÓRICO:</strong> ${Number(resumenMes.totalCreditosActivosHistorico).toLocaleString("es-CO")}</div>
+                    )}
+                  </div>
                 </div>
               </div>
             )}

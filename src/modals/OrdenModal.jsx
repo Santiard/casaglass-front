@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, useRef } from "react";
 import "../styles/MovimientoNuevoModal.css";
+import "../styles/Table.css";
 import CategorySidebar from "../componets/CategorySidebar.jsx";
 import { listarClientes, crearCliente } from "../services/ClientesService.js";
 import ClienteModal from "./ClienteModal.jsx";
@@ -43,6 +44,7 @@ export default function OrdenEditarModal({
   const [search, setSearch] = useState("");
   const [selectedCategoryId, setSelectedCategoryId] = useState(null);
   const [selectedColor, setSelectedColor] = useState(""); // Filtro de color
+  const [productoSeleccionado, setProductoSeleccionado] = useState(null);
   const [clienteSearch, setClienteSearch] = useState("");
   const [clienteSearchModal, setClienteSearchModal] = useState(""); // Búsqueda dentro del modal
   const [showClienteModal, setShowClienteModal] = useState(false);
@@ -2975,9 +2977,11 @@ export default function OrdenEditarModal({
                     catalogoFiltrado.map((p) => (
                       <tr
                         key={p.id}
+                        onClick={() => setProductoSeleccionado(p)}
                         onDoubleClick={() => addProducto(p)}
+                        className={productoSeleccionado?.id === p.id ? "row-selected" : ""}
                         style={{ cursor: "pointer" }}
-                        title="Doble clic para agregar"
+                        title="Clic para ver descripción | Doble clic para agregar"
                       >
                         <td onDoubleClick={(e) => { e.stopPropagation(); addProducto(p); }}>{obtenerCodigoProducto(p) || "-"}</td>
                         <td onDoubleClick={(e) => { e.stopPropagation(); addProducto(p); }}>{p.nombre}</td>
@@ -3021,6 +3025,15 @@ export default function OrdenEditarModal({
                   )}
                 </tbody>
               </table>
+            </div>
+            {/* Footer descripción — igual que en inventario y vender */}
+            <div className="table-description-footer">
+              <div className="table-description-content">
+                <span className="table-description-label">Descripción: </span>
+                <span className="table-description-text">
+                  {productoSeleccionado?.descripcion || "Seleccione un producto para ver su descripción"}
+                </span>
+              </div>
             </div>
           </div>
         </div>

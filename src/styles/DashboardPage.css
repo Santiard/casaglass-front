@@ -34,6 +34,34 @@
   margin-bottom: 2rem;
 }
 
+.kpi-section-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #6b7280;
+  padding: 0.25rem 0.75rem;
+  margin-bottom: 0.75rem;
+  border-left: 3px solid var(--color-light-blue);
+  background: #f9fafb;
+  border-radius: 0 4px 4px 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: background 0.15s ease;
+}
+
+.kpi-section-label:hover {
+  background: #f0f4ff;
+  color: #1e2753;
+}
+
+.kpi-section-arrow {
+  font-size: 0.65rem;
+  color: #9ca3af;
+  transition: transform 0.2s ease;
+}
+
 /* Cuando la sidebar está expandida, compactar las KPI para que quepan 4 por fila */
 .dashboard-layout[data-sidebar-collapsed="false"] .dashboard-page .kpi-grid {
   grid-template-columns: repeat(5, minmax(160px, 1fr));

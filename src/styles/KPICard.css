@@ -60,7 +60,33 @@
   color: #ef4444;
 }
 
-.kpi-trend.neutral {
+.kpi-split {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.kpi-split-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  background: #f9fafb;
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+}
+
+.kpi-split-label {
+  font-size: 0.7rem;
   color: #6b7280;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.kpi-split-value {
+  font-size: 1.15rem;
+  font-weight: 700;
+  line-height: 1.2;
 }
 
