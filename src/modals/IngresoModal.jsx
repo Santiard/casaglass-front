@@ -207,17 +207,25 @@ export default function IngresoModal({
     p?.codigo ?? p?.codigoProducto ?? p?.producto?.codigo ?? ""
   );
 
+  // Detectar si la categoría seleccionada es de vidrios
+  const esCategoriaVidrio = useMemo(() => {
+    const cat = categorias.find(c => c.id === selectedCategoryId);
+    const nombre = cat?.nombre?.toUpperCase().trim() || "";
+    return nombre.includes("VIDRIO") || catalogoProductosFiltrados.some(p => p.esVidrio);
+  }, [categorias, selectedCategoryId, catalogoProductosFiltrados]);
+
   const catalogoFiltrado = useMemo(() => {
     let filtered = catalogoProductosFiltrados;
     
-    // Ya vienen filtrados por categoría desde el backend, no necesitamos filtrar nuevamente por categoría
-    
-    // Filtrar cortes: excluir productos que tengan largoCm > 0 (son cortes reales)
-    // Un largoCm de 0, null o undefined indica producto normal, no corte
-    filtered = filtered.filter(p => {
-      const largo = Number(p.largoCm);
-      return !p.largoCm || largo <= 0 || !Number.isFinite(largo);
-    });
+    // Filtrar cortes: excluir productos con largoCm > 0 que NO sean vidrios
+    // Los vidrios tienen largoCm como su dimensión m1 — nunca se deben excluir
+    // Si es categoría vidrio, omitir este filtro completamente
+    if (!esCategoriaVidrio) {
+      filtered = filtered.filter(p => {
+        const largo = Number(p.largoCm);
+        return !p.largoCm || largo <= 0 || !Number.isFinite(largo);
+      });
+    }
     
     // Filtrar por color
     if (selectedColor) {
@@ -715,22 +723,25 @@ export default function IngresoModal({
               <table className="inv-table">
                 <thead>
                   <tr>
-                    <th style={{ width: "45%" }}>Nombre</th>
-                    <th style={{ width: "25%" }}>Código</th>
-                    <th style={{ width: "15%" }}>Color</th>
+                    <th style={{ width: esCategoriaVidrio ? "30%" : "45%" }}>Nombre</th>
+                    <th style={{ width: "20%" }}>Código</th>
+                    {!esCategoriaVidrio && <th style={{ width: "15%" }}>Color</th>}
+                    {esCategoriaVidrio && <th style={{ width: "10%", textAlign: 'right' }}>MM</th>}
+                    {esCategoriaVidrio && <th style={{ width: "10%", textAlign: 'right' }}>M1</th>}
+                    {esCategoriaVidrio && <th style={{ width: "10%", textAlign: 'right' }}>M2</th>}
                     <th style={{ width: "15%", textAlign: 'right' }}>Costo</th>
                   </tr>
                 </thead>
                 <tbody>
                   {loadingProductos ? (
                     <tr>
-                      <td colSpan={4} className="empty" style={{ textAlign: 'center', padding: '2rem', color: '#666' }}>
+                      <td colSpan={esCategoriaVidrio ? 6 : 4} className="empty" style={{ textAlign: 'center', padding: '2rem', color: '#666' }}>
                         Cargando productos...
                       </td>
                     </tr>
                   ) : catalogoFiltrado.length === 0 ? (
                     <tr>
-                      <td colSpan={4} className="empty" style={{ textAlign: 'center', padding: '2rem' }}>
+                      <td colSpan={esCategoriaVidrio ? 6 : 4} className="empty" style={{ textAlign: 'center', padding: '2rem' }}>
                         {selectedCategoryId ? 'No hay productos en esta categoría' : 'Selecciona una categoría para ver productos'}
                       </td>
                     </tr>
@@ -750,30 +761,35 @@ export default function IngresoModal({
                           cursor: !editable && isEdit ? "not-allowed" : "pointer",
                         }}
                       >
-                        <td onDoubleClick={(e) => { 
-                          e.stopPropagation(); 
-                          if (editable || !isEdit) addProducto(item); 
-                        }}>{item.nombre}</td>
-                        <td onDoubleClick={(e) => { 
-                          e.stopPropagation(); 
-                          if (editable || !isEdit) addProducto(item); 
-                        }}>{obtenerCodigoProducto(item) || "-"}</td>
-                        <td onDoubleClick={(e) => { 
-                          e.stopPropagation(); 
-                          if (editable || !isEdit) addProducto(item); 
-                        }}>
-                          <span className={`color-badge color-${(item.color || 'NA').toLowerCase().replace(/\s+/g, '-')}`}
-                            style={{ display: 'inline-block', minWidth: 48, textAlign: 'center' }}
-                          >
-                            {item.color ?? "N/A"}
-                          </span>
-                        </td>
+                        <td onDoubleClick={(e) => { e.stopPropagation(); if (editable || !isEdit) addProducto(item); }}>{item.nombre}</td>
+                        <td onDoubleClick={(e) => { e.stopPropagation(); if (editable || !isEdit) addProducto(item); }}>{obtenerCodigoProducto(item) || "-"}</td>
+                        {!esCategoriaVidrio && (
+                          <td onDoubleClick={(e) => { e.stopPropagation(); if (editable || !isEdit) addProducto(item); }}>
+                            <span className={`color-badge color-${(item.color || 'NA').toLowerCase().replace(/\s+/g, '-')}`}
+                              style={{ display: 'inline-block', minWidth: 48, textAlign: 'center' }}
+                            >
+                              {item.color ?? "N/A"}
+                            </span>
+                          </td>
+                        )}
+                        {esCategoriaVidrio && (
+                          <td style={{ textAlign: 'right' }} onDoubleClick={(e) => { e.stopPropagation(); if (editable || !isEdit) addProducto(item); }}>
+                            {item.mm ?? item.grosorMm ?? '—'}
+                          </td>
+                        )}
+                        {esCategoriaVidrio && (
+                          <td style={{ textAlign: 'right' }} onDoubleClick={(e) => { e.stopPropagation(); if (editable || !isEdit) addProducto(item); }}>
+                            {item.m1 ?? item.largoCm ?? '—'}
+                          </td>
+                        )}
+                        {esCategoriaVidrio && (
+                          <td style={{ textAlign: 'right' }} onDoubleClick={(e) => { e.stopPropagation(); if (editable || !isEdit) addProducto(item); }}>
+                            {item.m2 ?? item.anchoCm ?? '—'}
+                          </td>
+                        )}
                         <td
                           style={{ textAlign: 'right', fontWeight: '500', color: '#1e2753' }}
-                          onDoubleClick={(e) => {
-                            e.stopPropagation();
-                            if (editable || !isEdit) addProducto(item);
-                          }}
+                          onDoubleClick={(e) => { e.stopPropagation(); if (editable || !isEdit) addProducto(item); }}
                         >
                           {item.costo != null
                             ? new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(item.costo)
