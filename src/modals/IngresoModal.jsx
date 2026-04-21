@@ -212,12 +212,11 @@ export default function IngresoModal({
     
     // Ya vienen filtrados por categoría desde el backend, no necesitamos filtrar nuevamente por categoría
     
-    // Filtrar cortes: excluir productos que tengan largoCm (son cortes)
-    // Los cortes tienen la propiedad largoCm (incluso si es 0), los productos regulares no tienen esta propiedad
+    // Filtrar cortes: excluir productos que tengan largoCm > 0 (son cortes reales)
+    // Un largoCm de 0, null o undefined indica producto normal, no corte
     filtered = filtered.filter(p => {
-      // Incluir solo productos donde largoCm NO esté definido (undefined o null)
-      // Si largoCm existe (incluso si es 0), es un corte y debe excluirse
-      return p.largoCm === undefined || p.largoCm === null;
+      const largo = Number(p.largoCm);
+      return !p.largoCm || largo <= 0 || !Number.isFinite(largo);
     });
     
     // Filtrar por color
@@ -904,14 +903,14 @@ export default function IngresoModal({
                     WebkitOverflowScrolling: 'touch'
                   }}>
                     <table className="table proveedor-seleccion-table">
-                      <thead>
+                      <thead style={{ position: 'sticky', top: 0, zIndex: 1, backgroundColor: 'var(--color-dark-blue, #1e2753)', color: '#fff' }}>
                         <tr>
-                          <th style={{ width: '35%' }}>Nombre</th>
-                          <th style={{ width: '15%' }}>NIT</th>
-                          <th style={{ width: '15%' }}>Ciudad</th>
-                          <th style={{ width: '15%' }}>Dirección</th>
-                          <th style={{ width: '10%' }}>Teléfono</th>
-                          <th style={{ width: '10%', textAlign: 'center' }}>Acción</th>
+                          <th style={{ width: '35%', padding: '0.6rem 0.75rem', fontWeight: 600 }}>Nombre</th>
+                          <th style={{ width: '15%', padding: '0.6rem 0.75rem', fontWeight: 600 }}>NIT</th>
+                          <th style={{ width: '15%', padding: '0.6rem 0.75rem', fontWeight: 600 }}>Ciudad</th>
+                          <th style={{ width: '15%', padding: '0.6rem 0.75rem', fontWeight: 600 }}>Dirección</th>
+                          <th style={{ width: '10%', padding: '0.6rem 0.75rem', fontWeight: 600 }}>Teléfono</th>
+                          <th style={{ width: '10%', padding: '0.6rem 0.75rem', fontWeight: 600, textAlign: 'center' }}>Acción</th>
                         </tr>
                       </thead>
                       <tbody>
