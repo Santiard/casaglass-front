@@ -636,7 +636,7 @@ export default function EntregasImprimirModal({ entregas = [], isOpen, onClose }
                   <div className="entrega-header">
                     <h3>
                       Entrega #{entrega.id} — Fecha: {fmtFecha(entrega.fechaEntrega)}
-                      {isAdmin && (entrega.sede?.nombre || entrega.sedeNombre) && (
+                      {(entrega.sede?.nombre || entrega.sedeNombre) && (
                         <> · Sede: {entrega.sede?.nombre || entrega.sedeNombre}</>
                       )}
                     </h3>
