@@ -8,7 +8,7 @@ import CortarModal from "./CortarModal.jsx";
 import { listarSedes } from "../services/SedesService.js";
 import { listarTrabajadores } from "../services/TrabajadoresService.js";
 import { listarCategorias } from "../services/CategoriasService.js";
-import { obtenerOrden, actualizarOrden, actualizarOrdenVenta, crearOrdenVenta } from "../services/OrdenesService.js";
+import { actualizarOrden, actualizarOrdenVenta, crearOrdenVenta } from "../services/OrdenesService.js";
 import { listarBancos } from "../services/BancosService.js";
 import { useToast } from "../context/ToastContext.jsx";
 import { useConfirm } from "../hooks/useConfirm.jsx";
@@ -19,6 +19,22 @@ import { getTodayLocalDate, toLocalDateOnly } from "../lib/dateUtils.js";
 import { listarInventarioCompleto, listarCortesInventarioCompleto } from "../services/InventarioService.js";
 import { getBusinessSettings } from "../services/businessSettingsService.js";
 import { esSedeUno, normalizarTipoUnidad, obtenerCmBaseItem, obtenerTipoUnidadItem } from "../lib/ordenUnidadUtils.js";
+
+function isTypableField(el) {
+  if (!el || el === document.body) return false;
+  const tag = el.tagName;
+  if (tag === "TEXTAREA") return true;
+  if (tag === "SELECT") return true;
+  if (tag === "INPUT") {
+    const type = (el.getAttribute("type") || "text").toLowerCase();
+    if (["checkbox", "radio", "button", "submit", "reset", "file", "hidden", "color", "range"].includes(type)) {
+      return false;
+    }
+    return true;
+  }
+  if (el.isContentEditable) return true;
+  return false;
+}
 
 export default function OrdenEditarModal({
   orden,
@@ -62,6 +78,7 @@ export default function OrdenEditarModal({
   
   // Lista de bancos (dinámica desde API)
   const [bancos, setBancos] = useState([]);
+  const [showCatalogoModal, setShowCatalogoModal] = useState(false);
 
   // Métodos de pago disponibles
   // NOTA: Nequi y Daviplata están disponibles como bancos cuando se selecciona TRANSFERENCIA
@@ -616,6 +633,23 @@ export default function OrdenEditarModal({
       }
     }
   }, [categorias, selectedCategoryId]);
+
+  useEffect(() => {
+    if (!isOpen) setShowCatalogoModal(false);
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKeyDown = (e) => {
+      if (e.key !== "i" && e.key !== "I") return;
+      if (showClienteModal || showClienteCreateModal) return;
+      if (isTypableField(document.activeElement)) return;
+      e.preventDefault();
+      setShowCatalogoModal((prev) => !prev);
+    };
+    window.addEventListener("keydown", onKeyDown, true);
+    return () => window.removeEventListener("keydown", onKeyDown, true);
+  }, [isOpen, showClienteModal, showClienteCreateModal]);
 
   // =============================
   // Match por nombre para establecer IDs
@@ -1819,16 +1853,15 @@ export default function OrdenEditarModal({
   // =============================
   return (
     <div className="modal-overlay">
-      <div className="modal-container modal-wide">
+      <div className="modal-container modal-wide orden-modal-shell">
         <h2>{form.id ? `Editar Orden #${form.numero ?? form.id}` : 'Crear Nueva Orden'}</h2>
 
         {errorMsg && <div className="alert error">{errorMsg}</div>}
 
-        <div className="modal-grid">
-          {/* PANEL IZQUIERDO */}
-          <div className="pane pane-left">
-            <div className="form grid-2">
-              <label>
+        <div className="orden-modal-layout">
+          <div className="orden-modal-toolbar">
+            <div className="orden-toolbar-row">
+              <label className="orden-toolbar-field orden-toolbar-field--fecha">
                 Fecha
                 <input
                   type="date"
@@ -1845,7 +1878,7 @@ export default function OrdenEditarModal({
                   : null;
                 const isJairoVelandia = clienteSeleccionado?.nombre?.toUpperCase() === "JAIRO JAVIER VELANDIA";
                 return isJairoVelandia ? (
-                  <label>
+                  <label className="orden-toolbar-field orden-toolbar-field--obra">
                     Obra
                     <input
                       type="text"
@@ -1857,6 +1890,393 @@ export default function OrdenEditarModal({
                   </label>
                 ) : null;
               })()}
+
+              <label className="orden-toolbar-field orden-toolbar-field--sede">
+                Sede
+                <select
+                  value={form.sedeId}
+                  onChange={(e) =>
+                    handleChange("sedeId", e.target.value)
+                  }
+                >
+                  <option value="">Selecciona...</option>
+                  {sedes.map((s) => (
+                    <option key={s.id} value={String(s.id)}>
+                      {s.nombre}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="orden-toolbar-field orden-toolbar-field--trabajador">
+                Trabajador
+                <select
+                  value={form.trabajadorId}
+                  onChange={(e) =>
+                    handleChange("trabajadorId", e.target.value)
+                  }
+                >
+                  <option value="">Selecciona...</option>
+                  {trabajadores.map((t) => (
+                    <option key={t.id} value={String(t.id)}>
+                      {t.nombre}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              {!orden && (
+                <div className="orden-toolbar-field orden-toolbar-field--venta">
+                  <label
+                    className="orden-toolbar-venta-label"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={form.venta}
+                      onChange={(e) =>
+                        handleChange("venta", e.target.checked)
+                      }
+                    />
+                    <span>¿Venta confirmada?</span>
+                  </label>
+                </div>
+              )}
+
+              {(() => {
+                const subtotalFacturado = form.items.reduce((sum, item) => sum + (item.totalLinea || 0), 0);
+                const subtotalSinIva = subtotalFacturado / 1.19;
+                const superaRete = retefuenteThreshold > 0 && subtotalSinIva >= retefuenteThreshold;
+                if (!superaRete) return null;
+                const hintRete = `Base ${subtotalSinIva.toLocaleString("es-CO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ≥ umbral ${retefuenteThreshold.toLocaleString("es-CO")}. Marcar si el cliente retiene.`;
+                return (
+                  <div className="orden-toolbar-field orden-toolbar-field--retefuente">
+                    <span className="orden-toolbar-field-caption">Retefuente</span>
+                    <label className="orden-toolbar-rete-label" title={hintRete}>
+                      <input
+                        type="checkbox"
+                        checked={form.tieneRetencionFuente || false}
+                        onChange={(e) => {
+                          const nuevoValorRetencion = e.target.checked;
+                          handleChange("tieneRetencionFuente", nuevoValorRetencion);
+                          let retencionCalculada = 0;
+                          if (nuevoValorRetencion) {
+                            const subtotal = form.items.reduce((s, it) => s + (it.totalLinea || 0), 0);
+                            const ssi = subtotal / 1.19;
+                            if (ssi >= retefuenteThreshold) {
+                              retencionCalculada = Math.round(ssi * (retefuenteRate / 100) * 100) / 100;
+                            }
+                          }
+                          handleChange("descripcion", construirDescripcion(metodosPago, observacionesAdicionales, retencionCalculada));
+                        }}
+                      />
+                      <span>Aplicar</span>
+                    </label>
+                  </div>
+                );
+              })()}
+
+              {(() => {
+                const subtotalFacturado = form.items.reduce((sum, item) => sum + (item.totalLinea || 0), 0);
+                const subtotalSinIva = subtotalFacturado / 1.19;
+                const superaIca = icaThreshold > 0 && subtotalSinIva >= icaThreshold;
+                if (!superaIca) return null;
+                const hintIca = `Base ${subtotalSinIva.toLocaleString("es-CO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ≥ umbral ${icaThreshold.toLocaleString("es-CO")}.`;
+                return (
+                  <div className="orden-toolbar-field orden-toolbar-field--reteica">
+                    <span className="orden-toolbar-field-caption">Rete ICA</span>
+                    <div className="orden-toolbar-reteica-controls">
+                      <label className="orden-toolbar-rete-label" title={hintIca}>
+                        <input
+                          type="checkbox"
+                          checked={form.tieneRetencionIca || false}
+                          onChange={(e) => {
+                            const v = e.target.checked;
+                            handleChange("tieneRetencionIca", v);
+                            if (!v) handleChange("porcentajeIca", null);
+                          }}
+                        />
+                        <span>Aplicar</span>
+                      </label>
+                      {form.tieneRetencionIca && (
+                        <input
+                          type="number"
+                          className="orden-toolbar-ica-input"
+                          value={form.porcentajeIca !== null && form.porcentajeIca !== undefined ? form.porcentajeIca : ""}
+                          onChange={(e) => {
+                            const valor = e.target.value === "" ? null : parseFloat(e.target.value);
+                            if (valor === null || (valor >= 0 && valor <= 100)) {
+                              handleChange("porcentajeIca", valor);
+                            }
+                          }}
+                          placeholder={`% (${icaRate})`}
+                          min={0}
+                          max={100}
+                          step={0.1}
+                          title={`Porcentaje ICA (opcional; por defecto ${icaRate}%)`}
+                        />
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
+
+              <div className="orden-toolbar-field orden-toolbar-field--cliente">
+                <span className="orden-toolbar-field-caption">Cliente</span>
+                <div className="orden-toolbar-cliente-inline">
+                  <span
+                    className="orden-toolbar-cliente-name"
+                    title={form.clienteId ? (clienteSearch || form.clienteNombre || "") : ""}
+                  >
+                    {form.clienteId ? (clienteSearch || form.clienteNombre || "—") : "Sin cliente"}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setClienteSearchModal("");
+                      setShowClienteModal(true);
+                    }}
+                    className="btn-guardar orden-toolbar-cliente-btn"
+                  >
+                    {form.clienteId ? "Cambiar" : "Seleccionar"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="orden-modal-scroll">
+            <div className="orden-modal-items-header">
+              <h3 className="orden-modal-items-heading">Ítems de la orden</h3>
+              <button
+                type="button"
+                className="btn-guardar orden-modal-catalogo-btn"
+                onClick={() => setShowCatalogoModal(true)}
+              >
+                Abrir catálogo
+              </button>
+            </div>
+
+            <div className="orden-items-table-wrap">
+              <table className="orden-items-table">
+                <thead>
+                  <tr>
+                    {mostrarCamposUnidad && <th className="orden-items-table__col-tipo">Tipo</th>}
+                    {mostrarCamposUnidad && <th className="orden-items-table__col-cm">CM</th>}
+                    <th className="orden-items-table__col-cod">Código</th>
+                    <th className="orden-items-table__col-nombre">Producto</th>
+                    <th className="orden-items-table__col-color">Color</th>
+                    <th className="orden-items-table__num">Cant.</th>
+                    <th className="orden-items-table__num">Precio</th>
+                    <th className="orden-items-table__num">Total</th>
+                    <th className="orden-items-table__act" aria-label="Eliminar" />
+                  </tr>
+                </thead>
+                <tbody>
+                  {form.items.filter(i => !i.eliminar).map((i, idx) => {
+                    const cantidadNumero = Number(i.cantidad || 0);
+                    const precioNumero = Number(i.precioUnitario || 0);
+                    const totalLinea = cantidadNumero * precioNumero;
+                    const tipoUnidad = obtenerTipoUnidadItem(i) || "UNID";
+                    const esCM = tipoUnidad === "CM";
+
+                    return (
+                      <tr key={idx} className="orden-items-table__row">
+                        {mostrarCamposUnidad && (
+                          <td className="orden-items-table__col-tipo">
+                            <select
+                              className="orden-item-input orden-item-select"
+                              value={tipoUnidad}
+                              onChange={(e) => handleItemChange(idx, "tipoUnidad", e.target.value)}
+                            >
+                              <option value="UNID">UNID</option>
+                              <option value="PERFIL">PERFIL</option>
+                              <option value="MT">MT</option>
+                              <option value="CM">CM</option>
+                            </select>
+                          </td>
+                        )}
+                        {mostrarCamposUnidad && (
+                          <td className="orden-items-table__col-cm">
+                            <input
+                              className="orden-item-input orden-item-input--num"
+                              type="number"
+                              value={esCM ? (i.cmBase || "") : (i.cmBase || "")}
+                              min={0}
+                              step={1}
+                              placeholder={esCM ? "cm" : "—"}
+                              disabled={!esCM}
+                              onChange={(e) => handleItemChange(idx, "cmBase", e.target.value)}
+                            />
+                          </td>
+                        )}
+                        <td className="orden-items-table__col-cod" title={i.codigo || ""}>
+                          {i.codigo || "—"}
+                        </td>
+                        <td className="orden-items-table__col-nombre" title={i.nombre}>
+                          {i.nombre}
+                        </td>
+                        <td className="orden-items-table__col-color">
+                          <span className={`color-badge color-${(i.color || "NA").toLowerCase().replace(/\s+/g, "-")} orden-items-table__color-badge`}>
+                            {i.color ?? "NA"}
+                          </span>
+                        </td>
+                        <td className="orden-items-table__num">
+                          <input
+                            className="orden-item-input orden-item-input--num"
+                            type="number"
+                            value={i.cantidad || ""}
+                            min={0.01}
+                            step={0.01}
+                            placeholder="1"
+                            onChange={(e) => handleItemChange(idx, "cantidad", e.target.value)}
+                          />
+                        </td>
+                        <td className="orden-items-table__num">
+                          <input
+                            className="orden-item-input orden-item-input--num"
+                            type="number"
+                            value={i.precioUnitario || ""}
+                            step={0.01}
+                            min={0}
+                            placeholder="0"
+                            onChange={(e) => handleItemChange(idx, "precioUnitario", e.target.value)}
+                            onKeyDown={(e) => {
+                              if (!/[0-9.]/.test(e.key) &&
+                                  !["Backspace", "Delete", "Tab", "Escape", "Enter", "ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Home", "End"].includes(e.key) &&
+                                  !(e.key === "a" && e.ctrlKey) &&
+                                  !(e.key === "c" && e.ctrlKey) &&
+                                  !(e.key === "v" && e.ctrlKey) &&
+                                  !(e.key === "x" && e.ctrlKey)) {
+                                e.preventDefault();
+                              }
+                            }}
+                            title="Precio unitario editable (puede aplicar descuentos)"
+                          />
+                        </td>
+                        <td className="orden-items-table__num orden-items-table__total-cell">
+                          ${totalLinea.toLocaleString("es-CO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </td>
+                        <td className="orden-items-table__act">
+                          <button
+                            type="button"
+                            className="btnDelete orden-items-table__delete"
+                            onClick={() => {
+                              setForm((prev) => ({
+                                ...prev,
+                                items: prev.items.filter((item, j) => j !== idx),
+                              }));
+                            }}
+                            title="Eliminar producto"
+                          >
+                            <img src={eliminar} className="iconButton" alt="" />
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="orden-modal-totals-actions">
+              <div className="orden-modal-totals-panel">
+            {/* Totales de la venta */}
+            <div style={{ marginBottom: '1rem', padding: '1rem', backgroundColor: '#f8f9fa', borderRadius: '4px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span>Subtotal:</span>
+                  <strong>${form.items.reduce((sum, item) => sum + (item.totalLinea || 0), 0).toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
+                </div>
+
+                {(() => {
+                  // Calcular totales para mostrar
+                  const subtotalFacturado = form.items.reduce((sum, item) => sum + (item.totalLinea || 0), 0);
+                  const totalFacturado = subtotalFacturado;
+                  
+                  // Calcular subtotal sin IVA (base imponible) - se usa para ambas retenciones
+                    const baseImponible = totalFacturado;
+                    const subtotalSinIva = baseImponible / 1.19;
+                  
+                  // Calcular retención en la fuente si está marcada
+                  let retencionFuente = 0;
+                  if (form.tieneRetencionFuente) {
+                    if (subtotalSinIva >= retefuenteThreshold) {
+                      retencionFuente = subtotalSinIva * (retefuenteRate / 100);
+                    }
+                  }
+                  
+                  // Calcular retención ICA si está marcada
+                  let retencionIca = 0;
+                  if (form.tieneRetencionIca) {
+                    if (subtotalSinIva >= icaThreshold) {
+                      // Usar porcentaje personalizado si está definido, sino usar el por defecto
+                      const porcentajeIcaUsar = (form.porcentajeIca !== null && form.porcentajeIca !== undefined) 
+                        ? Number(form.porcentajeIca) 
+                        : icaRate;
+                      retencionIca = subtotalSinIva * (porcentajeIcaUsar / 100);
+                    }
+                  }
+                  
+                  const valorAPagar = totalFacturado - retencionFuente - retencionIca;
+                  
+                  return (
+                    <>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid #ddd', paddingTop: '0.5rem', marginTop: '0.5rem' }}>
+                        <span><strong>Total Facturado:</strong></span>
+                        <strong style={{ fontSize: '1.1em', color: '#333' }}>
+                          ${totalFacturado.toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </strong>
+                      </div>
+                      {(retencionFuente > 0 || retencionIca > 0) && (
+                        <>
+                          {retencionFuente > 0 && (
+                          <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '0.25rem', fontSize: '0.9em', color: '#666' }}>
+                            <span>(-) Retención en la Fuente:</span>
+                            <span>${retencionFuente.toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                          </div>
+                          )}
+                          {retencionIca > 0 && (
+                            <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '0.25rem', fontSize: '0.9em', color: '#666' }}>
+                              <span>(-) Retención ICA:</span>
+                              <span>${retencionIca.toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                            </div>
+                          )}
+                          <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid #ddd', paddingTop: '0.5rem', marginTop: '0.5rem' }}>
+                            <span><strong>Valor a Pagar:</strong></span>
+                            <strong style={{ fontSize: '1.2em', color: '#4f67ff' }}>
+                              ${valorAPagar.toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </strong>
+                          </div>
+                          <small style={{ display: 'block', color: '#666', fontSize: '0.75rem', marginTop: '0.25rem', fontStyle: 'italic' }}>
+                            El monto del método de pago debe ser el valor a pagar (total - retenciones)
+                          </small>
+                        </>
+                      )}
+                      {retencionFuente === 0 && retencionIca === 0 && (
+                        <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid #ddd', paddingTop: '0.5rem', marginTop: '0.5rem' }}>
+                          <span><strong>Valor a Pagar:</strong></span>
+                          <strong style={{ fontSize: '1.2em', color: '#4f67ff' }}>
+                            ${valorAPagar.toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </strong>
+                        </div>
+                      )}
+                    </>
+                  );
+                })()}
+              </div>
+            </div>
+              </div>
+              <div className="orden-modal-confirm-col">
+                <button
+                  type="button"
+                  className="btn-guardar orden-modal-confirm-btn"
+                  onClick={handleSubmit}
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? "Guardando..." : (form.id ? "Guardar cambios" : "Crear Orden")}
+                </button>
+              </div>
+            </div>
 
               {/* Sección de Métodos de Pago (solo para ventas) */}
               {Boolean(form.venta) && (
@@ -2307,543 +2727,73 @@ export default function OrdenEditarModal({
               </div>
               )}
 
-              <label style={{ gridColumn: '1 / -1' }}>
-                Observaciones Adicionales
-                <textarea
-                  value={observacionesAdicionales}
-                  onChange={(e) => {
-                    setObservacionesAdicionales(e.target.value);
-                    // Construir descripción completa con observaciones (la retención se calcula automáticamente)
-                    const nuevaDescripcion = construirDescripcion(metodosPago, e.target.value);
-                    handleChange("descripcion", nuevaDescripcion);
-                  }}
-                  placeholder="Escribe observaciones o detalles adicionales..."
-                  rows={3}
-                  style={{
-                    width: '100%',
-                    padding: '0.5rem',
-                    fontSize: '0.9rem',
-                    fontFamily: 'inherit',
-                    border: '1px solid #ddd',
-                    borderRadius: '4px',
-                    resize: 'vertical'
-                  }}
-                />
-              </label>
 
-              <label>
-                Cliente
-                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                  <input
-                    type="text"
-                    value={clienteSearch}
-                    readOnly
-                    onClick={() => setShowClienteModal(true)}
-                    placeholder="Haz clic para seleccionar un cliente..."
-                    style={{
-                      width: '100%',
-                      minWidth: '300px',
-                      padding: '0.5rem',
-                      border: '1px solid #c2c2c3',
-                      borderRadius: '8px',
-                      fontSize: '0.95rem',
-                      cursor: 'pointer',
-                      backgroundColor: '#fff'
-                    }}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setClienteSearchModal(""); // Limpiar búsqueda al abrir el modal
-                      setShowClienteModal(true);
-                    }}
-                    className="btn-guardar"
-                    style={{
-                      whiteSpace: 'nowrap'
-                    }}
-                  >
-                    {form.clienteId ? 'Cambiar Cliente' : 'Seleccionar'}
-                  </button>
-                </div>
-              </label>
+            <label className="orden-modal-observaciones" style={{ display: "grid", gap: "6px", marginTop: "1rem" }}>
+              Observaciones adicionales
+              <textarea
+                value={observacionesAdicionales}
+                onChange={(e) => {
+                  setObservacionesAdicionales(e.target.value);
+                  const nuevaDescripcion = construirDescripcion(metodosPago, e.target.value);
+                  handleChange("descripcion", nuevaDescripcion);
+                }}
+                placeholder="Escribe observaciones o detalles adicionales..."
+                rows={3}
+                style={{
+                  width: "100%",
+                  padding: "0.5rem",
+                  fontSize: "0.9rem",
+                  fontFamily: "inherit",
+                  border: "1px solid #ddd",
+                  borderRadius: "4px",
+                  resize: "vertical",
+                }}
+              />
+            </label>
 
-              <label>
-                Trabajador
-                <select
-                  value={form.trabajadorId}
-                  onChange={(e) =>
-                    handleChange("trabajadorId", e.target.value)
-                  }
-                >
-                  <option value="">Selecciona...</option>
-                  {trabajadores.map((t) => (
-                    <option key={t.id} value={String(t.id)}>
-                      {t.nombre}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              <label>
-                Sede
-                <select
-                  value={form.sedeId}
-                  onChange={(e) =>
-                    handleChange("sedeId", e.target.value)
-                  }
-                >
-                  <option value="">Selecciona...</option>
-                  {sedes.map((s) => (
-                    <option key={s.id} value={String(s.id)}>
-                      {s.nombre}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              {/* Checkbox para Venta Confirmada - Solo mostrar al CREAR, no al EDITAR */}
-              {!orden && (
-                <div style={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'flex-start',
-                  padding: '0.75rem',
-                  backgroundColor: '#f8f9fa',
-                  border: '1px solid #e9ecef',
-                  borderRadius: '8px',
-                  marginTop: '0.5rem'
-                }}>
-                  <label
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.5rem',
-                      cursor: 'pointer',
-                      color: '#343a40',
-                      width: '100%',
-                      margin: 0
-                    }}>
-                    <input
-                      type="checkbox"
-                      checked={form.venta}
-                      onChange={(e) =>
-                        handleChange("venta", e.target.checked)
-                      }
-                      style={{ 
-                        width: '1.3rem', 
-                        height: '1.3rem', 
-                        cursor: 'pointer', 
-                        margin: 0,
-                        accentColor: '#4f67ff',
-                        flexShrink: 0
-                      }}
-                    />
-                    <span>¿Venta confirmada?</span>
-                  </label>
-                </div>
-              )}
-            </div>
-
-            <h3>Ítems de la orden</h3>
-            
-            {/* Totales de la venta */}
-            <div style={{ marginBottom: '1rem', padding: '1rem', backgroundColor: '#f8f9fa', borderRadius: '4px' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>Subtotal:</span>
-                  <strong>${form.items.reduce((sum, item) => sum + (item.totalLinea || 0), 0).toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
-                </div>
-                
-                {/* Checkbox para retención de fuente */}
-                {(() => {
-                  // Calcular base imponible (subtotal)
-                  const subtotalFacturado = form.items.reduce((sum, item) => sum + (item.totalLinea || 0), 0);
-                  const baseImponible = subtotalFacturado;
-                  
-                  // Calcular subtotal sin IVA para comparar con el umbral
-                  // El backend calcula: subtotalSinIva = baseImponible / 1.19
-                  const subtotalSinIva = baseImponible / 1.19;
-                  
-                  // Verificar si supera el umbral
-                  const superaUmbral = retefuenteThreshold > 0 && subtotalSinIva >= retefuenteThreshold;
-                  
-                  // Solo mostrar el checkbox si supera el umbral
-                  if (!superaUmbral) return null;
-                  
-                  return (
-                    <div style={{ 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      justifyContent: 'flex-start',
-                      padding: '0.75rem',
-                      backgroundColor: '#f8f9fa',
-                      border: '1px solid #e9ecef',
-                      borderRadius: '8px',
-                      marginTop: '0.5rem'
-                    }}>
-                      <label
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '0.5rem',
-                          cursor: 'pointer',
-                          color: '#343a40',
-                          width: '100%',
-                          margin: 0
-                        }}>
-                        <input
-                          type="checkbox"
-                          checked={form.tieneRetencionFuente || false}
-                          onChange={(e) => {
-                            const nuevoValorRetencion = e.target.checked;
-                            handleChange("tieneRetencionFuente", nuevoValorRetencion);
-                            // Actualizar la descripción para incluir/excluir la retención
-                            // Calcular retención con el nuevo valor
-                            let retencionCalculada = 0;
-                            if (nuevoValorRetencion) {
-                              const subtotal = form.items.reduce((sum, item) => sum + (item.totalLinea || 0), 0);
-                              const totalFacturado = subtotal;
-                              const subtotalSinIva = totalFacturado / 1.19;
-                              if (subtotalSinIva >= retefuenteThreshold) {
-                                retencionCalculada = subtotalSinIva * (retefuenteRate / 100);
-                                retencionCalculada = Math.round(retencionCalculada * 100) / 100;
-                              }
-                            }
-                            const nuevaDescripcion = construirDescripcion(metodosPago, observacionesAdicionales, retencionCalculada);
-                            handleChange("descripcion", nuevaDescripcion);
-                          }}
-                          style={{ 
-                            width: '1.3rem', 
-                            height: '1.3rem', 
-                            cursor: 'pointer', 
-                            margin: 0,
-                            accentColor: '#4f67ff',
-                            flexShrink: 0
-                          }}
-                        />
-                        <span>Esta orden tiene retención en la fuente (retefuente)</span>
-                      </label>
-                      <small style={{ 
-                        display: 'block', 
-                        color: '#666', 
-                        fontSize: '0.75rem', 
-                        marginTop: '0.25rem',
-                        marginLeft: '28px'
-                      }}>
-                        La base imponible (${subtotalSinIva.toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}) supera el umbral de ${retefuenteThreshold.toLocaleString('es-CO')}. 
-                        Marca esta opción solo si el cliente debe retener (empresas que retienen).
-                      </small>
-                    </div>
-                  );
-                })()}
-                
-                {/* Checkbox e Input para Retención ICA */}
-                {(() => {
-                  const subtotalFacturado = form.items.reduce((sum, item) => sum + (item.totalLinea || 0), 0);
-                  const totalFacturado = subtotalFacturado;
-                  const subtotalSinIva = totalFacturado / 1.19;
-                  const superaUmbralIca = icaThreshold > 0 && subtotalSinIva >= icaThreshold;
-                  
-                  if (!superaUmbralIca) {
-                    return null;
-                  }
-                  
-                  return (
-                    <div style={{ 
-                      marginTop: '1rem', 
-                      padding: '1rem', 
-                      backgroundColor: '#f8f9fa', 
-                      borderRadius: '8px', 
-                      border: '1px solid #e0e0e0' 
-                    }}>
-                      <label style={{ 
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.5rem',
-                        cursor: 'pointer',
-                        color: '#343a40',
-                        width: '100%',
-                        margin: 0
-                      }}>
-                        <input
-                          type="checkbox"
-                          checked={form.tieneRetencionIca || false}
-                          onChange={(e) => {
-                            const nuevoValorIca = e.target.checked;
-                            handleChange("tieneRetencionIca", nuevoValorIca);
-                            // Si se desactiva, limpiar porcentaje
-                            if (!nuevoValorIca) {
-                              handleChange("porcentajeIca", null);
-                            }
-                          }}
-                          style={{ 
-                            width: '1.3rem', 
-                            height: '1.3rem', 
-                            cursor: 'pointer', 
-                            margin: 0,
-                            accentColor: '#4f67ff',
-                            flexShrink: 0
-                          }}
-                        />
-                        <span>Esta orden tiene retención ICA</span>
-                      </label>
-                      {form.tieneRetencionIca && (
-                        <div style={{ marginTop: '0.75rem', marginLeft: '28px' }}>
-                          <label style={{ 
-                            display: 'block', 
-                            fontSize: '0.875rem', 
-                            fontWeight: '500', 
-                            color: '#343a40',
-                            marginBottom: '0.25rem'
-                          }}>
-                            Porcentaje ICA (%):
-                          </label>
-                          <input
-                            type="number"
-                            value={form.porcentajeIca !== null && form.porcentajeIca !== undefined ? form.porcentajeIca : ''}
-                            onChange={(e) => {
-                              const valor = e.target.value === '' ? null : parseFloat(e.target.value);
-                              if (valor === null || (valor >= 0 && valor <= 100)) {
-                                handleChange("porcentajeIca", valor);
-                              }
-                            }}
-                            placeholder={`Por defecto: ${icaRate}%`}
-                            min="0"
-                            max="100"
-                            step="0.1"
-                            style={{
-                              width: '100%',
-                              padding: '0.5rem',
-                              border: '1px solid #ddd',
-                              borderRadius: '4px',
-                              fontSize: '0.875rem'
-                            }}
-                          />
-                          <small style={{ 
-                            display: 'block', 
-                            color: '#666', 
-                            fontSize: '0.75rem', 
-                            marginTop: '0.25rem'
-                          }}>
-                            Opcional: Si no se especifica, se usará el valor por defecto ({icaRate}%). 
-                            La base imponible (${subtotalSinIva.toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}) supera el umbral de ${icaThreshold.toLocaleString('es-CO')}.
-                          </small>
-                        </div>
-                      )}
-                      {!form.tieneRetencionIca && (
-                        <small style={{ 
-                          display: 'block', 
-                          color: '#666', 
-                          fontSize: '0.75rem', 
-                          marginTop: '0.25rem',
-                          marginLeft: '28px'
-                        }}>
-                          La base imponible (${subtotalSinIva.toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}) supera el umbral de ${icaThreshold.toLocaleString('es-CO')}. 
-                          Marca esta opción si la orden debe tener retención ICA.
-                        </small>
-                      )}
-                    </div>
-                  );
-                })()}
-                
-                {(() => {
-                  // Calcular totales para mostrar
-                  const subtotalFacturado = form.items.reduce((sum, item) => sum + (item.totalLinea || 0), 0);
-                  const totalFacturado = subtotalFacturado;
-                  
-                  // Calcular subtotal sin IVA (base imponible) - se usa para ambas retenciones
-                    const baseImponible = totalFacturado;
-                    const subtotalSinIva = baseImponible / 1.19;
-                  
-                  // Calcular retención en la fuente si está marcada
-                  let retencionFuente = 0;
-                  if (form.tieneRetencionFuente) {
-                    if (subtotalSinIva >= retefuenteThreshold) {
-                      retencionFuente = subtotalSinIva * (retefuenteRate / 100);
-                    }
-                  }
-                  
-                  // Calcular retención ICA si está marcada
-                  let retencionIca = 0;
-                  if (form.tieneRetencionIca) {
-                    if (subtotalSinIva >= icaThreshold) {
-                      // Usar porcentaje personalizado si está definido, sino usar el por defecto
-                      const porcentajeIcaUsar = (form.porcentajeIca !== null && form.porcentajeIca !== undefined) 
-                        ? Number(form.porcentajeIca) 
-                        : icaRate;
-                      retencionIca = subtotalSinIva * (porcentajeIcaUsar / 100);
-                    }
-                  }
-                  
-                  const valorAPagar = totalFacturado - retencionFuente - retencionIca;
-                  
-                  return (
-                    <>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid #ddd', paddingTop: '0.5rem', marginTop: '0.5rem' }}>
-                        <span><strong>Total Facturado:</strong></span>
-                        <strong style={{ fontSize: '1.1em', color: '#333' }}>
-                          ${totalFacturado.toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                        </strong>
-                      </div>
-                      {(retencionFuente > 0 || retencionIca > 0) && (
-                        <>
-                          {retencionFuente > 0 && (
-                          <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '0.25rem', fontSize: '0.9em', color: '#666' }}>
-                            <span>(-) Retención en la Fuente:</span>
-                            <span>${retencionFuente.toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                          </div>
-                          )}
-                          {retencionIca > 0 && (
-                            <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '0.25rem', fontSize: '0.9em', color: '#666' }}>
-                              <span>(-) Retención ICA:</span>
-                              <span>${retencionIca.toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                            </div>
-                          )}
-                          <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid #ddd', paddingTop: '0.5rem', marginTop: '0.5rem' }}>
-                            <span><strong>Valor a Pagar:</strong></span>
-                            <strong style={{ fontSize: '1.2em', color: '#4f67ff' }}>
-                              ${valorAPagar.toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                            </strong>
-                          </div>
-                          <small style={{ display: 'block', color: '#666', fontSize: '0.75rem', marginTop: '0.25rem', fontStyle: 'italic' }}>
-                            El monto del método de pago debe ser el valor a pagar (total - retenciones)
-                          </small>
-                        </>
-                      )}
-                      {retencionFuente === 0 && retencionIca === 0 && (
-                        <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid #ddd', paddingTop: '0.5rem', marginTop: '0.5rem' }}>
-                          <span><strong>Valor a Pagar:</strong></span>
-                          <strong style={{ fontSize: '1.2em', color: '#4f67ff' }}>
-                            ${valorAPagar.toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                          </strong>
-                        </div>
-                      )}
-                    </>
-                  );
-                })()}
-              </div>
-            </div>
-            
-            <div className="items-list">
-              {form.items.filter(i => !i.eliminar).map((i, idx) => {
-                const cantidadNumero = Number(i.cantidad || 0);
-                const precioNumero = Number(i.precioUnitario || 0);
-                const totalLinea = cantidadNumero * precioNumero;
-                const tipoUnidad = obtenerTipoUnidadItem(i) || "UNID";
-                const esCM = tipoUnidad === "CM";
-
-                return (
-                  <article key={idx} className="item-card">
-                    <div className="item-card__header">
-                      <div className="item-card__main">
-                        <div className="item-card__title" title={i.nombre}>{i.nombre}</div>
-                        <div className="item-card__meta">
-                          <span className="item-pill">Código: {i.codigo || "-"}</span>
-                          <span className={`color-badge color-${(i.color || 'NA').toLowerCase().replace(/\s+/g, '-')}`}>
-                            {i.color ?? 'NA'}
-                          </span>
-                        </div>
-                      </div>
-                      <button
-                        className="btnDelete item-card__delete"
-                        onClick={() => {
-                          setForm(prev => ({
-                            ...prev,
-                            items: prev.items.filter((item, j) => j !== idx)
-                          }));
-                        }}
-                        title="Eliminar producto"
-                      >
-                        <img src={eliminar} className="iconButton" alt="Eliminar" />
-                      </button>
-                    </div>
-
-                    <div
-                      className="item-card__grid"
-                      style={{ gridTemplateColumns: mostrarCamposUnidad ? 'repeat(5, minmax(0, 1fr))' : 'repeat(4, minmax(0, 1fr))' }}
-                    >
-                      {mostrarCamposUnidad && (
-                        <label className="item-field">
-                          <span>Tipo unidad</span>
-                          <select
-                            className="mini-table-control"
-                            value={tipoUnidad}
-                            onChange={(e) => handleItemChange(idx, "tipoUnidad", e.target.value)}
-                          >
-                            <option value="UNID">UNID</option>
-                            <option value="PERFIL">PERFIL</option>
-                            <option value="MT">MT</option>
-                            <option value="CM">CM</option>
-                          </select>
-                        </label>
-                      )}
-
-                      {mostrarCamposUnidad && (
-                        <label className="item-field">
-                          <span>CM base</span>
-                          <input
-                            className="mini-table-control mini-table-input--compact"
-                            type="number"
-                            value={esCM ? (i.cmBase || "") : (i.cmBase || "")}
-                            min={0}
-                            step={1}
-                            placeholder={esCM ? "Base cm" : "-"}
-                            disabled={!esCM}
-                            onChange={(e) => handleItemChange(idx, "cmBase", e.target.value)}
-                          />
-                        </label>
-                      )}
-
-                      <label className="item-field">
-                        <span>Cantidad</span>
-                        <input
-                          className="mini-table-control mini-table-input--compact"
-                          type="number"
-                          value={i.cantidad || ""}
-                          min={0.01}
-                          step={0.01}
-                          placeholder="1"
-                          onChange={(e) => handleItemChange(idx, "cantidad", e.target.value)}
-                        />
-                      </label>
-
-                      <label className="item-field">
-                        <span>Precio</span>
-                        <input
-                          className="mini-table-control mini-table-input--compact"
-                          type="number"
-                          value={i.precioUnitario || ""}
-                          step={0.01}
-                          min={0}
-                          placeholder="0.00"
-                          onChange={(e) => handleItemChange(idx, "precioUnitario", e.target.value)}
-                          onKeyDown={(e) => {
-                            if (!/[0-9.]/.test(e.key) && 
-                                !['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'].includes(e.key) &&
-                                !(e.key === 'a' && e.ctrlKey) &&
-                                !(e.key === 'c' && e.ctrlKey) &&
-                                !(e.key === 'v' && e.ctrlKey) &&
-                                !(e.key === 'x' && e.ctrlKey)) {
-                              e.preventDefault();
-                            }
-                          }}
-                          title="Precio unitario editable (puede aplicar descuentos)"
-                        />
-                      </label>
-
-                      <div className="item-field item-field--total">
-                        <span>Total</span>
-                        <strong>${totalLinea.toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
-                      </div>
-                    </div>
-                  </article>
-                );
-              })}
-            </div>
           </div>
 
-          {/* PANEL CENTRAL */}
-          <div className="pane pane-sidebar">
+        </div>
+        <div className="modal-buttons orden-modal-footer-buttons">
+          <button className="btn-cancelar" onClick={onClose}>
+            Cancelar
+          </button>
+        </div>
+      </div>
+      
+      {showCatalogoModal && (
+        <div
+          className="modal-overlay orden-catalogo-overlay"
+          style={{ zIndex: 100003 }}
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) setShowCatalogoModal(false);
+          }}
+        >
+          <div
+            className="modal-container orden-catalogo-modal"
+            onMouseDown={(e) => e.stopPropagation()}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: "0.75rem",
+                flexShrink: 0,
+                gap: "0.75rem",
+                flexWrap: "wrap",
+              }}
+            >
+              <h2 style={{ margin: 0 }}>Catálogo de productos</h2>
+              <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", flexWrap: "wrap" }}>
+                <span style={{ fontSize: "0.85rem", color: "#64748b" }}>Tecla I para cerrar</span>
+                <button type="button" className="btn-cancelar" onClick={() => setShowCatalogoModal(false)}>
+                  Cerrar
+                </button>
+              </div>
+            </div>
+            <div className="orden-catalogo-grid">
+<div className="pane pane-sidebar">
             <CategorySidebar
               categories={categorias}
               selectedId={selectedCategoryId}
@@ -3036,22 +2986,11 @@ export default function OrdenEditarModal({
               </div>
             </div>
           </div>
+            </div>
+          </div>
         </div>
+      )}
 
-        <div className="modal-buttons">
-          <button className="btn-cancelar" onClick={onClose}>
-            Cancelar
-          </button>
-          <button
-            className="btn-guardar"
-            onClick={handleSubmit}
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? "Guardando..." : (form.id ? "Guardar cambios" : "Crear Orden")}
-          </button>
-        </div>
-      </div>
-      
       {/* Modal de selección de clientes */}
       {showClienteModal && (
         <div className="modal-overlay" style={{ zIndex: 100001 }}>
