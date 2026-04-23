@@ -223,6 +223,8 @@ function transformarCortesDTO(cortes, isAdmin = true, userSedeId = null) {
 /**
  * Obtiene inventario completo de cortes con cantidades por sede
  * GET /api/cortes-inventario-completo
+ * Query opcional: { sedeId } — si el backend lo soporta, devuelve solo cortes con stock en esa sede
+ * (misma regla de negocio que unir cortes solo en la sede actual).
  */
 export async function listarCortesInventarioCompleto(params = {}, isAdmin = true, userSedeId = null) {
   const { data } = await api.get("/cortes-inventario-completo", { params });

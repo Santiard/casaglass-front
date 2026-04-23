@@ -223,11 +223,16 @@ export default function InventoryPage() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
+  const cortesInventarioParams = useMemo(() => {
+    const s = Number(sedeId);
+    return Number.isFinite(s) && s > 0 ? { sedeId: s } : {};
+  }, [sedeId]);
+
   const handleUnirCortes = async () => {
-    // cargar cortes (independiente de la vista) y abrir modal de unir cortes
+    // GET /api/cortes-inventario-completo?sedeId= — pedir solo cortes con stock en la sede del usuario (backend + filtro modal)
     try {
       setLoading(true);
-      const cortesData = await listarCortesInventarioCompleto({}, isAdmin, sedeId);
+      const cortesData = await listarCortesInventarioCompleto(cortesInventarioParams, isAdmin, sedeId);
       setCortes(cortesData || []);
       setUnirModalOpen(true);
     } catch (e) {
@@ -254,7 +259,7 @@ export default function InventoryPage() {
     if (view !== "corte") return;
     setLoading(true);
     try {
-      // Pasar información de autenticación para filtrar según rol
+      // Vista tabla de cortes: sin sedeId en query (admin ve todas las sedes; vendedor ya se transforma en DTO)
       const cortesData = await listarCortesInventarioCompleto({}, isAdmin, sedeId);
       setCortes(cortesData || []);
     } catch (e) {

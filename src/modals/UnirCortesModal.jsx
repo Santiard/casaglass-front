@@ -9,28 +9,30 @@ export default function UnirCortesModal({ isOpen, onClose, cortes = [], categori
   const [color, setColor] = useState('');
   const [selectedIds, setSelectedIds] = useState([]);
 
+  const sedeNum = Number(sedeId);
+
   const filtered = useMemo(() => {
-    // Mostrar SOLO cortes que tengan stock > 0 en la sede del usuario
+    // Mostrar SOLO cortes con stock > 0 en la sede actual (sedeId numérico; evita fallar si viene string del auth)
     return (cortes || []).filter(c => {
-      // filtrar por categoría si está seleccionada
       if (selectedCategory) {
         const selected = categories.find(cat => cat.id === selectedCategory);
         if (selected && (c.categoria || '').toLowerCase() !== selected.nombre.toLowerCase()) return false;
       }
-      // filtrar por color
       if (color && (c.color || '').toUpperCase() !== color.toUpperCase()) return false;
-      // filtrar por texto
       if (search) {
         const q = search.toLowerCase();
         if (!((c.nombre||'').toLowerCase().includes(q) || (c.codigo||'').toLowerCase().includes(q))) return false;
       }
-      // OBLIGATORIO: ocultar cortes sin stock en la sede del usuario (la sede siempre está definida)
-      const qtySede = sedeId === 1 ? Number(c.cantidadInsula || 0) : sedeId === 2 ? Number(c.cantidadCentro || 0) : sedeId === 3 ? Number(c.cantidadPatios || 0) : 0;
+      const qtySede =
+        sedeNum === 1 ? Number(c.cantidadInsula || 0)
+        : sedeNum === 2 ? Number(c.cantidadCentro || 0)
+        : sedeNum === 3 ? Number(c.cantidadPatios || 0)
+        : 0;
       if (qtySede <= 0) return false;
 
       return true;
     });
-  }, [cortes, selectedCategory, search, color, categories, sedeId]);
+  }, [cortes, selectedCategory, search, color, categories, sedeNum]);
 
   const toggleSelect = (id) => {
     setSelectedIds(curr => {
@@ -42,12 +44,12 @@ export default function UnirCortesModal({ isOpen, onClose, cortes = [], categori
 
   const selectedCortes = (selectedIds || []).map(id => cortes.find(c=>c.id===id)).filter(Boolean);
 
-  const getCantidadEnSede = (corte, sedeId) => {
+  const getCantidadEnSede = (corte, sid) => {
     if (!corte) return 0;
-    if (sedeId === 1) return Number(corte.cantidadInsula || 0);
-    if (sedeId === 2) return Number(corte.cantidadCentro || 0);
-    if (sedeId === 3) return Number(corte.cantidadPatios || 0);
-    // fallback to cantidadTotal
+    const s = Number(sid);
+    if (s === 1) return Number(corte.cantidadInsula || 0);
+    if (s === 2) return Number(corte.cantidadCentro || 0);
+    if (s === 3) return Number(corte.cantidadPatios || 0);
     return Number(corte.cantidadTotal || corte.cantidad || 0);
   };
 
@@ -61,8 +63,8 @@ export default function UnirCortesModal({ isOpen, onClose, cortes = [], categori
     const sameCategoria = (a.categoria || '').toLowerCase() === (b.categoria || '').toLowerCase();
     if (!sameCategoria) return { valid: false, reason: 'Los cortes deben pertenecer a la misma categoría.' };
     // cantidades en la sede del usuario
-    const qtyA = getCantidadEnSede(a, sedeId);
-    const qtyB = getCantidadEnSede(b, sedeId);
+    const qtyA = getCantidadEnSede(a, sedeNum);
+    const qtyB = getCantidadEnSede(b, sedeNum);
     if (qtyA < 1 || qtyB < 1) return { valid: false, reason: 'Ambos cortes deben tener al menos 1 unidad en tu sede.' };
     // la suma de largos no debe superar 600cm
     const suma = Number(a.largoCm || 0) + Number(b.largoCm || 0);
@@ -76,7 +78,7 @@ export default function UnirCortesModal({ isOpen, onClose, cortes = [], categori
     const payload = {
       corteId1: selectedIds[0],
       corteId2: selectedIds[1],
-      sedeId,
+      sedeId: sedeNum,
       corte1: selectedCortes[0],
       corte2: selectedCortes[1],
     };
@@ -120,9 +122,9 @@ export default function UnirCortesModal({ isOpen, onClose, cortes = [], categori
                 <div key={c.id} className={`unir-item ${selectedIds.includes(c.id) ? 'selected' : ''}`} onClick={()=>toggleSelect(c.id)}>
                   <div className="unir-item-main">
                     <div className="unir-item-title">{c.nombre || c.codigo}</div>
-                    <div className="unir-item-meta">{c.largoCm} cm • {c.color} • {c.categoria} • Sedes: Insula {c.cantidadInsula||0} / Centro {c.cantidadCentro||0} / Patios {c.cantidadPatios||0}</div>
+                    <div className="unir-item-meta">{c.largoCm} cm • {c.color} • {c.categoria} • En esta sede: {getCantidadEnSede(c, sedeNum)} u. (Insula {c.cantidadInsula||0} / Centro {c.cantidadCentro||0} / Patios {c.cantidadPatios||0})</div>
                   </div>
-                  <div className="unir-item-qty">{Number(c.cantidadTotal || c.cantidad || 0)}</div>
+                  <div className="unir-item-qty">{getCantidadEnSede(c, sedeNum)}</div>
                 </div>
               ))}
             </div>
