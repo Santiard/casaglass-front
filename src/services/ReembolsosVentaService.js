@@ -3,7 +3,8 @@ import { api } from "../lib/api.js";
 
 const ReembolsosVentaService = {
   // GET /api/reembolsos-venta
-  // @param {Object} params - Parámetros de consulta (puede incluir sedeId para filtrar por sede)
+  // ?sedeId= — el backend filtra por sede de la orden de origen (ordenOriginal.sede / o.sede), no por una columna
+  // arbitraria del reembolso. Misma regla que GET /api/ordenes/tabla?sedeId=.
   listarReembolsos: async (params = {}) => {
     try {
       const { data } = await api.get("reembolsos-venta", { params });

@@ -6,9 +6,10 @@ export default function EntregaDetalleModal({ entrega, isOpen, onClose }) {
   const dets = Array.isArray(entrega.detalles) ? entrega.detalles : [];
   // gastos eliminado - ya no se usan gastos en entregas
   
-  // Separar detalles por tipo: devoluciones son las que tienen reembolsoId
-  const ingresos = dets.filter(d => !d.reembolsoId);
-  const egresos = dets.filter(d => Boolean(d.reembolsoId));
+  // Separar detalles por tipo: devoluciones tienen reembolsoId o tipoMovimiento === "EGRESO"
+  const esEgreso = (d) => Boolean(d.reembolsoId) || d.tipoMovimiento === "EGRESO";
+  const ingresos = dets.filter(d => !esEgreso(d));
+  const egresos = dets.filter(d => esEgreso(d));
 
   const fmtCOP = (n) => new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(Number(n||0));
   const fmtFecha = (iso) => {
@@ -170,8 +171,8 @@ export default function EntregaDetalleModal({ entrega, isOpen, onClose }) {
                 </thead>
                 <tbody>
                   {egresos.map((d) => {
-                    // Usar valores ya calculados del backend
-                    const montoReembolso = Math.abs(Number(d.total) || 0);
+                    // Usar total, o montoOrden si total no viene (campo alternativo del backend)
+                    const montoReembolso = Math.abs(Number(d.total) || Number(d.montoOrden) || 0);
                     
                     return (
                       <tr key={d.id}>

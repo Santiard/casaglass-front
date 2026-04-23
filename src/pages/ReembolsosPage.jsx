@@ -9,11 +9,13 @@ import ReembolsoVentaDetalleModal from "../modals/ReembolsoVentaDetalleModal.jsx
 import ReembolsosIngresoService from "../services/ReembolsosIngresoService.js";
 import ReembolsosVentaService from "../services/ReembolsosVentaService.js";
 import { useToast } from "../context/ToastContext.jsx";
+import { useAuth } from "../context/AuthContext.jsx";
 import add from "../assets/add.png";
 import "../styles/ReembolsosPage.css";
 
 export default function ReembolsosPage() {
   const { showSuccess, showError } = useToast();
+  const { sedeId } = useAuth();
   const [view, setView] = useState("ingreso"); // "ingreso" | "venta"
   
   // Estados para reembolsos de ingreso
@@ -45,12 +47,22 @@ export default function ReembolsosPage() {
     }
   };
 
-  // Cargar reembolsos de venta
+  // GET /api/reembolsos-venta?sedeId= — backend filtra por sede de la orden de venta asociada.
+  // Filtro en cliente: coherente con r.sede?.id / r.sedeId del DTO (debe coincidir con esa orden).
   const cargarReembolsosVenta = async () => {
     setLoadingVenta(true);
     try {
-      const lista = await ReembolsosVentaService.listarReembolsos();
-      setReembolsosVenta(lista || []);
+      const params = sedeId != null && sedeId !== "" ? { sedeId } : {};
+      const lista = await ReembolsosVentaService.listarReembolsos(params);
+      const raw = lista || [];
+      const sedeNum = Number(sedeId);
+      const filtrada =
+        Number.isFinite(sedeNum) && sedeNum > 0
+          ? raw.filter(
+              (r) => Number(r?.sede?.id ?? r?.sedeId ?? 0) === sedeNum
+            )
+          : raw;
+      setReembolsosVenta(filtrada);
     } catch (error) {
       showError("No se pudieron cargar las devoluciones de venta.");
     } finally {
@@ -64,7 +76,7 @@ export default function ReembolsosPage() {
     } else {
       cargarReembolsosVenta();
     }
-  }, [view]);
+  }, [view, sedeId]);
 
   // Handlers para reembolsos de ingreso
   const handleCrearIngreso = async (payload) => {

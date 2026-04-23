@@ -1,4 +1,4 @@
-import { api } from '../lib/api';
+import { api, isApiDebugEnabled } from '../lib/api.js';
 
 const EntregasService = {
   // Listar todas las entregas con filtros opcionales
@@ -83,6 +83,9 @@ const EntregasService = {
       if (fechaHasta) params.append('hasta', fechaHasta);
       
       const response = await api.get(`entregas-dinero/ordenes-disponibles?${params}`);
+      if (isApiDebugEnabled()) {
+        console.log("[EntregasService] ordenes-disponibles", response.data);
+      }
       return response.data;
     } catch (error) {
       // Error obteniendo órdenes disponibles
@@ -93,14 +96,26 @@ const EntregasService = {
   // Crear nueva entrega
   crearEntrega: async (entregaData) => {
     try {
-      // DEBUG: Ver exactamente qué se está enviando
-      // EntregasService.crearEntrega - Payload enviado
-      
+      if (isApiDebugEnabled()) {
+        console.log("[EntregasService] crearEntrega → POST payload", {
+          ...entregaData,
+          ordenesIds: entregaData.ordenesIds,
+          abonosIds: entregaData.abonosIds,
+          reembolsosIds: entregaData.reembolsosIds,
+          monto: entregaData.monto,
+          montoEfectivo: entregaData.montoEfectivo,
+          montoTransferencia: entregaData.montoTransferencia,
+          montoCheque: entregaData.montoCheque,
+          montoDeposito: entregaData.montoDeposito,
+        });
+      }
+
       const response = await api.post('entregas-dinero', entregaData);
-      
-      // DEBUG: Ver qué retorna el backend
-      // EntregasService.crearEntrega - Respuesta del backend
-      
+
+      if (isApiDebugEnabled()) {
+        console.log("[EntregasService] crearEntrega ← response.data", response.data);
+      }
+
       return response.data;
     } catch (error) {
       // Error creando entrega

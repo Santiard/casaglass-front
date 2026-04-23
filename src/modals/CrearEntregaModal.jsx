@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import EntregasService from '../services/EntregasService';
-import ReembolsosVentaService from '../services/ReembolsosVentaService';
+import { isApiDebugEnabled } from '../lib/api.js';
 import './CrearEntregaModal.css';
 import { useToast } from '../context/ToastContext.jsx';
 
@@ -96,10 +96,10 @@ const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores, se
     if (isOpen && formData.sedeId) {
       cargarOrdenesDisponibles();
     } else {
-      // Limpiar órdenes si no hay datos completos o el modal está cerrado
       if (!isOpen) {
         setOrdenesDisponibles([]);
         setAbonosDisponibles([]);
+        setReembolsosDisponibles([]);
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -120,19 +120,7 @@ const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores, se
     
     try {
       setLoadingOrdenes(true);
-      // Fecha usada para filtrar reembolsos del listado visual.
-      const fechaUnica = fechaActual;
-      
-      // Cargar órdenes, abonos y reembolsos en paralelo
-      const [ordenes, reembolsos] = await Promise.all([
-        EntregasService.obtenerOrdenesDisponibles(sedeIdActual),
-        ReembolsosVentaService.listarReembolsos({
-          fecha: fechaUnica,
-          sedeId: sedeIdActual,
-          procesado: true,
-          estado: 'PROCESADO'
-        })
-      ]);
+      const ordenes = await EntregasService.obtenerOrdenesDisponibles(sedeIdActual);
       
       // Extraer órdenes y abonos de la estructura de respuesta del backend
       let ordenesArray = [];
@@ -205,39 +193,29 @@ const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores, se
           }));
       }
       
-      // Procesar reembolsos - Solo EFECTIVO y TRANSFERENCIA (los que afectan caja)
-      // 🔥 FILTRO ADICIONAL POR FECHA: Solo incluir reembolsos del día seleccionado
-      const reembolsosArray = Array.isArray(reembolsos) 
-        ? reembolsos
-            .filter(r => {
-              // Validar que sea EFECTIVO o TRANSFERENCIA
-              if (r.formaReembolso !== 'EFECTIVO' && r.formaReembolso !== 'TRANSFERENCIA') {
-                return false;
-              }
-              
-              // 🆕 VALIDAR FECHA: Solo incluir reembolsos del día seleccionado
-              const fechaReembolso = r.fecha ? r.fecha.split('T')[0] : null;
-              const fechaSeleccionada = fechaUnica;
-              
-              if (fechaReembolso !== fechaSeleccionada) {
-                return false;
-              }
-              
-              return true;
-            })
-            .map(reembolso => ({
-              id: reembolso.id,
-              fecha: reembolso.fecha,
-              ordenOriginalId: reembolso.ordenOriginal?.id,
-              numeroOrden: reembolso.ordenOriginal?.numero || '-',
-              clienteNombre: reembolso.cliente?.nombre || 'Cliente no especificado',
-              totalReembolso: reembolso.totalReembolso || 0,
-              formaReembolso: reembolso.formaReembolso,
-              motivo: reembolso.motivo || '',
-              estado: reembolso.estado,
-              procesado: reembolso.procesado
-            }))
+      // Reembolsos elegibles para entrega: vienen en GET entregas-dinero/ordenes-disponibles (misma regla que el backend)
+      const rawReembolsos = Array.isArray(ordenes?.reembolsosDisponibles)
+        ? ordenes.reembolsosDisponibles
         : [];
+      const reembolsosArray = rawReembolsos.map((r) => {
+        const monto = Math.abs(Number(r.monto ?? r.totalReembolso ?? r.total ?? 0));
+        return {
+          id: r.id,
+          fecha: r.fecha,
+          ordenOriginalId: r.ordenId ?? r.orden?.id ?? r.ordenOriginal?.id,
+          numeroOrden: r.numeroOrden ?? r.orden?.numero ?? r.orden ?? '-',
+          clienteNombre: r.clienteNombre ?? r.cliente?.nombre ?? 'Cliente no especificado',
+          totalReembolso: monto,
+          formaReembolso: r.formaReembolso || 'EFECTIVO',
+          motivo: r.motivo ?? r.observacionReembolso ?? r.observaciones ?? '',
+          tipoMovimiento: r.tipoMovimiento || 'EGRESO',
+          estado: r.estado,
+          procesado: r.procesado !== undefined ? r.procesado : true,
+          // Sede de la orden de origen (backend: criterio de entrega) — trazabilidad
+          sedeId: r.sedeId != null ? r.sedeId : r.sede?.id,
+          sedeNombre: r.sedeNombre ?? r.sede?.nombre ?? null,
+        };
+      });
       
       setOrdenesDisponibles(ordenesArray);
       setAbonosDisponibles(abonosArray);
@@ -254,6 +232,25 @@ const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores, se
         abonosIds: todosLosAbonosIds,
         reembolsosIds: todosLosReembolsosIds
       }));
+
+      if (isApiDebugEnabled()) {
+        console.log("[CrearEntregaModal] preconteo (tras cargar disponibles)", {
+          ordenesContadoRaw: ordenes?.ordenesContado,
+          abonosDisponiblesRaw: ordenes?.abonosDisponibles,
+          reembolsosDisponiblesRaw: ordenes?.reembolsosDisponibles,
+          totalesBackend: ordenes?.totales ?? null,
+          counts: {
+            ordenes: ordenesArray.length,
+            abonos: abonosArray.length,
+            reembolsos: reembolsosArray.length,
+          },
+          idsSeleccionados: {
+            ordenesIds: todasLasOrdenesIds,
+            abonosIds: todosLosAbonosIds,
+            reembolsosIds: todosLosReembolsosIds,
+          },
+        });
+      }
     } catch (err) {
       setError('Error cargando órdenes disponibles');
       setOrdenesDisponibles([]);
@@ -441,7 +438,10 @@ const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores, se
     const reembolsosSeleccionados = reembolsos.filter(reembolso => 
       reembolsosIds.includes(reembolso.id)
     );
-    const montoReembolsos = reembolsosSeleccionados.reduce((sum, reembolso) => sum + (Number(reembolso.totalReembolso) || 0), 0);
+    const montoReembolsos = reembolsosSeleccionados.reduce(
+      (sum, reembolso) => sum + (Number(reembolso.totalReembolso) || Number(reembolso.monto) || 0),
+      0
+    );
     
     // Monto total = (órdenes a contado + abonos) - reembolsos
     const montoTotal = montoOrdenes + montoAbonos - montoReembolsos;
@@ -521,13 +521,13 @@ const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores, se
     
     // Procesar reembolsos (EGRESOS)
     reembolsosSeleccionados.forEach(reembolso => {
-      const montoReembolso = Number(reembolso.totalReembolso) || 0;
-      
-      // Restar según forma de reembolso
+      const montoReembolso = Number(reembolso.totalReembolso) || Number(reembolso.monto) || 0;
       if (reembolso.formaReembolso === 'EFECTIVO') {
         montoEfectivo -= montoReembolso;
       } else if (reembolso.formaReembolso === 'TRANSFERENCIA') {
         montoTransferencia -= montoReembolso;
+      } else {
+        montoEfectivo -= montoReembolso;
       }
     });
     
@@ -668,6 +668,16 @@ const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores, se
           setLoading(false);
           return;
         }
+
+        const reembolsosElegibles = Array.isArray(elegibles?.reembolsosDisponibles) ? elegibles.reembolsosDisponibles : [];
+        const reembolsosElegiblesIds = new Set(reembolsosElegibles.map((r) => r.id));
+        const reembolsosIdsForm = Array.isArray(formData.reembolsosIds) ? formData.reembolsosIds : [];
+        const reembolsosInvalidos = reembolsosIdsForm.filter((id) => !reembolsosElegiblesIds.has(id));
+        if (reembolsosInvalidos.length > 0) {
+          setError(`Algunos reembolsos ya no están disponibles para esta entrega: ${reembolsosInvalidos.join(', ')}. Actualiza la selección.`);
+          setLoading(false);
+          return;
+        }
       } catch (revalErr) {
         // Continuar, backend validará también
       }
@@ -719,12 +729,18 @@ const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores, se
         entregaData.montoDeposito = montoDeposito;
       }
 
+      if (isApiDebugEnabled()) {
+        console.log("[CrearEntregaModal] handleSubmit → entregaData (lo que se envía)", entregaData);
+      }
+
       const respuesta = await EntregasService.crearEntrega(entregaData);
 
       if (onSuccess) onSuccess(respuesta);
       onClose();
       
     } catch (err) {
+      console.error("[CrearEntregaModal] crear entrega — error completo", err);
+
       // Extraer mensaje de error del backend
       let errorMessage = 'Error desconocido al crear la entrega';
       
@@ -840,7 +856,7 @@ const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores, se
               <h3>Ingresos Pendientes del Rango Automático</h3>
               
               {loadingOrdenes ? (
-                <div className="loading-ordenes">Cargando órdenes y abonos disponibles...</div>
+                <div className="loading-ordenes">Cargando órdenes, abonos y reembolsos disponibles...</div>
               ) : (
                 <>
                   {/* Contadores de Órdenes y Abonos */}
@@ -924,40 +940,38 @@ const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores, se
                         </div>
                       </div>
 
-                      {/* Contador de Reembolsos (EGRESOS) */}
-                      {Array.isArray(reembolsosDisponibles) && reembolsosDisponibles.length > 0 && (
+                      {/* Contador de Reembolsos (EGRESOS) — mismo origen que órdenes-disponibles */}
+                      <div style={{ 
+                        display: 'flex', 
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        padding: '1.5rem',
+                        backgroundColor: '#fff',
+                        borderRadius: '8px',
+                        border: '2px solid #d32f2f',
+                        minWidth: '180px',
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                      }}>
                         <div style={{ 
-                          display: 'flex', 
-                          flexDirection: 'column',
-                          alignItems: 'center',
-                          padding: '1.5rem',
-                          backgroundColor: '#fff',
-                          borderRadius: '8px',
-                          border: '2px solid #d32f2f',
-                          minWidth: '180px',
-                          boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                          fontSize: '3rem', 
+                          fontWeight: 'bold', 
+                          color: '#d32f2f',
+                          marginBottom: '0.5rem',
+                          lineHeight: '1'
                         }}>
-                          <div style={{ 
-                            fontSize: '3rem', 
-                            fontWeight: 'bold', 
-                            color: '#d32f2f',
-                            marginBottom: '0.5rem',
-                            lineHeight: '1'
-                          }}>
-                            {reembolsosDisponibles.length}
-                          </div>
-                          <div style={{ 
-                            fontSize: '1rem', 
-                            color: '#d32f2f',
-                            textAlign: 'center',
-                            fontWeight: '500'
-                          }}>
-                            {reembolsosDisponibles.length === 1 
-                              ? 'Reembolso (Egreso)' 
-                              : 'Reembolsos (Egresos)'}
-                          </div>
+                          {Array.isArray(reembolsosDisponibles) ? reembolsosDisponibles.length : 0}
                         </div>
-                      )}
+                        <div style={{ 
+                          fontSize: '1rem', 
+                          color: '#d32f2f',
+                          textAlign: 'center',
+                          fontWeight: '500'
+                        }}>
+                          {(reembolsosDisponibles?.length || 0) === 1 
+                            ? 'Reembolso (Egreso)' 
+                            : 'Reembolsos (Egresos)'}
+                        </div>
+                      </div>
                     </div>
 
                     {/* Información adicional */}
@@ -970,13 +984,10 @@ const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores, se
                       color: '#1976d2',
                       textAlign: 'center'
                     }}>
-                      Se incluirán automáticamente todas las órdenes a contado y abonos del rango automático, más los reembolsos (egresos) del día seleccionado. 
-                      Solo se muestran órdenes y abonos de órdenes confirmadas (venta: true).
-                      {Array.isArray(reembolsosDisponibles) && reembolsosDisponibles.length > 0 && (
-                        <div style={{ marginTop: '8px', color: '#d32f2f', fontWeight: '500' }}>
-                          ⚠️ Los reembolsos se restarán del total a entregar.
-                        </div>
-                      )}
+                      Se incluirán automáticamente órdenes a contado, abonos y reembolsos procesados que el backend marca como disponibles para entrega (mismo endpoint que el rango automático). Solo órdenes confirmadas (venta: true).
+                      <div style={{ marginTop: '8px', color: '#d32f2f', fontWeight: '500' }}>
+                        Los reembolsos deben estar procesados; se restan del total a entregar.
+                      </div>
                     </div>
                   </div>
                   

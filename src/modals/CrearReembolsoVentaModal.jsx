@@ -5,6 +5,7 @@ import { obtenerOrden, obtenerOrdenDetalle } from "../services/OrdenesService.js
 import { listarOrdenesTabla } from "../services/OrdenesService.js";
 import { useToast } from "../context/ToastContext.jsx";
 import { getTodayLocalDate } from "../lib/dateUtils.js";
+import { useAuth } from "../context/AuthContext.jsx";
 
 export default function CrearReembolsoVentaModal({
   isOpen,
@@ -13,6 +14,7 @@ export default function CrearReembolsoVentaModal({
   reembolsoAEditar = null,
 }) {
   const { showError, showSuccess } = useToast();
+  const { sedeId: sedeIdUsuario } = useAuth();
   const isEditMode = !!reembolsoAEditar;
   const [loading, setLoading] = useState(false);
   const [ordenes, setOrdenes] = useState([]);
@@ -39,7 +41,7 @@ export default function CrearReembolsoVentaModal({
     } else {
       resetForm();
     }
-  }, [isOpen, reembolsoAEditar]);
+  }, [isOpen, reembolsoAEditar, sedeIdUsuario]);
 
   const resetForm = () => {
     setForm({
@@ -109,13 +111,32 @@ export default function CrearReembolsoVentaModal({
     }
   };
 
+  const esOrdenVentaConfirmada = (o) => {
+    const v = o?.venta;
+    if (v === true || v === 1) return true;
+    if (typeof v === "string") return v.toLowerCase() === "true";
+    return false;
+  };
+
   const cargarOrdenes = async () => {
     try {
-      const lista = await listarOrdenesTabla();
-      // Filtrar solo órdenes vendidas (venta: true) y no anuladas
-      const ordenesVendidas = (lista || []).filter(
-        (o) => o.venta === true && o.estado !== "ANULADA"
+      const sedeNum = Number(sedeIdUsuario);
+      const params =
+        Number.isFinite(sedeNum) && sedeNum > 0 ? { sedeId: sedeNum } : {};
+      // GET /api/ordenes/tabla?sedeId= — el backend ya filtra por o.sede.id
+      const lista = await listarOrdenesTabla(params);
+      const raw = Array.isArray(lista) ? lista : [];
+      let ordenesVendidas = raw.filter(
+        (o) => esOrdenVentaConfirmada(o) && o.estado !== "ANULADA"
       );
+      // Solo acotar por sede si el DTO trae sede/sedeId; si no viene, confiar en el filtro del servidor
+      if (Number.isFinite(sedeNum) && sedeNum > 0) {
+        ordenesVendidas = ordenesVendidas.filter((o) => {
+          const rowSede = o?.sede?.id ?? o?.sedeId;
+          if (rowSede == null || rowSede === "") return true;
+          return Number(rowSede) === sedeNum;
+        });
+      }
       setOrdenes(ordenesVendidas);
     } catch (error) {
       showError("No se pudieron cargar las órdenes.");

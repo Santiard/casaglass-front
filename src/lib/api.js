@@ -43,9 +43,9 @@ const getBaseURL = () => {
 
 export const API_BASE = getBaseURL();
 
-// Log para debugging solo en desarrollo
-if (import.meta.env.DEV) {
-}
+/** Activo en `import.meta.env.DEV` o si `VITE_DEBUG_API=true` en .env */
+export const isApiDebugEnabled = () =>
+  Boolean(import.meta.env.DEV) || import.meta.env.VITE_DEBUG_API === "true";
 
 export const api = axios.create({
   baseURL: API_BASE,
@@ -56,22 +56,45 @@ export const api = axios.create({
   }
 });
 
-// Interceptor opcional para JWT
+// Interceptor JWT + log de request (payload / query) cuando debug está activo
 api.interceptors.request.use((cfg) => {
   const token = localStorage.getItem("token");
   if (token) cfg.headers.Authorization = `Bearer ${token}`;
+
+  if (isApiDebugEnabled()) {
+    const method = (cfg.method || "get").toUpperCase();
+    const path = cfg.url || "";
+    console.log(`[api:request] ${method}`, path, {
+      data: cfg.data,
+      params: cfg.params,
+    });
+  }
+
   return cfg;
 });
 
-// Interceptor para capturar errores de respuesta
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    if (isApiDebugEnabled()) {
+      const cfg = response.config || {};
+      console.log(
+        `[api:response] ${response.status}`,
+        (cfg.method || "").toUpperCase(),
+        cfg.url,
+        response.data
+      );
+    }
+    return response;
+  },
   (error) => {
-    // 🚨 Error de API interceptado
-    // Aquí puedes agregar logs o manejo de errores personalizados si lo necesitas
-    // Log detallado del error del backend
-    if (error.response?.data) {
-      // Detalles del error del backend
+    if (isApiDebugEnabled()) {
+      const cfg = error.config || {};
+      console.error(
+        `[api:response:error] ${error.response?.status ?? "no-status"}`,
+        (cfg.method || "").toUpperCase(),
+        cfg.url,
+        error.response?.data
+      );
     }
     return Promise.reject(error);
   }

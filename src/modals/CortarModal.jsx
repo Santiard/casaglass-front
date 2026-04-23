@@ -331,6 +331,7 @@ export default function CortarModal({
   const handleClose = () => {
     setMedidaCorte("");
     setShowVentaTotalAlert(false);
+    setCorteSeleccionadoId("");
     onClose();
   };
 
@@ -418,12 +419,16 @@ export default function CortarModal({
                                 type="button"
                                 style={{ padding: '0.2rem 0.7rem', fontSize: '0.95rem', background: corteSeleccionadoId === corte.id ? '#007bff' : '#e0e0e0', color: corteSeleccionadoId === corte.id ? '#fff' : '#333', border: 'none', borderRadius: '0.25rem', cursor: 'pointer' }}
                                 onClick={() => {
-                                  setCorteSeleccionadoId(corte.id);
-                                  // No llenar automáticamente la medida: el usuario debe ingresar la medida a extraer
-                                  setMedidaCorte("");
+                                  if (corteSeleccionadoId === corte.id) {
+                                    // Deseleccionar si ya estaba seleccionado
+                                    setCorteSeleccionadoId("");
+                                  } else {
+                                    setCorteSeleccionadoId(corte.id);
+                                    setMedidaCorte("");
+                                  }
                                 }}
                               >
-                                Seleccionar
+                                {corteSeleccionadoId === corte.id ? "Deseleccionar" : "Seleccionar"}
                               </button>
                             </td>
                           </tr>

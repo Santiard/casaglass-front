@@ -481,7 +481,14 @@ export default function EntregasPage() {
       <div className="entregas-content">
         <EntregasTable
           data={entregas}
-          onVerDetalles={(entrega) => setSeleccionado(entrega)}
+          onVerDetalles={async (entrega) => {
+            try {
+              const entregaCompleta = await EntregasService.obtenerEntregaPorId(entrega.id);
+              setSeleccionado(entregaCompleta);
+            } catch (err) {
+              setSeleccionado(entrega); // fallback al objeto de la lista
+            }
+          }}
           onConfirmar={handleConfirmarEntrega}
           onEliminar={handleEliminarEntrega}
           onImprimir={handleImprimirEntrega}

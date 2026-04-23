@@ -25,6 +25,12 @@ export default function EntregasImprimirModal({ entregas = [], isOpen, onClose }
   useEffect(() => {
     if (!isOpen || entregasParaImprimir.length === 0) return;
 
+    // DEBUG: volcar detalles crudos para verificar campos que llegan del backend
+    console.log('[EntregasImprimirModal] RAW detalles por entrega:');
+    entregasParaImprimir.forEach((entrega) => {
+      console.log(`  Entrega #${entrega.id} — detalles (${(entrega.detalles || []).length}):`, entrega.detalles);
+    });
+
     console.groupCollapsed(
       `[EntregasImprimirModal] Verificación de mapeo de medios - entrega(s): ${entregasParaImprimir.map(e => e.id).join(', ')}`
     );
@@ -185,7 +191,8 @@ export default function EntregasImprimirModal({ entregas = [], isOpen, onClose }
     let porMetodo = { efectivo: 0, transferencia: 0, cheque: 0, deposito: 0 };
     
     entrega.detalles?.forEach((det) => {
-      const total = Number(det.total) || 0;
+      const esEgreso = Boolean(det.reembolsoId) || det.tipoMovimiento === "EGRESO";
+      const total = Number(det.total) || (esEgreso ? Math.abs(Number(det.montoOrden) || 0) : 0);
       const retencionFuente = Number(det.retencionFuente) || 0;
       const retencionIca = Number(det.retencionIca) || 0;
       
@@ -357,7 +364,7 @@ export default function EntregasImprimirModal({ entregas = [], isOpen, onClose }
               padding: 10px;
               font-style: italic;
             }
-            
+
             .metodos-pago-descripcion {
               margin-top: 8px;
               margin-bottom: 8px;
@@ -482,6 +489,7 @@ export default function EntregasImprimirModal({ entregas = [], isOpen, onClose }
               .total-row span strong {
                 color: #000 !important;
               }
+
             }
           </style>
         </head>
@@ -663,11 +671,11 @@ export default function EntregasImprimirModal({ entregas = [], isOpen, onClose }
                         </tr>
                       ) : (
                         entrega.detalles?.map((detalle, idx) => {
-                          // 🆕 DETECTAR SI ES DEVOLUCIÓN: solo si tiene reembolsoId (es un reembolso real)
-                          const esDevolucion = Boolean(detalle.reembolsoId);
+                          // Detectar reembolso por reembolsoId O por tipoMovimiento === "EGRESO"
+                          const esDevolucion = Boolean(detalle.reembolsoId) || detalle.tipoMovimiento === "EGRESO";
                           
-                            // Usar datos ya calculados del backend
-                            const total = Number(detalle.total) || 0;
+                            // Usar total, con montoOrden como campo alternativo del backend
+                            const total = Number(detalle.total) || Math.abs(Number(detalle.montoOrden) || 0);
                             const retencionFuente = Number(detalle.retencionFuente) || 0;
                             const retencionIca = Number(detalle.retencionIca) || 0;
                             
@@ -699,37 +707,18 @@ export default function EntregasImprimirModal({ entregas = [], isOpen, onClose }
                           const retencion = retencionTotal > 0 ? retencionTotal.toLocaleString("es-CO") : null;
 
                           return (
-                            <tr 
-                              key={detalle.id || idx}
-                              style={esDevolucion ? {
-                                backgroundColor: '#ffebee',
-                                borderLeft: '4px solid #c62828'
-                              } : {}}
-                            >
+                            <tr key={detalle.id || idx}>
                               <td>
-                                {esDevolucion && (
-                                  <span style={{
-                                    display: 'inline-block',
-                                    marginRight: '0.5rem',
-                                    padding: '0.1rem 0.4rem',
-                                    backgroundColor: '#c62828',
-                                    color: 'white',
-                                    borderRadius: '4px',
-                                    fontSize: '0.65rem',
-                                    fontWeight: 'bold'
-                                  }}>DEVOLUCIÓN</span>
-                                )}
-                                {detalle.numeroOrden || "-"}
+                                {esDevolucion
+                                  ? `DEV ${detalle.numeroOrden ?? "-"}`
+                                  : (detalle.numeroOrden || "-")}
                               </td>
                               <td>{fmtFecha(detalle.fechaAbono || detalle.fechaOrden || detalle.fecha || entrega.fechaEntrega)}</td>
                               <td>{detalle.clienteNombre || detalle.cliente?.nombre || "-"}</td>
                               <td>${(Number(detalle.total) || 0).toLocaleString("es-CO")}</td>
                               <td>${saldo.toLocaleString("es-CO")}</td>
-                              <td style={esDevolucion ? {
-                                color: '#c62828',
-                                fontWeight: 'bold'
-                              } : {}}>
-                                {esDevolucion && '−'}
+                              <td>
+                                {esDevolucion ? "− " : ""}
                                 ${Math.abs(valorEntregado).toLocaleString("es-CO")}
                               </td>
                               <td>{retencion ? `$${retencion}` : "-"}</td>
@@ -751,7 +740,7 @@ export default function EntregasImprimirModal({ entregas = [], isOpen, onClose }
                     entrega.detalles?.forEach((detalle) => {
                       const numeroOrden = detalle.numeroOrden;
                       const esAbono = detalle.ventaCredito;
-                      const esDevolucion = Boolean(detalle.reembolsoId);
+                      const esDevolucion = Boolean(detalle.reembolsoId) || detalle.tipoMovimiento === "EGRESO";
                       const reembolsoId = detalle.reembolsoId || null;
                       const observacionReembolso = detalle.observacionReembolso || null;
                       const nombreCliente = detalle.clienteNombre || detalle.cliente?.nombre || "Cliente";
@@ -774,7 +763,7 @@ export default function EntregasImprimirModal({ entregas = [], isOpen, onClose }
                           reembolsoId,
                           observacionReembolso,
                           nombreCliente,
-                          monto: Math.abs(Number(detalle.total) || 0),
+                          monto: Math.abs(Number(detalle.total) || Number(detalle.montoOrden) || 0),
                           metodoPago: metodoPagoDevolucion
                         });
                         return; // No procesar como método de pago normal

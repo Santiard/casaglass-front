@@ -1,4 +1,4 @@
-import { api } from "../lib/api";
+import { api, isApiDebugEnabled } from "../lib/api.js";
 import { esSedeSinControlCortes } from "../lib/ordenUnidadUtils.js";
 
 /* ================================================
@@ -12,7 +12,7 @@ export async function listarOrdenes(params = {}) {
 }
 
 // GET /api/ordenes/tabla → datos optimizados
-// @param {Object} params - Parámetros de consulta (puede incluir sedeId para filtrar por sede)
+// @param {Object} params - p. ej. { sedeId } filtra por o.sede.id (sede de la orden)
 export async function listarOrdenesTabla(params = {}) {
   const { data } = await api.get("ordenes/tabla", { params });
   return data || [];
@@ -550,10 +550,21 @@ export async function actualizarOrdenVenta(id, payload) {
         ...(corte.medidaSobrante !== undefined && corte.medidaSobrante !== null ? { medidaSobrante: parseInt(corte.medidaSobrante) } : {})
       })) : []
     };
-    
+
+    if (isApiDebugEnabled()) {
+      console.log(`[OrdenesService] actualizarOrdenVenta PUT ordenes/venta/${id}`, ordenData);
+    }
+
     const { data } = await api.put(`ordenes/venta/${id}`, ordenData);
     return data;
   } catch (error) {
+    if (error.response?.status === 409 && isApiDebugEnabled()) {
+      console.error("[OrdenesService] actualizarOrdenVenta 409 Conflict", {
+        status: error.response?.status,
+        data: error.response?.data,
+        message: error.response?.data?.message,
+      });
+    }
     // Manejo específico de errores del nuevo endpoint
     if (error.response?.status === 400) {
       const errorMsg = error.response?.data?.message || "Error de validación en la orden";

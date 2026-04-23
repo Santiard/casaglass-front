@@ -9,7 +9,7 @@ import add from "../assets/add.png";
 
 export default function ReembolsosVentaPage() {
   const { showSuccess, showError } = useToast();
-  const { isAdmin, sedeId } = useAuth(); // Obtener info del usuario logueado
+  const { sedeId } = useAuth();
   const [reembolsos, setReembolsos] = useState([]);
   const [loading, setLoading] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -18,10 +18,18 @@ export default function ReembolsosVentaPage() {
   const cargarReembolsos = async () => {
     setLoading(true);
     try {
-      // Si no es admin, filtrar por sede del usuario
-      const params = isAdmin ? {} : { sedeId };
+      // GET /api/reembolsos-venta?sedeId= — sede = orden de origen (venta); ver ReembolsoVentaRepository.buscarConFiltros en backend.
+      const params = sedeId != null && sedeId !== "" ? { sedeId } : {};
       const lista = await ReembolsosVentaService.listarReembolsos(params);
-      setReembolsos(lista || []);
+      const raw = lista || [];
+      const sedeNum = Number(sedeId);
+      const filtrada =
+        Number.isFinite(sedeNum) && sedeNum > 0
+          ? raw.filter(
+              (r) => Number(r?.sede?.id ?? r?.sedeId ?? 0) === sedeNum
+            )
+          : raw;
+      setReembolsos(filtrada);
     } catch (error) {
       console.error("Error cargando reembolsos:", error);
       showError("No se pudieron cargar los reembolsos.");
@@ -32,7 +40,7 @@ export default function ReembolsosVentaPage() {
 
   useEffect(() => {
     cargarReembolsos();
-  }, [isAdmin, sedeId]);
+  }, [sedeId]);
 
   const handleCrear = async (payload) => {
     try {
