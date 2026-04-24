@@ -195,7 +195,12 @@ function transformarCortesDTO(cortes, isAdmin = true, userSedeId = null) {
     }
 
     return {
-      id: corte.productoId || corte.id,  // Mapear productoId como id
+      id: corte.productoId || corte.id,  // Mapear productoId como id (ventas / UI histórica)
+      /** PK del Corte en BD; usar en traslados 2↔3 donde detalle.producto.id = id del corte */
+      corteId: (() => {
+        const pk = corte.corteId ?? corte.id;
+        return pk != null && pk !== undefined ? Number(pk) : null;
+      })(),
       productoId: corte.productoId,
       codigo: corte.codigo,
       nombre: corte.nombre,

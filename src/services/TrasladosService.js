@@ -1,4 +1,5 @@
 // src/services/TrasladosService.js
+// Contrato detalles / batch / errores 409: ver DOCUMETNACION_TRASLADOS.md y src/lib/trasladoDetalleUi.js
 import { api } from "../lib/api.js";
 
 const base = "/traslados";
@@ -88,8 +89,8 @@ export async function eliminarDetalle(trasladoId, detalleId) {
  * Actualiza múltiples detalles en una sola transacción atómica
  * @param {number} trasladoId - ID del traslado
  * @param {Object} payload - Objeto con arrays de cambios
- * @param {Array} payload.crear - Array de objetos { productoId, cantidad }
- * @param {Array} payload.actualizar - Array de objetos { detalleId, cantidad, productoId? }
+ * @param {Array} payload.crear - Array de objetos { productoId, cantidad, productoInventarioADescontarSede1Id?, medidaCorte? } (medidaCorte: Insula 1→2/3 cuando productoId es el entero y el backend resuelve el corte)
+ * @param {Array} payload.actualizar - Array de objetos { detalleId, cantidad, productoId?, productoInventarioADescontarSede1Id?, limpiarProductoInventarioADescontarSede1? }
  * @param {Array} payload.eliminar - Array de IDs de detalles a eliminar
  */
 export async function actualizarDetallesBatch(trasladoId, payload) {

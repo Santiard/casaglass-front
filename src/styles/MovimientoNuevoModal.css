@@ -54,7 +54,7 @@
   grid-template-columns: 1fr 200px 1fr;
   gap: 14px;
   flex: 1 1 auto; /* Ocupa todo el espacio disponible y puede crecer */
-  min-height: 550px; /* Altura mínima para asegurar espacio vertical */
+  min-height: 0; /* Flex: permite encoger y que el scroll interno del catálogo funcione */
   overflow: hidden; /* Evita desbordamiento */
   align-items: stretch; /* Asegura que los panes se expandan verticalmente */
   height: calc(90vh - 140px); /* Altura basada en viewport menos header y botones */
@@ -678,6 +678,48 @@
   margin-bottom: 8px; 
   flex-shrink: 0; /* No se encoge */
 }
+.traslado-catalogo-inv-header {
+  flex-direction: column;
+  align-items: stretch;
+}
+.pane.pane-right .traslado-catalogo-meta {
+  flex-shrink: 0;
+}
+.traslado-catalogo-switch {
+  display: inline-flex;
+  border-radius: 8px;
+  border: 1px solid #c2c2c3;
+  overflow: hidden;
+  background: #f1f3f9;
+  flex-shrink: 0;
+}
+.traslado-catalogo-switch__btn {
+  margin: 0;
+  padding: 0.4rem 0.85rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  border: none;
+  background: transparent;
+  color: #475569;
+  cursor: pointer;
+  line-height: 1.2;
+}
+.traslado-catalogo-switch__btn:hover:not(:disabled) {
+  background: rgba(79, 103, 255, 0.08);
+  color: #1e2753;
+}
+.traslado-catalogo-switch__btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.traslado-catalogo-switch__btn--active {
+  background: #4f67ff;
+  color: #fff;
+}
+.traslado-catalogo-switch__btn--active:hover:not(:disabled) {
+  background: #3d52e6;
+  color: #fff;
+}
 .inv-search {
   padding: 8px;
   border: 1px solid #c2c2c3;
@@ -701,11 +743,12 @@
 }
 
 .pane.pane-right .inventory-scroll {
-  flex: 1 1 auto !important; /* Ocupa todo el espacio restante */
-  min-height: 500px !important; /* Altura mínima para asegurar espacio vertical */
-  max-height: calc(90vh - 220px) !important; /* Altura máxima responsiva */
-  overflow-y: auto !important; /* Scroll vertical cuando sea necesario */
+  flex: 1 1 auto !important; /* Ocupa el espacio restante del panel */
+  min-height: 0 !important; /* Crítico en flex: sin esto, min-height grande recorta sin barra de scroll */
+  max-height: none !important; /* La altura la fija el flex del panel, no un tope arbitrario */
+  overflow-y: auto !important;
   overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
   border: 1px solid #e6e8f0;
   border-radius: 10px;
   background: #fff;
@@ -867,8 +910,8 @@
   }
 
   .pane.pane-right .inventory-scroll {
-    min-height: 300px !important;
-    max-height: 400px !important;
+    min-height: 0 !important;
+    max-height: none !important;
   }
 
   /* Formularios más grandes para touch */

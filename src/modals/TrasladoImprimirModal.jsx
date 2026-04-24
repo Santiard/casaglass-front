@@ -1,6 +1,10 @@
 import React, { useCallback, useEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
 import "../styles/OrdenImprimirModal.css";
+import {
+  etiquetaProductoDescInsula,
+  trasladoDetallesTienenDescInsula,
+} from "../lib/trasladoDetalleUi.js";
 
 /** Misma hoja que embebe OrdenImprimirModal en la ventana de impresión (tabla con bordes / líneas en pantalla; líneas tipo documento al imprimir). */
 const ESTILOS_VENTANA_IMPRESION_ORDEN = `
@@ -315,6 +319,10 @@ export default function TrasladoImprimirModal({ isOpen, onClose, traslado }) {
   }, [traslado]);
 
   const detalles = useMemo(() => (Array.isArray(traslado?.detalles) ? traslado.detalles : []), [traslado]);
+  const muestraColDescInsula = useMemo(
+    () => trasladoDetallesTienenDescInsula(detalles),
+    [detalles]
+  );
 
   const totalCantidad = useMemo(
     () => detalles.reduce((s, d) => s + Number(d.cantidad ?? 0), 0),
@@ -385,13 +393,14 @@ export default function TrasladoImprimirModal({ isOpen, onClose, traslado }) {
                 <th>Código</th>
                 <th>Producto</th>
                 <th>Color</th>
+                {muestraColDescInsula && <th>Desc. Insula (entero)</th>}
                 <th className="text-center">Cantidad</th>
               </tr>
             </thead>
             <tbody>
               {detalles.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="empty">
+                  <td colSpan={muestraColDescInsula ? 5 : 4} className="empty">
                     Sin ítems
                   </td>
                 </tr>
@@ -401,6 +410,9 @@ export default function TrasladoImprimirModal({ isOpen, onClose, traslado }) {
                     <td>{d.producto?.codigo ?? "—"}</td>
                     <td>{d.producto?.nombre ?? "—"}</td>
                     <td>{colorEnDetalleTraslado(d)}</td>
+                    {muestraColDescInsula && (
+                      <td>{etiquetaProductoDescInsula(d)}</td>
+                    )}
                     <td className="text-center">{d.cantidad ?? 0}</td>
                   </tr>
                 ))

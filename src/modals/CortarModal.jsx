@@ -257,12 +257,15 @@ export default function CortarModal({
 
         // Buscar corte SOLICITADO (el que se vende)
         const coincidenteSolicitado = buscarCoincidencia(largoSolicitado);
-        if (coincidenteSolicitado?.id) {
-          // Guardar el ID para que el backend lo reutilice
-          corteParaVender.reutilizarCorteSolicitadoId = coincidenteSolicitado.id;
-          // Corte solicitado existente encontrado - Reutilizando
-        } else {
-          // Corte solicitado nuevo - El backend creará uno nuevo
+        if (coincidenteSolicitado) {
+          // PK del Corte en BD (traslados / existsById). No usar `id` del DTO si es productoId del padre.
+          const cortePk = Number(coincidenteSolicitado.corteId);
+          if (Number.isFinite(cortePk) && cortePk > 0) {
+            corteParaVender.trasladoCorteBdId = cortePk;
+          }
+          if (coincidenteSolicitado.id != null && coincidenteSolicitado.id !== "") {
+            corteParaVender.reutilizarCorteSolicitadoId = coincidenteSolicitado.id;
+          }
         }
 
         // Buscar corte SOBRANTE SOLO SI EXISTE (solo si hay sobrante)
@@ -294,8 +297,11 @@ export default function CortarModal({
       onClose();
       
     } catch (error) {
-      // Error al procesar corte
-      showError("Error al procesar el corte. Intente nuevamente.");
+      const msg =
+        error && typeof error.message === "string" && error.message.trim() !== ""
+          ? error.message
+          : "Error al procesar el corte. Intente nuevamente.";
+      showError(msg);
     } finally {
       setLoading(false);
     }

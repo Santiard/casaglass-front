@@ -11,6 +11,7 @@ import { useToast } from "../context/ToastContext.jsx";
 
 import { getTodayLocalDate, toLocalDateOnly } from "../lib/dateUtils.js";
 import { obtenerTraslado } from "../services/TrasladosService.js";
+import { formatMensajeErrorTraslado } from "../lib/trasladoDetalleUi.js";
 
 export default function MovimientosTable({
   data = [],
@@ -96,7 +97,7 @@ export default function MovimientosTable({
       setIsModalOpen(false);
       setMovimientoEditando(null);
     } catch (e) {
-      showError(e?.response?.data || e?.message || "Error al guardar el traslado.");
+      showError(formatMensajeErrorTraslado(e) || "Error al guardar el traslado.");
     }
   };
 
@@ -120,8 +121,7 @@ export default function MovimientosTable({
         showSuccess("Traslado confirmado exitosamente");
       }
     } catch (e) {
-      const errorMsg = e?.response?.data?.message || e?.message || "Error al confirmar el traslado";
-      showError(errorMsg);
+      showError(formatMensajeErrorTraslado(e) || "Error al confirmar el traslado");
     }
   };
 

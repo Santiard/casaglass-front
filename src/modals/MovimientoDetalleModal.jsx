@@ -1,10 +1,15 @@
 // src/modals/MovimientoDetalleModal.jsx
 import "../styles/IngresoDetalleModal.css"; // Reutilizar estilos de Ingreso
+import {
+  etiquetaProductoDescInsula,
+  trasladoDetallesTienenDescInsula,
+} from "../lib/trasladoDetalleUi.js";
 
 export default function MovimientoDetalleModal({ movimiento, onClose }) {
   if (!movimiento) return null;
 
   const dets = Array.isArray(movimiento.detalles) ? movimiento.detalles : [];
+  const muestraColDescInsula = trasladoDetallesTienenDescInsula(dets);
 
   const fmtFecha = (iso) => {
     if (!iso) return "-";
@@ -74,13 +79,16 @@ export default function MovimientoDetalleModal({ movimiento, onClose }) {
                   <th>Código</th>
                   <th>Producto</th>
                   <th>Color</th>
+                  {muestraColDescInsula && (
+                    <th>Descontar en Insula (entero)</th>
+                  )}
                   <th>Cantidad</th>
                 </tr>
               </thead>
               <tbody>
                 {dets.length === 0 ? (
                   <tr>
-                    <td colSpan={4} className="empty">
+                    <td colSpan={muestraColDescInsula ? 5 : 4} className="empty">
                       Sin productos
                     </td>
                   </tr>
@@ -90,6 +98,9 @@ export default function MovimientoDetalleModal({ movimiento, onClose }) {
                       <td>{d.producto?.codigo ?? "-"}</td>
                       <td>{d.producto?.nombre ?? "-"}</td>
                       <td>{d.producto?.color ?? "-"}</td>
+                      {muestraColDescInsula && (
+                        <td>{etiquetaProductoDescInsula(d)}</td>
+                      )}
                       <td style={{ textAlign: "center" }}>{d.cantidad ?? 0}</td>
                     </tr>
                   ))
