@@ -19,6 +19,7 @@ import { getTodayLocalDate, toLocalDateOnly } from "../lib/dateUtils.js";
 import { listarInventarioCompleto, listarCortesInventarioCompleto } from "../services/InventarioService.js";
 import { getBusinessSettings } from "../services/businessSettingsService.js";
 import { esSedeUno, normalizarTipoUnidad, obtenerCmBaseItem, obtenerTipoUnidadItem } from "../lib/ordenUnidadUtils.js";
+import { COLORES_VARIANTE_PRODUCTO, obtenerProductoVariantePorCodigoYColor } from "../services/ProductosService.js";
 
 function isTypableField(el) {
   if (!el || el === document.body) return false;
@@ -79,6 +80,8 @@ export default function OrdenEditarModal({
   // Lista de bancos (dinámica desde API)
   const [bancos, setBancos] = useState([]);
   const [showCatalogoModal, setShowCatalogoModal] = useState(false);
+  /** Índice de línea mientras se resuelve GET /productos/variante (deshabilita el select). */
+  const [varianteColorIdxLoading, setVarianteColorIdxLoading] = useState(null);
 
   // Métodos de pago disponibles
   // NOTA: Nequi y Daviplata están disponibles como bancos cuando se selecciona TRANSFERENCIA
@@ -939,6 +942,83 @@ export default function OrdenEditarModal({
     });
   };
 
+  const handleItemVarianteColorChange = async (idx, nuevoColorRaw) => {
+    const nuevoColor = String(nuevoColorRaw ?? "").trim().toUpperCase();
+    if (!nuevoColor) return;
+
+    const itemSnapshot = form?.items?.[idx];
+    if (!itemSnapshot || itemSnapshot.eliminar || itemSnapshot.esCorte) return;
+
+    const anterior = String(itemSnapshot.color ?? "NA").trim().toUpperCase();
+    if (nuevoColor === anterior) return;
+
+    const codigo = String(itemSnapshot.codigo ?? "").trim();
+    if (!codigo) {
+      showError("Esta línea no tiene código; no se puede cambiar la variante por color.");
+      return;
+    }
+
+    const nombre = String(itemSnapshot.nombre ?? "").trim();
+    if (!nombre) {
+      showError(
+        "La línea debe tener nombre (igual que en catálogo) para resolver la variante por color."
+      );
+      return;
+    }
+
+    setVarianteColorIdxLoading(idx);
+    try {
+      const producto = await obtenerProductoVariantePorCodigoYColor({
+        codigo,
+        color: nuevoColor,
+        nombre,
+      });
+      const pid = Number(producto?.id ?? producto?.productoId ?? 0);
+      if (!pid) {
+        showError("La variante resuelta no tiene un ID válido.");
+        return;
+      }
+      const precio = resolverPrecioPorSede(producto, form?.sedeId);
+      setForm((prev) => {
+        if (!prev?.items?.[idx] || prev.items[idx].eliminar) return prev;
+        const arr = [...prev.items];
+        const it = { ...arr[idx] };
+        it.productoId = pid;
+        it.color = producto.color != null ? String(producto.color) : nuevoColor;
+        if (producto.nombre != null && String(producto.nombre).trim()) {
+          it.nombre = String(producto.nombre).trim();
+        }
+        it.precioUnitario = precio;
+        it.totalLinea = Number(it.cantidad || 0) * precio;
+        arr[idx] = it;
+        return { ...prev, items: arr };
+      });
+    } catch (error) {
+      const status = error.response?.status;
+      const d = error.response?.data;
+      const msg =
+        (typeof d === "string" && d) ||
+        d?.message ||
+        d?.error ||
+        (Array.isArray(d?.errors) &&
+          d.errors.map((x) => x?.defaultMessage || x?.message).filter(Boolean).join("; ")) ||
+        error.message;
+      if (status === 404) {
+        showError(msg || "No existe ese producto en ese color.");
+      } else if (status === 409) {
+        showError(
+          msg || "Hay más de un registro en catálogo con el mismo código, color y nombre."
+        );
+      } else if (status === 400) {
+        showError(msg || "Faltan parámetros o el color no es válido (nombre obligatorio).");
+      } else {
+        showError(msg || "No se pudo resolver la variante por color.");
+      }
+    } finally {
+      setVarianteColorIdxLoading(null);
+    }
+  };
+
   const resolverPrecioPorSede = (producto, sedeId) => {
     const s = Number(sedeId);
     const p1 = Number(producto?.precio1 ?? 0);
@@ -996,6 +1076,8 @@ export default function OrdenEditarModal({
       ...prev,
       items: [...prev.items, nuevo],
     }));
+    setProductoSeleccionado(null);
+    setShowCatalogoModal(false);
   };
 
   const abrirModalCorte = (producto) => {
@@ -1049,6 +1131,8 @@ export default function OrdenEditarModal({
     }
 
     cerrarModalCorte();
+    setProductoSeleccionado(null);
+    setShowCatalogoModal(false);
   };
 
   const marcarEliminar = (idx) => {
@@ -2072,7 +2156,8 @@ export default function OrdenEditarModal({
                   </tr>
                 </thead>
                 <tbody>
-                  {form.items.filter(i => !i.eliminar).map((i, idx) => {
+                  {form.items.map((i, idx) => {
+                    if (i.eliminar) return null;
                     const cantidadNumero = Number(i.cantidad || 0);
                     const precioNumero = Number(i.precioUnitario || 0);
                     const totalLinea = cantidadNumero * precioNumero;
@@ -2116,9 +2201,35 @@ export default function OrdenEditarModal({
                           {i.nombre}
                         </td>
                         <td className="orden-items-table__col-color">
-                          <span className={`color-badge color-${(i.color || "NA").toLowerCase().replace(/\s+/g, "-")} orden-items-table__color-badge`}>
-                            {i.color ?? "NA"}
-                          </span>
+                          {i.esCorte || !String(i.codigo || "").trim() ? (
+                            <span
+                              className={`color-badge color-${(i.color || "NA").toLowerCase().replace(/\s+/g, "-")} orden-items-table__color-badge`}
+                            >
+                              {i.color ?? "NA"}
+                            </span>
+                          ) : (
+                            <select
+                              className="orden-item-input orden-item-select orden-items-table__color-select"
+                              aria-label="Color / variante"
+                              value={String(i.color || "NA").trim().toUpperCase()}
+                              disabled={varianteColorIdxLoading === idx}
+                              onChange={(e) => handleItemVarianteColorChange(idx, e.target.value)}
+                            >
+                              {(COLORES_VARIANTE_PRODUCTO.includes(
+                                String(i.color || "NA").trim().toUpperCase()
+                              )
+                                ? [...COLORES_VARIANTE_PRODUCTO]
+                                : [
+                                    String(i.color || "NA").trim().toUpperCase(),
+                                    ...COLORES_VARIANTE_PRODUCTO,
+                                  ]
+                              ).map((c) => (
+                                <option key={c} value={c}>
+                                  {c}
+                                </option>
+                              ))}
+                            </select>
+                          )}
                         </td>
                         <td className="orden-items-table__num">
                           <input
@@ -2181,11 +2292,11 @@ export default function OrdenEditarModal({
             <div className="orden-modal-totals-actions">
               <div className="orden-modal-totals-panel">
             {/* Totales de la venta */}
-            <div style={{ marginBottom: '1rem', padding: '1rem', backgroundColor: '#f8f9fa', borderRadius: '4px' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <div className="orden-totals-card">
+              <div className="orden-totals-stack">
+                <div className="orden-totals-row">
                   <span>Subtotal:</span>
-                  <strong>${form.items.reduce((sum, item) => sum + (item.totalLinea || 0), 0).toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
+                  <strong className="orden-totals-amount">${form.items.reduce((sum, item) => sum + (item.totalLinea || 0), 0).toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
                 </div>
 
                 {(() => {
@@ -2221,41 +2332,41 @@ export default function OrdenEditarModal({
                   
                   return (
                     <>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid #ddd', paddingTop: '0.5rem', marginTop: '0.5rem' }}>
+                      <div className="orden-totals-row orden-totals-row--divider">
                         <span><strong>Total Facturado:</strong></span>
-                        <strong style={{ fontSize: '1.1em', color: '#333' }}>
+                        <strong className="orden-totals-amount orden-totals-amount--facturado">
                           ${totalFacturado.toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </strong>
                       </div>
                       {(retencionFuente > 0 || retencionIca > 0) && (
                         <>
                           {retencionFuente > 0 && (
-                          <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '0.25rem', fontSize: '0.9em', color: '#666' }}>
+                          <div className="orden-totals-row orden-totals-row--muted">
                             <span>(-) Retención en la Fuente:</span>
-                            <span>${retencionFuente.toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                            <span className="orden-totals-amount">${retencionFuente.toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                           </div>
                           )}
                           {retencionIca > 0 && (
-                            <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '0.25rem', fontSize: '0.9em', color: '#666' }}>
+                            <div className="orden-totals-row orden-totals-row--muted">
                               <span>(-) Retención ICA:</span>
-                              <span>${retencionIca.toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                              <span className="orden-totals-amount">${retencionIca.toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                             </div>
                           )}
-                          <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid #ddd', paddingTop: '0.5rem', marginTop: '0.5rem' }}>
+                          <div className="orden-totals-row orden-totals-row--divider">
                             <span><strong>Valor a Pagar:</strong></span>
-                            <strong style={{ fontSize: '1.2em', color: '#4f67ff' }}>
+                            <strong className="orden-totals-amount orden-totals-amount--pagar">
                               ${valorAPagar.toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </strong>
                           </div>
-                          <small style={{ display: 'block', color: '#666', fontSize: '0.75rem', marginTop: '0.25rem', fontStyle: 'italic' }}>
+                          <small className="orden-totals-hint">
                             El monto del método de pago debe ser el valor a pagar (total - retenciones)
                           </small>
                         </>
                       )}
                       {retencionFuente === 0 && retencionIca === 0 && (
-                        <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid #ddd', paddingTop: '0.5rem', marginTop: '0.5rem' }}>
+                        <div className="orden-totals-row orden-totals-row--divider">
                           <span><strong>Valor a Pagar:</strong></span>
-                          <strong style={{ fontSize: '1.2em', color: '#4f67ff' }}>
+                          <strong className="orden-totals-amount orden-totals-amount--pagar">
                             ${valorAPagar.toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </strong>
                         </div>
@@ -2266,67 +2377,33 @@ export default function OrdenEditarModal({
               </div>
             </div>
               </div>
-              <div className="orden-modal-confirm-col">
-                <button
-                  type="button"
-                  className="btn-guardar orden-modal-confirm-btn"
-                  onClick={handleSubmit}
-                  disabled={isSubmitting}
-                >
-                  {isSubmitting ? "Guardando..." : (form.id ? "Guardar cambios" : "Crear Orden")}
-                </button>
-              </div>
             </div>
 
               {/* Sección de Métodos de Pago (solo para ventas) */}
               {Boolean(form.venta) && (
-              <div style={{ gridColumn: '1 / -1', marginTop: '0.5rem' }}>
-                <div style={{ 
-                  padding: '1rem',
-                  backgroundColor: '#f8f9fa',
-                  borderRadius: '8px',
-                  border: '1px solid #e0e0e0'
-                }}>
-                  <div style={{ 
-                    display: 'flex', 
-                    justifyContent: 'space-between', 
-                    alignItems: 'center',
-                    marginBottom: '0.75rem'
-                  }}>
-                    <label style={{ fontWeight: '500', fontSize: '0.95rem' }}>
+              <div className="orden-pagos-section">
+                <div className="orden-pagos-card">
+                  <div className="orden-pagos-header">
+                    <span className="orden-pagos-title">
                       Métodos de Pago
-                    </label>
+                    </span>
                     <button
                       type="button"
                       onClick={agregarMetodoPago}
-                      className="btn-guardar"
-                      style={{
-                        padding: '0.4rem 0.8rem',
-                        fontSize: '0.85rem'
-                      }}
+                      className="btn-guardar orden-pagos-add-btn"
                     >
                       + Agregar Método
                     </button>
                   </div>
 
                   {metodosPago.length === 0 ? (
-                    <p style={{ 
-                      textAlign: 'center', 
-                      color: '#666', 
-                      fontStyle: 'italic',
-                      padding: '1rem'
-                    }}>
-                      Haz clic en "Agregar Método" para comenzar
+                    <p className="orden-pagos-empty">
+                      Haz clic en &quot;Agregar Método&quot; para comenzar
                     </p>
                   ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                    <div className="orden-pagos-list">
                       {metodosPago.map((metodo, index) => (
-                        <div key={index} style={{ 
-                          padding: '0.75rem',
-                          border: '1px solid #e0e0e0',
-                          borderRadius: '8px',
-                          backgroundColor: '#ffffff'
-                        }}>
+                        <div key={index} className="orden-pago-fila">
                           <div style={{ 
                             display: 'grid', 
                             gridTemplateColumns: metodo.tipo === "TRANSFERENCIA" ? '2fr 1.5fr 1.5fr auto' : '2fr 1.5fr auto', 
@@ -2755,8 +2832,16 @@ export default function OrdenEditarModal({
 
         </div>
         <div className="modal-buttons orden-modal-footer-buttons">
-          <button className="btn-cancelar" onClick={onClose}>
+          <button type="button" className="btn-cancelar" onClick={onClose}>
             Cancelar
+          </button>
+          <button
+            type="button"
+            className="btn-guardar orden-modal-confirm-btn"
+            onClick={handleSubmit}
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? "Guardando..." : form.id ? "Guardar cambios" : "Crear Orden"}
           </button>
         </div>
       </div>

@@ -190,6 +190,42 @@ export async function listarProductosPosiciones(params = {}) {
   }
 }
 
+/** Colores de variante alineados con selects de la app (órdenes / filtros). */
+export const COLORES_VARIANTE_PRODUCTO = Object.freeze([
+  "MATE",
+  "BLANCO",
+  "NEGRO",
+  "BRONCE",
+  "NA",
+]);
+
+/**
+ * Resuelve la variante de producto por código + color + nombre (mismo artículo en catálogo, distinto id/precio).
+ * Backend exige nombre: coincidencia exacta tras trim, case-insensitive (entero vs corte no se mezclan).
+ * GET /api/productos/variante?codigo=&color=&nombre=
+ * @see docs/API-PRODUCTO-VARIANTE-POR-COLOR.md
+ * @param {{ codigo: string, color: string, nombre: string }} params
+ * @returns {Promise<Object>} DTO producto (id, codigo, nombre, color, precio1-3, …)
+ */
+export async function obtenerProductoVariantePorCodigoYColor(params = {}) {
+  const codigo = String(params.codigo ?? "").trim();
+  const color = String(params.color ?? "").trim().toUpperCase();
+  const nombre = String(params.nombre ?? "").trim();
+  if (!codigo) {
+    throw new Error("codigo es obligatorio para buscar la variante");
+  }
+  if (!color) {
+    throw new Error("color es obligatorio para buscar la variante");
+  }
+  if (!nombre) {
+    throw new Error("nombre es obligatorio para buscar la variante");
+  }
+  const { data } = await api.get(`${base}/variante`, {
+    params: { codigo, color, nombre },
+  });
+  return data;
+}
+
 /**
  * Actualiza SOLO el costo de un producto
  * Intenta usar PATCH /productos/{id}/costo primero, si no existe usa PUT /productos/{id}/costo

@@ -71,10 +71,11 @@
 }
 .orden-modal-toolbar {
   flex-shrink: 0;
-  background: #fafbff;
-  border: 1px solid #e6e8f0;
-  border-radius: 10px;
-  padding: 12px;
+  background: linear-gradient(180deg, #fbfcff 0%, #f4f6fb 100%);
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 14px 16px;
+  box-shadow: 0 1px 4px rgba(30, 39, 83, 0.06);
 }
 /* Primera fila: fecha, obra, sede, trabajador, venta en una sola línea */
 .orden-toolbar-row {
@@ -277,7 +278,9 @@
 .orden-modal-items-heading {
   margin: 0;
   color: #1e2753;
-  font-size: 1.05rem;
+  font-size: 1.08rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
 }
 .orden-modal-catalogo-btn {
   flex-shrink: 0;
@@ -288,7 +291,7 @@
   display: flex;
   flex-direction: row;
   align-items: flex-start;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: 1rem;
   flex-wrap: wrap;
   margin-top: 0.35rem;
@@ -297,17 +300,115 @@
   flex: 1 1 280px;
   min-width: 0;
 }
-.orden-modal-confirm-col {
-  flex: 0 0 auto;
-  align-self: flex-start;
-}
 .orden-modal-confirm-btn {
   min-width: 170px;
   padding: 10px 16px;
   font-size: 0.95rem;
 }
 .orden-modal-footer-buttons {
-  justify-content: flex-start;
+  justify-content: flex-end;
+  flex-shrink: 0;
+  margin-top: 0.75rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid #e8ecf4;
+}
+
+/* Totales y pagos (OrdenModal) */
+.orden-totals-card {
+  margin-bottom: 1rem;
+  padding: 1rem 1.2rem;
+  background: linear-gradient(165deg, #ffffff 0%, #f6f8fd 45%, #ebefff 100%);
+  border: 1px solid #d9dff0;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(30, 39, 83, 0.08);
+}
+.orden-totals-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.orden-totals-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+  font-size: 0.9rem;
+  color: #3a393b;
+}
+.orden-totals-row--divider {
+  border-top: 1px solid #e2e8f0;
+  padding-top: 0.5rem;
+  margin-top: 0.5rem;
+}
+.orden-totals-row--muted {
+  padding-top: 0.25rem;
+  font-size: 0.9em;
+  color: #64748b;
+}
+.orden-totals-amount {
+  font-variant-numeric: tabular-nums;
+}
+.orden-totals-amount--facturado {
+  font-size: 1.08em;
+  color: #1e2753;
+}
+.orden-totals-amount--pagar {
+  font-size: 1.2em;
+  color: #4f67ff;
+}
+.orden-totals-hint {
+  display: block;
+  color: #64748b;
+  font-size: 0.75rem;
+  margin-top: 0.25rem;
+  font-style: italic;
+  line-height: 1.35;
+}
+.orden-pagos-section {
+  margin-top: 0.5rem;
+  width: 100%;
+}
+.orden-pagos-card {
+  padding: 1rem 1.15rem;
+  background: linear-gradient(180deg, #fafbff 0%, #f3f5fa 100%);
+  border-radius: 12px;
+  border: 1px solid #dce1ed;
+  box-shadow: 0 1px 6px rgba(30, 39, 83, 0.05);
+}
+.orden-pagos-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.orden-pagos-title {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: #1e2753;
+}
+.orden-pagos-empty {
+  text-align: center;
+  color: #64748b;
+  font-style: italic;
+  padding: 1rem;
+}
+.orden-pagos-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+.orden-pago-fila {
+  padding: 0.75rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(30, 39, 83, 0.04);
+}
+.orden-pagos-add-btn {
+  padding: 0.4rem 0.85rem !important;
+  font-size: 0.85rem !important;
 }
 
 /* Modal de orden: más ancho/alto que otros modal-wide */
@@ -318,16 +419,36 @@
   height: min(94vh, 1240px) !important;
   max-height: 94vh !important;
   min-height: min(94vh, 720px) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+  box-shadow: 0 12px 48px rgba(30, 39, 83, 0.14) !important;
+}
+.orden-modal-shell > h2 {
+  flex-shrink: 0;
+  margin: 0 0 0.5rem !important;
+  padding-bottom: 0.65rem;
+  border-bottom: 1px solid #e8ecf4;
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: #1e2753;
+}
+.orden-modal-shell > .alert {
+  flex-shrink: 0;
 }
 
 /* Ítems como tabla compacta (poca altura por fila) */
 .orden-items-table-wrap {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
-  border: 1px solid #e6e8f0;
-  border-radius: 10px;
+  border: 1px solid #e0e5f0;
+  border-radius: 12px;
   background: #fff;
   margin-bottom: 0.35rem;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 2px 10px rgba(30, 39, 83, 0.06);
 }
 .orden-items-table {
   width: 100%;
@@ -339,21 +460,25 @@
   position: sticky;
   top: 0;
   z-index: 2;
-  background: #eef2ff;
+  background: linear-gradient(180deg, #f0f3ff 0%, #e8ecfc 100%);
   color: #1e2753;
   font-weight: 600;
   text-align: left;
-  padding: 6px 8px;
-  border-bottom: 1px solid #dde3ef;
+  padding: 8px 10px;
+  border-bottom: 1px solid #d5dbe8;
   white-space: nowrap;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.6) inset;
 }
 .orden-items-table tbody td {
-  padding: 3px 6px;
-  border-bottom: 1px solid #f0f1f7;
+  padding: 6px 8px;
+  border-bottom: 1px solid #eef0f7;
   vertical-align: middle;
 }
+.orden-items-table tbody tr:nth-child(even) {
+  background: #fafbff;
+}
 .orden-items-table__row:hover {
-  background: #f9fbff;
+  background: #f0f4ff !important;
 }
 .orden-items-table__num {
   text-align: right;
@@ -392,12 +517,18 @@
   width: 100%;
   max-width: 100%;
   padding: 4px 6px;
-  border: 1px solid #c2c2c3;
-  border-radius: 6px;
+  border: 1px solid #c7cad4;
+  border-radius: 8px;
   font-size: 0.82rem;
   background: #fff;
   min-height: 30px;
   box-sizing: border-box;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.orden-item-input:focus {
+  outline: none;
+  border-color: #4f67ff;
+  box-shadow: 0 0 0 2px rgba(79, 103, 255, 0.22);
 }
 .orden-item-select {
   padding: 3px 4px;
