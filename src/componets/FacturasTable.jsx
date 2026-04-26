@@ -12,6 +12,7 @@ export default function FacturasTable({
   onVerificar,
   onEliminar,
   onImprimir,
+  onImprimirAjustada,
   onEditar,
   onConfirmarTodas,
   clientes = [],
@@ -514,6 +515,27 @@ export default function FacturasTable({
                           }}
                         >
                           Imprimir
+                        </button>
+                      )}
+                      {onImprimirAjustada && (
+                        <button
+                          type="button"
+                          className="btnLink"
+                          onClick={() => onImprimirAjustada?.(f)}
+                          title="Ajustar precios solo para impresión (no guarda en el sistema)"
+                          style={{
+                            marginRight: '4px',
+                            padding: '4px 8px',
+                            fontSize: '0.875rem',
+                            cursor: 'pointer',
+                            display: 'inline-block',
+                            backgroundColor: 'transparent',
+                            border: 'none',
+                            color: '#1e2753',
+                            textDecoration: 'underline',
+                          }}
+                        >
+                          Vista impresión
                         </button>
                       )}
                       {onEditar && (

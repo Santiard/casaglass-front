@@ -371,3 +371,127 @@
   }
 }
 
+/* Ajuste de precios solo para impresión (FacturaImpresionAjustadaModal) */
+.factura-ajuste-modal-container {
+  max-width: 1280px;
+}
+
+.factura-ajuste-aviso {
+  margin: 0 0 1rem;
+  padding: 0.75rem 1rem;
+  background: #e8f4fd;
+  border: 1px solid #b8d4ea;
+  border-radius: 8px;
+  font-size: 0.88rem;
+  color: #1e3a5f;
+  line-height: 1.45;
+}
+
+.factura-ajuste-aviso--destacado {
+  background: #fff9e6;
+  border: 2px solid #e8a317;
+  font-size: 0.95rem;
+}
+
+.factura-ajuste-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin: 0 0 0.65rem;
+  padding: 0.5rem 0.75rem;
+  background: #f0f4ff;
+  border-radius: 8px;
+  border: 1px solid #d0d8f0;
+}
+
+.factura-ajuste-toolbar-text {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #1e2753;
+}
+
+.factura-ajuste-btn-restablecer {
+  padding: 0.45rem 0.9rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  border: 1px solid #1e2753;
+  background: #fff;
+  color: #1e2753;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.factura-ajuste-btn-restablecer:hover {
+  background: #eef1ff;
+}
+
+.factura-ajuste-table-wrap {
+  overflow-x: auto;
+  margin-bottom: 0.5rem;
+}
+
+.factura-ajuste-tabla-precios .factura-ajuste-col-editable {
+  background: #fff8e6;
+  min-width: 200px;
+  vertical-align: middle;
+}
+
+/* Encabezado editable: el thead global usa texto blanco; aquí forzamos contraste sobre ámbar */
+.factura-ajuste-tabla-precios thead th.factura-ajuste-col-editable {
+  background: linear-gradient(180deg, #ffe6a8 0%, #ffd36a 100%) !important;
+  color: #1a1a1a !important;
+  border-color: #c27c00 !important;
+}
+
+.factura-ajuste-celda-precio {
+  background: #fff8e6 !important;
+  vertical-align: middle;
+}
+
+.factura-ajuste-precio-input--large {
+  display: block;
+  width: 100%;
+  min-width: 140px;
+  min-height: 44px;
+  padding: 10px 12px;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1a1a1a;
+  border: 2px solid #c27c00;
+  border-radius: 8px;
+  background: #fff;
+  box-sizing: border-box;
+  text-align: right;
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+.factura-ajuste-precio-input--large::-webkit-outer-spin-button,
+.factura-ajuste-precio-input--large::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.factura-ajuste-precio-input--large:focus {
+  outline: none;
+  border-color: #1e2753;
+  box-shadow: 0 0 0 3px rgba(30, 39, 83, 0.2);
+}
+
+.factura-ajuste-link-original {
+  padding: 0.25rem 0.35rem;
+  font-size: 0.78rem;
+  border: none;
+  background: transparent;
+  color: #1e2753;
+  text-decoration: underline;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.factura-ajuste-link-original:hover {
+  color: #4f67ff;
+}
+

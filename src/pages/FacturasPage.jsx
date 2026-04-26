@@ -2,6 +2,7 @@
 import React, { useEffect, useState, useCallback } from "react";
 import FacturasTable from "../componets/FacturasTable";
 import FacturaImprimirModal from "../modals/FacturaImprimirModal.jsx";
+import FacturaImpresionAjustadaModal from "../modals/FacturaImpresionAjustadaModal.jsx";
 import "../styles/ClientesPage.css";
 import {
   listarFacturas,
@@ -28,6 +29,8 @@ export default function FacturasPage() {
   const [pageSize, setPageSize] = useState(20);
   const [facturaImprimir, setFacturaImprimir] = useState(null);
   const [isImprimirModalOpen, setIsImprimirModalOpen] = useState(false);
+  const [facturaImprimirAjustada, setFacturaImprimirAjustada] = useState(null);
+  const [isImprimirAjustadaOpen, setIsImprimirAjustadaOpen] = useState(false);
 
   const fetchData = useCallback(async (page = 1, size = 20) => {
     setLoading(true);
@@ -130,6 +133,11 @@ export default function FacturasPage() {
     setIsImprimirModalOpen(true);
   };
 
+  const handleImprimirAjustada = (factura) => {
+    setFacturaImprimirAjustada(factura);
+    setIsImprimirAjustadaOpen(true);
+  };
+
   // Manejar edición de factura
   const handleEditar = async () => {
     // Recargar datos después de editar
@@ -218,6 +226,7 @@ export default function FacturasPage() {
           onVerificar={handleVerificar}
           onEliminar={handleEliminar}
           onImprimir={handleImprimir}
+          onImprimirAjustada={handleImprimirAjustada}
           onEditar={handleEditar}
           onConfirmarTodas={handleConfirmarTodas}
           // Paginación del servidor
@@ -238,6 +247,14 @@ export default function FacturasPage() {
         onClose={() => {
           setIsImprimirModalOpen(false);
           setFacturaImprimir(null);
+        }}
+      />
+      <FacturaImpresionAjustadaModal
+        factura={facturaImprimirAjustada}
+        isOpen={isImprimirAjustadaOpen}
+        onClose={() => {
+          setIsImprimirAjustadaOpen(false);
+          setFacturaImprimirAjustada(null);
         }}
       />
     </div>
