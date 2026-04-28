@@ -168,7 +168,13 @@ const AbonoPage = () => {
   // Cargar órdenes a crédito del cliente seleccionado y generar número de abono
   useEffect(() => {
     if (clienteSeleccionado?.id) {
-      cargarOrdenesCredito(clienteSeleccionado.id);
+      const sedeParaPendientes =
+        formData.sedeId !== undefined && formData.sedeId !== null && formData.sedeId !== ""
+          ? Number(formData.sedeId)
+          : sedeIdUsuario != null
+            ? Number(sedeIdUsuario)
+            : null;
+      cargarOrdenesCredito(clienteSeleccionado.id, sedeParaPendientes);
       // Generar número de abono automáticamente
       obtenerSiguienteNumeroAbono().then(numero => {
         setFormData(prev => ({ ...prev, factura: numero }));
@@ -180,13 +186,12 @@ const AbonoPage = () => {
       // Limpiar número de abono cuando no hay cliente
       setFormData(prev => ({ ...prev, factura: '' }));
     }
-  }, [clienteSeleccionado]);
+  }, [clienteSeleccionado, formData.sedeId, sedeIdUsuario]);
 
-  const cargarOrdenesCredito = async (clienteId) => {
+  const cargarOrdenesCredito = async (clienteId, sedeIdLista) => {
     setLoadingOrdenes(true);
     try {
-      // USAR EL NUEVO ENDPOINT ESPECIALIZADO /creditos/cliente/{id}/pendientes
-      const creditosPendientes = await listarCreditosPendientes(clienteId);
+      const creditosPendientes = await listarCreditosPendientes(clienteId, sedeIdLista);
       
       // El backend YA filtra por saldo > 0 y estado ABIERTO
       // No necesitamos filtrar manualmente en frontend

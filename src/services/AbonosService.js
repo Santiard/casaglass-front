@@ -95,20 +95,28 @@ export async function listarAbonosPorFecha(fecha, options = {}) {
 
 /**
  * Listar créditos pendientes de un cliente
- * 
- * Obtiene SOLO los créditos con saldo pendiente > 0
- * Incluye toda la información necesaria para la página de abonos
- * 
+ *
+ * Obtiene créditos con saldo pendiente (según reglas del backend).
+ *
  * @param {number} clienteId - ID del cliente
- * @returns {Promise<Array>} Array de créditos pendientes con toda la información
+ * @param {number|string|null|undefined} sedeId - Sede del usuario o sede elegida en el formulario (recomendado enviarlo para filtrar por orden.sede)
+ * @returns {Promise<Array>} Array de créditos pendientes
  */
-export async function listarCreditosPendientes(clienteId) {
+export async function listarCreditosPendientes(clienteId, sedeId) {
   if (!clienteId) {
     throw new Error("clienteId es obligatorio para listar créditos pendientes");
   }
-  
+
+  const params = {};
+  const n = Number(sedeId);
+  if (sedeId != null && sedeId !== "" && Number.isFinite(n) && n > 0) {
+    params.sedeId = n;
+  }
+
   try {
-    const { data } = await api.get(`/creditos/cliente/${clienteId}/pendientes`);
+    const { data } = await api.get(`/creditos/cliente/${clienteId}/pendientes`, {
+      ...(Object.keys(params).length ? { params } : {}),
+    });
     return data;
   } catch (error) {
     throw error;
