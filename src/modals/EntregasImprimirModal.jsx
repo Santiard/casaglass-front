@@ -184,91 +184,95 @@ export default function EntregasImprimirModal({ entregas = [], isOpen, onClose }
        "MIXTO");
   };
 
-  // ✅ SOLUCIÓN: Calcular valores entregados por método de pago desde los detalles
-  const calcularTotalesPorEntrega = (entrega) => {
-    let totalOrdenes = 0;
-    let totalEntregado = 0;
-    let porMetodo = { efectivo: 0, transferencia: 0, cheque: 0, deposito: 0 };
-    
-    entrega.detalles?.forEach((det) => {
-      const esEgreso = Boolean(det.reembolsoId) || det.tipoMovimiento === "EGRESO";
-      const total = Number(det.total) || (esEgreso ? Math.abs(Number(det.montoOrden) || 0) : 0);
-      const retencionFuente = Number(det.retencionFuente) || 0;
-      const retencionIca = Number(det.retencionIca) || 0;
-      
-      // Calcular valor entregado (lo que realmente entrega el cliente)
-      let valorEntregado = 0;
-      if (!det.ventaCredito) {
-        valorEntregado = total - retencionFuente - retencionIca;
-      } else {
-        valorEntregado = Number(det.abonosDelPeriodo) || 0;
-      }
-      
-      // 1) Priorizar montos estructurados por detalle
-      const montosDetalle = obtenerMontosDetalle(det);
-      const totalMontosDetalle = montosDetalle.efectivo + montosDetalle.transferencia + montosDetalle.cheque + montosDetalle.deposito;
+  /** Totales persistidos en cabecera al crear/editar la entrega (lista / GET por id). */
+  const totalesDesdeCabecera = (entrega) => ({
+    monto: Math.round(Number(entrega?.monto) || 0),
+    montoEfectivo: Math.round(Number(entrega?.montoEfectivo) || 0),
+    montoTransferencia: Math.round(Number(entrega?.montoTransferencia) || 0),
+    montoCheque: Math.round(Number(entrega?.montoCheque) || 0),
+    montoDeposito: Math.round(Number(entrega?.montoDeposito) || 0),
+    montoRetencion: Math.round(Number(entrega?.montoRetencion) || 0),
+  });
 
-      if (totalMontosDetalle > 0) {
-        // Escalar si hay pequeñas diferencias entre suma de montos y valorEntregado
-        const factor = valorEntregado / totalMontosDetalle;
-        porMetodo.efectivo += montosDetalle.efectivo * factor;
-        porMetodo.transferencia += montosDetalle.transferencia * factor;
-        porMetodo.cheque += montosDetalle.cheque * factor;
-        porMetodo.deposito += montosDetalle.deposito * factor;
-      } else {
-        // 2) Fallback por medio derivado
-        const metodo = resolverMedioPagoDetalle(det, entrega);
-        switch(metodo) {
-          case 'EFECTIVO':
-            porMetodo.efectivo += valorEntregado;
-            break;
-          case 'TRANSFERENCIA':
-            porMetodo.transferencia += valorEntregado;
-            break;
-          case 'CHEQUE':
-            porMetodo.cheque += valorEntregado;
-            break;
-          case 'DEPÓSITO':
-            porMetodo.deposito += valorEntregado;
-            break;
-          default:
-            // Fallback final proporcional a montos globales de entrega
-            const totalBackend = (Number(entrega.montoEfectivo) || 0) + (Number(entrega.montoTransferencia) || 0) + (Number(entrega.montoCheque) || 0) + (Number(entrega.montoDeposito) || 0);
-            if (totalBackend > 0) {
-              porMetodo.efectivo += valorEntregado * (Number(entrega.montoEfectivo) || 0) / totalBackend;
-              porMetodo.transferencia += valorEntregado * (Number(entrega.montoTransferencia) || 0) / totalBackend;
-              porMetodo.cheque += valorEntregado * (Number(entrega.montoCheque) || 0) / totalBackend;
-              porMetodo.deposito += valorEntregado * (Number(entrega.montoDeposito) || 0) / totalBackend;
-            }
-            break;
-        }
-      }
-      
-      totalOrdenes += total;
-      totalEntregado += valorEntregado;
-    });
-    
-    return { 
-      totalOrdenes, 
-      totalEntregado,
-      montoEfectivo: porMetodo.efectivo,
-      montoTransferencia: porMetodo.transferencia,
-      montoCheque: porMetodo.cheque,
-      montoDeposito: porMetodo.deposito
+  /** Lee un número del DTO probando camelCase / PascalCase (serialización Java típica). */
+  const leerBucketMedio = (d, camel, pascal) => {
+    const raw = d?.[camel] ?? d?.[pascal];
+    if (raw == null || raw === "") return 0;
+    const n = Number(raw);
+    return Number.isFinite(n) ? Math.round(n) : 0;
+  };
+
+  /**
+   * Impresión / verificación por caja: si GET envía totalesPorMedioDesdeDetalles (suma de buckets por línea),
+   * usar esos montos por medio; si no existe, viene vacío o suma 0 con datos en cabecera → cabecera persistida.
+   * Total neto con derivado = suma por medio + retención cabecera.
+   */
+  const totalesPorMedioParaImpresion = (entrega) => {
+    const cab = totalesDesdeCabecera(entrega);
+    const sumCabMedios =
+      cab.montoEfectivo +
+      cab.montoTransferencia +
+      cab.montoCheque +
+      cab.montoDeposito;
+
+    const d =
+      entrega?.totalesPorMedioDesdeDetalles ??
+      entrega?.TotalesPorMedioDesdeDetalles;
+    const tieneDto =
+      d != null && typeof d === "object" && !Array.isArray(d);
+
+    if (!tieneDto) {
+      return { ...cab, usaTotalesDerivadosDetalle: false };
+    }
+
+    const montoEfectivo = leerBucketMedio(d, "efectivo", "Efectivo");
+    const montoTransferencia = leerBucketMedio(d, "transferencia", "Transferencia");
+    const montoCheque = leerBucketMedio(d, "cheque", "Cheque");
+    const montoDeposito =
+      leerBucketMedio(d, "deposito", "Deposito") ||
+      leerBucketMedio(d, "deposit", "Deposit");
+
+    const sumMedios =
+      montoEfectivo + montoTransferencia + montoCheque + montoDeposito;
+
+    // DTO presente pero todo en cero (clave mal nombrada u objeto vacío): no pisar cabecera si tiene valores
+    if (sumMedios === 0 && sumCabMedios > 0) {
+      return { ...cab, usaTotalesDerivadosDetalle: false };
+    }
+
+    if (sumMedios === 0) {
+      return { ...cab, usaTotalesDerivadosDetalle: false };
+    }
+
+    return {
+      montoEfectivo,
+      montoTransferencia,
+      montoCheque,
+      montoDeposito,
+      montoRetencion: cab.montoRetencion,
+      monto: sumMedios + cab.montoRetencion,
+      usaTotalesDerivadosDetalle: true,
     };
   };
 
-  // Calcular totales generales usando valores entregados calculados
   const totalesGenerales = entregasParaImprimir.reduce((acc, entrega) => {
-    const { totalOrdenes, totalEntregado, montoEfectivo, montoTransferencia, montoCheque, montoDeposito } = calcularTotalesPorEntrega(entrega);
+    const c = totalesPorMedioParaImpresion(entrega);
     return {
-      totalEfectivo: acc.totalEfectivo + (montoEfectivo || 0),
-      totalTransferencia: acc.totalTransferencia + (montoTransferencia || 0),
-      totalCheque: acc.totalCheque + (montoCheque || 0),
-      totalDeposito: acc.totalDeposito + (montoDeposito || 0),
-      totalEntregado: acc.totalEntregado + totalEntregado,
+      totalEfectivo: acc.totalEfectivo + c.montoEfectivo,
+      totalTransferencia: acc.totalTransferencia + c.montoTransferencia,
+      totalCheque: acc.totalCheque + c.montoCheque,
+      totalDeposito: acc.totalDeposito + c.montoDeposito,
+      totalRetencion: acc.totalRetencion + c.montoRetencion,
+      totalNeto: acc.totalNeto + c.monto,
     };
-  }, { totalEfectivo: 0, totalTransferencia: 0, totalCheque: 0, totalDeposito: 0, totalEntregado: 0 });
+  }, {
+    totalEfectivo: 0,
+    totalTransferencia: 0,
+    totalCheque: 0,
+    totalDeposito: 0,
+    totalRetencion: 0,
+    totalNeto: 0,
+  });
 
   // Función para crear ventana de impresión (compartida entre imprimir y PDF)
   const crearVentanaImpresion = () => {
@@ -556,7 +560,13 @@ export default function EntregasImprimirModal({ entregas = [], isOpen, onClose }
     setEntregasSeleccionadas([]);
   };
 
-  const fmtCOP = (n) => new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(Number(n||0));
+  const fmtCOP = (n) =>
+    new Intl.NumberFormat("es-CO", {
+      style: "currency",
+      currency: "COP",
+      maximumFractionDigits: 0,
+      minimumFractionDigits: 0,
+    }).format(Math.round(Number(n) || 0));
 
   // Si solo hay una entrega, no mostrar la sección de selección
   const mostrarSeleccion = entregas.length > 1;
@@ -636,8 +646,8 @@ export default function EntregasImprimirModal({ entregas = [], isOpen, onClose }
           {/* Contenido imprimible */}
           <div id="printable-entregas-content" className="printable-content">
             {/* Listado de entregas */}
-            {entregasParaImprimir.map((entrega, idxEntrega) => {
-              const { totalOrdenes, totalEntregado, montoEfectivo, montoTransferencia, montoCheque, montoDeposito } = calcularTotalesPorEntrega(entrega);
+            {entregasParaImprimir.map((entrega) => {
+              const cab = totalesPorMedioParaImpresion(entrega);
               return (
                 <div key={entrega.id} style={{ marginBottom: "20px", pageBreakInside: "avoid" }}>
                   {/* Encabezado de entrega */}
@@ -938,16 +948,18 @@ export default function EntregasImprimirModal({ entregas = [], isOpen, onClose }
 
                   {/* Sección de gastos eliminada - ya no se usan gastos en entregas */}
 
-                  {/* Subtotal por entrega */}
+                  {/* Subtotal por medio: totalesPorMedioDesdeDetalles (GET) si existe; si no, cabecera persistida */}
                   <div className="total total-horizontal" style={{ marginTop: "8px" }}>
                     <div className="total-row">
-                      <span><strong>Subtotal Entrega #{entrega.id}: </strong></span>
-                      <span>Efectivo: ${(montoEfectivo || 0).toLocaleString("es-CO")} | </span>
-                      <span>Transferencia: ${(montoTransferencia || 0).toLocaleString("es-CO")} | </span>
-                      <span>Cheque: ${(montoCheque || 0).toLocaleString("es-CO")} | </span>
-                      <span>Depósito: ${(montoDeposito || 0).toLocaleString("es-CO")} | </span>
-                      {/* Total Gastos eliminado - ya no se usan gastos en entregas */}
-                      <span><strong>Total Entregado: ${totalEntregado.toLocaleString("es-CO")}</strong></span>
+                      <span><strong>Subtotal Entrega #{entrega.id} (total a verificar): </strong></span>
+                      <span>Efectivo: {fmtCOP(cab.montoEfectivo)} | </span>
+                      <span>Transferencia: {fmtCOP(cab.montoTransferencia)} | </span>
+                      <span>Cheque: {fmtCOP(cab.montoCheque)} | </span>
+                      <span>Depósito: {fmtCOP(cab.montoDeposito)}</span>
+                      {cab.montoRetencion > 0 && (
+                        <span> | Retención: {fmtCOP(cab.montoRetencion)}</span>
+                      )}
+                      <span><strong> | Total neto: {fmtCOP(cab.monto)}</strong></span>
                     </div>
                   </div>
                 </div>
@@ -959,13 +971,15 @@ export default function EntregasImprimirModal({ entregas = [], isOpen, onClose }
               <div className="total total-horizontal" style={{ marginTop: "15px", borderTop: "2px solid var(--color-dark-blue)", paddingTop: "8px" }}>
                 <h3 style={{ margin: "0 0 4px 0", color: "var(--color-dark-blue)", width: "100%", fontSize: "0.85rem" }}>TOTALES GENERALES</h3>
                 <div className="total-row">
-                  <span><strong>Total Efectivo: ${totalesGenerales.totalEfectivo.toLocaleString("es-CO")}</strong></span>
-                  <span><strong>Total Transferencia: ${totalesGenerales.totalTransferencia.toLocaleString("es-CO")}</strong></span>
-                  <span><strong>Total Cheque: ${totalesGenerales.totalCheque.toLocaleString("es-CO")}</strong></span>
-                  <span><strong>Total Depósito: ${totalesGenerales.totalDeposito.toLocaleString("es-CO")}</strong></span>
-                  {/* Total Gastos eliminado - ya no se usan gastos en entregas */}
+                  <span><strong>Total Efectivo: {fmtCOP(totalesGenerales.totalEfectivo)}</strong></span>
+                  <span><strong>Total Transferencia: {fmtCOP(totalesGenerales.totalTransferencia)}</strong></span>
+                  <span><strong>Total Cheque: {fmtCOP(totalesGenerales.totalCheque)}</strong></span>
+                  <span><strong>Total Depósito: {fmtCOP(totalesGenerales.totalDeposito)}</strong></span>
+                  {totalesGenerales.totalRetencion > 0 && (
+                    <span><strong>Total Retención: {fmtCOP(totalesGenerales.totalRetencion)}</strong></span>
+                  )}
                   <span style={{ fontSize: "0.85rem", fontWeight: "bold" }}>
-                    <strong>TOTAL A ENTREGAR: ${totalesGenerales.totalEntregado.toLocaleString("es-CO")}</strong>
+                    <strong>TOTAL NETO: {fmtCOP(totalesGenerales.totalNeto)}</strong>
                   </span>
                 </div>
               </div>

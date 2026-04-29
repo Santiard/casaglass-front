@@ -329,10 +329,17 @@ export default function EntregasPage() {
     }
   };
 
-  const handleImprimirMultiples = () => {
-    // Abrir modal con todas las entregas filtradas
-    setEntregasParaImprimir(entregas);
-    setMostrarImprimirModal(true);
+  const handleImprimirMultiples = async () => {
+    if (entregas.length === 0) return;
+    try {
+      const entregasCompletas = await Promise.all(
+        entregas.map((ent) => EntregasService.obtenerEntregaPorId(ent.id))
+      );
+      setEntregasParaImprimir(entregasCompletas);
+      setMostrarImprimirModal(true);
+    } catch (err) {
+      setError(`Error cargando entregas para imprimir: ${err.message}`);
+    }
   };
 
   const handleImprimirSeleccionadas = async (entregasSeleccionadas) => {
