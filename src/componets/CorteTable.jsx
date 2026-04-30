@@ -2,7 +2,8 @@ import eliminar from "../assets/eliminar.png";
 import editar from "../assets/editar.png";
 import "../styles/Table.css";
 
-export default function CorteTable({ data = [], onEditar, onEliminar, isAdmin = true, userSede = "" }) {
+export default function CorteTable({ data = [], onEditar, onEliminar, isAdmin = true, canEditar = false, userSede = "" }) {
+  const muestraColumnaAcciones = isAdmin || canEditar;
   return (
     <div className="table-container">
       <div className="table-wrapper">
@@ -39,14 +40,14 @@ export default function CorteTable({ data = [], onEditar, onEliminar, isAdmin = 
             )}
             
             <th>Observación</th>
-            {isAdmin && <th>Acciones</th>}
+            {muestraColumnaAcciones && <th>Acciones</th>}
           </tr>
         </thead>
 
         <tbody>
           {data.length === 0 && (
             <tr>
-              <td colSpan={isAdmin ? 14 : 8} className="empty">Sin resultados</td>
+              <td colSpan={isAdmin ? 14 : muestraColumnaAcciones ? 9 : 8} className="empty">Sin resultados</td>
             </tr>
           )}
 
@@ -102,15 +103,18 @@ export default function CorteTable({ data = [], onEditar, onEliminar, isAdmin = 
                   {c.observacion || "-"}
                 </td>
                 
-                {/* Solo administradores pueden editar/eliminar */}
-                {isAdmin && (
+                {muestraColumnaAcciones && (
                   <td className="acciones">
-                    <button className="btnEdit" onClick={() => onEditar?.(c)}>
-                    <img src={editar} className="iconButton" />
-                    </button>
-                    <button className="btnDelete" onClick={() => onEliminar?.(c.id)}>
-                    <img src={eliminar} className="iconButton" />
-                    </button>
+                    {canEditar && (
+                      <button type="button" className="btnEdit" onClick={() => onEditar?.(c)}>
+                        <img src={editar} className="iconButton" alt="" />
+                      </button>
+                    )}
+                    {isAdmin && (
+                      <button type="button" className="btnDelete" onClick={() => onEliminar?.(c.id)}>
+                        <img src={eliminar} className="iconButton" alt="" />
+                      </button>
+                    )}
                   </td>
                 )}
               </tr>

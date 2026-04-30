@@ -4,7 +4,7 @@ import { useState } from "react";
 import eliminar from "../assets/eliminar.png";
 import editar from "../assets/editar.png";
 
-export default function InventoryTable({ data = [], filters, loading, onEditar, onEliminar, isAdmin = true, userSede = "", selectedCategoryId = null, categories = [] }) {
+export default function InventoryTable({ data = [], filters, loading, onEditar, onEliminar, isAdmin = true, canEditar = false, userSede = "", selectedCategoryId = null, categories = [] }) {
   // Estado para el producto seleccionado (para mostrar descripción)
   const [productoSeleccionado, setProductoSeleccionado] = useState(null);
   
@@ -227,9 +227,11 @@ export default function InventoryTable({ data = [], filters, loading, onEditar, 
                     : { width: '60px', textAlign: 'center', padding: '0.25rem 0.25rem' }
                   }
                 >
+                  {canEditar && (
                   <button className="btnEdit" style={{ padding: '2px 4px', marginRight: 2 }} onClick={e => { e.stopPropagation(); onEditar?.(p); }}>
-                    <img src={editar} className="iconButton" style={{ width: 18, height: 18 }} />
+                    <img src={editar} className="iconButton" style={{ width: 18, height: 18 }} alt="" />
                   </button>
+                  )}
                   <button className="btnDelete" style={{ padding: '2px 4px' }} onClick={e => { e.stopPropagation(); onEliminar?.(p.id); }}>
                     <img src={eliminar} className="iconButton" style={{ width: 18, height: 18 }} />
                   </button>
@@ -281,9 +283,11 @@ export default function InventoryTable({ data = [], filters, loading, onEditar, 
                   <div className="mobile-card-title-row">
                     <h3>{p.nombre || "Sin nombre"}</h3>
                     <div className="mobile-card-actions-header">
+                      {canEditar && (
                       <button className="btnEdit" onClick={e => { e.stopPropagation(); onEditar?.(p); }}>
                         <img src={editar} alt="Editar" />
                       </button>
+                      )}
                       <button className="btnDelete" onClick={e => { e.stopPropagation(); onEliminar?.(p.id); }}>
                         <img src={eliminar} alt="Eliminar" />
                       </button>

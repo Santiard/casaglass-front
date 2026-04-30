@@ -52,6 +52,8 @@ export default function InventoryPage() {
   const { confirm, ConfirmDialog } = useConfirm();
   const { showError, showSuccess } = useToast();
   const { isAdmin, sedeId } = useAuth(); // Obtener info del usuario logueado
+  /** Editar productos/cortes en tabla: solo ADMIN o usuarios asignados a sede id 1 */
+  const puedeEditarInventario = isAdmin || Number(sedeId) === 1;
   const [view, setView] = useState("producto"); // "producto" | "corte"
 
   // ======= PRODUCTO =======
@@ -710,6 +712,7 @@ export default function InventoryPage() {
                 onEditar={handleEditProduct}
                 onEliminar={(id) => handleDeleteProduct(id)}
                 isAdmin={isAdmin}
+                canEditar={puedeEditarInventario}
                 userSede={sedeId === 1 ? "Insula" : sedeId === 2 ? "Centro" : sedeId === 3 ? "Patios" : ""}
                 selectedCategoryId={filters.categoryId}
                 categories={categories}
@@ -730,6 +733,7 @@ export default function InventoryPage() {
                 onEditar={handleEditCorte}
                 onEliminar={handleDeleteCorte}
                 isAdmin={isAdmin}
+                canEditar={puedeEditarInventario}
                 userSede={sedeId === 1 ? "Insula" : sedeId === 2 ? "Centro" : sedeId === 3 ? "Patios" : ""}
               />
             </>
