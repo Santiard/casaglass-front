@@ -44,7 +44,18 @@ const EntregasService = {
   obtenerEntregaPorId: async (id) => {
     try {
       const response = await api.get(`entregas-dinero/${id}`);
-      return response.data;
+      const raw = response.data;
+      // Algunos endpoints envuelven la entidad en { value: {...} }
+      if (
+        raw &&
+        typeof raw === 'object' &&
+        raw.value != null &&
+        typeof raw.value === 'object' &&
+        !Array.isArray(raw.value)
+      ) {
+        return raw.value;
+      }
+      return raw;
     } catch (error) {
       // Error obteniendo entrega
       throw error;

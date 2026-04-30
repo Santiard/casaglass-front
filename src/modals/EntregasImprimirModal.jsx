@@ -184,14 +184,27 @@ export default function EntregasImprimirModal({ entregas = [], isOpen, onClose }
        "MIXTO");
   };
 
-  /** Totales persistidos en cabecera al crear/editar la entrega (lista / GET por id). */
+  /** Número redondeado desde un valor crudo del JSON. */
+  const redondearMontoRespuesta = (raw) => {
+    if (raw == null || raw === "") return 0;
+    const n = Number(raw);
+    return Number.isFinite(n) ? Math.round(n) : 0;
+  };
+
+  /**
+   * Lee campo de cabecera en camelCase o PascalCase (Jackson / serialización Java sin estrategia camelCase).
+   */
+  const campoCabeceraEntrega = (entrega, camel, pascal) =>
+    redondearMontoRespuesta(entrega?.[camel] ?? entrega?.[pascal]);
+
+  /** Cabecera tal como llega en GET entregas-dinero/{id}: tras sincronizar en backend, coincide con totalesPorMedioDesdeDetalles + monto coherente. */
   const totalesDesdeCabecera = (entrega) => ({
-    monto: Math.round(Number(entrega?.monto) || 0),
-    montoEfectivo: Math.round(Number(entrega?.montoEfectivo) || 0),
-    montoTransferencia: Math.round(Number(entrega?.montoTransferencia) || 0),
-    montoCheque: Math.round(Number(entrega?.montoCheque) || 0),
-    montoDeposito: Math.round(Number(entrega?.montoDeposito) || 0),
-    montoRetencion: Math.round(Number(entrega?.montoRetencion) || 0),
+    monto: campoCabeceraEntrega(entrega, "monto", "Monto"),
+    montoEfectivo: campoCabeceraEntrega(entrega, "montoEfectivo", "MontoEfectivo"),
+    montoTransferencia: campoCabeceraEntrega(entrega, "montoTransferencia", "MontoTransferencia"),
+    montoCheque: campoCabeceraEntrega(entrega, "montoCheque", "MontoCheque"),
+    montoDeposito: campoCabeceraEntrega(entrega, "montoDeposito", "MontoDeposito"),
+    montoRetencion: campoCabeceraEntrega(entrega, "montoRetencion", "MontoRetencion"),
   });
 
   /** Lee un número del DTO probando camelCase / PascalCase (serialización Java típica). */
@@ -203,9 +216,9 @@ export default function EntregasImprimirModal({ entregas = [], isOpen, onClose }
   };
 
   /**
-   * Impresión / verificación por caja: si GET envía totalesPorMedioDesdeDetalles (suma de buckets por línea),
-   * usar esos montos por medio; si no existe, viene vacío o suma 0 con datos en cabecera → cabecera persistida.
-   * Total neto con derivado = suma por medio + retención cabecera.
+   * Subtotal impresión: GET entrega cabecera sincronizada con totalesPorMedioDesdeDetalles (solo JSON).
+   * Tomamos buckets desde totalesPorMedioDesdeDetalles si suman > 0; si no, los de cabecera (camelCase/PascalCase).
+   * Total neto mostrado = cabecera `monto` cuando viene (>0); si no, suma de buckets derivados (coherente con backend).
    */
   const totalesPorMedioParaImpresion = (entrega) => {
     const cab = totalesDesdeCabecera(entrega);
@@ -244,13 +257,16 @@ export default function EntregasImprimirModal({ entregas = [], isOpen, onClose }
       return { ...cab, usaTotalesDerivadosDetalle: false };
     }
 
+    const montoTotalVerificacion =
+      cab.monto > 0 ? cab.monto : sumMedios;
+
     return {
       montoEfectivo,
       montoTransferencia,
       montoCheque,
       montoDeposito,
       montoRetencion: cab.montoRetencion,
-      monto: sumMedios + cab.montoRetencion,
+      monto: montoTotalVerificacion,
       usaTotalesDerivadosDetalle: true,
     };
   };
