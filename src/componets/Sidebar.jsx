@@ -10,6 +10,7 @@ import Configuracion from "../assets/configuracion.png";
 import salir from "../assets/logout.png";
 import producto from "../assets/producto.png";
 import entrega from "../assets/entrega.png";
+import mes from "../assets/mes.png";
 import proveedor from "../assets/proveedor.png";
 import analiticas from "../assets/analiticas.png";
 import orden from "../assets/order.png";
@@ -163,6 +164,15 @@ export default function Sidebar({isOpen, isCollapsed}){
         <div className="SideBar-Space">
 
         </div>
+        {/* Informes mensuales — solo ADMIN, última opción antes de Configuración */}
+        {isAdmin && (
+          <li>
+            <Link to="/informes-mensuales" title="Informes mensuales">
+              <img src={mes} alt="Informes mensuales" className="logos"/>
+              <span className="text">Informes mensuales</span>
+            </Link>
+          </li>
+        )}
         {/* Configuración - Solo ADMIN */}
         {isAdmin && (
           <li>

@@ -21,6 +21,7 @@ import CreditosEspecialesPage from "./pages/CreditosEspecialesPage.jsx";
 import FacturasPage from "./pages/FacturasPage.jsx";
 import ReembolsosPage from "./pages/ReembolsosPage.jsx";
 import EstadoCuentaPage from "./pages/EstadoCuentaPage.jsx";
+import InformesMensualesPage from "./pages/InformesMensualesPage.jsx";
 import { AuthProvider } from "./context/AuthContext.jsx";
 import { ToastProvider } from "./context/ToastContext.jsx";
 
@@ -81,6 +82,7 @@ function App() {
           <Route path="/ingresos" element={<IngresosPage />} />
           <Route path="/proveedores" element={< ProveedrorPage/>}/>
           <Route path="/entregas" element={<EntregasPage/>}/>
+          <Route path="/informes-mensuales" element={<InformesMensualesPage />} />
           <Route path="/home"  element={<HomePage/>}/>
           <Route path="/tax-settings" element={<TaxSettingsPage />} />
           <Route path="/cortes" element={<CortesPage />} />

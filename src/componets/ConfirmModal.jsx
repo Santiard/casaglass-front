@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import '../styles/ConfirmModal.css';
 
 export default function ConfirmModal({
@@ -34,7 +35,8 @@ export default function ConfirmModal({
     onClose?.();
   };
 
-  return (
+  /** Portal a body: evita que overflow:hidden del layout (dashboard-main / entregas-page) recorte el diálogo */
+  const overlay = (
     <div className="modal-overlay confirm-modal-overlay" onClick={handleOverlayClick}>
       <div className="confirm-modal-container" onClick={(e) => e.stopPropagation()}>
         {showCloseButton && (
@@ -74,5 +76,7 @@ export default function ConfirmModal({
       </div>
     </div>
   );
+
+  return createPortal(overlay, document.body);
 }
 

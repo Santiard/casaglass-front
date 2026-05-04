@@ -2,7 +2,8 @@
   position: fixed;
   top: 20px;
   right: 20px;
-  z-index: 10000;
+  /* Por encima de confirmaciones y modales de informes */
+  z-index: 11500;
   min-width: 300px;
   max-width: 500px;
   animation: slideIn 0.3s ease-out;
