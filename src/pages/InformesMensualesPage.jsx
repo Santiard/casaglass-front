@@ -102,7 +102,7 @@ function imprimirInformeMensualDocumento(data, onVentanaBloqueada) {
     ["Dinero recogido", fmtCOP(data.dineroRecogidoMes)],
     ["Deudas (mes)", fmtCOP(data.deudasMes)],
     ["Deudas activas totales", fmtCOP(data.deudasActivasTotales)],
-    ["Valor inventario (costo × stock)", fmtCOP(data.valorInventario)],
+    ["Precio por cantidad", fmtCOP(data.valorInventario)],
     ["Órdenes (venta en mes)", formatoOrdenesVentasMesInforme(data.ordenesVentasMes)],
   ];
 
@@ -622,7 +622,7 @@ export default function InformesMensualesPage() {
                     <div className="informes-preview-item"><label>Dinero recogido</label><span>{fmtCOP(preview.dineroRecogidoMes)}</span></div>
                     <div className="informes-preview-item"><label>Deudas (mes)</label><span>{fmtCOP(preview.deudasMes)}</span></div>
                     <div className="informes-preview-item"><label>Deudas activas totales</label><span>{fmtCOP(preview.deudasActivasTotales)}</span></div>
-                    <div className="informes-preview-item"><label>Valor inventario (costo × stock)</label><span>{fmtCOP(preview.valorInventario)}</span></div>
+                    <div className="informes-preview-item"><label>Precio por cantidad</label><span>{fmtCOP(preview.valorInventario)}</span></div>
                     <div className="informes-preview-item"><label style={{ gridColumn: "1 / -1" }}>Órdenes (venta en mes)</label>
                       <span style={{ fontSize: "0.8rem", fontWeight: 500 }}>
                         {preview.ordenesVentasMes?.numeroMin != null && preview.ordenesVentasMes?.numeroMax != null
