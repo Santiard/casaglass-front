@@ -13,3 +13,16 @@ export async function listarCreditosClienteEspecial(params = {}) {
   const response = await axios.get("/api/creditos/cliente-especial", { params });
   return response.data;
 }
+
+// Obtiene créditos especiales de un mes específico con detalles de órdenes
+// year: obligatorio (2000-2100)
+// month: obligatorio (1-12)
+// sedeId: opcional, filtra por sede
+export async function obtenerOrdenesMesCierreEspecial(year, month, sedeId = null) {
+  const params = { year, month };
+  if (sedeId != null && Number.isFinite(sedeId)) {
+    params.sedeId = sedeId;
+  }
+  const response = await axios.get("/api/creditos/cliente-especial/ordenes-mes", { params });
+  return response.data;
+}

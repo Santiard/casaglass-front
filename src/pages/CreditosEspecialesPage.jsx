@@ -1,11 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import Toast from "../componets/Toast";
 import { useNavigate } from "react-router-dom";
 import CreditosTable from "../componets/CreditosTable";
 import EntregasEspecialesTable from "../componets/EntregasEspecialesTable";
 import { marcarCreditosEspecialPagados, obtenerEntregasEspeciales } from "../services/EstadoCuentaService";
-import { listarCreditosClienteEspecial } from "../services/CreditosService";
+import { listarCreditosClienteEspecial, obtenerOrdenesMesCierreEspecial } from "../services/CreditosService";
 import { listarClientes } from "../services/ClientesService";
+import { listarSedes } from "../services/SedesService.js";
 import HistoricoAbonosClienteModal from "../modals/HistoricoAbonosClienteModal.jsx";
 import HistoricoAbonosGeneralModal from "../modals/HistoricoAbonosGeneralModal.jsx";
 import MarcarPagadosModal from "../modals/MarcarPagadosModal.jsx";
@@ -23,6 +24,7 @@ const CreditosEspecialesPage = () => {
   // Estados para créditos
   const [creditos, setCreditos] = useState([]);
   const [clientes, setClientes] = useState([]);
+  const [sedes, setSedes] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isReloading, setIsReloading] = useState(false);
   const [error, setError] = useState("");
@@ -51,6 +53,16 @@ const CreditosEspecialesPage = () => {
   const [entregaSeleccionada, setEntregaSeleccionada] = useState(null);
   const [isOrdenDetalleOpen, setIsOrdenDetalleOpen] = useState(false);
   const [ordenDetalleId, setOrdenDetalleId] = useState(null);
+
+  // Estados para cierre mensual
+  const [cierreMesYear, setCierreMesYear] = useState(new Date().getFullYear());
+  const [cierreMesMonth, setCierreMesMonth] = useState(new Date().getMonth() + 1);
+  const [cierreMesSedeId, setCierreMesSedeId] = useState("");
+  const [cierreMesOrdenes, setCierreMesOrdenes] = useState([]);
+  const [cierreMesDatos, setCierreMesDatos] = useState(null);
+  const [loadingCierreMes, setLoadingCierreMes] = useState(false);
+  const [cierreMesPage, setCierreMesPage] = useState(1);
+  const [cierreMesPageSize, setCierreMesPageSize] = useState(10);
 
   // Calcular total de créditos seleccionados
   const totalSeleccionado = creditos
@@ -164,6 +176,50 @@ const CreditosEspecialesPage = () => {
     }
   };
 
+  // Cargar cierre mensual de créditos especiales
+  const cargarCierreMes = async () => {
+    if (!Number.isFinite(cierreMesYear) || !Number.isFinite(cierreMesMonth) || cierreMesMonth < 1 || cierreMesMonth > 12) {
+      setError("Seleccione año y mes válidos.");
+      return;
+    }
+    setLoadingCierreMes(true);
+    setError("");
+    setCierreMesPage(1); // Reset página al consultar
+    try {
+      const sedeId = cierreMesSedeId && Number.isFinite(Number(cierreMesSedeId)) ? Number(cierreMesSedeId) : null;
+      const data = await obtenerOrdenesMesCierreEspecial(cierreMesYear, cierreMesMonth, sedeId);
+      setCierreMesDatos(data);
+      setCierreMesOrdenes(Array.isArray(data?.ordenes) ? data.ordenes : []);
+    } catch (err) {
+      console.error('Error al cargar cierre del mes:', err);
+      const errorMessage = err.message || "Error al cargar cierre del mes";
+      setError(errorMessage);
+      setToast({
+        isVisible: true,
+        message: errorMessage,
+        type: 'error'
+      });
+      setCierreMesDatos(null);
+      setCierreMesOrdenes([]);
+    } finally {
+      setLoadingCierreMes(false);
+    }
+  };
+
+  // Calcular órdenes paginadas
+  const cierreMesPaginacion = useMemo(() => {
+    const total = cierreMesOrdenes.length;
+    const maxPage = Math.max(1, Math.ceil(total / cierreMesPageSize) || 1);
+    const currentPageClamped = Math.min(cierreMesPage, maxPage);
+    const start = (currentPageClamped - 1) * cierreMesPageSize;
+    return {
+      pageData: cierreMesOrdenes.slice(start, start + cierreMesPageSize),
+      total,
+      maxPage,
+      currentPage: currentPageClamped
+    };
+  }, [cierreMesOrdenes, cierreMesPage, cierreMesPageSize]);
+
   const handleVerDetalleEntrega = (entrega) => {
     setEntregaSeleccionada(entrega);
     setIsDetalleEntregaOpen(true);
@@ -191,6 +247,29 @@ const CreditosEspecialesPage = () => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [view, filtroEstado, pageSize]);
+
+  // Cargar sedes al montar el componente
+  useEffect(() => {
+    let cancel = false;
+    (async () => {
+      try {
+        const s = await listarSedes();
+        if (cancel) return;
+        const sedesLista = Array.isArray(s) ? s : [];
+        setSedes(sedesLista);
+      } catch (e) {
+        if (!cancel) {
+          console.error('Error al cargar sedes:', e);
+          setToast({
+            isVisible: true,
+            message: `Error al cargar sedes: ${e.message}`,
+            type: 'error'
+          });
+        }
+      }
+    })();
+    return () => { cancel = true; };
+  }, []);
 
   return (
     <div className="creditos-container">
@@ -233,6 +312,12 @@ const CreditosEspecialesPage = () => {
               onClick={() => setView("entregas")}
             >
               Historial de Entregas
+            </button>
+            <button
+              className={`tab ${view === "cierre-mensual" ? "active" : ""}`}
+              onClick={() => setView("cierre-mensual")}
+            >
+              Cierre Mensual
             </button>
           </div>
 
@@ -419,14 +504,248 @@ const CreditosEspecialesPage = () => {
             {isReloading ? 'Marcando...' : `Pagar seleccionados (${creditosSeleccionados.length})`}
           </button>
             </>
-          ) : (
+          ) : view === "entregas" ? (
             /* Vista de Historial de Entregas */
             <EntregasEspecialesTable
               entregas={entregas}
               loading={loadingEntregas}
               onVerDetalle={handleVerDetalleEntrega}
             />
-          )}
+          ) : view === "cierre-mensual" ? (
+            <>
+              <div className="filtros-creditos" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap', marginBottom: '1rem', padding: '0.75rem', background: '#f8f9fa', borderRadius: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <label style={{ fontSize: '0.9rem', fontWeight: '500' }}>Año:</label>
+                  <select
+                    value={cierreMesYear}
+                    onChange={(e) => setCierreMesYear(Number(e.target.value))}
+                    style={{ padding: '0.4rem 0.6rem', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '0.9rem' }}
+                  >
+                    {Array.from({ length: 75 }, (_, i) => {
+                      const year = 2026 + i;
+                      return (
+                        <option key={year} value={year}>
+                          {year}
+                        </option>
+                      );
+                    })}
+                  </select>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <label style={{ fontSize: '0.9rem', fontWeight: '500' }}>Mes:</label>
+                  <select
+                    value={cierreMesMonth}
+                    onChange={(e) => setCierreMesMonth(Number(e.target.value))}
+                    style={{ padding: '0.4rem 0.6rem', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '0.9rem' }}
+                  >
+                    {Array.from({ length: 12 }, (_, i) => {
+                      const m = i + 1;
+                      const months = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+                      return (
+                        <option key={m} value={m}>
+                          {months[i]}
+                        </option>
+                      );
+                    })}
+                  </select>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <label style={{ fontSize: '0.9rem', fontWeight: '500' }}>Sede (opcional):</label>
+                  <select
+                    value={cierreMesSedeId}
+                    onChange={(e) => setCierreMesSedeId(e.target.value)}
+                    style={{ padding: '0.4rem 0.6rem', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '0.9rem', minWidth: '150px' }}
+                  >
+                    <option value="">Todas las sedes</option>
+                    {sedes.map((s) => (
+                      <option key={s.id} value={s.id}>{s.nombre || `#${s.id}`}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <button
+                  onClick={cargarCierreMes}
+                  disabled={loadingCierreMes}
+                  style={{
+                    padding: '0.4rem 1rem',
+                    background: '#3b82f6',
+                    color: 'white',
+                    fontWeight: '500',
+                    border: 'none',
+                    borderRadius: '6px',
+                    cursor: loadingCierreMes ? 'not-allowed' : 'pointer',
+                    fontSize: '0.9rem',
+                    opacity: loadingCierreMes ? 0.7 : 1
+                  }}
+                >
+                  {loadingCierreMes ? 'Cargando...' : 'Consultar'}
+                </button>
+              </div>
+
+              {loadingCierreMes && (
+                <div className="loading-message">Cargando datos del cierre mensual...</div>
+              )}
+
+              {cierreMesDatos && !loadingCierreMes && (
+                <div style={{ marginBottom: '1.5rem', padding: '1rem', background: '#f0f4f8', borderRadius: '8px', border: '1px solid #d1d5db' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+                    <div style={{ textAlign: 'center' }}>
+                      <p style={{ fontSize: '0.85rem', color: '#666', margin: '0 0 0.5rem 0' }}>Total Ventas (Órdenes)</p>
+                      <p style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#1f2937', margin: 0 }}>
+                        ${(cierreMesDatos.totalVenta || 0).toLocaleString('es-CO', { maximumFractionDigits: 2, minimumFractionDigits: 0 })}
+                      </p>
+                    </div>
+                    <div style={{ textAlign: 'center' }}>
+                      <p style={{ fontSize: '0.85rem', color: '#666', margin: '0 0 0.5rem 0' }}>Total Pagos</p>
+                      <p style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#10b981', margin: 0 }}>
+                        ${(cierreMesDatos.totalPagos || 0).toLocaleString('es-CO', { maximumFractionDigits: 2, minimumFractionDigits: 0 })}
+                      </p>
+                    </div>
+                    <div style={{ textAlign: 'center' }}>
+                      <p style={{ fontSize: '0.85rem', color: '#666', margin: '0 0 0.5rem 0' }}>Saldo Pendiente</p>
+                      <p style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#ef4444', margin: 0 }}>
+                        ${(cierreMesDatos.totalSaldoPendiente || 0).toLocaleString('es-CO', { maximumFractionDigits: 2, minimumFractionDigits: 0 })}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {!loadingCierreMes && cierreMesDatos && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  <div style={{ overflowX: 'auto', border: '1px solid #e0e0e0', borderRadius: '8px', maxHeight: '500px', overflowY: 'auto' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '900px' }}>
+                      <thead style={{ position: 'sticky', top: 0, zIndex: 10 }}>
+                        <tr style={{ background: '#3b82f6', color: 'white' }}>
+                          <th style={{ padding: '0.75rem', textAlign: 'left', fontSize: '0.9rem', fontWeight: '600' }}>Orden #</th>
+                          <th style={{ padding: '0.75rem', textAlign: 'left', fontSize: '0.9rem', fontWeight: '600' }}>Fecha Orden</th>
+                          <th style={{ padding: '0.75rem', textAlign: 'left', fontSize: '0.9rem', fontWeight: '600' }}>Obra</th>
+                          <th style={{ padding: '0.75rem', textAlign: 'right', fontSize: '0.9rem', fontWeight: '600' }}>Total Orden</th>
+                          <th style={{ padding: '0.75rem', textAlign: 'right', fontSize: '0.9rem', fontWeight: '600' }}>Total Crédito</th>
+                          <th style={{ padding: '0.75rem', textAlign: 'right', fontSize: '0.9rem', fontWeight: '600' }}>Total Abonado</th>
+                          <th style={{ padding: '0.75rem', textAlign: 'right', fontSize: '0.9rem', fontWeight: '600' }}>Saldo Pendiente</th>
+                          <th style={{ padding: '0.75rem', textAlign: 'center', fontSize: '0.9rem', fontWeight: '600', width: '80px' }}>Acciones</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {cierreMesPaginacion.pageData.length === 0 ? (
+                          <tr>
+                            <td colSpan="8" style={{ padding: '1.5rem', textAlign: 'center', color: '#999', fontSize: '0.95rem' }}>
+                              No hay órdenes para este período.
+                            </td>
+                          </tr>
+                        ) : (
+                          cierreMesPaginacion.pageData.map((orden, idx) => (
+                            <tr key={idx} style={{ borderBottom: '1px solid #e0e0e0', background: idx % 2 === 0 ? '#fff' : '#f9fafb' }}>
+                              <td style={{ padding: '0.75rem', fontSize: '0.9rem', fontWeight: '500' }}>#{orden.numeroOrden}</td>
+                              <td style={{ padding: '0.75rem', fontSize: '0.9rem' }}>{orden.fechaOrden}</td>
+                              <td style={{ padding: '0.75rem', fontSize: '0.9rem' }}>{orden.obra}</td>
+                              <td style={{ padding: '0.75rem', fontSize: '0.9rem', textAlign: 'right', fontWeight: '500' }}>
+                                ${(orden.totalOrden || 0).toLocaleString('es-CO', { maximumFractionDigits: 2, minimumFractionDigits: 0 })}
+                              </td>
+                              <td style={{ padding: '0.75rem', fontSize: '0.9rem', textAlign: 'right', fontWeight: '500' }}>
+                                ${(orden.totalCredito || 0).toLocaleString('es-CO', { maximumFractionDigits: 2, minimumFractionDigits: 0 })}
+                              </td>
+                              <td style={{ padding: '0.75rem', fontSize: '0.9rem', textAlign: 'right', color: '#10b981', fontWeight: '600' }}>
+                                ${(orden.totalAbonado || 0).toLocaleString('es-CO', { maximumFractionDigits: 2, minimumFractionDigits: 0 })}
+                              </td>
+                              <td style={{ padding: '0.75rem', fontSize: '0.9rem', textAlign: 'right', color: orden.saldoPendiente > 0 ? '#ef4444' : '#10b981', fontWeight: '600' }}>
+                                ${(orden.saldoPendiente || 0).toLocaleString('es-CO', { maximumFractionDigits: 2, minimumFractionDigits: 0 })}
+                              </td>
+                              <td style={{ padding: '0.75rem', textAlign: 'center' }}>
+                                <button
+                                  onClick={() => {
+                                    setOrdenDetalleId(orden.ordenId);
+                                    setIsOrdenDetalleOpen(true);
+                                  }}
+                                  style={{
+                                    padding: '0.4rem 0.8rem',
+                                    background: '#3b82f6',
+                                    color: 'white',
+                                    border: 'none',
+                                    borderRadius: '4px',
+                                    fontSize: '0.8rem',
+                                    fontWeight: '600',
+                                    cursor: 'pointer',
+                                    transition: 'background 0.2s'
+                                  }}
+                                  onMouseEnter={(e) => e.target.style.background = '#2563eb'}
+                                  onMouseLeave={(e) => e.target.style.background = '#3b82f6'}
+                                >
+                                  Ver
+                                </button>
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {cierreMesPaginacion.total > 0 && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', background: '#f9fafb', borderRadius: '8px', border: '1px solid #e0e0e0' }}>
+                      <div style={{ fontSize: '0.85rem', color: '#555' }}>
+                        Mostrando {Math.min((cierreMesPaginacion.currentPage - 1) * cierreMesPageSize + 1, cierreMesPaginacion.total)}–{Math.min(cierreMesPaginacion.currentPage * cierreMesPageSize, cierreMesPaginacion.total)} de {cierreMesPaginacion.total}
+                      </div>
+
+                      <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                        <button
+                          onClick={() => setCierreMesPage(1)}
+                          disabled={cierreMesPaginacion.currentPage <= 1}
+                          style={{ padding: '0.4rem 0.6rem', fontSize: '0.75rem', border: '1px solid #d1d5db', background: '#fff', borderRadius: '4px', cursor: cierreMesPaginacion.currentPage <= 1 ? 'not-allowed' : 'pointer', opacity: cierreMesPaginacion.currentPage <= 1 ? 0.5 : 1 }}
+                        >
+                          «
+                        </button>
+                        <button
+                          onClick={() => setCierreMesPage((p) => p - 1)}
+                          disabled={cierreMesPaginacion.currentPage <= 1}
+                          style={{ padding: '0.4rem 0.6rem', fontSize: '0.75rem', border: '1px solid #d1d5db', background: '#fff', borderRadius: '4px', cursor: cierreMesPaginacion.currentPage <= 1 ? 'not-allowed' : 'pointer', opacity: cierreMesPaginacion.currentPage <= 1 ? 0.5 : 1 }}
+                        >
+                          ‹
+                        </button>
+                        <span style={{ padding: '0 0.5rem', fontSize: '0.85rem', fontWeight: '500', minWidth: '60px', textAlign: 'center' }}>
+                          {cierreMesPaginacion.currentPage} / {cierreMesPaginacion.maxPage}
+                        </span>
+                        <button
+                          onClick={() => setCierreMesPage((p) => p + 1)}
+                          disabled={cierreMesPaginacion.currentPage >= cierreMesPaginacion.maxPage}
+                          style={{ padding: '0.4rem 0.6rem', fontSize: '0.75rem', border: '1px solid #d1d5db', background: '#fff', borderRadius: '4px', cursor: cierreMesPaginacion.currentPage >= cierreMesPaginacion.maxPage ? 'not-allowed' : 'pointer', opacity: cierreMesPaginacion.currentPage >= cierreMesPaginacion.maxPage ? 0.5 : 1 }}
+                        >
+                          ›
+                        </button>
+                        <button
+                          onClick={() => setCierreMesPage(cierreMesPaginacion.maxPage)}
+                          disabled={cierreMesPaginacion.currentPage >= cierreMesPaginacion.maxPage}
+                          style={{ padding: '0.4rem 0.6rem', fontSize: '0.75rem', border: '1px solid #d1d5db', background: '#fff', borderRadius: '4px', cursor: cierreMesPaginacion.currentPage >= cierreMesPaginacion.maxPage ? 'not-allowed' : 'pointer', opacity: cierreMesPaginacion.currentPage >= cierreMesPaginacion.maxPage ? 0.5 : 1 }}
+                        >
+                          »
+                        </button>
+
+                        <select
+                          value={cierreMesPageSize}
+                          onChange={(e) => {
+                            setCierreMesPageSize(Number(e.target.value));
+                            setCierreMesPage(1);
+                          }}
+                          style={{ padding: '0.3rem 0.4rem', fontSize: '0.75rem', border: '1px solid #d1d5db', borderRadius: '4px', background: '#fff', outline: 'none', marginLeft: '0.5rem' }}
+                        >
+                          {[5, 10, 20, 50].map(n => <option key={n} value={n}>{n} filas</option>)}
+                        </select>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {!loadingCierreMes && !cierreMesDatos && (
+                <div style={{ padding: '2rem', textAlign: 'center', color: '#666' }}>
+                  Selecciona un mes y año para ver el cierre mensual.
+                </div>
+              )}
+            </>
+          ) : null}
         </>
       )}
 
