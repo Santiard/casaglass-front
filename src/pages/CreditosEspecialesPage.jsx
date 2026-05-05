@@ -324,54 +324,17 @@ const CreditosEspecialesPage = () => {
           {/* Contenido según la vista */}
           {view === "creditos" ? (
             <>
-              <div className="filtros-creditos" style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', flexWrap: 'nowrap', overflowX: 'auto', whiteSpace: 'nowrap', marginBottom: '0.5rem', padding: '0.35rem 0.5rem' }}>
+              <div className="filtros-creditos">
                 <button
               onClick={() => window.location.href = '/web/abono'}
               className="btn-agregar-abono"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.25rem',
-                padding: '0.4rem 0.65rem',
-                background: 'var(--color-dark-blue)',
-                color: 'white',
-                fontWeight: '500',
-                border: 'none',
-                borderRadius: '9999px',
-                cursor: 'pointer',
-                transition: 'background-color 0.2s ease',
-                whiteSpace: 'nowrap',
-                fontSize: '0.78rem',
-                lineHeight: 1.1,
-                minHeight: '32px'
-              }}
-              onMouseEnter={e => e.target.style.background = 'var(--color-light-blue)'}
-              onMouseLeave={e => e.target.style.background = 'var(--color-dark-blue)'}
             >
               Agregar Abono
             </button>
 
             <button
               onClick={() => navigate('/estado-cuenta', { state: { esClienteEspecial: true } })}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.3rem',
-                padding: '0.4rem 0.65rem',
-                background: '#27ae60',
-                color: 'white',
-                fontWeight: '500',
-                border: 'none',
-                borderRadius: '9999px',
-                cursor: 'pointer',
-                transition: 'background-color 0.2s ease',
-                whiteSpace: 'nowrap',
-                fontSize: '0.78rem',
-                lineHeight: 1.1,
-                minHeight: '32px'
-              }}
-              onMouseEnter={e => e.target.style.background = '#229954'}
-              onMouseLeave={e => e.target.style.background = '#27ae60'}
+              className="btn-estado"
             >
               <img src={estado} alt="Estado de Cuenta" style={{ width: '14px', height: '14px', filter: 'brightness(0) invert(1)' }} />
               Estado de Cuenta
@@ -379,61 +342,19 @@ const CreditosEspecialesPage = () => {
 
             <button
               onClick={() => setIsHistoricoClienteModalOpen(true)}
-              style={{
-                padding: '0.4rem 0.65rem',
-                fontSize: '0.78rem',
-                whiteSpace: 'nowrap',
-                background: '#fff',
-                color: '#1e2753',
-                border: '1px solid #1e2753',
-                borderRadius: '9999px',
-                cursor: 'pointer',
-                fontWeight: '600',
-                transition: 'all 0.2s ease',
-                lineHeight: 1.1,
-                minHeight: '32px'
-              }}
-              onMouseEnter={e => {
-                e.target.style.background = '#1e2753';
-                e.target.style.color = '#fff';
-              }}
-              onMouseLeave={e => {
-                e.target.style.background = '#fff';
-                e.target.style.color = '#1e2753';
-              }}
+              className="btn-historio"
             >
               Histórico por Cliente
             </button>
 
             <button
               onClick={() => setIsHistoricoGeneralModalOpen(true)}
-              style={{
-                padding: '0.4rem 0.65rem',
-                fontSize: '0.78rem',
-                whiteSpace: 'nowrap',
-                background: '#fff',
-                color: '#1e2753',
-                border: '1px solid #1e2753',
-                borderRadius: '9999px',
-                cursor: 'pointer',
-                fontWeight: '600',
-                transition: 'all 0.2s ease',
-                lineHeight: 1.1,
-                minHeight: '32px'
-              }}
-              onMouseEnter={e => {
-                e.target.style.background = '#1e2753';
-                e.target.style.color = '#fff';
-              }}
-              onMouseLeave={e => {
-                e.target.style.background = '#fff';
-                e.target.style.color = '#1e2753';
-              }}
+              className="btn-historio"
             >
               Histórico General
             </button>
 
-            <select value={filtroEstado} onChange={e => setFiltroEstado(e.target.value)} style={{ padding: '0.3rem 0.45rem', border: '1px solid #d1d5db', borderRadius: '9999px', fontSize: '0.78rem', background: '#fff', outline: 'none', minWidth: '112px', height: '32px' }}>
+            <select value={filtroEstado} onChange={e => setFiltroEstado(e.target.value)}>
               <option value="">Todos los estados</option>
               <option value="ABIERTO">Abierto</option>
               <option value="CERRADO">Cerrado</option>
@@ -441,24 +362,14 @@ const CreditosEspecialesPage = () => {
               <option value="ANULADO">Anulado</option>
             </select>
 
-            <div className="rows-per-page" style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', paddingInline: '0.25rem' }}>
-              <span style={{ fontSize: '0.75rem', fontWeight: '500', color: 'var(--color-white)' }}>Filas:</span>
+            <div className="rows-per-page">
+              <span>Filas:</span>
               <select
                 className="clientes-select"
                 value={pageSize}
                 onChange={e => {
                   const newSize = Number(e.target.value);
                   handlePageChange(1, newSize);
-                }}
-                style={{
-                  padding: '0.3rem 0.4rem',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '9999px',
-                  fontSize: '0.78rem',
-                  background: '#fff',
-                  outline: 'none',
-                  width: '62px',
-                  height: '32px'
                 }}
               >
                 {[5, 10, 20, 50, 100, 200].map(n => <option key={n} value={n}>{n}</option>)}
@@ -513,13 +424,12 @@ const CreditosEspecialesPage = () => {
             />
           ) : view === "cierre-mensual" ? (
             <>
-              <div className="filtros-creditos" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap', marginBottom: '1rem', padding: '0.75rem', background: '#f8f9fa', borderRadius: '8px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <label style={{ fontSize: '0.9rem', fontWeight: '500' }}>Año:</label>
+              <div className="cierre-mes-filtros">
+                <div className="cierre-mes-grupo">
+                  <label>Año:</label>
                   <select
                     value={cierreMesYear}
                     onChange={(e) => setCierreMesYear(Number(e.target.value))}
-                    style={{ padding: '0.4rem 0.6rem', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '0.9rem' }}
                   >
                     {Array.from({ length: 75 }, (_, i) => {
                       const year = 2026 + i;
@@ -532,12 +442,11 @@ const CreditosEspecialesPage = () => {
                   </select>
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <label style={{ fontSize: '0.9rem', fontWeight: '500' }}>Mes:</label>
+                <div className="cierre-mes-grupo">
+                  <label>Mes:</label>
                   <select
                     value={cierreMesMonth}
                     onChange={(e) => setCierreMesMonth(Number(e.target.value))}
-                    style={{ padding: '0.4rem 0.6rem', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '0.9rem' }}
                   >
                     {Array.from({ length: 12 }, (_, i) => {
                       const m = i + 1;
@@ -551,12 +460,11 @@ const CreditosEspecialesPage = () => {
                   </select>
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <label style={{ fontSize: '0.9rem', fontWeight: '500' }}>Sede (opcional):</label>
+                <div className="cierre-mes-grupo">
+                  <label>Sede (opcional):</label>
                   <select
                     value={cierreMesSedeId}
                     onChange={(e) => setCierreMesSedeId(e.target.value)}
-                    style={{ padding: '0.4rem 0.6rem', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '0.9rem', minWidth: '150px' }}
                   >
                     <option value="">Todas las sedes</option>
                     {sedes.map((s) => (
@@ -568,17 +476,7 @@ const CreditosEspecialesPage = () => {
                 <button
                   onClick={cargarCierreMes}
                   disabled={loadingCierreMes}
-                  style={{
-                    padding: '0.4rem 1rem',
-                    background: '#3b82f6',
-                    color: 'white',
-                    fontWeight: '500',
-                    border: 'none',
-                    borderRadius: '6px',
-                    cursor: loadingCierreMes ? 'not-allowed' : 'pointer',
-                    fontSize: '0.9rem',
-                    opacity: loadingCierreMes ? 0.7 : 1
-                  }}
+                  className="btn-consultar"
                 >
                   {loadingCierreMes ? 'Cargando...' : 'Consultar'}
                 </button>
@@ -589,23 +487,23 @@ const CreditosEspecialesPage = () => {
               )}
 
               {cierreMesDatos && !loadingCierreMes && (
-                <div style={{ marginBottom: '1.5rem', padding: '1rem', background: '#f0f4f8', borderRadius: '8px', border: '1px solid #d1d5db' }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
-                    <div style={{ textAlign: 'center' }}>
-                      <p style={{ fontSize: '0.85rem', color: '#666', margin: '0 0 0.5rem 0' }}>Total Ventas (Órdenes)</p>
-                      <p style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#1f2937', margin: 0 }}>
+                <div className="cierre-mes-resumen">
+                  <div className="resumen-grid">
+                    <div className="resumen-item">
+                      <p className="resumen-label">Total Ventas (Órdenes)</p>
+                      <p className="resumen-valor">
                         ${(cierreMesDatos.totalVenta || 0).toLocaleString('es-CO', { maximumFractionDigits: 2, minimumFractionDigits: 0 })}
                       </p>
                     </div>
-                    <div style={{ textAlign: 'center' }}>
-                      <p style={{ fontSize: '0.85rem', color: '#666', margin: '0 0 0.5rem 0' }}>Total Pagos</p>
-                      <p style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#10b981', margin: 0 }}>
+                    <div className="resumen-item">
+                      <p className="resumen-label">Total Pagos</p>
+                      <p className="resumen-valor success">
                         ${(cierreMesDatos.totalPagos || 0).toLocaleString('es-CO', { maximumFractionDigits: 2, minimumFractionDigits: 0 })}
                       </p>
                     </div>
-                    <div style={{ textAlign: 'center' }}>
-                      <p style={{ fontSize: '0.85rem', color: '#666', margin: '0 0 0.5rem 0' }}>Saldo Pendiente</p>
-                      <p style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#ef4444', margin: 0 }}>
+                    <div className="resumen-item">
+                      <p className="resumen-label">Saldo Pendiente</p>
+                      <p className="resumen-valor error">
                         ${(cierreMesDatos.totalSaldoPendiente || 0).toLocaleString('es-CO', { maximumFractionDigits: 2, minimumFractionDigits: 0 })}
                       </p>
                     </div>
@@ -614,65 +512,52 @@ const CreditosEspecialesPage = () => {
               )}
 
               {!loadingCierreMes && cierreMesDatos && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                  <div style={{ overflowX: 'auto', border: '1px solid #e0e0e0', borderRadius: '8px', maxHeight: '500px', overflowY: 'auto' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '900px' }}>
-                      <thead style={{ position: 'sticky', top: 0, zIndex: 10 }}>
-                        <tr style={{ background: '#3b82f6', color: 'white' }}>
-                          <th style={{ padding: '0.75rem', textAlign: 'left', fontSize: '0.9rem', fontWeight: '600' }}>Orden #</th>
-                          <th style={{ padding: '0.75rem', textAlign: 'left', fontSize: '0.9rem', fontWeight: '600' }}>Fecha Orden</th>
-                          <th style={{ padding: '0.75rem', textAlign: 'left', fontSize: '0.9rem', fontWeight: '600' }}>Obra</th>
-                          <th style={{ padding: '0.75rem', textAlign: 'right', fontSize: '0.9rem', fontWeight: '600' }}>Total Orden</th>
-                          <th style={{ padding: '0.75rem', textAlign: 'right', fontSize: '0.9rem', fontWeight: '600' }}>Total Crédito</th>
-                          <th style={{ padding: '0.75rem', textAlign: 'right', fontSize: '0.9rem', fontWeight: '600' }}>Total Abonado</th>
-                          <th style={{ padding: '0.75rem', textAlign: 'right', fontSize: '0.9rem', fontWeight: '600' }}>Saldo Pendiente</th>
-                          <th style={{ padding: '0.75rem', textAlign: 'center', fontSize: '0.9rem', fontWeight: '600', width: '80px' }}>Acciones</th>
+                <div className="cierre-mes-tabla-wrapper">
+                  <div className="cierre-mes-tabla">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>Orden #</th>
+                          <th>Fecha Orden</th>
+                          <th>Obra</th>
+                          <th>Total Orden</th>
+                          <th>Total Crédito</th>
+                          <th>Total Abonado</th>
+                          <th>Saldo Pendiente</th>
+                          <th>Acciones</th>
                         </tr>
                       </thead>
                       <tbody>
                         {cierreMesPaginacion.pageData.length === 0 ? (
                           <tr>
-                            <td colSpan="8" style={{ padding: '1.5rem', textAlign: 'center', color: '#999', fontSize: '0.95rem' }}>
+                            <td colSpan="8" className="sin-datos">
                               No hay órdenes para este período.
                             </td>
                           </tr>
                         ) : (
                           cierreMesPaginacion.pageData.map((orden, idx) => (
-                            <tr key={idx} style={{ borderBottom: '1px solid #e0e0e0', background: idx % 2 === 0 ? '#fff' : '#f9fafb' }}>
-                              <td style={{ padding: '0.75rem', fontSize: '0.9rem', fontWeight: '500' }}>#{orden.numeroOrden}</td>
-                              <td style={{ padding: '0.75rem', fontSize: '0.9rem' }}>{orden.fechaOrden}</td>
-                              <td style={{ padding: '0.75rem', fontSize: '0.9rem' }}>{orden.obra}</td>
-                              <td style={{ padding: '0.75rem', fontSize: '0.9rem', textAlign: 'right', fontWeight: '500' }}>
+                            <tr key={idx}>
+                              <td>#{orden.numeroOrden}</td>
+                              <td>{orden.fechaOrden}</td>
+                              <td>{orden.obra}</td>
+                              <td>
                                 ${(orden.totalOrden || 0).toLocaleString('es-CO', { maximumFractionDigits: 2, minimumFractionDigits: 0 })}
                               </td>
-                              <td style={{ padding: '0.75rem', fontSize: '0.9rem', textAlign: 'right', fontWeight: '500' }}>
+                              <td>
                                 ${(orden.totalCredito || 0).toLocaleString('es-CO', { maximumFractionDigits: 2, minimumFractionDigits: 0 })}
                               </td>
-                              <td style={{ padding: '0.75rem', fontSize: '0.9rem', textAlign: 'right', color: '#10b981', fontWeight: '600' }}>
+                              <td>
                                 ${(orden.totalAbonado || 0).toLocaleString('es-CO', { maximumFractionDigits: 2, minimumFractionDigits: 0 })}
                               </td>
-                              <td style={{ padding: '0.75rem', fontSize: '0.9rem', textAlign: 'right', color: orden.saldoPendiente > 0 ? '#ef4444' : '#10b981', fontWeight: '600' }}>
+                              <td className={`saldo-pendiente ${orden.saldoPendiente > 0 ? 'positivo' : 'cero'}`}>
                                 ${(orden.saldoPendiente || 0).toLocaleString('es-CO', { maximumFractionDigits: 2, minimumFractionDigits: 0 })}
                               </td>
-                              <td style={{ padding: '0.75rem', textAlign: 'center' }}>
+                              <td>
                                 <button
                                   onClick={() => {
                                     setOrdenDetalleId(orden.ordenId);
                                     setIsOrdenDetalleOpen(true);
                                   }}
-                                  style={{
-                                    padding: '0.4rem 0.8rem',
-                                    background: '#3b82f6',
-                                    color: 'white',
-                                    border: 'none',
-                                    borderRadius: '4px',
-                                    fontSize: '0.8rem',
-                                    fontWeight: '600',
-                                    cursor: 'pointer',
-                                    transition: 'background 0.2s'
-                                  }}
-                                  onMouseEnter={(e) => e.target.style.background = '#2563eb'}
-                                  onMouseLeave={(e) => e.target.style.background = '#3b82f6'}
                                 >
                                   Ver
                                 </button>
@@ -685,23 +570,21 @@ const CreditosEspecialesPage = () => {
                   </div>
 
                   {cierreMesPaginacion.total > 0 && (
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', background: '#f9fafb', borderRadius: '8px', border: '1px solid #e0e0e0' }}>
-                      <div style={{ fontSize: '0.85rem', color: '#555' }}>
+                    <div className="cierre-mes-paginacion">
+                      <div className="paginacion-info">
                         Mostrando {Math.min((cierreMesPaginacion.currentPage - 1) * cierreMesPageSize + 1, cierreMesPaginacion.total)}–{Math.min(cierreMesPaginacion.currentPage * cierreMesPageSize, cierreMesPaginacion.total)} de {cierreMesPaginacion.total}
                       </div>
 
-                      <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                      <div className="paginacion-botones">
                         <button
                           onClick={() => setCierreMesPage(1)}
                           disabled={cierreMesPaginacion.currentPage <= 1}
-                          style={{ padding: '0.4rem 0.6rem', fontSize: '0.75rem', border: '1px solid #d1d5db', background: '#fff', borderRadius: '4px', cursor: cierreMesPaginacion.currentPage <= 1 ? 'not-allowed' : 'pointer', opacity: cierreMesPaginacion.currentPage <= 1 ? 0.5 : 1 }}
                         >
                           «
                         </button>
                         <button
                           onClick={() => setCierreMesPage((p) => p - 1)}
                           disabled={cierreMesPaginacion.currentPage <= 1}
-                          style={{ padding: '0.4rem 0.6rem', fontSize: '0.75rem', border: '1px solid #d1d5db', background: '#fff', borderRadius: '4px', cursor: cierreMesPaginacion.currentPage <= 1 ? 'not-allowed' : 'pointer', opacity: cierreMesPaginacion.currentPage <= 1 ? 0.5 : 1 }}
                         >
                           ‹
                         </button>
@@ -711,14 +594,12 @@ const CreditosEspecialesPage = () => {
                         <button
                           onClick={() => setCierreMesPage((p) => p + 1)}
                           disabled={cierreMesPaginacion.currentPage >= cierreMesPaginacion.maxPage}
-                          style={{ padding: '0.4rem 0.6rem', fontSize: '0.75rem', border: '1px solid #d1d5db', background: '#fff', borderRadius: '4px', cursor: cierreMesPaginacion.currentPage >= cierreMesPaginacion.maxPage ? 'not-allowed' : 'pointer', opacity: cierreMesPaginacion.currentPage >= cierreMesPaginacion.maxPage ? 0.5 : 1 }}
                         >
                           ›
                         </button>
                         <button
                           onClick={() => setCierreMesPage(cierreMesPaginacion.maxPage)}
                           disabled={cierreMesPaginacion.currentPage >= cierreMesPaginacion.maxPage}
-                          style={{ padding: '0.4rem 0.6rem', fontSize: '0.75rem', border: '1px solid #d1d5db', background: '#fff', borderRadius: '4px', cursor: cierreMesPaginacion.currentPage >= cierreMesPaginacion.maxPage ? 'not-allowed' : 'pointer', opacity: cierreMesPaginacion.currentPage >= cierreMesPaginacion.maxPage ? 0.5 : 1 }}
                         >
                           »
                         </button>
@@ -729,7 +610,7 @@ const CreditosEspecialesPage = () => {
                             setCierreMesPageSize(Number(e.target.value));
                             setCierreMesPage(1);
                           }}
-                          style={{ padding: '0.3rem 0.4rem', fontSize: '0.75rem', border: '1px solid #d1d5db', borderRadius: '4px', background: '#fff', outline: 'none', marginLeft: '0.5rem' }}
+                          style={{ marginLeft: '0.5rem' }}
                         >
                           {[5, 10, 20, 50].map(n => <option key={n} value={n}>{n} filas</option>)}
                         </select>
@@ -740,7 +621,7 @@ const CreditosEspecialesPage = () => {
               )}
 
               {!loadingCierreMes && !cierreMesDatos && (
-                <div style={{ padding: '2rem', textAlign: 'center', color: '#666' }}>
+                <div className="sin-datos">
                   Selecciona un mes y año para ver el cierre mensual.
                 </div>
               )}
