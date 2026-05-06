@@ -19,6 +19,7 @@ import {
 import { useConfirm } from "../hooks/useConfirm.jsx";
 import { useToast } from "../context/ToastContext.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
+import "../styles/ClientesPage.css";
 
 export default function MovimientosPage() {
   const { confirm, ConfirmDialog } = useConfirm();
@@ -191,33 +192,35 @@ export default function MovimientosPage() {
   };
 
   return (
-    <div>
-      <MovimientosTable
-        data={traslados}
-        loading={loading}
-        rowsPerPage={10}
-        sedes={sedes}
-        catalogoProductos={catalogoProductos}
-        onCrear={onCrear}
-        onActualizar={onActualizar}
-        onEliminar={onEliminar}
-        onConfirmar={onConfirmar}
-        onVerDetalles={handleVerDetalles}
-        onEditar={handleEditar}
-        // Control del modal de edición desde el padre
-        isModalOpen={isModalEditOpen}
-        setIsModalOpen={setIsModalEditOpen}
-        movimientoEditando={movimientoEditando}
-        setMovimientoEditando={setMovimientoEditando}
-        // Paginación del servidor
-        totalElements={totalElements}
-        totalPages={totalPages}
-        currentPage={currentPage}
-        pageSize={pageSize}
-        onPageChange={handlePageChange}
-        serverSidePagination={true}
-      />
-      
+    <div className="clientes-page">
+      <div className="rowInferior fill">
+        <MovimientosTable
+          data={traslados}
+          loading={loading}
+          rowsPerPage={10}
+          sedes={sedes}
+          catalogoProductos={catalogoProductos}
+          onCrear={onCrear}
+          onActualizar={onActualizar}
+          onEliminar={onEliminar}
+          onConfirmar={onConfirmar}
+          onVerDetalles={handleVerDetalles}
+          onEditar={handleEditar}
+          // Control del modal de edición desde el padre
+          isModalOpen={isModalEditOpen}
+          setIsModalOpen={setIsModalEditOpen}
+          movimientoEditando={movimientoEditando}
+          setMovimientoEditando={setMovimientoEditando}
+          // Paginación del servidor
+          totalElements={totalElements}
+          totalPages={totalPages}
+          currentPage={currentPage}
+          pageSize={pageSize}
+          onPageChange={handlePageChange}
+          serverSidePagination={true}
+        />
+      </div>
+
       {/* Modal de detalles */}
       {seleccionado && (
         <MovimientoDetalleModal
@@ -225,7 +228,7 @@ export default function MovimientosPage() {
           onClose={() => setSeleccionado(null)}
         />
       )}
-      
+
       <ConfirmDialog />
     </div>
   );

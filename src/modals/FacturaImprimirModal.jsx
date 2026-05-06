@@ -62,6 +62,8 @@ export default function FacturaImprimirModal({ factura, isOpen, onClose }) {
   const retencionFuente = form.retencionFuente || 0;
   const retencionIca = form.retencionIca || 0;
   const totalFactura = form.total || 0;
+  const telefonoCliente =
+    form.cliente?.telefono || form.cliente?.celular || form.cliente?.phone || null;
 
   const tieneRetencionIca = form.orden?.tieneRetencionIca || false;
   const porcentajeIca =
@@ -156,6 +158,7 @@ export default function FacturaImprimirModal({ factura, isOpen, onClose }) {
                   <strong>{form.cliente?.nombre || "-"}</strong>
                 </p>
                 <p>NIT: {form.cliente?.nit || "-"}</p>
+                {telefonoCliente && <p>Teléfono: {telefonoCliente}</p>}
                 {form.cliente?.direccion && <p>Dirección: {form.cliente.direccion}</p>}
                 {form.cliente?.ciudad && <p>Ciudad: {form.cliente.ciudad}</p>}
                 {form.cliente?.correo && <p>Correo: {form.cliente.correo}</p>}

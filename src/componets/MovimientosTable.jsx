@@ -128,14 +128,12 @@ export default function MovimientosTable({
   const filtrados = useMemo(() => {
     // Si es paginación del servidor, usar valores del servidor directamente
     if (serverSidePagination) {
-      const total = totalElements || 0;
       const maxPage = totalPages || 1;
       const curPage = currentPage || 1;
-      const start = (curPage - 1) * pageSize;
       
       // Aplicar solo filtros del lado del cliente (búsqueda)
       // Nota: Idealmente estos filtros también deberían ir al servidor
-      let arr = data;
+      let arr = Array.isArray(data) ? data : [];
       const q = query.trim().toLowerCase();
       
       if (q) {
@@ -154,6 +152,27 @@ export default function MovimientosTable({
             .some((v) => String(v).toLowerCase().includes(q))
         );
       }
+
+      // Fallback: si el backend no está paginando y devuelve todo en una sola respuesta,
+      // paginamos localmente para evitar tablas demasiado largas.
+      const fallbackClientPagination = maxPage <= 1 && arr.length > pageSize;
+      if (fallbackClientPagination) {
+        const total = arr.length;
+        const computedMaxPage = Math.max(1, Math.ceil(total / pageSize));
+        const computedCurPage = Math.min(curPage, computedMaxPage);
+        const start = (computedCurPage - 1) * pageSize;
+        const pageData = arr.slice(start, start + pageSize);
+        return {
+          pageData,
+          total,
+          maxPage: computedMaxPage,
+          curPage: computedCurPage,
+          start,
+        };
+      }
+
+      const total = totalElements > 0 ? totalElements : arr.length;
+      const start = (curPage - 1) * pageSize;
       
       return { pageData: arr, total, maxPage, curPage, start };
     }
@@ -227,7 +246,8 @@ export default function MovimientosTable({
   };
 
   const showingFrom = total === 0 ? 0 : start + 1;
-  const showingTo   = Math.min(start + rowsPerPageLocal, total);
+  const pageSizeVisible = serverSidePagination ? pageSize : rowsPerPageLocal;
+  const showingTo = Math.min(start + pageSizeVisible, total);
 
   return (
     <div className="table-container mov">

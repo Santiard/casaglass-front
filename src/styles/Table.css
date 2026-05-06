@@ -1353,6 +1353,50 @@ input[type="number"] {
 }
 .mov .pg-btn:active { transform: translateY(0.0625rem); }
 
+@media (max-width: 64rem) {
+  .mov .toolbar {
+    align-items: stretch;
+    gap: 0.5rem;
+  }
+
+  .mov .clientes-input {
+    min-width: 0;
+    flex: 1 1 100%;
+  }
+
+  .mov .rows-per-page {
+    margin-left: 0;
+    width: 100%;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+  }
+
+  .mov .table {
+    min-width: 72rem;
+    table-layout: auto;
+  }
+
+  .mov .table th,
+  .mov .table td {
+    max-width: none;
+  }
+}
+
+@media (max-width: 48rem) {
+  .mov .pagination-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .mov .pagination-info {
+    text-align: center;
+  }
+
+  .mov .pagination-controls {
+    justify-content: center;
+  }
+}
+
 /* ===== ESTILOS DE CLIENTES (iguales a Proveedores y Movimientos) ===== */
 .clientes.table-container {
   border-radius: 0.75rem;

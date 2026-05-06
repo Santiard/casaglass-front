@@ -91,6 +91,8 @@ export default function FacturaImpresionAjustadaModal({ factura, isOpen, onClose
   const retencionIca = form?.retencionIca ?? 0;
   const totalFacturaImpresion = totalesImpresion.totalConIvaLineas;
   const valorAPagarImpresion = totalFacturaImpresion - retencionFuente - retencionIca;
+  const telefonoCliente =
+    form?.cliente?.telefono || form?.cliente?.celular || form?.cliente?.phone || null;
 
   const fmtFecha = (iso) =>
     iso
@@ -251,6 +253,7 @@ export default function FacturaImpresionAjustadaModal({ factura, isOpen, onClose
                   <strong>{form.cliente?.nombre || "-"}</strong>
                 </p>
                 <p>NIT: {form.cliente?.nit || "-"}</p>
+                {telefonoCliente && <p>Teléfono: {telefonoCliente}</p>}
                 {form.cliente?.direccion && <p>Dirección: {form.cliente.direccion}</p>}
                 {form.cliente?.ciudad && <p>Ciudad: {form.cliente.ciudad}</p>}
                 {form.cliente?.correo && <p>Correo: {form.cliente.correo}</p>}

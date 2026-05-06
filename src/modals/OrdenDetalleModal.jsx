@@ -194,6 +194,14 @@ export default function OrdenDetalleModal({ ordenId, facturaId, isOpen, onClose 
     : (factura?.orden?.porcentajeIca !== undefined && factura?.orden?.porcentajeIca !== null 
       ? Number(factura.orden.porcentajeIca) 
       : null);
+  const telefonoCliente =
+    factura?.cliente?.telefono ||
+    factura?.cliente?.celular ||
+    factura?.cliente?.phone ||
+    orden?.cliente?.telefono ||
+    orden?.cliente?.celular ||
+    orden?.cliente?.phone ||
+    null;
   const mostrarCamposUnidad = esSedeUno(orden?.sede?.id || factura?.orden?.sede?.id) || detalles.some(tieneDatosUnidadSedeUno);
 
   return (
@@ -249,6 +257,9 @@ export default function OrdenDetalleModal({ ordenId, facturaId, isOpen, onClose 
                 <strong>NIT:</strong> {
                   factura?.cliente?.nit || orden.cliente?.nit || "-"
                 }
+              </div>
+              <div>
+                <strong>Teléfono:</strong> {telefonoCliente || "-"}
               </div>
               <div>
                 <strong>Obra:</strong> {orden.obra ?? "-"}
