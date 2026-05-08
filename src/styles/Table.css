@@ -404,6 +404,55 @@
   text-overflow: clip !important; /* No truncar */
 }
 
+/* Ajuste específico para ADMIN: darle menos ancho al nombre y más a cantidades/total */
+.inventory-content .table-container .table.admin-table th:nth-child(2),
+.inventory-content .table-container .table.admin-table td:nth-child(2) {
+  width: 16% !important;
+  min-width: 8rem !important;
+  max-width: none !important;
+}
+
+.inventory-content .table-container .table.admin-table th:nth-child(4),
+.inventory-content .table-container .table.admin-table td:nth-child(4),
+.inventory-content .table-container .table.admin-table th:nth-child(5),
+.inventory-content .table-container .table.admin-table td:nth-child(5),
+.inventory-content .table-container .table.admin-table th:nth-child(6),
+.inventory-content .table-container .table.admin-table td:nth-child(6) {
+  width: 9.5% !important;
+  min-width: 5.75rem !important;
+  max-width: 7.25rem !important;
+  text-align: center;
+}
+
+.inventory-content .table-container .table.admin-table th:nth-child(7),
+.inventory-content .table-container .table.admin-table td:nth-child(7) {
+  width: 14% !important;
+  min-width: 7rem !important;
+  max-width: 8.5rem !important;
+  text-align: center;
+  font-weight: 700;
+}
+
+.inventory-content .table-container .table.admin-table th:nth-child(8),
+.inventory-content .table-container .table.admin-table td:nth-child(8) {
+  width: 7% !important;
+  min-width: 4.75rem !important;
+  max-width: 5.75rem !important;
+  text-align: right;
+}
+
+.inventory-content .table-container .table.admin-table th:nth-child(9),
+.inventory-content .table-container .table.admin-table td:nth-child(9),
+.inventory-content .table-container .table.admin-table th:nth-child(10),
+.inventory-content .table-container .table.admin-table td:nth-child(10),
+.inventory-content .table-container .table.admin-table th:nth-child(11),
+.inventory-content .table-container .table.admin-table td:nth-child(11) {
+  width: 7% !important;
+  min-width: 4.75rem !important;
+  max-width: 6rem !important;
+  text-align: right;
+}
+
 /* Reducir ancho de las columnas de cantidades (Insula, Centro, Patios, Total) */
 /* Insula - columna 4 (para admin) */
 .inventory-content .table-container .table th:nth-child(4),
@@ -1050,6 +1099,44 @@ input[type="number"] {
   .table th,
   .table td {
     padding: 0.25rem 0.375rem; /* Reducir padding en móviles */
+  }
+
+  .inventory-content .table-container .table.admin-table th:nth-child(2),
+  .inventory-content .table-container .table.admin-table td:nth-child(2) {
+    width: 12% !important;
+    min-width: 6.5rem !important;
+  }
+
+  .inventory-content .table-container .table.admin-table th:nth-child(4),
+  .inventory-content .table-container .table.admin-table td:nth-child(4),
+  .inventory-content .table-container .table.admin-table th:nth-child(5),
+  .inventory-content .table-container .table.admin-table td:nth-child(5),
+  .inventory-content .table-container .table.admin-table th:nth-child(6),
+  .inventory-content .table-container .table.admin-table td:nth-child(6) {
+    width: 11% !important;
+    min-width: 5rem !important;
+  }
+
+  .inventory-content .table-container .table.admin-table th:nth-child(7),
+  .inventory-content .table-container .table.admin-table td:nth-child(7) {
+    width: 16% !important;
+    min-width: 7rem !important;
+  }
+
+  .inventory-content .table-container .table.admin-table th:nth-child(8),
+  .inventory-content .table-container .table.admin-table td:nth-child(8) {
+    width: 6% !important;
+    min-width: 4.5rem !important;
+  }
+
+  .inventory-content .table-container .table.admin-table th:nth-child(9),
+  .inventory-content .table-container .table.admin-table td:nth-child(9),
+  .inventory-content .table-container .table.admin-table th:nth-child(10),
+  .inventory-content .table-container .table.admin-table td:nth-child(10),
+  .inventory-content .table-container .table.admin-table th:nth-child(11),
+  .inventory-content .table-container .table.admin-table td:nth-child(11) {
+    width: 6% !important;
+    min-width: 4.5rem !important;
   }
 }
 

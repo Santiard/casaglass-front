@@ -806,6 +806,30 @@ export default function OrdenEditarModal({
     return Number(p?.cantidadTotal ?? 0);
   };
 
+  const selectedCategory = useMemo(
+    () => categorias.find((c) => c.id === selectedCategoryId) || null,
+    [categorias, selectedCategoryId]
+  );
+
+  const esCatalogoVidrio = useMemo(() => {
+    const categoriaNombre = selectedCategory?.nombre?.toUpperCase().trim() || "";
+    return categoriaNombre === "VIDRIO";
+  }, [selectedCategory]);
+
+  const mostrarCamposVidrioCatalogo = catalogoTipoActivo === "productos" && esCatalogoVidrio;
+
+  const obtenerCampoVidrio = (producto, key) => {
+    const valor = producto?.[key];
+    return valor !== null && valor !== undefined && valor !== "" ? valor : "-";
+  };
+
+  const formatoNumeroVidrio = (valor) => {
+    if (valor === null || valor === undefined || valor === "") return "-";
+    const numero = Number(valor);
+    if (!Number.isFinite(numero)) return String(valor);
+    return Number.isInteger(numero) ? String(numero) : numero.toFixed(2);
+  };
+
   const catalogoFiltrado = useMemo(() => {
     let filtered = catalogoProductos;
     
@@ -861,6 +885,8 @@ export default function OrdenEditarModal({
     
     return filtered;
   }, [catalogoProductos, search, selectedCategoryId, selectedColor, categorias]);
+
+  const catalogoColSpan = mostrarCamposVidrioCatalogo ? 8 : 5;
 
   if (!isOpen) return null;
   
@@ -2986,23 +3012,30 @@ export default function OrdenEditarModal({
               <table className="inv-table">
                 <thead>
                   <tr>
-                    <th style={{ width: "18%" }}>Código</th>
-                    <th style={{ width: "34%" }}>Nombre</th>
+                    <th style={{ width: mostrarCamposVidrioCatalogo ? "12%" : "18%" }}>Código</th>
+                    <th style={{ width: mostrarCamposVidrioCatalogo ? "26%" : "34%" }}>Nombre</th>
                     <th style={{ width: "12%" }}>Color</th>
-                    <th style={{ width: "16%", textAlign: "right" }}>Cant.</th>
-                    <th style={{ width: "20%" }}>Acción</th>
+                    {mostrarCamposVidrioCatalogo && (
+                      <>
+                        <th style={{ width: "8%", textAlign: "center" }}>mm</th>
+                        <th style={{ width: "10%", textAlign: "center" }}>m1</th>
+                        <th style={{ width: "10%", textAlign: "center" }}>m2</th>
+                      </>
+                    )}
+                    <th style={{ width: mostrarCamposVidrioCatalogo ? "12%" : "16%", textAlign: "right" }}>Cant.</th>
+                    <th style={{ width: mostrarCamposVidrioCatalogo ? "20%" : "20%" }}>Acción</th>
                   </tr>
                 </thead>
                 <tbody>
                   {loadingProductos ? (
                     <tr>
-                      <td colSpan={5} className="empty" style={{ textAlign: 'center', padding: '2rem', color: '#666' }}>
+                      <td colSpan={catalogoColSpan} className="empty" style={{ textAlign: 'center', padding: '2rem', color: '#666' }}>
                         Cargando {catalogoTipoActivo === "cortes" ? "cortes" : "productos"}...
                       </td>
                     </tr>
                   ) : catalogoFiltrado.length === 0 ? (
                     <tr>
-                      <td colSpan={5} className="empty" style={{ textAlign: 'center', padding: '2rem' }}>
+                      <td colSpan={catalogoColSpan} className="empty" style={{ textAlign: 'center', padding: '2rem' }}>
                         {selectedCategoryId
                           ? `No hay ${catalogoTipoActivo === "cortes" ? "cortes" : "productos"} en esta categoría`
                           : `Selecciona una categoría para ver ${catalogoTipoActivo === "cortes" ? "cortes" : "productos"}`}
@@ -3027,6 +3060,19 @@ export default function OrdenEditarModal({
                             {p.color ?? "N/A"}
                           </span>
                         </td>
+                        {mostrarCamposVidrioCatalogo && (
+                          <>
+                            <td onDoubleClick={(e) => { e.stopPropagation(); addProducto(p); }} style={{ textAlign: "center" }}>
+                              {formatoNumeroVidrio(obtenerCampoVidrio(p, "mm"))}
+                            </td>
+                            <td onDoubleClick={(e) => { e.stopPropagation(); addProducto(p); }} style={{ textAlign: "center" }}>
+                              {formatoNumeroVidrio(obtenerCampoVidrio(p, "m1"))}
+                            </td>
+                            <td onDoubleClick={(e) => { e.stopPropagation(); addProducto(p); }} style={{ textAlign: "center" }}>
+                              {formatoNumeroVidrio(obtenerCampoVidrio(p, "m2"))}
+                            </td>
+                          </>
+                        )}
                         <td
                           onDoubleClick={(e) => { e.stopPropagation(); addProducto(p); }}
                           style={{ textAlign: "right", fontVariantNumeric: "tabular-nums" }}
@@ -3070,6 +3116,16 @@ export default function OrdenEditarModal({
                 </span>
               </div>
             </div>
+            {mostrarCamposVidrioCatalogo && productoSeleccionado && (
+              <div className="table-description-footer" style={{ borderTop: "1px solid #e5e7eb", background: "#f8fafc" }}>
+                <div className="table-description-content" style={{ gap: "1rem", flexWrap: "wrap" }}>
+                  <span className="table-description-label">Vidrio:</span>
+                  <span className="table-description-text">mm: {formatoNumeroVidrio(productoSeleccionado.mm)}</span>
+                  <span className="table-description-text">m1: {formatoNumeroVidrio(productoSeleccionado.m1)}</span>
+                  <span className="table-description-text">m2: {formatoNumeroVidrio(productoSeleccionado.m2)}</span>
+                </div>
+              </div>
+            )}
           </div>
             </div>
           </div>
