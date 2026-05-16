@@ -182,26 +182,33 @@ export default function FacturaImprimirModal({ factura, isOpen, onClose }) {
                   <th>Producto</th>
                   <th className="text-right">Valor Unitario (sin IVA)</th>
                   <th className="text-right">Valor Unitario (con IVA)</th>
+                  <th className="text-right">Total Línea</th>
                 </tr>
               </thead>
               <tbody>
                 {form.items.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="empty">
+                    <td colSpan={7} className="empty">
                       Sin productos
                     </td>
                   </tr>
                 ) : (
-                  form.items.map((item, index) => (
-                    <tr key={item.id || index}>
-                      <td className="text-center">{item.cantidad || 0}</td>
-                      <td>{resolverColorItem(item)}</td>
-                      <td>{resolverTipoItem(item)}</td>
-                      <td>{resolverNombreImpresion(item)}</td>
-                      <td className="text-right">${sinIva(item.precioUnitario).toLocaleString("es-CO")}</td>
-                      <td className="text-right">${Number(item.precioUnitario || 0).toLocaleString("es-CO")}</td>
-                    </tr>
-                  ))
+                  form.items.map((item, index) => {
+                    const cantidad = Number(item.cantidad || 0);
+                    const precioUnitarioConIva = Number(item.precioUnitario || 0);
+                    const totalLinea = cantidad * precioUnitarioConIva;
+                    return (
+                      <tr key={item.id || index}>
+                        <td className="text-center">{cantidad}</td>
+                        <td>{resolverColorItem(item)}</td>
+                        <td>{resolverTipoItem(item)}</td>
+                        <td>{resolverNombreImpresion(item)}</td>
+                        <td className="text-right">${sinIva(item.precioUnitario).toLocaleString("es-CO")}</td>
+                        <td className="text-right">${precioUnitarioConIva.toLocaleString("es-CO")}</td>
+                        <td className="text-right">${totalLinea.toLocaleString("es-CO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                      </tr>
+                    );
+                  })
                 )}
               </tbody>
             </table>
