@@ -396,6 +396,7 @@ export default function OrdenEditarModal({
           credito: false,
           tieneRetencionFuente: false, // Siempre false al crear
           tieneRetencionIca: false, // Siempre false al crear
+          porcentajeDescuento: null, // Opcional, null por defecto
           porcentajeIca: null, // Opcional, null por defecto
           clienteNombre: "",
           trabajadorNombre: defaultTrabajadorNombre || "",
@@ -427,6 +428,7 @@ export default function OrdenEditarModal({
         credito: orden?.credito ?? false,
         tieneRetencionFuente: Boolean(orden?.tieneRetencionFuente ?? false),
         tieneRetencionIca: Boolean(orden?.tieneRetencionIca ?? false),
+        porcentajeDescuento: orden?.porcentajeDescuento !== undefined && orden?.porcentajeDescuento !== null ? Number(orden.porcentajeDescuento) : null,
         porcentajeIca: orden?.porcentajeIca !== undefined && orden?.porcentajeIca !== null ? Number(orden.porcentajeIca) : null,
         clienteNombre: orden?.cliente?.nombre ?? "",
         trabajadorNombre: orden?.trabajador?.nombre ?? "",
@@ -478,6 +480,7 @@ export default function OrdenEditarModal({
       credito: Boolean(orden.credito),
       tieneRetencionFuente: Boolean(orden.tieneRetencionFuente ?? false),
       tieneRetencionIca: Boolean(orden.tieneRetencionIca ?? false),
+      porcentajeDescuento: orden.porcentajeDescuento !== undefined && orden.porcentajeDescuento !== null ? Number(orden.porcentajeDescuento) : null,
       porcentajeIca: orden.porcentajeIca !== undefined && orden.porcentajeIca !== null ? Number(orden.porcentajeIca) : null,
       clienteNombre: orden.cliente?.nombre ?? "",
       trabajadorNombre: orden.trabajador?.nombre ?? "",
@@ -1409,6 +1412,9 @@ export default function OrdenEditarModal({
         tieneRetencionFuente: Boolean(form.tieneRetencionFuente ?? false),
         retencionFuente: retencionFuenteCrear, // Calcular si está marcado, sino 0
         tieneRetencionIca: Boolean(form.tieneRetencionIca ?? false),
+        porcentajeDescuento: form.porcentajeDescuento !== null && form.porcentajeDescuento !== undefined && form.porcentajeDescuento !== ""
+          ? Number(form.porcentajeDescuento)
+          : 0,
         ...(form.porcentajeIca !== undefined && form.porcentajeIca !== null 
           ? { porcentajeIca: parseFloat(form.porcentajeIca) } 
           : {}),
@@ -1809,6 +1815,9 @@ export default function OrdenEditarModal({
     tieneRetencionFuente: Boolean(form.tieneRetencionFuente ?? false),
     retencionFuente: retencionFuenteEditar, // Enviar 0 si no está marcado, o el valor calculado si está marcado
     tieneRetencionIca: Boolean(form.tieneRetencionIca ?? false),
+    porcentajeDescuento: form.porcentajeDescuento !== null && form.porcentajeDescuento !== undefined && form.porcentajeDescuento !== ""
+      ? Number(form.porcentajeDescuento)
+      : 0,
     ...(form.porcentajeIca !== undefined && form.porcentajeIca !== null 
       ? { porcentajeIca: parseFloat(form.porcentajeIca) } 
       : {}),
@@ -2129,6 +2138,27 @@ export default function OrdenEditarModal({
                   </div>
                 );
               })()}
+
+              <div className="orden-toolbar-field orden-toolbar-field--descuento">
+                <span className="orden-toolbar-field-caption">Descuento</span>
+                <input
+                  type="number"
+                  className="orden-toolbar-ica-input"
+                  value={form.porcentajeDescuento !== null && form.porcentajeDescuento !== undefined ? form.porcentajeDescuento : ""}
+                  onChange={(e) => {
+                    const raw = e.target.value;
+                    const valor = raw === "" ? null : parseFloat(raw);
+                    if (valor === null || (Number.isFinite(valor) && valor >= 0 && valor <= 100)) {
+                      handleChange("porcentajeDescuento", valor);
+                    }
+                  }}
+                  placeholder="%"
+                  min={0}
+                  max={100}
+                  step={0.1}
+                  title="Porcentaje de descuento (0 a 100)"
+                />
+              </div>
 
               <div className="orden-toolbar-field orden-toolbar-field--cliente">
                 <span className="orden-toolbar-field-caption">Cliente</span>

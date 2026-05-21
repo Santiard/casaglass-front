@@ -125,6 +125,9 @@ export async function crearOrdenVenta(payload) {
       tieneRetencionFuente: Boolean(payload.tieneRetencionFuente ?? false),
       retencionFuente: parseFloat(payload.retencionFuente || 0), // Valor calculado de retención en la fuente
       tieneRetencionIca: Boolean(payload.tieneRetencionIca ?? false),
+         ...(payload.porcentajeDescuento !== undefined && payload.porcentajeDescuento !== null 
+           ? { porcentajeDescuento: parseFloat(payload.porcentajeDescuento) } 
+           : { porcentajeDescuento: 0 }),
       ...(payload.porcentajeIca !== undefined && payload.porcentajeIca !== null 
         ? { porcentajeIca: parseFloat(payload.porcentajeIca) } 
         : {}),
@@ -440,6 +443,9 @@ export async function confirmarVenta(id, ordenCompleta) {
       credito: eraCotizacion ? true : Boolean(ordenCompleta.credito),
       tieneRetencionFuente: Boolean(ordenCompleta.tieneRetencionFuente ?? false),
       tieneRetencionIca: Boolean(ordenCompleta.tieneRetencionIca ?? false),
+      ...(ordenCompleta.porcentajeDescuento !== undefined && ordenCompleta.porcentajeDescuento !== null 
+        ? { porcentajeDescuento: parseFloat(ordenCompleta.porcentajeDescuento) } 
+        : { porcentajeDescuento: 0 }),
       ...(ordenCompleta.porcentajeIca !== undefined && ordenCompleta.porcentajeIca !== null 
         ? { porcentajeIca: parseFloat(ordenCompleta.porcentajeIca) } 
         : {}),
@@ -503,6 +509,9 @@ export async function actualizarOrdenVenta(id, payload) {
       incluidaEntrega: Boolean(payload.incluidaEntrega || false),
       tieneRetencionFuente: Boolean(payload.tieneRetencionFuente ?? false),
       tieneRetencionIca: Boolean(payload.tieneRetencionIca ?? false),
+      ...(payload.porcentajeDescuento !== undefined && payload.porcentajeDescuento !== null 
+        ? { porcentajeDescuento: parseFloat(payload.porcentajeDescuento) } 
+        : { porcentajeDescuento: 0 }),
       ...(payload.porcentajeIca !== undefined && payload.porcentajeIca !== null 
         ? { porcentajeIca: parseFloat(payload.porcentajeIca) } 
         : {}),
