@@ -72,8 +72,16 @@ export default function OrdenImprimirModal({ orden, isOpen, onClose }) {
           venta: ordenDetallada.venta ?? false,
           credito: ordenDetallada.credito ?? false,
           estado: ordenDetallada.estado ?? "ACTIVA",
+          porcentajeDescuento:
+            ordenDetallada.porcentajeDescuento !== undefined && ordenDetallada.porcentajeDescuento !== null
+              ? Number(ordenDetallada.porcentajeDescuento)
+              : null,
+          montoDescuento: typeof ordenDetallada.montoDescuento === "number" ? ordenDetallada.montoDescuento : 0,
+          subtotalBruto:
+            typeof ordenDetallada.subtotalBruto === "number"
+              ? ordenDetallada.subtotalBruto
+              : null,
           subtotal: typeof ordenDetallada.subtotal === "number" ? ordenDetallada.subtotal : null, // Base sin IVA
-          iva: typeof ordenDetallada.iva === "number" ? ordenDetallada.iva : null, // IVA calculado
           retencionFuente: typeof ordenDetallada.retencionFuente === "number" ? ordenDetallada.retencionFuente : 0,
           tieneRetencionFuente: Boolean(ordenDetallada.tieneRetencionFuente ?? false),
           retencionIca: typeof ordenDetallada.retencionIca === "number" ? ordenDetallada.retencionIca : 0,
@@ -81,6 +89,10 @@ export default function OrdenImprimirModal({ orden, isOpen, onClose }) {
           porcentajeIca: ordenDetallada.porcentajeIca !== undefined && ordenDetallada.porcentajeIca !== null 
             ? Number(ordenDetallada.porcentajeIca) 
             : null,
+          totalAPagar:
+            typeof ordenDetallada.totalAPagar === "number"
+              ? ordenDetallada.totalAPagar
+              : null,
           total: typeof ordenDetallada.total === "number" ? ordenDetallada.total : null, // Total facturado
           cliente: ordenDetallada.cliente || {},
           sede: ordenDetallada.sede || {},
@@ -118,8 +130,16 @@ export default function OrdenImprimirModal({ orden, isOpen, onClose }) {
           venta: orden.venta ?? false,
           credito: orden.credito ?? false,
           estado: orden.estado ?? "ACTIVA",
+          porcentajeDescuento:
+            orden.porcentajeDescuento !== undefined && orden.porcentajeDescuento !== null
+              ? Number(orden.porcentajeDescuento)
+              : null,
+          montoDescuento: typeof orden.montoDescuento === "number" ? orden.montoDescuento : 0,
+          subtotalBruto:
+            typeof orden.subtotalBruto === "number"
+              ? orden.subtotalBruto
+              : null,
           subtotal: typeof orden.subtotal === "number" ? orden.subtotal : null, // Base sin IVA
-          iva: typeof orden.iva === "number" ? orden.iva : null, // IVA calculado
           retencionFuente: typeof orden.retencionFuente === "number" ? orden.retencionFuente : 0,
           tieneRetencionFuente: Boolean(orden.tieneRetencionFuente ?? false),
           retencionIca: typeof orden.retencionIca === "number" ? orden.retencionIca : 0,
@@ -127,6 +147,10 @@ export default function OrdenImprimirModal({ orden, isOpen, onClose }) {
           porcentajeIca: orden.porcentajeIca !== undefined && orden.porcentajeIca !== null 
             ? Number(orden.porcentajeIca) 
             : null,
+          totalAPagar:
+            typeof orden.totalAPagar === "number"
+              ? orden.totalAPagar
+              : null,
           total: typeof orden.total === "number" ? orden.total : null, // Total facturado
           cliente: orden.cliente || {},
           sede: orden.sede || {},
@@ -163,22 +187,21 @@ export default function OrdenImprimirModal({ orden, isOpen, onClose }) {
   if (!form) return null;
 
   // Usar valores del backend (ya calculados correctamente)
-  // El backend ahora calcula: subtotal = base sin IVA, iva = valor del IVA, total = total facturado
-  const subtotalSinIva = form.subtotal !== null 
-    ? form.subtotal 
-    : form.items.reduce((sum, item) => sum + (item.totalLinea || 0), 0) / 1.19; // Fallback: calcular si no viene del backend
-  const iva = form.iva !== null 
-    ? form.iva 
-    : (form.items.reduce((sum, item) => sum + (item.totalLinea || 0), 0) - subtotalSinIva); // Fallback: calcular si no viene del backend
-  const retencionFuente = form.retencionFuente || 0;
-  const retencionIca = form.retencionIca || 0;
-  const tieneRetencionIca = form.tieneRetencionIca || false;
-  const porcentajeIca = form.porcentajeIca !== undefined && form.porcentajeIca !== null 
-    ? Number(form.porcentajeIca) 
-    : null;
-  const totalOrden = form.total !== null 
-    ? form.total 
-    : form.items.reduce((sum, item) => sum + (item.totalLinea || 0), 0); // Fallback: calcular si no viene del backend
+  // El backend ahora calcula: subtotalBruto, montoDescuento y totalAPagar
+  const montoDescuento = typeof form.montoDescuento === "number" ? form.montoDescuento : 0;
+  const porcentajeDescuento = form.porcentajeDescuento !== undefined && form.porcentajeDescuento !== null
+    ? Number(form.porcentajeDescuento)
+    : 0;
+  const subtotalBruto = form.subtotalBruto !== null
+    ? form.subtotalBruto
+    : (form.subtotal !== null
+        ? form.subtotal + montoDescuento
+        : form.items.reduce((sum, item) => sum + (item.totalLinea || 0), 0));
+  const totalAPagar = form.totalAPagar !== null
+    ? form.totalAPagar
+    : (form.total !== null
+        ? form.total
+        : subtotalBruto - montoDescuento);
   const esFormatoAntiguoSede1 = esSedeSinControlCortes(form?.sede?.id);
 
   // Formatear fecha
@@ -698,7 +721,14 @@ export default function OrdenImprimirModal({ orden, isOpen, onClose }) {
 
                 {/* Totales */}
                 <div className="orden-imprimir-total">
-                  <p><strong>Total: ${totalOrden.toLocaleString("es-CO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong></p>
+                  <p>Monto antes del descuento: ${subtotalBruto.toLocaleString("es-CO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                  {montoDescuento > 0 && (
+                    <p>
+                      Descuento{porcentajeDescuento ? ` (${porcentajeDescuento}%)` : ""}: -$
+                      {montoDescuento.toLocaleString("es-CO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </p>
+                  )}
+                  <p><strong>Total a pagar: ${totalAPagar.toLocaleString("es-CO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong></p>
                 </div>
               </>
             )}
