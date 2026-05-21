@@ -933,14 +933,7 @@ export default function MovimientoModal({
               </p>
             )}
             {esTrasladoInsulaHaciaCentroOPatios(form.sedeOrigenId, form.sedeDestinoId) && (
-              <p style={{ fontSize: "0.82rem", color: "#64748b", margin: "0 0 0.75rem" }}>
-                <strong>Insula → Centro/Patios:</strong> los cortes se agregan solo con <strong>Cortar</strong>{" "}
-                (medida). Al confirmar, se busca o crea el registro en <strong>/api/cortes</strong> y el traslado envía{" "}
-                <code style={{ fontSize: "0.85em" }}>producto.id</code> = ese Corte (no el id del perfil entero). No se
-                descuenta corte en stock de Insula; el destino suma en inventario de cortes. Doble clic: producto entero.
-                No enviamos <code style={{ fontSize: "0.85em" }}>productoInventarioADescontarSede1</code> desde este
-                formulario. Ver <strong>DOC_TRASLADOS.md</strong>.
-              </p>
+              <></>
             )}
             {esTrasladoCentroOPatiosHaciaInsula(form.sedeOrigenId, form.sedeDestinoId) && (
               <p style={{ fontSize: "0.82rem", color: "#64748b", margin: "0 0 0.75rem" }}>
