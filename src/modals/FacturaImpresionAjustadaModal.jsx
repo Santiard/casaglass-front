@@ -88,9 +88,10 @@ export default function FacturaImpresionAjustadaModal({ factura, isOpen, onClose
   }, [filasPrecio]);
 
   const retencionFuente = form?.retencionFuente ?? 0;
+  const retencionIva = form?.retencionIva ?? form?.orden?.retencionIva ?? 0;
   const retencionIca = form?.retencionIca ?? 0;
   const totalFacturaImpresion = totalesImpresion.totalConIvaLineas;
-  const valorAPagarImpresion = totalFacturaImpresion - retencionFuente - retencionIca;
+  const valorAPagarImpresion = totalFacturaImpresion - retencionFuente - retencionIca - retencionIva;
   const telefonoCliente =
     form?.cliente?.telefono || form?.cliente?.celular || form?.cliente?.phone || null;
 
@@ -104,6 +105,7 @@ export default function FacturaImpresionAjustadaModal({ factura, isOpen, onClose
       : "-";
 
   const tieneRetencionIca = form?.orden?.tieneRetencionIca || false;
+  const tieneRetencionIva = form?.tieneRetencionIva || form?.orden?.tieneRetencionIva || retencionIva > 0;
   const porcentajeIca =
     form?.orden?.porcentajeIca !== undefined && form?.orden?.porcentajeIca !== null
       ? Number(form.orden.porcentajeIca)
@@ -382,6 +384,15 @@ export default function FacturaImpresionAjustadaModal({ factura, isOpen, onClose
                   })}
                 </p>
               )}
+              {tieneRetencionIva && retencionIva > 0 && (
+                <p>
+                  Retención IVA: $
+                  {retencionIva.toLocaleString("es-CO", {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
+                </p>
+              )}
               <p>
                 Retención en la Fuente: $
                 {retencionFuente.toLocaleString("es-CO", {
@@ -398,7 +409,7 @@ export default function FacturaImpresionAjustadaModal({ factura, isOpen, onClose
                   })}
                 </strong>
               </p>
-              {(retencionFuente > 0 || retencionIca > 0) && (
+              {(retencionFuente > 0 || retencionIca > 0 || retencionIva > 0) && (
                 <p style={{ marginTop: "0.5rem", fontSize: "0.9em", color: "#666" }}>
                   Valor a pagar: $
                   {valorAPagarImpresion.toLocaleString("es-CO", {

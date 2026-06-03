@@ -86,6 +86,8 @@ export default function OrdenImprimirModal({ orden, isOpen, onClose }) {
           tieneRetencionFuente: Boolean(ordenDetallada.tieneRetencionFuente ?? false),
           retencionIca: typeof ordenDetallada.retencionIca === "number" ? ordenDetallada.retencionIca : 0,
           tieneRetencionIca: Boolean(ordenDetallada.tieneRetencionIca ?? false),
+          retencionIva: typeof ordenDetallada.retencionIva === "number" ? ordenDetallada.retencionIva : 0,
+          tieneRetencionIva: Boolean(ordenDetallada.tieneRetencionIva ?? false),
           porcentajeIca: ordenDetallada.porcentajeIca !== undefined && ordenDetallada.porcentajeIca !== null 
             ? Number(ordenDetallada.porcentajeIca) 
             : null,
@@ -144,6 +146,8 @@ export default function OrdenImprimirModal({ orden, isOpen, onClose }) {
           tieneRetencionFuente: Boolean(orden.tieneRetencionFuente ?? false),
           retencionIca: typeof orden.retencionIca === "number" ? orden.retencionIca : 0,
           tieneRetencionIca: Boolean(orden.tieneRetencionIca ?? false),
+          retencionIva: typeof orden.retencionIva === "number" ? orden.retencionIva : 0,
+          tieneRetencionIva: Boolean(orden.tieneRetencionIva ?? false),
           porcentajeIca: orden.porcentajeIca !== undefined && orden.porcentajeIca !== null 
             ? Number(orden.porcentajeIca) 
             : null,
@@ -728,7 +732,30 @@ export default function OrdenImprimirModal({ orden, isOpen, onClose }) {
                       {montoDescuento.toLocaleString("es-CO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </p>
                   )}
-                  <p><strong>Total a pagar: ${totalAPagar.toLocaleString("es-CO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong></p>
+
+                  {form.tieneRetencionIca && form.retencionIca > 0 && (
+                    <p>Retención ICA{form.porcentajeIca ? ` (${form.porcentajeIca}%)` : ''}: -${form.retencionIca.toLocaleString("es-CO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                  )}
+
+                  <p>Retención en la Fuente: -${(form.retencionFuente || 0).toLocaleString("es-CO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+
+                  {form.tieneRetencionIva && form.retencionIva > 0 && (
+                    <p>Retención IVA: -${form.retencionIva.toLocaleString("es-CO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                  )}
+
+                  {/* Mostrar Total Facturado (bruto) y, si aplica, Total Neto a Pagar */}
+                  {(() => {
+                    const grossTotal = form.total !== null ? form.total : subtotalBruto - montoDescuento;
+                    const totalNetoPagar = grossTotal - (form.retencionFuente || 0) - (form.retencionIca || 0) - (form.retencionIva || 0);
+                    return (
+                      <>
+                        <p><strong>Total Facturado: ${grossTotal.toLocaleString("es-CO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong></p>
+                        {( (form.retencionFuente || 0) > 0 || (form.retencionIca || 0) > 0 || (form.retencionIva || 0) > 0) && (
+                          <p style={{ fontSize: "0.95rem", color: "#666" }}><strong>Total Neto a Pagar: ${totalNetoPagar.toLocaleString("es-CO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong></p>
+                        )}
+                      </>
+                    );
+                  })()}
                 </div>
               </>
             )}

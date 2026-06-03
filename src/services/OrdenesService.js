@@ -125,6 +125,10 @@ export async function crearOrdenVenta(payload) {
       tieneRetencionFuente: Boolean(payload.tieneRetencionFuente ?? false),
       retencionFuente: parseFloat(payload.retencionFuente || 0), // Valor calculado de retención en la fuente
       tieneRetencionIca: Boolean(payload.tieneRetencionIca ?? false),
+      tieneRetencionIva: Boolean(payload.tieneRetencionIva ?? false),
+      ...(payload.retencionIva !== undefined && payload.retencionIva !== null
+        ? { retencionIva: parseFloat(payload.retencionIva) }
+        : {}),
          ...(payload.porcentajeDescuento !== undefined && payload.porcentajeDescuento !== null 
            ? { porcentajeDescuento: parseFloat(payload.porcentajeDescuento) } 
            : { porcentajeDescuento: 0 }),
@@ -443,6 +447,10 @@ export async function confirmarVenta(id, ordenCompleta) {
       credito: eraCotizacion ? true : Boolean(ordenCompleta.credito),
       tieneRetencionFuente: Boolean(ordenCompleta.tieneRetencionFuente ?? false),
       tieneRetencionIca: Boolean(ordenCompleta.tieneRetencionIca ?? false),
+      tieneRetencionIva: Boolean(ordenCompleta.tieneRetencionIva ?? false),
+      ...(ordenCompleta.retencionIva !== undefined && ordenCompleta.retencionIva !== null
+        ? { retencionIva: parseFloat(ordenCompleta.retencionIva) }
+        : {}),
       ...(ordenCompleta.porcentajeDescuento !== undefined && ordenCompleta.porcentajeDescuento !== null 
         ? { porcentajeDescuento: parseFloat(ordenCompleta.porcentajeDescuento) } 
         : { porcentajeDescuento: 0 }),
@@ -509,6 +517,10 @@ export async function actualizarOrdenVenta(id, payload) {
       incluidaEntrega: Boolean(payload.incluidaEntrega || false),
       tieneRetencionFuente: Boolean(payload.tieneRetencionFuente ?? false),
       tieneRetencionIca: Boolean(payload.tieneRetencionIca ?? false),
+      tieneRetencionIva: Boolean(payload.tieneRetencionIva ?? false),
+      ...(payload.retencionIva !== undefined && payload.retencionIva !== null
+        ? { retencionIva: parseFloat(payload.retencionIva) }
+        : {}),
       ...(payload.porcentajeDescuento !== undefined && payload.porcentajeDescuento !== null 
         ? { porcentajeDescuento: parseFloat(payload.porcentajeDescuento) } 
         : { porcentajeDescuento: 0 }),

@@ -68,6 +68,9 @@ export async function crearFactura(factura) {
     ...factura,
     ...(factura.retencionIca !== undefined && factura.retencionIca !== null 
       ? { retencionIca: parseFloat(factura.retencionIca) } 
+      : {}),
+    ...(factura.retencionIva !== undefined && factura.retencionIva !== null
+      ? { retencionIva: parseFloat(factura.retencionIva) }
       : {})
   };
   
@@ -81,6 +84,9 @@ export async function actualizarFactura(id, factura) {
     ...factura,
     ...(factura.retencionIca !== undefined && factura.retencionIca !== null 
       ? { retencionIca: parseFloat(factura.retencionIca) } 
+      : {}),
+    ...(factura.retencionIva !== undefined && factura.retencionIva !== null
+      ? { retencionIva: parseFloat(factura.retencionIva) }
       : {})
   };
   

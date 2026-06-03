@@ -101,6 +101,8 @@ export function mapFacturaCompletaToForm(facturaCompleta) {
     subtotal: typeof facturaCompleta.subtotal === "number" ? facturaCompleta.subtotal : 0,
     iva: typeof facturaCompleta.iva === "number" ? facturaCompleta.iva : 0,
     retencionFuente: typeof facturaCompleta.retencionFuente === "number" ? facturaCompleta.retencionFuente : 0,
+    retencionIva: typeof facturaCompleta.retencionIva === "number" ? facturaCompleta.retencionIva : 0,
+    tieneRetencionIva: Boolean(facturaCompleta.tieneRetencionIva ?? facturaCompleta.orden?.tieneRetencionIva ?? false),
     retencionIca: typeof facturaCompleta.retencionIca === "number" ? facturaCompleta.retencionIca : 0,
     total: typeof facturaCompleta.total === "number" ? facturaCompleta.total : 0,
     formaPago: facturaCompleta.formaPago || "-",
@@ -112,6 +114,8 @@ export function mapFacturaCompletaToForm(facturaCompleta) {
       fecha: ordenCompleta.fecha,
       obra: ordenCompleta.obra || "",
       tieneRetencionIca: ordenCompleta.tieneRetencionIca || false,
+      tieneRetencionIva: Boolean(ordenCompleta.tieneRetencionIva ?? false),
+      retencionIva: typeof ordenCompleta.retencionIva === "number" ? ordenCompleta.retencionIva : 0,
       porcentajeIca:
         ordenCompleta.porcentajeIca !== undefined && ordenCompleta.porcentajeIca !== null
           ? Number(ordenCompleta.porcentajeIca)
@@ -134,6 +138,8 @@ export function mapFacturaListRowToForm(factura) {
     subtotal: typeof factura.subtotal === "number" ? factura.subtotal : 0,
     iva: typeof factura.iva === "number" ? factura.iva : 0,
     retencionFuente: typeof factura.retencionFuente === "number" ? factura.retencionFuente : 0,
+    retencionIva: typeof factura.retencionIva === "number" ? factura.retencionIva : 0,
+    tieneRetencionIva: Boolean(factura.tieneRetencionIva ?? factura.orden?.tieneRetencionIva ?? false),
     retencionIca: typeof factura.retencionIca === "number" ? factura.retencionIca : 0,
     total: typeof factura.total === "number" ? factura.total : 0,
     formaPago: factura.formaPago || "-",
@@ -145,6 +151,8 @@ export function mapFacturaListRowToForm(factura) {
       fecha: ordenCompleta.fecha,
       obra: ordenCompleta.obra || "",
       tieneRetencionIca: ordenCompleta.tieneRetencionIca || false,
+      tieneRetencionIva: Boolean(ordenCompleta.tieneRetencionIva ?? false),
+      retencionIva: typeof ordenCompleta.retencionIva === "number" ? ordenCompleta.retencionIva : 0,
       porcentajeIca:
         ordenCompleta.porcentajeIca !== undefined && ordenCompleta.porcentajeIca !== null
           ? Number(ordenCompleta.porcentajeIca)

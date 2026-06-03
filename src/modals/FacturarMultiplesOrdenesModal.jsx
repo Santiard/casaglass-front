@@ -547,6 +547,7 @@ const FacturarMultiplesOrdenesModal = ({ isOpen, onClose, ordenInicial, onSucces
           
           try {
             const valorRetencionFuente = tieneRetencion ? totales.reteVal : 0;
+            const valorRetencionIva = Number(orden.retencionIva || 0);
             
             const ordenUpdatePayload = {
               fecha: orden.fecha,
@@ -557,6 +558,8 @@ const FacturarMultiplesOrdenesModal = ({ isOpen, onClose, ordenInicial, onSucces
               incluidaEntrega: orden.incluidaEntrega || false,
               tieneRetencionFuente: tieneRetencion,
               retencionFuente: valorRetencionFuente, // Enviar el valor calculado con la fórmula exacta
+              tieneRetencionIva: Boolean(orden.tieneRetencionIva ?? false),
+              retencionIva: valorRetencionIva,
               iva: totales.ivaVal, // Actualizar IVA si no estaba calculado
               clienteId: Number(orden.clienteId || orden.cliente?.id),
               sedeId: sedeId,
@@ -588,6 +591,8 @@ const FacturarMultiplesOrdenesModal = ({ isOpen, onClose, ordenInicial, onSucces
             orden.iva = totales.ivaVal;
             orden.retencionFuente = valorRetencionFuente;
             orden.tieneRetencionFuente = tieneRetencion;
+            orden.retencionIva = valorRetencionIva;
+            orden.tieneRetencionIva = Boolean(orden.tieneRetencionIva ?? false);
             orden.subtotal = totales.subtotal;
           } catch (updateError) {
             // Continuar con la facturación aunque falle la actualización de la orden
@@ -660,6 +665,7 @@ const FacturarMultiplesOrdenesModal = ({ isOpen, onClose, ordenInicial, onSucces
         // Usar los valores ya calculados por calcularTotalesOrden (que usa la fórmula exacta del backend)
         const valorIvaRedondeado = totales.ivaVal;
         const valorRetencionRedondeado = tieneRetencion ? totales.reteVal : 0;
+        const valorRetencionIvaRedondeado = Number(orden.retencionIva || 0);
         
         // Validar que retefuenteRate esté definido si se necesita
         if (tieneRetencion && totales.reteVal > 0 && !rateValido) {
@@ -689,6 +695,7 @@ const FacturarMultiplesOrdenesModal = ({ isOpen, onClose, ordenInicial, onSucces
           subtotal: Number(totales.subtotal || 0),
           iva: valorIvaRedondeado, // Valor calculado en dinero, NO porcentaje
           retencionFuente: Math.max(0, valorRetencionRedondeado), // Valor calculado en dinero, NO porcentaje
+          retencionIva: Math.max(0, valorRetencionIvaRedondeado),
           formaPago: formData.formaPago || 'EFECTIVO',
           observaciones: formData.observaciones || `Factura generada desde orden #${orden.numero}`,
           clienteId: Number(clienteFactura.id),

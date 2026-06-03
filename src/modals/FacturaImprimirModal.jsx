@@ -60,12 +60,14 @@ export default function FacturaImprimirModal({ factura, isOpen, onClose }) {
   const subtotal = form.subtotal || 0;
   const iva = form.iva || 0;
   const retencionFuente = form.retencionFuente || 0;
+  const retencionIva = form.retencionIva || form.orden?.retencionIva || 0;
   const retencionIca = form.retencionIca || 0;
   const totalFactura = form.total || 0;
   const telefonoCliente =
     form.cliente?.telefono || form.cliente?.celular || form.cliente?.phone || null;
 
   const tieneRetencionIca = form.orden?.tieneRetencionIca || false;
+  const tieneRetencionIva = form.tieneRetencionIva || form.orden?.tieneRetencionIva || retencionIva > 0;
   const porcentajeIca =
     form.orden?.porcentajeIca !== undefined && form.orden?.porcentajeIca !== null
       ? Number(form.orden.porcentajeIca)
@@ -228,6 +230,12 @@ export default function FacturaImprimirModal({ factura, isOpen, onClose }) {
                   {retencionIca.toLocaleString("es-CO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </p>
               )}
+              {tieneRetencionIva && retencionIva > 0 && (
+                <p>
+                  Retención IVA: $
+                  {retencionIva.toLocaleString("es-CO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </p>
+              )}
               <p>
                 Retención en la Fuente: $
                 {retencionFuente.toLocaleString("es-CO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
@@ -238,10 +246,10 @@ export default function FacturaImprimirModal({ factura, isOpen, onClose }) {
                   {totalFactura.toLocaleString("es-CO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </strong>
               </p>
-              {(retencionFuente > 0 || retencionIca > 0) && (
+              {(retencionFuente > 0 || retencionIca > 0 || retencionIva > 0) && (
                 <p style={{ marginTop: "0.5rem", fontSize: "0.9em", color: "#666" }}>
                   Valor a pagar: $
-                  {(totalFactura - retencionFuente - retencionIca).toLocaleString("es-CO", {
+                  {(totalFactura - retencionFuente - retencionIca - retencionIva).toLocaleString("es-CO", {
                     minimumFractionDigits: 2,
                     maximumFractionDigits: 2,
                   })}

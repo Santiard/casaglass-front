@@ -213,6 +213,9 @@ const AbonoPage = () => {
         // Retención de fuente
         tieneRetencionFuente: credito.tieneRetencionFuente,
         retencionFuente: credito.retencionFuente,
+        // Retención IVA
+        tieneRetencionIva: credito.tieneRetencionIva,
+        retencionIva: credito.retencionIva,
         // Retención ICA
         tieneRetencionIca: credito.tieneRetencionIca,
         retencionIca: credito.retencionIca,
@@ -227,6 +230,7 @@ const AbonoPage = () => {
           saldoPendiente: credito.saldoPendiente,
           totalCredito: credito.totalCredito,
           totalAbonado: credito.totalAbonado,
+          retencionIva: credito.retencionIva,
           estado: credito.estado
         },
         
@@ -257,6 +261,7 @@ const AbonoPage = () => {
   
   // Calcular total de retenciones automáticas
   const totalRetenciones = distribucion.reduce((sum, d) => sum + (d.montoRetencion || 0), 0);
+  const totalRetencionIva = ordenesCredito.reduce((sum, orden) => sum + (Number(orden.retencionIva) || 0), 0);
   const totalRetencionIca = distribucion.reduce((sum, d) => sum + (d.montoRetencionIca || 0), 0);
 
   // Calcular distribución automática cuando cambia el total de métodos de pago, las órdenes seleccionadas o las órdenes con retención
@@ -1090,6 +1095,8 @@ const toggleIcaOrden = async (ordenId) => {
                           <th style={{ padding: '0.5rem', textAlign: 'right', borderRight: '1px solid #fff' }}>VALOR RETENCIÓN</th>
                           <th style={{ padding: '0.5rem', textAlign: 'center', borderRight: '1px solid #fff', fontSize: '0.75rem' }}>RETENCIÓN ICA</th>
                           <th style={{ padding: '0.5rem', textAlign: 'right' }}>VALOR RETENCIÓN ICA</th>
+                          <th style={{ padding: '0.5rem', textAlign: 'center', borderRight: '1px solid #fff', fontSize: '0.75rem' }}>RETENCIÓN IVA</th>
+                          <th style={{ padding: '0.5rem', textAlign: 'right' }}>VALOR RETENCIÓN IVA</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -1127,6 +1134,7 @@ const toggleIcaOrden = async (ordenId) => {
                           // MOSTRAR RETENCIÓN ICA: Si la orden ya tiene retencionIca del backend, mostrarlo
                           // Esto es independiente de si está seleccionada o no
                           const valorRetencionIcaOrden = orden.retencionIca || 0;
+                          const valorRetencionIvaOrden = orden.retencionIva || 0;
                           
                           return (
                             <tr
@@ -1253,6 +1261,22 @@ const toggleIcaOrden = async (ordenId) => {
                               }}>
                                 {valorRetencionIcaOrden > 0 ? `$${valorRetencionIcaOrden.toLocaleString('es-CO')}` : '-'}
                               </td>
+                              <td style={{ 
+                                padding: '0.5rem', 
+                                textAlign: 'center',
+                                borderRight: '1px solid #e0e0e0'
+                              }}>
+                                -
+                              </td>
+                              <td style={{ 
+                                padding: '0.5rem', 
+                                textAlign: 'right',
+                                color: valorRetencionIvaOrden > 0 ? '#856404' : '#999',
+                                fontWeight: valorRetencionIvaOrden > 0 ? 'bold' : 'normal',
+                                backgroundColor: valorRetencionIvaOrden > 0 ? '#fff3cd' : 'transparent'
+                              }}>
+                                {valorRetencionIvaOrden > 0 ? `$${valorRetencionIvaOrden.toLocaleString('es-CO')}` : '-'}
+                              </td>
                             </tr>
                           );
                         })}
@@ -1300,6 +1324,18 @@ const toggleIcaOrden = async (ordenId) => {
                           }}>
                             {totalRetencionIca > 0 ? `$${totalRetencionIca.toLocaleString('es-CO')}` : '-'}
                           </td>
+                              <td style={{ padding: '0.5rem', textAlign: 'center', borderTop: '2px solid #1e2753' }}>
+                                -
+                              </td>
+                              <td style={{ 
+                                padding: '0.5rem', 
+                                textAlign: 'right', 
+                                borderTop: '2px solid #1e2753',
+                                color: totalRetencionIva > 0 ? '#856404' : '#999',
+                                backgroundColor: totalRetencionIva > 0 ? '#fff3cd' : 'transparent'
+                              }}>
+                                {totalRetencionIva > 0 ? `$${totalRetencionIva.toLocaleString('es-CO')}` : '-'}
+                              </td>
                         </tr>
                       </tfoot>
                     </table>

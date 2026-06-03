@@ -13,6 +13,8 @@ export async function getBusinessSettings() {
       ivaRate: data.ivaRate,
       retefuenteRate: data.reteRate, // Backend usa reteRate, frontend usa retefuenteRate
       retefuenteThreshold: data.reteThreshold, // Backend usa reteThreshold, frontend usa retefuenteThreshold
+      reteivaRate: data.reteivaRate,
+      reteivaThreshold: data.reteivaThreshold,
       icaRate: data.icaRate,
       icaThreshold: data.icaThreshold,
       updatedAt: data.updatedAt
@@ -24,18 +26,20 @@ export async function getBusinessSettings() {
     console.error('[getBusinessSettings] Error obteniendo configuración:', error);
     // Error obteniendo configuración de negocio
     // Valores por defecto si falla la petición
-    return { ivaRate: 19, retefuenteRate: 2.5, retefuenteThreshold: 1000000, icaRate: 0.48, icaThreshold: 1000000 };
+    return { ivaRate: 19, retefuenteRate: 2.5, retefuenteThreshold: 1000000, reteivaRate: 15, reteivaThreshold: 1000000, icaRate: 0.48, icaThreshold: 1000000 };
   }
 }
 
 // PUT /api/business-settings
 export async function updateBusinessSettings(payload) {
-  const { ivaRate, retefuenteRate, retefuenteThreshold, icaRate, icaThreshold } = payload || {};
+  const { ivaRate, retefuenteRate, retefuenteThreshold, reteivaRate, reteivaThreshold, icaRate, icaThreshold } = payload || {};
   
   // Validación mínima
   if (ivaRate < 0 || ivaRate > 100) throw new Error('IVA inválido');
   if (retefuenteRate < 0 || retefuenteRate > 100) throw new Error('Retención inválida');
   if (retefuenteThreshold < 0) throw new Error('Umbral inválido');
+  if (reteivaRate !== undefined && (reteivaRate < 0 || reteivaRate > 100)) throw new Error('Retención IVA inválida');
+  if (reteivaThreshold !== undefined && reteivaThreshold < 0) throw new Error('Umbral Retención IVA inválido');
   if (icaRate !== undefined && (icaRate < 0 || icaRate > 100)) throw new Error('ICA inválido');
   if (icaThreshold !== undefined && icaThreshold < 0) throw new Error('Umbral ICA inválido');
   
@@ -46,6 +50,8 @@ export async function updateBusinessSettings(payload) {
       ivaRate: ivaRate,
       reteRate: retefuenteRate, // Frontend usa retefuenteRate, backend usa reteRate
       reteThreshold: retefuenteThreshold, // Frontend usa retefuenteThreshold, backend usa reteThreshold
+      reteivaRate: reteivaRate,
+      reteivaThreshold: reteivaThreshold,
       icaRate: icaRate,
       icaThreshold: icaThreshold
     };
@@ -64,6 +70,8 @@ export async function updateBusinessSettings(payload) {
       ivaRate: data.ivaRate,
       retefuenteRate: data.reteRate,
       retefuenteThreshold: data.reteThreshold,
+      reteivaRate: data.reteivaRate,
+      reteivaThreshold: data.reteivaThreshold,
       icaRate: data.icaRate,
       icaThreshold: data.icaThreshold,
       updatedAt: data.updatedAt
@@ -79,13 +87,15 @@ export async function updateBusinessSettings(payload) {
 
 // POST /api/business-settings (crear)
 export async function crearBusinessSettings(payload) {
-  const { ivaRate, retefuenteRate, retefuenteThreshold, icaRate, icaThreshold } = payload || {};
+  const { ivaRate, retefuenteRate, retefuenteThreshold, reteivaRate, reteivaThreshold, icaRate, icaThreshold } = payload || {};
   
   try {
     const backendPayload = {
       ivaRate: ivaRate,
       reteRate: retefuenteRate,
       reteThreshold: retefuenteThreshold,
+      reteivaRate: reteivaRate,
+      reteivaThreshold: reteivaThreshold,
       icaRate: icaRate,
       icaThreshold: icaThreshold
     };
@@ -97,6 +107,8 @@ export async function crearBusinessSettings(payload) {
       ivaRate: data.ivaRate,
       retefuenteRate: data.reteRate,
       retefuenteThreshold: data.reteThreshold,
+      reteivaRate: data.reteivaRate,
+      reteivaThreshold: data.reteivaThreshold,
       icaRate: data.icaRate,
       icaThreshold: data.icaThreshold,
       updatedAt: data.updatedAt
@@ -116,6 +128,8 @@ export async function obtenerBusinessSettingsPorId(id) {
       ivaRate: data.ivaRate,
       retefuenteRate: data.reteRate,
       retefuenteThreshold: data.reteThreshold,
+      reteivaRate: data.reteivaRate,
+      reteivaThreshold: data.reteivaThreshold,
       icaRate: data.icaRate,
       icaThreshold: data.icaThreshold,
       updatedAt: data.updatedAt
@@ -135,6 +149,8 @@ export async function listarBusinessSettings() {
       ivaRate: item.ivaRate,
       retefuenteRate: item.reteRate,
       retefuenteThreshold: item.reteThreshold,
+      reteivaRate: item.reteivaRate,
+      reteivaThreshold: item.reteivaThreshold,
       icaRate: item.icaRate,
       icaThreshold: item.icaThreshold,
       updatedAt: item.updatedAt

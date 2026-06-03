@@ -52,6 +52,7 @@ export default function OrdenDetalleModal({ ordenId, facturaId, isOpen, onClose 
         subtotal: ordenData?.subtotal,
         iva: ordenData?.iva,
         retencionFuente: ordenData?.retencionFuente,
+        retencionIva: ordenData?.retencionIva,
         total: ordenData?.total,
         tieneRetencionFuente: ordenData?.tieneRetencionFuente
       });
@@ -78,6 +79,7 @@ export default function OrdenDetalleModal({ ordenId, facturaId, isOpen, onClose 
         subtotal: facturaData?.subtotal,
         iva: facturaData?.iva,
         retencionFuente: facturaData?.retencionFuente,
+        retencionIva: facturaData?.retencionIva,
         total: facturaData?.total,
         tieneOrden: !!facturaData?.orden
       });
@@ -175,6 +177,10 @@ export default function OrdenDetalleModal({ ordenId, facturaId, isOpen, onClose 
   const retencionFuente = factura
     ? ((typeof factura?.retencionFuente === 'number' && factura.retencionFuente !== null && factura.retencionFuente !== undefined) ? factura.retencionFuente : 0)
     : ((typeof orden?.retencionFuente === 'number' && orden.retencionFuente !== null && orden.retencionFuente !== undefined) ? orden.retencionFuente : 0);
+
+  const retencionIva = factura
+    ? ((typeof factura?.retencionIva === 'number' && factura.retencionIva !== null && factura.retencionIva !== undefined) ? factura.retencionIva : 0)
+    : ((typeof orden?.retencionIva === 'number' && orden.retencionIva !== null && orden.retencionIva !== undefined) ? orden.retencionIva : 0);
   
   const retencionIca = factura
     ? ((typeof factura?.retencionIca === 'number' && factura.retencionIca !== null && factura.retencionIca !== undefined) ? factura.retencionIca : 0)
@@ -189,6 +195,7 @@ export default function OrdenDetalleModal({ ordenId, facturaId, isOpen, onClose 
   
   // Para ICA, usar el de la orden (puede venir en factura.orden también)
   const tieneRetencionIca = orden?.tieneRetencionIca || factura?.orden?.tieneRetencionIca || false;
+  const tieneRetencionIva = orden?.tieneRetencionIva || factura?.orden?.tieneRetencionIva || false;
   const porcentajeIca = orden?.porcentajeIca !== undefined && orden?.porcentajeIca !== null 
     ? Number(orden.porcentajeIca) 
     : (factura?.orden?.porcentajeIca !== undefined && factura?.orden?.porcentajeIca !== null 
@@ -294,6 +301,11 @@ export default function OrdenDetalleModal({ ordenId, facturaId, isOpen, onClose 
                   <strong>Retención ICA{porcentajeIca ? ` (${porcentajeIca}%)` : ''}:</strong> {fmtCOP(retencionIca)}
                 </div>
               )}
+              {tieneRetencionIva && (
+                <div>
+                  <strong>Retención IVA:</strong> {fmtCOP(retencionIva)}
+                </div>
+              )}
               {factura && (
                 <div>
                   <strong>N° Factura:</strong> {factura.numeroFactura || factura.numero || "-"}
@@ -356,12 +368,17 @@ export default function OrdenDetalleModal({ ordenId, facturaId, isOpen, onClose 
                 <div>
                   <strong>Retención en la Fuente:</strong> {fmtCOP(retencionFuente)}
                 </div>
+                {tieneRetencionIva && retencionIva > 0 && (
+                  <div>
+                    <strong>Retención IVA:</strong> {fmtCOP(retencionIva)}
+                  </div>
+                )}
                 <div style={{ fontWeight: "bold", fontSize: "1.1rem", gridColumn: "1 / -1", paddingTop: "0.5rem", borderTop: "2px solid #ddd" }}>
                   <strong>Total Facturado:</strong> {fmtCOP(total)}
                 </div>
-                {(retencionFuente > 0 || retencionIca > 0) && (
+                {(retencionFuente > 0 || retencionIca > 0 || retencionIva > 0) && (
                   <div style={{ fontSize: "0.9rem", color: "#666", gridColumn: "1 / -1" }}>
-                    <strong>Valor a Pagar:</strong> {fmtCOP(total - retencionFuente - retencionIca)}
+                    <strong>Valor a Pagar:</strong> {fmtCOP(total - retencionFuente - retencionIca - retencionIva)}
                   </div>
                 )}
               </div>

@@ -21,7 +21,7 @@ const AbonoModal = ({ isOpen, onClose, credito, onSuccess }) => {
   const [ordenesCredito, setOrdenesCredito] = useState([]);
   const [ordenesSeleccionadas, setOrdenesSeleccionadas] = useState(new Set());
   const [distribucion, setDistribucion] = useState([]); // [{ ordenId, montoAbono, saldoRestante }]
-  const [retenSettings, setReteSettings] = useState({ ivaRate: 19, retefuenteRate: 2.5, retefuenteThreshold: 1000000 });
+  const [retenSettings, setReteSettings] = useState({ ivaRate: 19, retefuenteRate: 2.5, retefuenteThreshold: 1000000, reteivaRate: 0, reteivaThreshold: 0 });
   const [retenLoading, setReteLoading] = useState(false);
   const [retenError, setReteError] = useState("");
   const [sedes, setSedes] = useState([]);
@@ -45,20 +45,31 @@ const AbonoModal = ({ isOpen, onClose, credito, onSuccess }) => {
   }, [isOpen]);
   // Helper para calcular retención e IVA
   const calcularRetencionYIva = (orden) => {
-    const { ivaRate, retefuenteRate, retefuenteThreshold } = retenSettings;
+    const { ivaRate, retefuenteRate, retefuenteThreshold, reteivaRate, reteivaThreshold } = retenSettings;
     const total = orden.total || 0;
     // Calcular IVA si no está
     const iva = orden.iva !== undefined ? orden.iva : Math.round(total * (ivaRate / (100 + ivaRate)));
     // Subtotal sin IVA
     const subtotal = total - iva;
-    // Calcular retención si supera umbral
+
+    // Retención en la fuente
     let retencionFuente = 0;
     let tieneRetencionFuente = false;
     if (subtotal >= retefuenteThreshold) {
       retencionFuente = Math.round(subtotal * (retefuenteRate / 100));
       tieneRetencionFuente = true;
     }
-    return { iva, subtotal, retencionFuente, tieneRetencionFuente };
+
+    // Retención IVA (si aplica según settings)
+    let retencionIva = 0;
+    let tieneRetencionIva = false;
+    if (reteivaRate && subtotal >= (reteivaThreshold || 0)) {
+      retencionIva = Math.round(subtotal * (reteivaRate / 100));
+      tieneRetencionIva = true;
+    }
+
+    // Retención ICA se deja al backend / orden existente
+    return { iva, subtotal, retencionFuente, tieneRetencionFuente, retencionIva, tieneRetencionIva };
   };
   // Handler para marcar/desmarcar retención en una orden
   const handleToggleRetencion = async (orden) => {
@@ -67,7 +78,7 @@ const AbonoModal = ({ isOpen, onClose, credito, onSuccess }) => {
     const { iva, subtotal, retencionFuente, tieneRetencionFuente } = calcularRetencionYIva(orden);
     if (subtotal < retenSettings.retefuenteThreshold) {
       setReteError("La orden no supera el umbral para aplicar retención.");
-      return;
+        return {
     }
     try {
       setReteLoading(true);
@@ -535,11 +546,12 @@ const AbonoModal = ({ isOpen, onClose, credito, onSuccess }) => {
         }
         
         // CALCULAR RETENCIÓN PROPORCIONAL
-        // Solo si la orden tiene retención Y el saldo queda en 0 (orden completamente pagada)
+        // Si la orden queda completamente pagada por este abono, incluir las retenciones existentes (Fuente, ICA, IVA)
         let montoRetencionAbono = 0;
-        if (orden.tieneRetencionFuente && dist.saldoRestante === 0) {
-          // Si este abono completa la orden, incluir la retención total de la orden
-          montoRetencionAbono = orden.retencionFuente || 0;
+        if (dist.saldoRestante === 0) {
+          if (orden.tieneRetencionFuente) montoRetencionAbono += orden.retencionFuente || 0;
+          if (orden.tieneRetencionIca) montoRetencionAbono += orden.retencionIca || 0;
+          if (orden.tieneRetencionIva) montoRetencionAbono += orden.retencionIva || 0;
         }
         
         // CALCULAR MONTOS PROPORCIONALES de cada método de pago
@@ -919,6 +931,12 @@ const AbonoModal = ({ isOpen, onClose, credito, onSuccess }) => {
                                     onClick={e => { e.preventDefault(); e.stopPropagation(); }}
                                     onChange={e => { e.preventDefault(); e.stopPropagation(); handleToggleRetencion(orden); }}
                                   />
+                                )}
+                                {/* Indicador de Retención IVA si existe */}
+                                {orden.tieneRetencionIva && (orden.retencionIva || calcularRetencionYIva(orden).retencionIva) > 0 && (
+                                  <div style={{ marginLeft: 8, fontSize: '0.75rem', color: '#666' }} title={`Retención IVA: $${(orden.retencionIva || calcularRetencionYIva(orden).retencionIva).toLocaleString('es-CO')}`}>
+                                    IVA: -${(orden.retencionIva || calcularRetencionYIva(orden).retencionIva).toLocaleString('es-CO')}
+                                  </div>
                                 )}
                               </td>
                             </tr>

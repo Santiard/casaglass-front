@@ -166,7 +166,8 @@
   line-height: 1.2;
 }
 .orden-toolbar-field--retefuente,
-.orden-toolbar-field--reteica {
+.orden-toolbar-field--reteica,
+.orden-toolbar-field--reteiva {
   flex: 0 0 auto;
   align-self: flex-end;
   padding: 0.35rem 0.55rem;

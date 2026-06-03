@@ -16,6 +16,7 @@ export default function FacturarOrdenModal({ isOpen, onClose, onSave, orden }) {
     subtotal: 0,
     iva: 0,
     retencionFuente: 0,
+    retencionIva: 0,
     formaPago: "EFECTIVO",
     observaciones: "",
     numeroFactura: "", // Opcional: si se envía, el backend lo usa; si no, lo genera automáticamente
@@ -168,6 +169,7 @@ export default function FacturarOrdenModal({ isOpen, onClose, onSave, orden }) {
         subtotal: orden.subtotal || 0, // Base SIN IVA (lo que el backend espera)
         iva: ivaOrden, // Valor del IVA calculado en la orden (en dinero, NO porcentaje)
         retencionFuente: retencionFuenteOrden, // Valor de retención calculado en la orden (en dinero, NO porcentaje)
+        retencionIva: Number(orden.retencionIva || 0),
         formaPago: "EFECTIVO",
         observaciones: "", // Dejar vacío por defecto, el usuario puede agregar observaciones si lo desea
         numeroFactura: "", // Opcional: dejar vacío para que el backend lo genere automáticamente
@@ -224,6 +226,7 @@ export default function FacturarOrdenModal({ isOpen, onClose, onSave, orden }) {
       // Los valores de IVA y retención ya vienen calculados en dinero desde la orden
       const valorIva = Number(form.iva || 0); // Ya es valor monetario, no porcentaje
       const valorRetencionFuente = Number(form.retencionFuente || 0); // Ya es valor monetario, no porcentaje
+      const valorRetencionIva = Number(form.retencionIva || 0); // Ya es valor monetario, no porcentaje
       
       const payloadToSend = {
         ordenId: form.ordenId,
@@ -231,6 +234,7 @@ export default function FacturarOrdenModal({ isOpen, onClose, onSave, orden }) {
         subtotal: form.subtotal,
         iva: valorIva, // Valor monetario ya calculado en la orden
         retencionFuente: Math.max(0, valorRetencionFuente), // Valor monetario ya calculado en la orden
+        retencionIva: Math.max(0, valorRetencionIva),
         formaPago: form.formaPago,
         observaciones: form.observaciones,
         // Si se seleccionó un cliente diferente, incluir clienteId
