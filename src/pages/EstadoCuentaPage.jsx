@@ -3,6 +3,7 @@ import React, { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { fetchEstadoCuenta, fetchEstadoCuentaEspecial } from "../services/EstadoCuentaService";
 import { listarClientes } from "../services/ClientesService";
+import { useAuth } from "../context/AuthContext.jsx";
 import OrdenDetalleModal from "../modals/OrdenDetalleModal.jsx";
 import "../styles/Creditos.css";
 import "../styles/EstadoCuentaPage.css";
@@ -10,12 +11,12 @@ import "../styles/EstadoCuentaPage.css";
 const EstadoCuentaPage = () => {
   const location = useLocation();
   const isEspecial = location.state?.esClienteEspecial || false;
+  const { sedeId } = useAuth();
   
   const [clienteId, setClienteId] = useState("");
   const [clienteSeleccionado, setClienteSeleccionado] = useState(null);
   const [showClienteModal, setShowClienteModal] = useState(false);
   const [clienteSearchModal, setClienteSearchModal] = useState("");
-  // const [sedeId, setSedeId] = useState("");
   const [estadoCuenta, setEstadoCuenta] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -39,12 +40,12 @@ const EstadoCuentaPage = () => {
       setLoading(true);
       setError("");
       setEstadoCuenta(null);
-      fetchEstadoCuentaEspecial()
+      fetchEstadoCuentaEspecial(sedeId)
         .then(data => setEstadoCuenta(data))
         .catch(() => setError("No se pudo obtener el estado de cuenta del cliente especial"))
         .finally(() => setLoading(false));
     }
-  }, [isEspecial]);
+  }, [isEspecial, sedeId]);
 
   // Ejecutar consulta automáticamente al seleccionar cliente (solo para modo normal)
   useEffect(() => {
@@ -52,12 +53,12 @@ const EstadoCuentaPage = () => {
       setLoading(true);
       setError("");
       setEstadoCuenta(null);
-      fetchEstadoCuenta(clienteId)
+      fetchEstadoCuenta(clienteId, sedeId)
         .then(data => setEstadoCuenta(data))
         .catch(() => setError("No se pudo obtener el estado de cuenta"))
         .finally(() => setLoading(false));
     }
-  }, [clienteId, isEspecial]);
+  }, [clienteId, isEspecial, sedeId]);
 
   const handleImprimir = () => {
     // Crear ventana de impresión con el contenido
