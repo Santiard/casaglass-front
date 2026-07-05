@@ -191,23 +191,27 @@ const EstadoCuentaPage = () => {
           <table>
             <thead>
               <tr>
-                <th style="width: ${isEspecial ? '12%' : '15%'};">Fecha inicio</th>
-                ${isEspecial ? '<th style="width: 20%;">Obra</th>' : ''}
-                <th style="width: ${isEspecial ? '17%' : '22%'};" class="text-right">Total crédito</th>
-                <th style="width: ${isEspecial ? '17%' : '22%'};" class="text-right">Total abonado</th>
-                <th style="width: ${isEspecial ? '17%' : '22%'};" class="text-right">Saldo pendiente</th>
-                <th style="width: ${isEspecial ? '17%' : '19%'};" class="text-center">Estado</th>
+                <th style="width: ${isEspecial ? '10%' : '12%'};">Fecha inicio</th>
+                ${isEspecial ? '<th style="width: 15%;">Obra</th>' : ''}
+                <th style="width: ${isEspecial ? '10%' : '12%'};" class="text-center">Orden</th>
+                <th style="width: ${isEspecial ? '15%' : '18%'};" class="text-center">Factura</th>
+                <th style="width: ${isEspecial ? '14%' : '17%'};" class="text-right">Total crédito</th>
+                <th style="width: ${isEspecial ? '14%' : '17%'};" class="text-right">Total abonado</th>
+                <th style="width: ${isEspecial ? '14%' : '17%'};" class="text-right">Saldo pendiente</th>
+                <th style="width: ${isEspecial ? '8%' : '7%'};" class="text-center">Estado</th>
               </tr>
             </thead>
             <tbody>
               ${creditosData.length === 0 ? `
                 <tr>
-                  <td colspan="${isEspecial ? '6' : '5'}" class="text-center">No hay créditos activos con saldo pendiente para este cliente.</td>
+                  <td colspan="${isEspecial ? '8' : '7'}" class="text-center">No hay créditos activos con saldo pendiente para este cliente.</td>
                 </tr>
               ` : creditosData.map(credito => `
                 <tr>
                   <td class="text-center">${credito.fechaInicio || '-'}</td>
                   ${isEspecial ? `<td>${credito.orden?.obra || '-'}</td>` : ''}
+                  <td class="text-center">#${credito.orden?.numero || '-'}</td>
+                  <td class="text-center">${credito.orden?.numeroFactura || '-'}</td>
                   <td class="text-right">$${(credito.totalCredito || 0).toLocaleString()}</td>
                   <td class="text-right">$${(credito.totalAbonado || 0).toLocaleString()}</td>
                   <td class="text-right font-bold">$${(credito.saldoPendiente || 0).toLocaleString()}</td>
@@ -554,6 +558,8 @@ function TablaCreditosEstadoCuenta({ creditos, loading, onVerOrden, onVerAbonos 
           <tr style={{ background: '#25316D', color: '#fff' }}>
             <th style={{ borderTopLeftRadius: 12 }}>Fecha inicio</th>
             {esClienteEspecial && <th>Obra</th>}
+            <th>Orden</th>
+            <th>Factura</th>
             <th>Total crédito</th>
             <th>Total abonado</th>
             <th>Saldo pendiente</th>
@@ -565,13 +571,13 @@ function TablaCreditosEstadoCuenta({ creditos, loading, onVerOrden, onVerAbonos 
         <tbody>
           {loading ? (
             <tr>
-              <td colSpan={esClienteEspecial ? "8" : "7"} style={{ textAlign: 'center', padding: '32px', color: '#888', fontStyle: 'italic' }}>
+              <td colSpan={esClienteEspecial ? "10" : "9"} style={{ textAlign: 'center', padding: '32px', color: '#888', fontStyle: 'italic' }}>
                 Cargando estado de cuenta...
               </td>
             </tr>
           ) : creditos.length === 0 ? (
             <tr>
-              <td colSpan={esClienteEspecial ? "8" : "7"} style={{ textAlign: 'center', padding: '32px', color: '#888', fontStyle: 'italic' }}>
+              <td colSpan={esClienteEspecial ? "10" : "9"} style={{ textAlign: 'center', padding: '32px', color: '#888', fontStyle: 'italic' }}>
                 No hay créditos activos con saldo pendiente para este cliente.
               </td>
             </tr>
@@ -581,6 +587,8 @@ function TablaCreditosEstadoCuenta({ creditos, loading, onVerOrden, onVerAbonos 
                 <tr key={credito.id} style={{ background: idx % 2 === 0 ? '#f8fafc' : '#fff' }}>
                   <td style={{ textAlign: 'center' }}>{credito.fechaInicio}</td>
                   {esClienteEspecial && <td>{credito.orden?.obra || "-"}</td>}
+                  <td style={{ textAlign: 'center' }}>#{credito.orden?.numero || "-"}</td>
+                  <td style={{ textAlign: 'center' }}>{credito.orden?.numeroFactura || "-"}</td>
                   <td style={{ textAlign: 'right', fontWeight: 500 }}>${credito.totalCredito.toLocaleString()}</td>
                   <td style={{ textAlign: 'right', color: '#1e2753' }}>${credito.totalAbonado.toLocaleString()}</td>
                   <td style={{ color: '#c0392b', fontWeight: 700, textAlign: 'right' }}>${credito.saldoPendiente.toLocaleString()}</td>
@@ -644,7 +652,7 @@ function TablaCreditosEstadoCuenta({ creditos, loading, onVerOrden, onVerAbonos 
               ))}
               {/* Fila de totales */}
               <tr style={{ background: '#e6e8f0', fontWeight: 700 }}>
-                <td colSpan={esClienteEspecial ? 2 : 1} style={{ textAlign: 'right' }}>Totales:</td>
+                <td colSpan={esClienteEspecial ? 4 : 3} style={{ textAlign: 'right' }}>Totales:</td>
                 <td style={{ textAlign: 'right' }}>${totalCredito.toLocaleString()}</td>
                 <td style={{ textAlign: 'right' }}>${totalAbonado.toLocaleString()}</td>
                 <td style={{ textAlign: 'right', color: '#c0392b' }}>${totalSaldo.toLocaleString()}</td>
