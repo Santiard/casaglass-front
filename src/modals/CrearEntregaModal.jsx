@@ -446,123 +446,109 @@ const CrearEntregaModal = ({ isOpen, onClose, onSuccess, sedes, trabajadores, se
     // Monto total = (órdenes a contado + abonos) - reembolsos
     const montoTotal = montoOrdenes + montoAbonos - montoReembolsos;
     
-    // Calcular desglose de montos según método de pago de las órdenes
-    let montoEfectivo = 0;
-    let montoTransferencia = 0;
-    let montoCheque = 0;
+    let efectivo = 0;
+    let transferencia = 0;
+    let cheque = 0;
+    let deposito = 0;
     let montoRetencion = 0; // Agregar acumulador para retención
-    
-    // Procesar cada orden seleccionada
-    ordenesSeleccionadas.forEach(orden => {
-      // 🆕 PRIORIZAR CAMPOS NUMÉRICOS del backend
-      const tieneMontos = (orden.montoEfectivo || 0) > 0 || (orden.montoTransferencia || 0) > 0 || (orden.montoCheque || 0) > 0;
-      
-      let montosOrden = {};
-      if (tieneMontos) {
-        // Usar campos numéricos del backend
-        montosOrden = {
-          montoEfectivo: Number(orden.montoEfectivo) || 0,
-          montoTransferencia: Number(orden.montoTransferencia) || 0,
-          montoCheque: Number(orden.montoCheque) || 0
-        };
-      } else {
-        // Fallback: parsear descripción (registros antiguos)
-        montosOrden = parsearMetodoPagoOrden(orden.descripcion || '', orden.total || 0);
-      }
-      
-      montoEfectivo += montosOrden.montoEfectivo;
-      montoTransferencia += montosOrden.montoTransferencia;
-      montoCheque += montosOrden.montoCheque;
-    });
 
-    // Los abonos tienen método de pago en el campo metodoPago como string complejo
-    // Formato: "EFECTIVO: 100.000 | TRANSFERENCIA: 50.000 (Banco de Bogotá) | RETEFUENTE Orden #1057: 12.500"
-    abonosSeleccionados.forEach((abono, idx) => {
-      const montoAbono = Number(abono.montoAbono) || 0;
+    // Helper para analizar la descripción o método en texto (heurística idéntica al backend)
+    const clasificarPorTexto = (monto, textoHint) => {
+      const texto = (textoHint || '').toUpperCase();
       
-      // 🆕 PRIORIZAR CAMPOS NUMÉRICOS del backend
-      const tieneMontos = (abono.montoEfectivo || 0) > 0 || (abono.montoTransferencia || 0) > 0 || (abono.montoCheque || 0) > 0;
-
-      let montosAbono = {};
-      if (tieneMontos) {
-        montosAbono = {
-          montoEfectivo: Number(abono.montoEfectivo) || 0,
-          montoTransferencia: Number(abono.montoTransferencia) || 0,
-          montoCheque: Number(abono.montoCheque) || 0,
-          montoRetencion: Number(abono.montoRetencion) || 0
-        };
-      } else {
-        // Fallback: parsear metodoPago string (registros antiguos)
-        const metodoPagoString = abono.metodoPago || '';
-        montosAbono = parsearMetodoPagoAbono(metodoPagoString);
-        
-        // 🚨 VALIDACIÓN: Detectar datos corruptos en metodoPago
-        const sumaMetodosParsed = montosAbono.montoEfectivo + montosAbono.montoTransferencia + montosAbono.montoCheque;
-        const diferenciaTolerada = 0.02; // 2% tolerancia por redondeos
-        const montoMinimo = montoAbono * (1 - diferenciaTolerada);
-        const montoMaximo = montoAbono * (1 + diferenciaTolerada);
-        
-        if (sumaMetodosParsed > montoMaximo) {
-          // ⚠️ ADVERTENCIA: Usar solo el monto del abono, distribuir proporcionalmente
-          montosAbono = {
-            montoEfectivo: 0,
-            montoTransferencia: montoAbono, // Asignar todo a transferencia por defecto
-            montoCheque: 0,
-            montoRetencion: montosAbono.montoRetencion || 0 // Mantener retención si existe
-          };
-        }
-      }
+      // Buscar palabras clave de transferencias
+      const esTransferencia = texto.includes('TRANSFER') || 
+                              texto.includes('NEQUI') || 
+                              texto.includes('DAVIPLATA') || 
+                              texto.includes('PSE') || 
+                              texto.includes('BANCOL');
       
-      montoEfectivo += montosAbono.montoEfectivo;
-      montoTransferencia += montosAbono.montoTransferencia;
-      montoCheque += montosAbono.montoCheque;
-      montoRetencion += montosAbono.montoRetencion; // Acumular retención
-    });
-    
-    // Procesar reembolsos (EGRESOS)
-    reembolsosSeleccionados.forEach(reembolso => {
-      const montoReembolso = Number(reembolso.totalReembolso) || Number(reembolso.monto) || 0;
-      if (reembolso.formaReembolso === 'EFECTIVO') {
-        montoEfectivo -= montoReembolso;
-      } else if (reembolso.formaReembolso === 'TRANSFERENCIA') {
-        montoTransferencia -= montoReembolso;
+      const esCheque = texto.includes('CHEQUE');
+      const esDeposito = texto.includes('DEPÓSITO') || texto.includes('DEPOSITO');
+      
+      if (esTransferencia) {
+        return { efectivo: 0, transferencia: monto, cheque: 0, deposito: 0 };
+      } else if (esCheque) {
+        return { efectivo: 0, transferencia: 0, cheque: monto, deposito: 0 };
+      } else if (esDeposito) {
+        return { efectivo: 0, transferencia: 0, cheque: 0, deposito: monto };
       } else {
-        montoEfectivo -= montoReembolso;
+        // Por defecto
+        return { efectivo: monto, transferencia: 0, cheque: 0, deposito: 0 };
       }
-    });
-    
-    const desglose = {
-      montoEfectivo,
-      montoTransferencia,
-      montoCheque,
-      montoDeposito: 0, // Depósito no se usa en órdenes
-      montoRetencion, // Agregar retención al desglose
     };
-    
-    // El monto total debe ser la suma de órdenes + abonos, no la suma del desglose
-    // (porque el desglose puede tener errores de parseo)
-    const monto = montoTotal; // Usar el monto calculado directamente
-    
-    // Validar que el desglose coincida con el monto total (con tolerancia del 1%)
-    const sumaDesglose = montoEfectivo + montoTransferencia + montoCheque + 0;
-    
-    if (Math.abs(sumaDesglose - monto) > monto * 0.01) {
-      const factor = monto / sumaDesglose;
-      montoEfectivo = montoEfectivo * factor;
-      montoTransferencia = montoTransferencia * factor;
-      montoCheque = montoCheque * factor;
-    }
-    
+
+    // 1. Sumar órdenes de contado seleccionadas
+    ordenesSeleccionadas.forEach(orden => {
+      const me = orden.montoEfectivo || 0;
+      const mt = orden.montoTransferencia || 0;
+      const mc = orden.montoCheque || 0;
+      
+      // Si la orden no tiene desgloses estructurados, clasificar por descripción
+      if (me === 0 && mt === 0 && mc === 0) {
+        const hint = `${orden.descripcion || ''} ${orden.metodoPago || ''}`;
+        const clasificacion = clasificarPorTexto(orden.total || 0, hint);
+        efectivo += clasificacion.efectivo;
+        transferencia += clasificacion.transferencia;
+        cheque += clasificacion.cheque;
+        deposito += clasificacion.deposito;
+      } else {
+        efectivo += me;
+        transferencia += mt;
+        cheque += mc;
+      }
+    });
+
+    // 2. Sumar abonos seleccionados
+    abonosSeleccionados.forEach(abono => {
+      const me = abono.montoEfectivo || 0;
+      const mt = abono.montoTransferencia || 0;
+      const mc = abono.montoCheque || 0;
+      const mr = abono.montoRetencion || 0;
+      montoRetencion += mr;
+      
+      // Si el abono no tiene desgloses estructurados, clasificar por su método de pago
+      if (me === 0 && mt === 0 && mc === 0) {
+        // Nota: El abono sin desglose en el backend por defecto se asume como transferencia
+        const hint = abono.metodoPago || '';
+        const clasificacion = clasificarPorTexto(abono.montoAbono || 0, hint);
+        
+        // Si el texto no dio pistas fuertes en abonos, la regla del backend por defecto es Transferencia
+        if (clasificacion.efectivo > 0 && !hint.toUpperCase().includes('EFECTIV')) {
+          transferencia += abono.montoAbono || 0;
+        } else {
+          efectivo += clasificacion.efectivo;
+          transferencia += clasificacion.transferencia;
+          cheque += clasificacion.cheque;
+          deposito += clasificacion.deposito;
+        }
+      } else {
+        efectivo += me;
+        transferencia += mt;
+        cheque += mc;
+      }
+    });
+
+    // 3. Restar reembolsos seleccionados (Egresos)
+    reembolsosSeleccionados.forEach(reembolso => {
+      const valor = Math.abs(reembolso.totalReembolso || 0);
+      if (reembolso.formaReembolso === 'EFECTIVO') {
+        efectivo -= valor;
+      } else if (reembolso.formaReembolso === 'TRANSFERENCIA') {
+        transferencia -= valor;
+      }
+    });
+
     return {
-      monto,
+      monto: montoTotal,
       montoOrdenes: montoOrdenes,
       montoAbonos: montoAbonos,
       montoReembolsos: montoReembolsos,
-      montoEfectivo,
-      montoTransferencia,
-      montoCheque,
-      montoDeposito: 0,
-      montoRetencion, // Agregar retención al return
+      montoEfectivo: efectivo,
+      montoTransferencia: transferencia,
+      montoCheque: cheque,
+      montoDeposito: deposito,
+      montoRetencion
     };
   };
 

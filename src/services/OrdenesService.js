@@ -135,6 +135,9 @@ export async function crearOrdenVenta(payload) {
       ...(payload.porcentajeIca !== undefined && payload.porcentajeIca !== null 
         ? { porcentajeIca: parseFloat(payload.porcentajeIca) } 
         : {}),
+      montoEfectivo: payload.montoEfectivo !== undefined ? parseFloat(payload.montoEfectivo) : 0,
+      montoTransferencia: payload.montoTransferencia !== undefined ? parseFloat(payload.montoTransferencia) : 0,
+      montoCheque: payload.montoCheque !== undefined ? parseFloat(payload.montoCheque) : 0,
       clienteId: parseInt(payload.clienteId), // OBLIGATORIO
       sedeId: parseInt(payload.sedeId), // OBLIGATORIO
       // trabajadorId es opcional según la documentación
@@ -457,6 +460,9 @@ export async function confirmarVenta(id, ordenCompleta) {
       ...(ordenCompleta.porcentajeIca !== undefined && ordenCompleta.porcentajeIca !== null 
         ? { porcentajeIca: parseFloat(ordenCompleta.porcentajeIca) } 
         : {}),
+      montoEfectivo: ordenCompleta.montoEfectivo !== undefined ? parseFloat(ordenCompleta.montoEfectivo) : 0,
+      montoTransferencia: ordenCompleta.montoTransferencia !== undefined ? parseFloat(ordenCompleta.montoTransferencia) : 0,
+      montoCheque: ordenCompleta.montoCheque !== undefined ? parseFloat(ordenCompleta.montoCheque) : 0,
       clienteId: Number(clienteId),
       sedeId: Number(sedeId),
       ...(ordenCompleta.trabajadorId || ordenCompleta.trabajador?.id ? { trabajadorId: Number(ordenCompleta.trabajadorId || ordenCompleta.trabajador?.id) } : {}),
@@ -527,6 +533,9 @@ export async function actualizarOrdenVenta(id, payload) {
       ...(payload.porcentajeIca !== undefined && payload.porcentajeIca !== null 
         ? { porcentajeIca: parseFloat(payload.porcentajeIca) } 
         : {}),
+      montoEfectivo: payload.montoEfectivo !== undefined ? parseFloat(payload.montoEfectivo) : 0,
+      montoTransferencia: payload.montoTransferencia !== undefined ? parseFloat(payload.montoTransferencia) : 0,
+      montoCheque: payload.montoCheque !== undefined ? parseFloat(payload.montoCheque) : 0,
       clienteId: parseInt(payload.clienteId), // OBLIGATORIO
       sedeId: parseInt(payload.sedeId), // OBLIGATORIO
       // trabajadorId es opcional según la documentación
