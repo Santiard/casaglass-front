@@ -543,7 +543,7 @@ export async function actualizarOrdenVenta(id, payload) {
       items: itemsValidos.map(item => {
         const itemData = {
           productoId: parseInt(item.productoId),
-          cantidad: parseInt(item.cantidad),
+          cantidad: parseFloat(item.cantidad),
           precioUnitario: parseFloat(item.precioUnitario),
         };
         
