@@ -429,6 +429,52 @@ export default function InformesMensualesPage() {
     }
   };
 
+  const ejecutarEliminarCierre = async () => {
+    if (!detalle) return;
+    if (!window.confirm(`¿Está seguro de eliminar el cierre de ${detalle.periodo?.mesNombre || MESES_LABEL[detalle.periodo?.month]} ${detalle.periodo?.year}?`)) {
+      return;
+    }
+    setLoadingAccion(true);
+    try {
+      await InformesMensualService.eliminarCierre({
+        sedeId: sedeNum,
+        year: yearNum,
+        month: detalle.periodo?.month,
+      });
+      showSuccess("Cierre mensual eliminado correctamente.");
+      setDetalle(null);
+      await cargarLista();
+    } catch (err) {
+      showError(erroMsg(err));
+    } finally {
+      setLoadingAccion(false);
+    }
+  };
+
+  const confirmarEliminarDesdeFila = async (row) => {
+    const mesNombre = MESES_LABEL[row.month] || `Mes ${row.month}`;
+    if (!window.confirm(`¿Está seguro de eliminar el cierre de ${mesNombre} ${yearNum}?`)) {
+      return;
+    }
+    setLoadingAccion(true);
+    try {
+      await InformesMensualService.eliminarCierre({
+        sedeId: sedeNum,
+        year: yearNum,
+        month: row.month,
+      });
+      showSuccess("Cierre mensual eliminado correctamente.");
+      if (detalle && detalle.periodo?.month === row.month) {
+        setDetalle(null);
+      }
+      await cargarLista();
+    } catch (err) {
+      showError(erroMsg(err));
+    } finally {
+      setLoadingAccion(false);
+    }
+  };
+
   if (authLoading) {
     return (
       <div className="entregas-page">
@@ -525,16 +571,36 @@ export default function InformesMensualesPage() {
                     <td colSpan={4} className="empty">Seleccione una sede para ver el historial de cierres.</td>
                   </tr>
                 )}
-                {slicePag.pageData.map((row) => (
-                  <tr key={row.id ?? `${row.mesIso}-${row.month}`}>
-                    <td>{MESES_LABEL[row.month] || row.mesIso || `Mes ${row.month}`}</td>
-                    <td>{fmtCOP(row.ventasMes)}</td>
-                    <td>{fmtCOP(row.dineroRecogidoMes)}</td>
-                    <td style={{ textAlign: "center" }}>
-                      <button type="button" className="btn-link-accion" onClick={() => verDetalle(row)}>Ver</button>
-                    </td>
-                  </tr>
-                ))}
+                {slicePag.pageData.map((row) => {
+                  const esUltimoCierre = cierres.length > 0 && row.month === cierres[cierres.length - 1].month;
+                  const ahora = new Date();
+                  const diffMeses = (ahora.getFullYear() - yearNum) * 12 + ((ahora.getMonth() + 1) - row.month);
+                  const esDeletable = diffMeses <= 2;
+                  
+                  return (
+                    <tr key={row.id ?? `${row.mesIso}-${row.month}`}>
+                      <td>{MESES_LABEL[row.month] || row.mesIso || `Mes ${row.month}`}</td>
+                      <td>{fmtCOP(row.ventasMes)}</td>
+                      <td>{fmtCOP(row.dineroRecogidoMes)}</td>
+                      <td style={{ textAlign: "center" }}>
+                        <div style={{ display: "flex", gap: "12px", justifyContent: "center", alignItems: "center" }}>
+                          <button type="button" className="btn-link-accion" onClick={() => verDetalle(row)}>Ver</button>
+                          {esUltimoCierre && esDeletable && (
+                            <button 
+                              type="button" 
+                              className="btn-link-accion" 
+                              style={{ color: "#d32f2f" }} 
+                              onClick={() => confirmarEliminarDesdeFila(row)}
+                              disabled={loadingAccion}
+                            >
+                              Eliminar
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -687,6 +753,15 @@ export default function InformesMensualesPage() {
                 </div>
               </div>
               <div className="informes-modal-actions">
+                <button
+                  type="button"
+                  className="btn-limpiar-filtros"
+                  style={{ color: "#d32f2f", borderColor: "#d32f2f" }}
+                  onClick={ejecutarEliminarCierre}
+                  disabled={loadingAccion}
+                >
+                  Eliminar cierre
+                </button>
                 <button
                   type="button"
                   className="btn-limpiar-filtros"

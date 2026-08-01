@@ -100,6 +100,20 @@ const InformesMensualService = {
     }
     return unwrapArray(response.data);
   },
+  /**
+   * Elimina un cierre mensual guardado (solo permitido para meses recientes).
+   * @param {{ sedeId: number; year: number; month: number }} params
+   * @returns {Promise<void>}
+   */
+  eliminarCierre: async ({ sedeId, year, month }) => {
+    const response = await api.delete("informes/mensual/cierre", {
+      params: { sedeId, year, month },
+    });
+    if (isApiDebugEnabled()) {
+      console.log("[InformesMensualService] eliminarCierre ←", response.data);
+    }
+    return response.data;
+  },
 };
 
 export default InformesMensualService;
