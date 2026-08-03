@@ -132,6 +132,86 @@ function imprimirInformeMensualDocumento(data, onVentanaBloqueada) {
   ventana.document.close();
 }
 
+function imprimirDetalleDeudasDocumento(sedeNombre, deudas, onVentanaBloqueada) {
+  if (!Array.isArray(deudas)) return;
+
+  const fechaGen = new Date().toLocaleString("es-CO");
+  const totalCreditoAcum = deudas.reduce((sum, d) => sum + (Number(d.totalCredito) || 0), 0);
+  const saldoPendienteAcum = deudas.reduce((sum, d) => sum + (Number(d.saldoPendiente) || 0), 0);
+
+  const tbody = deudas
+    .map(
+      (d) => `
+      <tr>
+        <td style="text-align: center;">${escapeHtml(d.fechaInicio || "—")}</td>
+        <td>${escapeHtml(d.cliente || "—")}</td>
+        <td style="text-align: center;">#${escapeHtml(d.ordenId || "—")}</td>
+        <td style="text-align: right;">${escapeHtml(fmtCOP(d.totalCredito))}</td>
+        <td style="text-align: right; font-weight: bold;">${escapeHtml(fmtCOP(d.saldoPendiente))}</td>
+      </tr>
+    `
+    )
+    .join("");
+
+  const html = `<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8"/>
+  <title>Detalle de Cartera - ${escapeHtml(sedeNombre)}</title>
+  <style>
+    @page { margin: 15mm; size: portrait; }
+    body { font-family: Arial, sans-serif; font-size: 10pt; color: #333; margin: 0; padding: 10px; }
+    h1 { font-size: 16pt; margin: 0 0 5px 0; color: #1e2753; text-align: center; }
+    .sub { font-size: 10pt; color: #666; margin: 0 0 20px 0; text-align: center; line-height: 1.4; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    th { background-color: #f2f2f2; border: 1px solid #ddd; padding: 8px 10px; font-weight: bold; font-size: 9.5pt; text-align: left; }
+    th.text-center, td.text-center { text-align: center; }
+    th.text-right, td.text-right { text-align: right; }
+    td { padding: 8px 10px; border: 1px solid #ddd; font-size: 9pt; }
+    .total-row td { background-color: #eaeaea; font-weight: bold; border-top: 2px solid #333; }
+    .pie { margin-top: 30px; font-size: 8pt; color: #888; text-align: center; border-top: 1px solid #eee; padding-top: 8px; }
+  </style>
+</head>
+<body>
+  <h1>Detalle de Cartera (Deudores)</h1>
+  <p class="sub"><strong>Sede:</strong> ${escapeHtml(sedeNombre)}<br/><strong>Fecha de Generación:</strong> ${escapeHtml(fechaGen)}</p>
+  <table>
+    <thead>
+      <tr>
+        <th class="text-center" style="width: 15%;">Fecha</th>
+        <th style="width: 40%;">Cliente</th>
+        <th class="text-center" style="width: 15%;">Orden</th>
+        <th class="text-right" style="width: 15%;">Total Facturado</th>
+        <th class="text-right" style="width: 15%;">Saldo Pendiente</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${tbody}
+      <tr class="total-row">
+        <td colspan="3" style="text-align: right;">Totales:</td>
+        <td style="text-align: right;">${escapeHtml(fmtCOP(totalCreditoAcum))}</td>
+        <td style="text-align: right;">${escapeHtml(fmtCOP(saldoPendienteAcum))}</td>
+      </tr>
+    </tbody>
+  </table>
+  <p class="pie">Casa Glass · Reporte generado automáticamente para cobros</p>
+  <script>
+    window.addEventListener("afterprint", function () { try { window.close(); } catch (e) {} });
+    setTimeout(function () { try { window.focus(); window.print(); } catch (e) {} }, 250);
+  </script>
+</body>
+</html>`;
+
+  const ventana = window.open("", "_blank", "width=800,height=600");
+  if (!ventana) {
+    onVentanaBloqueada?.();
+    return;
+  }
+  ventana.document.open();
+  ventana.document.write(html);
+  ventana.document.close();
+}
+
 export default function InformesMensualesPage() {
   const { isAdmin, sedeId: sedeIdUsuario, sede: sedeNombreUsuario, loading: authLoading } = useAuth();
   const { showError, showSuccess } = useToast();
@@ -182,6 +262,9 @@ export default function InformesMensualesPage() {
   const [preview, setPreview] = useState(null);
 
   const [detalle, setDetalle] = useState(null);
+  const [modalDeudasOpen, setModalDeudasOpen] = useState(false);
+  const [deudasDetalle, setDeudasDetalle] = useState([]);
+  const [loadingDeudas, setLoadingDeudas] = useState(false);
 
   /** Evita volver a autollenar sede si el usuario la dejó vacía a propósito tras el primer intento. */
   const sedePerfilAplicadaRef = useRef(false);
@@ -475,6 +558,20 @@ export default function InformesMensualesPage() {
     }
   };
 
+  const abrirDetalleCartera = async () => {
+    if (!Number.isFinite(sedeNum)) return;
+    setLoadingDeudas(true);
+    try {
+      const data = await InformesMensualService.obtenerDetalleDeudasSede(sedeNum);
+      setDeudasDetalle(data);
+      setModalDeudasOpen(true);
+    } catch (err) {
+      showError(`No se pudo obtener el detalle de cartera: ${erroMsg(err)}`);
+    } finally {
+      setLoadingDeudas(false);
+    }
+  };
+
   if (authLoading) {
     return (
       <div className="entregas-page">
@@ -765,6 +862,14 @@ export default function InformesMensualesPage() {
                 <button
                   type="button"
                   className="btn-limpiar-filtros"
+                  onClick={abrirDetalleCartera}
+                  disabled={loadingDeudas || loadingAccion}
+                >
+                  {loadingDeudas ? "Cargando..." : "Ver detalle cartera"}
+                </button>
+                <button
+                  type="button"
+                  className="btn-limpiar-filtros"
                   onClick={() =>
                     imprimirInformeMensualDocumento(detalle, () =>
                       showError(
@@ -773,6 +878,84 @@ export default function InformesMensualesPage() {
                     )}
                 >
                   Imprimir
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {modalDeudasOpen && (
+        <div className="informes-modal-overlay" role="dialog" aria-modal="true" onMouseDown={(e) => { if (e.target === e.currentTarget) setModalDeudasOpen(false); }}>
+          <div className="informes-modal-panel informes-modal-xl" onMouseDown={(e) => e.stopPropagation()} style={{ maxWidth: "800px" }}>
+            <div className="informes-modal-header">
+              <h2>Detalle de Cartera (Deudas Activas)</h2>
+              <button type="button" className="informes-modal-close" onClick={() => setModalDeudasOpen(false)} aria-label="Cerrar">×</button>
+            </div>
+            <div className="informes-modal-body">
+              <p style={{ margin: "0 0 1rem", color: "#555", fontSize: "0.9rem" }}>
+                Listado detallado de saldos pendientes de los clientes de la sede <strong>{nombreSedeSeleccionada || "Sede"}</strong>.
+              </p>
+              
+              <div className="entregas-table-container" style={{ border: "1px solid #e0e0e0", borderRadius: 8, maxHeight: "400px", overflowY: "auto" }}>
+                <table className="entregas-table">
+                  <thead>
+                    <tr style={{ background: '#25316D', color: '#fff' }}>
+                      <th>Fecha</th>
+                      <th>Cliente</th>
+                      <th style={{ textAlign: "center" }}>Orden</th>
+                      <th style={{ textAlign: "right" }}>Total Facturado</th>
+                      <th style={{ textAlign: "right" }}>Saldo Pendiente</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {deudasDetalle.length === 0 ? (
+                      <tr>
+                        <td colSpan={5} className="empty">No hay deudas activas registradas para esta sede.</td>
+                      </tr>
+                    ) : (
+                      <>
+                        {deudasDetalle.map((d, idx) => (
+                          <tr key={d.creditoId || idx} style={{ background: idx % 2 === 0 ? '#f8fafc' : '#fff' }}>
+                            <td>{d.fechaInicio || "—"}</td>
+                            <td style={{ fontWeight: 500 }}>{d.cliente || "—"}</td>
+                            <td style={{ textAlign: "center" }}>#{d.ordenId || "—"}</td>
+                            <td style={{ textAlign: "right" }}>{fmtCOP(d.totalCredito)}</td>
+                            <td style={{ textAlign: "right", color: "#c0392b", fontWeight: 600 }}>{fmtCOP(d.saldoPendiente)}</td>
+                          </tr>
+                        ))}
+                        <tr style={{ background: '#e6e8f0', fontWeight: 700 }}>
+                          <td colSpan={3} style={{ textAlign: 'right' }}>Totales:</td>
+                          <td style={{ textAlign: 'right' }}>{fmtCOP(deudasDetalle.reduce((sum, d) => sum + (Number(d.totalCredito) || 0), 0))}</td>
+                          <td style={{ textAlign: 'right', color: '#c0392b' }}>{fmtCOP(deudasDetalle.reduce((sum, d) => sum + (Number(d.saldoPendiente) || 0), 0))}</td>
+                        </tr>
+                      </>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="informes-modal-actions" style={{ marginTop: "1rem" }}>
+                <button
+                  type="button"
+                  className="btn-limpiar-filtros"
+                  onClick={() =>
+                    imprimirDetalleDeudasDocumento(
+                      nombreSedeSeleccionada,
+                      deudasDetalle,
+                      () => showError("No se pudo abrir la ventana de impresión. Permita ventanas emergentes.")
+                    )
+                  }
+                  disabled={deudasDetalle.length === 0}
+                >
+                  Imprimir Cartera
+                </button>
+                <button
+                  type="button"
+                  className="btn-crear-entrega"
+                  onClick={() => setModalDeudasOpen(false)}
+                >
+                  Cerrar
                 </button>
               </div>
             </div>

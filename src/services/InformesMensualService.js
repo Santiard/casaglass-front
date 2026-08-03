@@ -114,6 +114,21 @@ const InformesMensualService = {
     }
     return response.data;
   },
+
+  /**
+   * Obtiene el detalle exacto de las deudas activas de una sede.
+   * @param {number} sedeId
+   * @returns {Promise<Array>}
+   */
+  obtenerDetalleDeudasSede: async (sedeId) => {
+    const response = await api.get("informes/mensual/deudas-detalle", {
+      params: { sedeId },
+    });
+    if (isApiDebugEnabled()) {
+      console.log("[InformesMensualService] obtenerDetalleDeudasSede →", response.data);
+    }
+    return unwrapArray(response.data);
+  },
 };
 
 export default InformesMensualService;
