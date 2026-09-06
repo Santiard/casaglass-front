@@ -259,7 +259,17 @@ export default function EntregasTable({
                         Confirmar
                       </button>
                     )}
-                    <button className="btn" onClick={() => handleEliminar(ent)} disabled={ent.estado === "ENTREGADA"}>Eliminar</button>
+                    <button 
+                      className="btn" 
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleEliminar(ent);
+                      }} 
+                      disabled={ent.estado === "ENTREGADA"}
+                    >
+                      Eliminar
+                    </button>
                   </td>
                 </tr>
               );

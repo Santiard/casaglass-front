@@ -300,15 +300,9 @@ export default function EntregasPage() {
         showToastError("No se puede eliminar una entrega ENTREGADA");
         return;
       }
-      const confirmacion = await confirm({
-        title: "Eliminar Entrega",
-        message: `¿Estás seguro de que deseas eliminar la entrega #${entrega.id}?\n\nEsta acción no se puede deshacer.`,
-        confirmText: "Eliminar",
-        cancelText: "Cancelar",
-        type: "danger"
-      });
-      
-      if (!confirmacion) return;
+      if (!window.confirm(`¿Estás seguro de que deseas eliminar la entrega #${entrega.id}?\n\nEsta acción no se puede deshacer.`)) {
+        return;
+      }
       
       await EntregasService.eliminarEntrega(entrega.id);
       await cargarEntregas();
