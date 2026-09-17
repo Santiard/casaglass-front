@@ -583,6 +583,7 @@ export default function OrdenesTable({
                 const puedeAnular = !yaFacturada && !yaPagada && !estaAnulada && !creditoCerrado;
                 
                 const estadoPagoInfo = formatearEstadoPago(o.estadoPago);
+                const esClienteEspecial = o.cliente?.id === 499;
                 
                 return (
                     <tr key={`orden-${o.id}`}>
@@ -699,11 +700,12 @@ export default function OrdenesTable({
                               showError("Error al cargar los datos completos de la orden. Intenta nuevamente.");
                             }
                           }}
-                          disabled={estaAnulada || yaFacturada || yaPagada || creditoCerrado}
+                          disabled={estaAnulada || yaFacturada || (!esClienteEspecial && (yaPagada || creditoCerrado))}
                           title={
                             estaAnulada ? 'No se puede editar una orden anulada' :
-                            creditoCerrado ? 'No se puede editar una orden cuyo crédito ya fue pagado (cruce de cuentas)' :
-                            (yaFacturada || yaPagada) ? 'No se puede editar una orden facturada o pagada' :
+                            yaFacturada ? 'No se puede editar una orden facturada' :
+                            (!esClienteEspecial && creditoCerrado) ? 'No se puede editar una orden cuyo crédito ya fue pagado (cruce de cuentas)' :
+                            (!esClienteEspecial && yaPagada) ? 'No se puede editar una orden pagada' :
                             'Editar orden'
                           }
                         >

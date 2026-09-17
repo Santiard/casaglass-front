@@ -67,7 +67,7 @@ const CreditosEspecialesPage = () => {
   // Calcular total de créditos seleccionados
   const totalSeleccionado = creditos
     .filter(c => creditosSeleccionados.includes(c.id))
-    .reduce((sum, c) => sum + (c.totalCredito || 0), 0);
+    .reduce((sum, c) => sum + (c.saldoPendiente || c.totalCredito || 0), 0);
 
   const handleSeleccionarCredito = (creditoId) => {
     setCreditosSeleccionados((prev) =>
