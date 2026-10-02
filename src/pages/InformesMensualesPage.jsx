@@ -67,6 +67,123 @@ function formatoOrdenesVentasMesInforme(o) {
   return `— (${cant})`;
 }
 
+function RenderDetalleExhaustivo({ data }) {
+  if (!data) return null;
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', marginTop: '0.5rem', marginBottom: '1.5rem', fontSize: '0.95rem' }}>
+      
+      {/* SECCIÓN 1: RESUMEN DE VENTAS */}
+      <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden' }}>
+        <div style={{ background: '#f8fafc', padding: '10px 15px', fontWeight: 'bold', borderBottom: '1px solid #e2e8f0', color: '#1e293b' }}>
+          1. RESUMEN DE VENTAS DEL MES
+        </div>
+        <div style={{ padding: '10px 15px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: '600' }}>
+            <div>
+              Ventas Totales
+              <div style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 'normal', marginTop: '2px' }}>
+                (Incluye crédito. No es el dinero real que entró a caja)
+              </div>
+            </div>
+            <span>{fmtCOP(data.ventasMes)}</span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', color: '#475569', paddingLeft: '15px' }}>
+            <span>├─ Ventas al Contado</span>
+            <span>{fmtCOP(data.ventasContadoMes)}</span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', color: '#475569', paddingLeft: '15px' }}>
+            <span>└─ Ventas a Crédito</span>
+            <span>{fmtCOP(data.ventasCreditoMes)}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* SECCIÓN 2: DINERO RECOGIDO EN CAJA */}
+      <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden' }}>
+        <div style={{ background: '#ecfdf5', padding: '10px 15px', fontWeight: 'bold', borderBottom: '1px solid #e2e8f0', color: '#065f46' }}>
+          2. DINERO RECOGIDO EN CAJA (Base para bonos)
+        </div>
+        <div style={{ padding: '10px 15px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: '600', fontSize: '1.05rem', color: '#047857' }}>
+            <span>Total Dinero Recogido</span>
+            <span>{fmtCOP(data.dineroRecogidoMes)}</span>
+          </div>
+          <div style={{ fontWeight: '600', color: '#334155', marginTop: '5px' }}>¿De dónde salió este dinero?</div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', color: '#475569', paddingLeft: '15px' }}>
+            <span>├─ (+) Ventas al Contado</span>
+            <span>{fmtCOP(data.ventasContadoMes)}</span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', color: '#475569', paddingLeft: '15px' }}>
+            <span>├─ (+) Abonos a deudas de ESTE mes</span>
+            <span>{fmtCOP(data.dineroRecogidoAbonosMesActual)}</span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', color: '#475569', paddingLeft: '15px' }}>
+            <span>├─ (+) Abonos a deudas de MESES ANTERIORES</span>
+            <span>{fmtCOP(data.dineroRecogidoAbonosCarteraAntigua)}</span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', color: '#dc2626', paddingLeft: '15px' }}>
+            <span>└─ (-) Devoluciones/Reembolsos</span>
+            <span>{fmtCOP(data.dineroRecogidoReembolsosMes)}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* SECCIÓN 3: ESTADO DE LOS CRÉDITOS */}
+      <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden' }}>
+        <div style={{ background: '#fef2f2', padding: '10px 15px', fontWeight: 'bold', borderBottom: '1px solid #e2e8f0', color: '#991b1b' }}>
+          3. ESTADO DE LOS CRÉDITOS (DEUDAS)
+        </div>
+        <div style={{ padding: '10px 15px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: '600' }}>
+            <span>Deudas generadas este mes</span>
+            <span>{fmtCOP(data.ventasCreditoMes)}</span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', color: '#475569', paddingLeft: '15px' }}>
+            <span>├─ Ya pagado este mes</span>
+            <span>{fmtCOP(data.creditosMesPagados)}</span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', color: '#475569', paddingLeft: '15px' }}>
+            <span>└─ Quedó debiendo</span>
+            <span>{fmtCOP(data.deudasMes)}</span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: '600', borderTop: '1px solid #e2e8f0', paddingTop: '8px', marginTop: '4px' }}>
+            <span>Cartera Total Histórica (Deuda Viva)</span>
+            <span style={{ color: '#dc2626' }}>{fmtCOP(data.deudasActivasTotales)}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* SECCIÓN 4: MOVIMIENTOS CLIENTE ESPECIAL */}
+      <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden', background: '#f1f5f9' }}>
+        <div style={{ background: '#e2e8f0', padding: '10px 15px', fontWeight: 'bold', color: '#334155' }}>
+          4. MOVIMIENTOS DEL CLIENTE ESPECIAL
+        </div>
+        <div style={{ padding: '10px 15px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <span>Total Facturado a su nombre</span>
+            <span style={{ fontWeight: '500' }}>{fmtCOP(data.ventasClienteEspecialMes)}</span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <span>Total Cruzado/Pagado</span>
+            <span style={{ fontWeight: '500', color: '#047857' }}>{fmtCOP(data.pagosClienteEspecialMes)}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* SECCIÓN 5: VALOR DEL INVENTARIO */}
+      <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden' }}>
+        <div style={{ background: '#f8fafc', padding: '10px 15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span style={{ fontWeight: 'bold', color: '#1e293b' }}>
+            5. Valor del Inventario
+          </span>
+          <span style={{ fontWeight: '600' }}>{fmtCOP(data.valorInventario)}</span>
+        </div>
+      </div>
+
+    </div>
+  );
+}
+
 const ESTILOS_IMPRESION_INFORME_MENSUAL = `
   @page { margin: 14mm; size: auto; }
   body { font-family: Arial, Helvetica, sans-serif; font-size: 10pt; color: #222; margin: 0; padding: 10px 12px; }
@@ -97,18 +214,32 @@ function imprimirInformeMensualDocumento(data, onVentanaBloqueada) {
         ? "Cierre guardado"
         : escapeHtml(String(data.origen ?? "—"));
 
-  const filas = [
-    ["Ventas (mes)", fmtCOP(data.ventasMes)],
-    ["Dinero recogido", fmtCOP(data.dineroRecogidoMes)],
-    ["Deudas (mes)", fmtCOP(data.deudasMes)],
-    ["Deudas activas totales", fmtCOP(data.deudasActivasTotales)],
-    ["Precio por cantidad", fmtCOP(data.valorInventario)],
-    ["Órdenes (venta en mes)", formatoOrdenesVentasMesInforme(data.ordenesVentasMes)],
-  ];
+  const tbody = `
+      <tr><td colspan="2" style="font-weight: 700; background: #eee; padding-left: 8px;">1. RESUMEN DE VENTAS DEL MES</td></tr>
+      <tr><td>Ventas Totales<br><span style="font-size: 8pt; font-weight: normal; color: #666;">(Incluye crédito. No es el dinero real que entró a caja)</span></td><td>${escapeHtml(fmtCOP(data.ventasMes))}</td></tr>
+      <tr><td style="padding-left: 15px; color: #555;">├─ Ventas al Contado</td><td>${escapeHtml(fmtCOP(data.ventasContadoMes))}</td></tr>
+      <tr><td style="padding-left: 15px; color: #555;">└─ Ventas a Crédito</td><td>${escapeHtml(fmtCOP(data.ventasCreditoMes))}</td></tr>
 
-  const tbody = filas
-    .map(([lab, val]) => `<tr><td>${escapeHtml(lab)}</td><td>${escapeHtml(val)}</td></tr>`)
-    .join("");
+      <tr><td colspan="2" style="font-weight: 700; background: #eee; padding-left: 8px; margin-top: 10px;">2. DINERO RECOGIDO EN CAJA (Base para bonos)</td></tr>
+      <tr><td>Total Dinero Recogido</td><td>${escapeHtml(fmtCOP(data.dineroRecogidoMes))}</td></tr>
+      <tr><td colspan="2" style="font-size: 8.5pt; font-weight: 600; padding-left: 8px; color: #333;">¿De dónde salió este dinero?</td></tr>
+      <tr><td style="padding-left: 15px; color: #555;">├─ (+) Ventas al Contado</td><td>${escapeHtml(fmtCOP(data.ventasContadoMes))}</td></tr>
+      <tr><td style="padding-left: 15px; color: #555;">├─ (+) Abonos a deudas de ESTE mes</td><td>${escapeHtml(fmtCOP(data.dineroRecogidoAbonosMesActual))}</td></tr>
+      <tr><td style="padding-left: 15px; color: #555;">├─ (+) Abonos a deudas de MESES ANTERIORES</td><td>${escapeHtml(fmtCOP(data.dineroRecogidoAbonosCarteraAntigua))}</td></tr>
+      <tr><td style="padding-left: 15px; color: #555;">└─ (-) Devoluciones/Reembolsos</td><td>${escapeHtml(fmtCOP(data.dineroRecogidoReembolsosMes))}</td></tr>
+
+      <tr><td colspan="2" style="font-weight: 700; background: #eee; padding-left: 8px; margin-top: 10px;">3. ESTADO DE LOS CRÉDITOS (DEUDAS)</td></tr>
+      <tr><td>Deudas generadas este mes</td><td>${escapeHtml(fmtCOP(data.ventasCreditoMes))}</td></tr>
+      <tr><td style="padding-left: 15px; color: #555;">├─ Ya pagado este mes</td><td>${escapeHtml(fmtCOP(data.creditosMesPagados))}</td></tr>
+      <tr><td style="padding-left: 15px; color: #555;">└─ Quedó debiendo</td><td>${escapeHtml(fmtCOP(data.deudasMes))}</td></tr>
+      <tr><td>Cartera Total Histórica (Deuda Viva)</td><td>${escapeHtml(fmtCOP(data.deudasActivasTotales))}</td></tr>
+
+      <tr><td colspan="2" style="font-weight: 700; background: #eee; padding-left: 8px; margin-top: 10px;">4. MOVIMIENTOS DEL CLIENTE ESPECIAL</td></tr>
+      <tr style="background: #f9f9f9;"><td>Total Facturado a su nombre</td><td>${escapeHtml(fmtCOP(data.ventasClienteEspecialMes))}</td></tr>
+      <tr style="background: #f9f9f9;"><td>Total Cruzado/Pagado</td><td>${escapeHtml(fmtCOP(data.pagosClienteEspecialMes))}</td></tr>
+
+      <tr><td style="font-weight: 700; background: #eee; padding-left: 8px; margin-top: 10px;">5. Valor del Inventario</td><td style="font-weight: 700; background: #eee; text-align: right;">${escapeHtml(fmtCOP(data.valorInventario))}</td></tr>
+  `;
 
   const fechaGen = escapeHtml(new Date().toLocaleString("es-CO"));
   const html = `<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"/><title>Informe mensual</title><style>${ESTILOS_IMPRESION_INFORME_MENSUAL}</style></head><body>
@@ -780,20 +911,7 @@ export default function InformesMensualesPage() {
               {preview && (
                 <>
                   <p style={{ marginTop: "1rem", color: "#666", fontSize: "0.85rem" }}>{preview.periodo?.mesNombre || `${MESES_LABEL[preview.periodo?.month]} ${preview.periodo?.year}`}</p>
-                  <div className="informes-preview-grid">
-                    <div className="informes-preview-item"><label>Ventas (mes)</label><span>{fmtCOP(preview.ventasMes)}</span></div>
-                    <div className="informes-preview-item"><label>Dinero recogido</label><span>{fmtCOP(preview.dineroRecogidoMes)}</span></div>
-                    <div className="informes-preview-item"><label>Deudas (mes)</label><span>{fmtCOP(preview.deudasMes)}</span></div>
-                    <div className="informes-preview-item"><label>Deudas activas totales</label><span>{fmtCOP(preview.deudasActivasTotales)}</span></div>
-                    <div className="informes-preview-item"><label>Precio por cantidad</label><span>{fmtCOP(preview.valorInventario)}</span></div>
-                    <div className="informes-preview-item"><label style={{ gridColumn: "1 / -1" }}>Órdenes (venta en mes)</label>
-                      <span style={{ fontSize: "0.8rem", fontWeight: 500 }}>
-                        {preview.ordenesVentasMes?.numeroMin != null && preview.ordenesVentasMes?.numeroMax != null
-                          ? `#${preview.ordenesVentasMes.numeroMin} — #${preview.ordenesVentasMes.numeroMax} (${preview.ordenesVentasMes.cantidad ?? 0})`
-                          : `— (${preview.ordenesVentasMes?.cantidad ?? 0})`}
-                      </span>
-                    </div>
-                  </div>
+                  <RenderDetalleExhaustivo data={preview} />
                   <div className="informes-modal-actions">
                     <button
                       type="button"
@@ -835,20 +953,7 @@ export default function InformesMensualesPage() {
               <div style={{ fontSize: "0.85rem", color: "#666", marginBottom: 12 }}>
                 {detalle.sede?.nombre || "—"}
               </div>
-              <div className="informes-preview-grid">
-                <div className="informes-preview-item"><label>Ventas (mes)</label><span>{fmtCOP(detalle.ventasMes)}</span></div>
-                <div className="informes-preview-item"><label>Dinero recogido</label><span>{fmtCOP(detalle.dineroRecogidoMes)}</span></div>
-                <div className="informes-preview-item"><label>Deudas (mes)</label><span>{fmtCOP(detalle.deudasMes)}</span></div>
-                <div className="informes-preview-item"><label>Deudas activas totales</label><span>{fmtCOP(detalle.deudasActivasTotales)}</span></div>
-                <div className="informes-preview-item"><label>Valor inventario al cierre</label><span>{fmtCOP(detalle.valorInventario)}</span></div>
-                <div className="informes-preview-item"><label style={{ gridColumn: "1 / -1" }}>Órdenes (venta en mes)</label>
-                  <span style={{ fontSize: "0.8rem", fontWeight: 500 }}>
-                    {detalle.ordenesVentasMes?.numeroMin != null && detalle.ordenesVentasMes?.numeroMax != null
-                      ? `#${detalle.ordenesVentasMes.numeroMin} — #${detalle.ordenesVentasMes.numeroMax} (${detalle.ordenesVentasMes.cantidad ?? 0})`
-                      : `— (${detalle.ordenesVentasMes?.cantidad ?? 0})`}
-                  </span>
-                </div>
-              </div>
+              <RenderDetalleExhaustivo data={detalle} />
               <div className="informes-modal-actions">
                 <button
                   type="button"
